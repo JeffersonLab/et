@@ -24,6 +24,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef VXWORKS
+#include <stdint.h>
+#endif
+
+
 #ifdef VXWORKS
 
 #include <vxWorks.h>

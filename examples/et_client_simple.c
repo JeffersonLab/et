@@ -49,7 +49,7 @@ void analyze(int n_events,   et_event  *pArrayEv[]) {
         if (et_event_getpriority(pArrayEv[i], &priority) == ET_OK) {
           if (et_event_getlength(pArrayEv[i], &length)== ET_OK) {
             printf("        %8X              %2d        %8d\n", 
-                   (uint) pData, priority, length);
+                   (unsigned int) pData, priority, length);
           }
         }
       }

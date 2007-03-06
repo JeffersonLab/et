@@ -58,8 +58,8 @@ endif
 # MAC OS
 ifeq ($(OSNAME),Darwin)
 CFLAGS   = -O3 -fPIC -I../src -I$(INC_DIR) $(AC_FLAGS) 
-SHLIB_LD = ld -dylib /usr/lib/dylib1.o -lpthread -ldl -L$(LIB_DIR) -let
-LIBS     = -ldl
+SHLIB_LD = ld -dylib /usr/lib/dylib1.o -lpthread -ldl -L$(LIB_DIR) -let /usr/lib/gcc/darwin/3.3/libgcc.a 
+LIBS     = -ldl /usr/lib/gcc/darwin/3.3/libgcc.a 
 endif
 
 
@@ -100,7 +100,7 @@ $(PROGS) : % : %.c  ../src/et.h
 
 # example of user's event selection function in shared lib
 $(LIB_USER): et_userfunction.o
-	$(SHLIB_LD) -o $(LIB_USER) et_userfunction.o
+	$(SHLIB_LD) -o $(LIB_USER) et_userfunction.o 
 
 
 clean: 

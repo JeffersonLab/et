@@ -43,6 +43,9 @@
 #include <sys/time.h>
 #include <sys/select.h>
 #include <sys/utsname.h>
+#ifdef __APPLE__
+#include <ifaddrs.h>
+#endif
 
 #endif
 
@@ -843,6 +846,116 @@ int et_defaultbroadcastaddr(char *baddr)
 
 
 /******************************************************/
+#ifdef __APPLE__
+struct ifi_info *get_ifi_info(int family, int doaliases)
+{
+  struct ifi_info	*ifi, *ifilast, *ifihead, **ifipnext;
+  int			sockfd, len, lastlen, flags, myflags;
+  char			*ptr, *buf, lastname[IFNAMSIZ], *cptr;
+  struct ifconf		ifc;
+  struct ifreq		*ifr, ifrcopy;
+  struct sockaddr_in	*sinptr;
+
+
+  {
+  struct ifaddrs *ifaddrsp;
+
+  struct ifaddrs *theifaddrs;
+
+  getifaddrs(&ifaddrsp);
+
+  ifihead = NULL;
+  ifi = NULL;
+  ifilast=NULL;
+
+  for (theifaddrs = ifaddrsp; theifaddrs->ifa_next != NULL; theifaddrs=theifaddrs->ifa_next) {
+    ifr = (struct ifreq *) ptr;
+
+    /* for next one in buffer */
+    switch (theifaddrs->ifa_addr->sa_family) {
+#ifdef IPV6
+      case AF_INET6:
+		len = sizeof(struct sockaddr_in6);
+	  	break;
+#endif
+#if !defined linux && !defined __APPLE__
+      case AF_LINK:
+		len = sizeof(struct sockaddr_dl);
+		break;
+#endif
+#if defined __APPLE__
+      case AF_LINK:
+		len = sizeof(struct sockaddr);
+		continue;
+#endif
+      case AF_INET:
+        len = sizeof(struct sockaddr);
+        break;
+      default:
+		len = sizeof(struct sockaddr);
+		continue;
+
+    }
+
+    myflags = 0;
+    if ( (cptr = strchr(theifaddrs->ifa_name, ':')) != NULL) {
+      *cptr = 0;	/* replace colon will null */
+    }
+
+    if (strncmp(lastname, theifaddrs->ifa_name, IFNAMSIZ) == 0) {
+      if (doaliases == 0) {
+	/* continue;	already processed this interface */
+      }
+
+      myflags = IFI_ALIAS;
+    }
+
+    memcpy(lastname, theifaddrs->ifa_name, IFNAMSIZ);
+
+    flags = theifaddrs->ifa_flags;
+
+    /* ignore if interface not up */
+    if ((flags & IFF_UP) == 0) {
+  		continue;
+    }
+
+	ifilast = ifi;
+
+    ifi = calloc(1, sizeof(struct ifi_info));
+
+	if (ifihead == NULL) ifihead = ifi;
+
+	if (ifilast != NULL)
+	  ifilast->ifi_next = ifi;
+
+    ifi->ifi_flags = flags;	/* IFF_xxx values */
+    ifi->ifi_myflags = myflags;	/* IFI_xxx values */
+    memcpy(ifi->ifi_name, theifaddrs->ifa_name, IFI_NAME);
+
+    ifi->ifi_name[IFI_NAME-1] = '\0';
+
+    sinptr = (struct sockaddr_in *) theifaddrs->ifa_addr;
+    if (sinptr != NULL) {
+	  ifi->ifi_addr = calloc(1, sizeof(struct sockaddr_in));
+	  memcpy(ifi->ifi_addr, sinptr, sizeof(struct sockaddr_in));
+    }
+
+   	sinptr = (struct sockaddr_in *) theifaddrs->ifa_broadaddr;
+
+    if (sinptr != NULL) {
+		ifi->ifi_brdaddr = calloc(1, sizeof(struct sockaddr));
+
+	 	memcpy(ifi->ifi_brdaddr, sinptr, sizeof(struct sockaddr));
+	}
+
+  }
+  freeifaddrs(ifaddrsp);
+  }
+
+
+	return(ifihead);	/* pointer to first structure in linked list */
+}
+#else
 static struct ifi_info *get_ifi_info(int family, int doaliases)
 {
   struct ifi_info	*ifi, *ifihead, **ifipnext;
@@ -1001,7 +1114,7 @@ static struct ifi_info *get_ifi_info(int family, int doaliases)
   return(ifihead);	/* pointer to first structure in linked list */
 }
 
-
+#endif
 /******************************************************/
 static void free_ifi_info(struct ifi_info *ifihead)
 {
@@ -1256,6 +1369,7 @@ int et_udpreceive(unsigned short port, const char *address, int cast)
   }
     
   /* only allow packets to this port & address to be received */
+  
   err = bind(sockfd, (SA *) &servaddr, sizeof(servaddr));
   if (err < 0) {
     char errnostr[255];

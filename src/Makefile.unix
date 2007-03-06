@@ -62,9 +62,9 @@ endif
 
 # MAC OS
 ifeq ($(OSNAME),Darwin)
-CFLAGS   = -O3 -fPIC -I. -I$(INC_DIR) $(AC_FLAGS) 
-SHLIB_LD = ld -dylib /usr/lib/dylib1.o -lpthread -ldl
-LIBS     = -ldl
+CFLAGS   = -m32 -O3 -fPIC -I. -I$(INC_DIR) $(AC_FLAGS) 
+SHLIB_LD = ld -lpthread -ldl /usr/lib/gcc/darwin/3.3/libgcc.a
+LIBS     = -ldl /usr/lib/gcc/darwin/3.3/libgcc.a
 endif
 
 ET_LIBS = $(LIB_DYNAMIC) $(LIB_STATIC) $(LIB_REMOTE)
@@ -171,7 +171,7 @@ $(LIB_STATIC): $(OBJS)
 	$(RANLIB) $@
 
 $(LIB_DYNAMIC): $(OBJS)
-	$(SHLIB_LD) $(OBJS) -o $@
+	$(SHLIB_LD) $(OBJS) $(LIBS) -o $@
 
 $(LIB_REMOTE): $(REMOTE_OBJS)
 	$(SHLIB_LD) $(REMOTE_OBJS) -o $@
