@@ -438,7 +438,7 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
        (sc->restore_mode == ET_STATION_RESTORE_IN)  ||
        (sc->prescale     != 1))) {
     if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_config_check, if flow_mode = rrobin/equalcue, station must be parallel, nonblocking, prescale=1, & not restore-in\n");
+      et_logmsg("ERROR", "et_station_config_check, if flow_mode = rrobin/equalcue, station must be parallel, blocking, prescale=1, & not restore-in\n");
     }
     return ET_ERROR;
   }

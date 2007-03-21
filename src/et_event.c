@@ -134,7 +134,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
       return status;
     }
   }
-  else if (time != NULL) {
+  else if (deltatime != NULL) {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -311,7 +311,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
       return status;
     }
   }
-  else if (time != NULL) {
+  else if (deltatime != NULL) {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -489,7 +489,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
       return status;
     }
   }
-  else if (time != NULL) {
+  else if (deltatime != NULL) {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -629,7 +629,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
       return status;
     }
   }
-  else if (time != NULL) {
+  else if (deltatime != NULL) {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
