@@ -1821,6 +1821,11 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         case  ET_NET_CLOSE:
         case  ET_NET_FCLOSE:
         {
+	  int errnet;
+
+          errnet = htonl(ET_OK);
+          tcp_write(connfd, (void *) &errnet, sizeof(errnet));
+
 	  /* detach all attachments */
 	  for (i=0; i <ET_ATTACHMENTS_MAX ; i++) {
 	    if (attaches[i] > -1) {
