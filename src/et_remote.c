@@ -347,14 +347,6 @@ int etr_close(et_sys_id id)
         }
         /* return ET_ERROR_WRITE; */
     }
-    if (tcp_read(sockfd, &err, sizeof(err)) != sizeof(err))
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
-            et_logmsg("ERROR", "etr_close, read error\n");
-        }
-        /* return ET_ERROR_READ; */
-    }
 
     close(sockfd);
     et_tcp_unlock(etid);
@@ -380,14 +372,6 @@ int etr_forcedclose(et_sys_id id)
             et_logmsg("ERROR", "etr_forcedclose, write error\n");
         }
         /* return ET_ERROR_WRITE; */
-    }
-    if (tcp_read(sockfd, &err, sizeof(err)) != sizeof(err))
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
-            et_logmsg("ERROR", "etr_forcedclose, read error\n");
-        }
-        /* return ET_ERROR_READ; */
     }
 
     close(sockfd);
