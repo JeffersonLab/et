@@ -415,6 +415,9 @@ extern int et_station_config_destroy(et_statconfig sconfig);
 extern int et_station_config_setblock(et_statconfig sconfig, int val);
 extern int et_station_config_getblock(et_statconfig sconfig, int *val);
 
+extern int et_station_config_setflow(et_statconfig sconfig, int val);
+extern int et_station_config_getflow(et_statconfig sconfig, int *val);
+
 extern int et_station_config_setselect(et_statconfig sconfig, int val);
 extern int et_station_config_getselect(et_statconfig sconfig, int *val);
 
