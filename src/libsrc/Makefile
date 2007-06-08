@@ -26,7 +26,7 @@ MAKE_STATIC_LIB = make_me_please
 
 # if make is called here, override CODA stuff with ET stuff
 ifeq ($(MAKELEVEL), 0)
-  include ../Makefile.local
+  include ../../Makefile.local
 endif
 
 ifndef BMS_HOME
