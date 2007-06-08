@@ -61,8 +61,10 @@ int main(int argc,char **argv)
   
   /* handy data for testing */
   int   numbers[] = {0,1,2,3,4,5,6,7,8,9};
+  /*
   char   *stuff[] = {"One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten"};
-  int   control[] = {17,8,-1,-1}; /* 17,8 are arbitrary */
+  int   control[] = {17,8,-1,-1};
+  */
   
   if ((argc != 2) && (argc != 3)) {
     printf("Usage: %s <et_filename> [<eventsize>]\n", argv[0]);

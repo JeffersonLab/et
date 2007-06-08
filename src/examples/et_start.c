@@ -38,11 +38,13 @@ int main(int argc, char **argv)
   int           et_verbose = ET_DEBUG_NONE;
   int           deleteFile = 0;
   sigset_t      sigblockset, sigwaitset;
-  et_statconfig sconfig;
   et_sysconfig  config;
-  et_stat_id    statid;
   et_sys_id     id;
-
+  /*
+  et_statconfig sconfig;
+  et_stat_id    statid;
+  */
+  
   /************************************/
   /* default configuration parameters */
   /************************************/

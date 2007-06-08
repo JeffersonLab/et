@@ -35,8 +35,8 @@
 static void * signal_thread (void *arg);
 
 int main(int argc,char **argv) {  
-  int             i, j, status, swtch, numread, chunk, totalread=0, loops=0;
-  int		  con[ET_STATION_SELECT_INTS], ntransferred=0;
+  int             status, swtch, loops=0;
+  int		  ntransferred=0;
   pthread_t       tid;
   et_statconfig   sconfig;
   et_openconfig   openconfig;
@@ -44,7 +44,7 @@ int main(int argc,char **argv) {
   sigset_t        sigblock;
   struct timespec timeout;
   et_att_id       att_from, att_to;
-  et_stat_id      stat_from, stat_to;
+  et_stat_id      stat_from;
   et_sys_id       id_from, id_to;
   int             selections[] = {17,15,-1,-1}; /* 17,15 are arbitrary */
 

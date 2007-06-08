@@ -124,12 +124,12 @@ int et_prod_run_et(opt_t options, prod_conf_t conf) {
 
   /* array of pointers to events. */
   et_event      **pe;
-  int             priority = ET_HIGH;
   char           *pev_data = NULL;
-
+  /*
+  int             priority = ET_HIGH;
   int             control[] = {17,8,-1,-1};
-
   char            tmp;
+  */
 
   struct timespec sometime;
   int             nap_count;

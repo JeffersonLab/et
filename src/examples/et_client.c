@@ -6,9 +6,9 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*
  *
@@ -42,7 +42,7 @@ char            *stationName, *systemName;
 
 
 int main(int argc,char **argv) {  
-  int             i, j, status, swtch, numread, totalread=0;
+  int             j, status, swtch, numread, totalread=0;
   int		  con[ET_STATION_SELECT_INTS];
   pthread_t       tid;
   et_statconfig   sconfig;
@@ -84,7 +84,6 @@ int main(int argc,char **argv) {
   /* spawn signal handling thread */
   pthread_create(&tid, NULL, signal_thread, (void *)NULL);
   
-restartLinux:
   /* open ET system */
   et_open_config_init(&openconfig);
   /* et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
@@ -292,44 +291,13 @@ static void *signal_thread (void *arg)
 {
   sigset_t        signal_set;
   int             sig_number;
-  et_stat_id      stat;
-  et_sys_id       sysid;
-  et_openconfig   openconfig;
- 
+
   sigemptyset(&signal_set);
   sigaddset(&signal_set, SIGINT);
   
   /* Wait for Control-C */
   sigwait(&signal_set, &sig_number);
   
-  printf("et_client: got a control-C, try to remove station\n");
-  
-  /* If the main program is interrupted in the middle of a bad spot -
-   * like it's sleeping in a read - we'll need to wake it up first.
-   * Remember that it is running concurrently with this handler.
-   * Do this by opening the ET system and making another connection.
-   * With this connection, get the station id and tell things to wake.
-   * Then detach. Once detached, the station can be removed.
-   */
-
-  /* open ET system */
-/*  et_open_config_init(&openconfig);
-  et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
-  et_open_config_setwait(openconfig, ET_OPEN_WAIT);
-  if (et_open(&sysid, systemName, openconfig) != ET_OK) {
-    printf("handler: et_open problems\n");
-    exit(1);
-  }
-  et_open_config_destroy(openconfig);
-*/  
-  /* get station id */
-/*  et_station_name_to_id(sysid, &stat, stationName);*/
-  /* wake up any sleeping event getters */
-/*  et_wakeup_all(sysid, stat);*/
-  /* detach main thread's attachment */
-/*  et_station_detach(id, attach1);*/
-  /* remove station */
-/*  et_station_remove(sysid, stat);*/
-  
+  printf("et_client: got a control-C\n");
   exit(1);
 }

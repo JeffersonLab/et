@@ -50,7 +50,7 @@ int main(int argc, char **argv)
   int            intdata, *pintdata;
 #endif
   int		 writeIt=0, printIt=0, control[]= {1,0,0,0};
-  et_event       *ev, *evs[1000];
+  et_event       *evs[1000];
   struct timespec twait;
   char		 *station, *pdata;
   
