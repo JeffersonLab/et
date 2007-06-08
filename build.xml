@@ -61,15 +61,15 @@
 
     <!-- Clean by removing class files -->
     <target name="clean" description="Remove all class files">
-        <delete>
+        <delete failonerror="no" >
             <fileset dir="${build.classes}" includes="**/*.class" />
         </delete>
     </target>
 
     <!-- Clean by removing build & doc directories -->
     <target name="cleanall" depends="clean" description="Remove all generated files.">
-        <delete dir="${build.dir}" />
-        <delete dir="${doc.dir}" />
+        <delete dir="${build.dir}" failonerror="no" />
+        <delete dir="${doc.dir}"   failonerror="no" />
     </target>
 
     <!-- Compile all source -->
