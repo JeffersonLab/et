@@ -1,0 +1,13 @@
+CVS
+doc/javadoc/*
+doc/doxygen/*
+et-9.0.tar.gz
+src/*.o
+src/.vxworks/*
+src/.Linux/*
+src/.SunOS/*
+examples/*.o
+examples/.vxworks/*
+examples/.Linux/*
+examples/.SunOS/*
+arch/*
