@@ -28,7 +28,7 @@ MAKE_STATIC_LIB = make_me_please
 # and to include it.
 ifeq ($(MAKELEVEL), 0)
   ifndef TOPLEVEL
-    TOPLEVEL = ../..
+    TOPLEVEL = $(shell pwd)/../..
   endif
 endif
 

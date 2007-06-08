@@ -12,9 +12,12 @@ CXXFLAGS  += -I../src
 # list your main files here if you don't want all files with main compiled
 # MAIN_FILES =
 
-# if make is called here, override CODA stuff with ET stuff
+# Setting TOPLEVEL tells Makefile.common where to find Makefile.local
+# and to include it.
 ifeq ($(MAKELEVEL), 0)
-  include ../../Makefile.local
+  ifndef TOPLEVEL
+    TOPLEVEL = $(shell pwd)/../..
+  endif
 endif
 
 ifndef BMS_HOME
