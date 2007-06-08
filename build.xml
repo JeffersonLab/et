@@ -13,7 +13,7 @@
     
     <!-- Classpath -->
     <path id="classpath">
-        <fileset dir="jars">
+        <fileset dir="java/jars">
             <include name="**/*.jar" />
         </fileset>
     </path>
@@ -82,7 +82,10 @@
 
     <!-- Create Jar file -->
     <target name="jar" depends="compile" description="Generates jar file.">
-        <jar jarfile="${build.lib}/et-${et.version}.jar" basedir="${build.classes}" />
+        <jar jarfile="${build.lib}/et-${et.version}.jar">
+          <!-- Dont include Consumer, Producer, and StartET.class files -->
+          <fileset dir="${build.classes}" excludes="*.class" />
+        </jar>
     </target>
 
     <!-- Clean, compile, and create jar -->
