@@ -24,9 +24,12 @@ OTHER_TARGETS += $(LIB_DIR)/libet_remote.so
 MAKE_SHARED_LIB = make_me_please
 MAKE_STATIC_LIB = make_me_please
 
-# if make is called here, override CODA stuff with ET stuff
+# Setting TOPLEVEL tells Makefile.common where to find Makefile.local
+# and to include it.
 ifeq ($(MAKELEVEL), 0)
-  include ../../Makefile.local
+  ifndef TOPLEVEL
+    TOPLEVEL = ../..
+  endif
 endif
 
 ifndef BMS_HOME
