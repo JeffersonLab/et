@@ -25,12 +25,9 @@ MAKE_SHARED_LIB = make_me_please
 MAKE_STATIC_LIB = make_me_please
 
 # Setting TOPLEVEL tells Makefile.common where to find Makefile.local
-# and to include it.
-ifeq ($(MAKELEVEL), 0)
-  ifndef TOPLEVEL
-    TOPLEVEL = $(shell pwd)/../..
-  endif
-endif
+# and to include it if make is run from this dir or the top-level package
+# directory.
+TOPLEVEL = $(shell pwd)/../..
 
 ifndef BMS_HOME
   $(error "Need to define BMS_HOME")
