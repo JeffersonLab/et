@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef VXWORKS
+#if  !(defined VXWORKS || defined sun)
 #include <stdint.h>
 #endif
 

@@ -334,7 +334,7 @@ int etr_close(et_sys_id id)
 {
     et_id *etid = (et_id *) id;
     int sockfd = etid->sockfd;
-    int err, com;
+    int com;
 
     com = htonl(ET_NET_CLOSE);
     /* if communication with ET system fails, we've already been "closed" */
@@ -360,7 +360,7 @@ int etr_forcedclose(et_sys_id id)
 {
     et_id *etid = (et_id *) id;
     int sockfd = etid->sockfd;
-    int err, com;
+    int com;
 
     com = htonl(ET_NET_FCLOSE);
     /* if communication with ET system fails, we've already been "closed" */

@@ -20,7 +20,7 @@
 #ifndef __et_private_h
 #define __et_private_h
 
-#ifndef VXWORKS
+#if  !(defined VXWORKS || defined sun)
 #include <stdint.h>
 #endif
 

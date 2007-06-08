@@ -328,7 +328,7 @@ void et_logmsg (char *sev, char *fmt, ...)
 /******************************************************/
 int et_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 {     
-  int             status, auto_open=0, err, locality;
+  int             status, auto_open=0, err;
   et_open_config *config;
   et_openconfig   auto_config = NULL;
   int             def_debug;
