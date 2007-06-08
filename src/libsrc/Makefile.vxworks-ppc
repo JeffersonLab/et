@@ -1,0 +1,41 @@
+#
+# $Header$
+#
+
+# Things for building shared libs
+PACKAGES = ET
+MODULE_NAME = et
+
+OS = vxworks
+ARCH = ppc
+
+# objects for making a remote library
+ROBJS = et_statconfig.o \
+	et_openconfig.o \
+	et_init.o \
+	et_sysconfig.o \
+	et_remote.o \
+	et_network.o \
+	et_remoteclient.o
+
+RLINK_OBJS = $(addprefix $(OBJ_DIR)/,$(ROBJS))
+
+OTHER_TARGETS += $(LIB_DIR)/libet_remote.a
+
+# if you don't want either of these libs, comment out the definition(s)
+# MAKE_SHARED_LIB = make_me_please
+# MAKE_STATIC_LIB = make_me_please
+
+include $(CODA_HOME)/Makefile.libs
+
+# older version of GNU (vx 5.5) does NOT have -MT option,
+# but -MT $file.o is default anyway
+%.d : %.c
+	@$(DCC) $(CFLAGS) $< > $(DEP_DIR)/$(basename $@).d
+
+# This new target must come AFTER the makefile include above or else it's the first target.
+# The other stuff must come BEFORE since the included makefiles have a target defined.
+$(LIB_DIR)/libet_remote.a: $(ROBJS)
+	$(AR) cr $@ $(addprefix $(OBJ_DIR)/,$?)
+	$(RANLIB) $@
+
