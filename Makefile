@@ -4,9 +4,6 @@
 
 MAKEFILE = Makefile
 
-TOPLEVEL = $(shell pwd)
-export TOPLEVEL
-
 .PHONY : all src env mkdirs install uninstall relink clean distClean execClean java tar doc
 
 
