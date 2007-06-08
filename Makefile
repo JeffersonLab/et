@@ -4,19 +4,10 @@
 
 MAKEFILE = Makefile
 
-# if make is called here, override CODA stuff with ET stuff
-ifeq ($(MAKELEVEL), 0)
-  include Makefile.local
-endif
+TOPLEVEL = $(shell pwd)
+export TOPLEVEL
 
-ifndef BMS_HOME
-  BMS_HOME = $(shell pwd)/BMS
-endif
-# send value to called makefiles
-export BMS_HOME
-
-
-.PHONY : all src env mkdirs install uninstall relink clean distClean execClean java
+.PHONY : all src env mkdirs install uninstall relink clean distClean execClean java tar
 
 
 all: src
@@ -59,4 +50,8 @@ execClean:
 
 java:
 	ant;
+
+tar:
+	-$(RM) tar/et-9.0.tar.gz;
+	tar -X tar/tarexclude -C .. -c -z -f tar/et-9.0.tar.gz et
 

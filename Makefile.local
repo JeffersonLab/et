@@ -9,30 +9,14 @@
 #     CODA_USE64BITS with ET_USE64BITS
 #
 
-ifdef ET_USE64BITS
-  # Need to define OS & ARCH here as well as in Makefile.common
-  # since we need to include this file BEFORE Makefile.common.
-  ifndef OS
-    OS = $(shell uname)
-  endif
-
-  ifndef ARCH
-    ARCH = $(shell uname -m)
-  endif
-
-  OSNAME = $(OS)-$(ARCH)-64
-  CODA_USE64BITS = $(ET_USE64BITS)
-  export OSNAME
-  export CODA_USE64BITS
-endif
-
 ifdef ET_HOME
   CODA_HOME = $(ET_HOME)
-  export CODA_HOME
 endif
 
 ifdef ET_INSTALL
   CODA_INSTALL = $(ET_INSTALL)
-  export CODA_INSTALL
 endif
 
+ifdef ET_USE64BITS
+  CODA_USE64BITS = $(ET_USE64BITS)
+endif
