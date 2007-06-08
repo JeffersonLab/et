@@ -2,10 +2,6 @@
 doc/javadoc/*
 doc/doxygen/*
 tar/et*
-src/libsrc/.Linux*
-src/libsrc/.SunOS*
-src/libsrc/.vxworks*
-src/examples/.Linux*
-src/examples/.SunOS*
-src/examples/.vxworks*
+src/libsrc/.*
+src/examples/.*
 build
