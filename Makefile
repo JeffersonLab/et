@@ -7,7 +7,7 @@ MAKEFILE = Makefile
 TOPLEVEL = $(shell pwd)
 export TOPLEVEL
 
-.PHONY : all src env mkdirs install uninstall relink clean distClean execClean java tar
+.PHONY : all src env mkdirs install uninstall relink clean distClean execClean java tar doc
 
 
 all: src
@@ -23,6 +23,7 @@ env:
 mkdirs:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE) mkdirs;
 	cd src/examples; $(MAKE) -f $(MAKEFILE) mkdirs;
+	ant prepare;
 
 install:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE) install;
@@ -39,10 +40,12 @@ relink:
 clean:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE) clean;
 	cd src/examples; $(MAKE) -f $(MAKEFILE) clean;
+	ant clean;
 
 distClean:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE) distClean;
 	cd src/examples; $(MAKE) -f $(MAKEFILE) distClean;
+	ant cleanall;
 
 execClean:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE) execClean;
@@ -50,6 +53,9 @@ execClean:
 
 java:
 	ant;
+
+doc:
+	ant javadoc;
 
 tar:
 	-$(RM) tar/et-9.0.tar.gz;

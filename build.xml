@@ -95,7 +95,7 @@
     <target name="javadoc" description="Create javadoc.">
         <mkdir dir="${doc.dir}" />
         <javadoc packagenames="org.jlab.coda.*"
-                 sourcepath="."
+                 sourcepath="java"
                  destdir="${doc.dir}"
                  use="true" >
             <classpath refid="classpath" />
