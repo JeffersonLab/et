@@ -33,7 +33,7 @@ ifeq ($(MAKELEVEL), 0)
 endif
 
 ifndef BMS_HOME
-  BMS_HOME = $(shell pwd)/../BMS
+  $(error "Need to define BMS_HOME")
 endif
 
 # Things for building libs
