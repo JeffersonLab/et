@@ -13,6 +13,9 @@ src:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE);
 	cd src/examples; $(MAKE) -f $(MAKEFILE);
 
+vxworks-$(ARCH):
+	cd src/libsrc;   $(MAKE) -f $(MAKEFILE).vxworks-$(ARCH);
+
 env:
 	cd src/libsrc;   $(MAKE) -f $(MAKEFILE) env;
 	cd src/examples; $(MAKE) -f $(MAKEFILE) env;
