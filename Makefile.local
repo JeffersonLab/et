@@ -14,7 +14,7 @@ ifdef ET_HOME
 endif
 
 ifdef ET_INSTALL
-  CODA_INSTALL = $(ET_INSTALL)
+  INSTALL_DIR = $(ET_INSTALL)
 endif
 
 ifdef ET_USE64BITS
