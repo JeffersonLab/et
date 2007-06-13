@@ -60,4 +60,3 @@ doc:
 tar:
 	-$(RM) tar/et-9.0.tar.gz;
 	tar -X tar/tarexclude -C .. -c -z -f tar/et-9.0.tar.gz et
-
