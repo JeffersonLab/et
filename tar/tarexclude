@@ -1,4 +1,5 @@
 .svn
+errors.log
 doc/javadoc/*
 doc/doxygen/*
 tar/et*
