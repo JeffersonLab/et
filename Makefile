@@ -19,11 +19,8 @@ TOPLEVEL = .
 # list directories in which there are makefiles to be run (relative to this one)
 SRC_DIRS = src/libsrc src/examples
 
-# targets for which we run lower-level makefiles
-TARGETS = all env mkdirs install uninstall relink clean distClean execClean
-
 # declaring a target phony skips the implicit rule search and saves time
-.PHONY : java doc tar help $(TARGETS)
+.PHONY : first help java javaClean javaDistClean doc tar
 
 
 first: all
@@ -58,8 +55,8 @@ tar:
 	-$(RM) tar/et-9.0.tar.gz;
 	tar -X tar/tarexclude -C .. -c -z -f tar/et-9.0.tar.gz et
 
-# Use the same rule for each of these targets
-$(TARGETS):
+# Use this pattern rule for all other targets
+%:
 	@for i in $(SRC_DIRS); do \
 	   $(MAKE) -C $$i -f $(MAKEFILE) $@; \
 	done;
