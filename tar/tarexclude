@@ -1,5 +1,5 @@
 .svn
-errors.log
+doxyerrors.log
 doc/javadoc/*
 doc/doxygen/*
 tar/et*
