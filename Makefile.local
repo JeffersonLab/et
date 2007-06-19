@@ -5,7 +5,7 @@
 #
 # Overwrite:
 #     CODA_HOME      with ET_HOME
-#     CODA_INSTALL   with ET_INSTALL
+#     INSTALL_DIR    with ET_INSTALL
 #     CODA_USE64BITS with ET_USE64BITS
 #
 
