@@ -59,11 +59,6 @@ RLINK_OBJS = $(addprefix $(OBJ_DIR)/,$(RDOBJS))
 # Things for building libs
 include $(BMS_HOME)/Makefile.libs
 
-# older version of GNU (vx 5.5) does NOT have -MT option,
-# but -MT $file.o is default anyway
-%.d : %.c
-	@$(DCC) $(CFLAGS) $< > $(DEP_DIR)/$(basename $@).d
-
 # This new target must come AFTER the makefile include above or else it's the first target.
 # The other stuff must come BEFORE since the included makefiles have a target defined.
 $(LIB_DIR)/libet_remote$(DEBUG_SUFFIX).a: $(RDOBJS)
