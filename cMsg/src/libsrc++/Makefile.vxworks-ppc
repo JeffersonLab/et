@@ -1,0 +1,34 @@
+#
+# cMsg C++ library
+#
+
+
+ifndef BMS_HOME
+  $(error "Need to define BMS_HOME")
+endif
+
+OS   = vxworks
+ARCH = ppc
+
+# Setting TOPLEVEL tells Makefile.common where to find Makefile.local
+# and to include it if make is run from this dir or the top-level package
+# directory.
+TOPLEVEL = ../..
+
+MODULE_NAME = cmsgxx
+
+# set optimization level
+OPTIMIZE = 3
+
+CFLAGS   += -I../libsrc
+CXXFLAGS += -I../libsrc
+
+# if you don't want either of these libs, comment out the definition(s)
+#MAKE_SHARED_LIB = make_me_please
+MAKE_STATIC_LIB = make_me_please
+
+# Things common to all builds live in Makefile.common
+include $(BMS_HOME)/Makefile.common
+
+# Things common to building libraries live in Makefile.libs
+include $(BMS_HOME)/Makefile.libs

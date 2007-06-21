@@ -1,0 +1,49 @@
+#
+# cMsg C library
+#
+
+ifndef BMS_HOME
+  $(error "Need to define BMS_HOME")
+endif
+
+OS   = vxworks
+ARCH = ppc
+
+# Setting TOPLEVEL tells Makefile.common where to find Makefile.local
+# and to include it if make is run from this dir or the top-level package
+# directory.
+TOPLEVEL = ../..
+
+# use cMsg libraries
+PACKAGES = cMsg
+
+MODULE_NAME = cmsg
+
+# set optimization level
+OPTIMIZE = 3
+
+CFLAGS   += -I../libsrc -I../libsrc++
+CXXFLAGS += -I../libsrc -I../libsrc++
+
+# don't bother to do dependencies for these
+NO_DEP_OBJS  = \
+	consumer.o \
+	producer.o \
+	getConsumer.o \
+	getResponder.o \
+	rcClient.o \
+	dummy.o \
+	monitor.o \
+	shutdowner.o
+
+# files to compile as executables
+MAIN_FILES = vxconsumer vxproducer
+
+# Things common to all builds live in Makefile.common
+include $(BMS_HOME)/Makefile.common
+
+# Things common to building libraries live in Makefile.libs
+include $(BMS_HOME)/Makefile.bin
+
+# don't link against libs for vxworks
+MISC_LIBS =
