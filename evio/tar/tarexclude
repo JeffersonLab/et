@@ -1,0 +1,10 @@
+.svn
+doxyerrors.log
+doc/javadoc/*
+doc/doxygen/*
+tar/evio*
+src/libsrc/.*
+src/libsrc++/.*
+src/examples/.*
+src/test/.*
+build

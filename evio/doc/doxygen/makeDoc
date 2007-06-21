@@ -1,0 +1,4 @@
+#!/bin/csh -f
+
+setenv DOTFONTPATH /usr/share/fonts/default/TrueType
+/apps/doxygen/doxygen-1.5.1/bin/doxygen Doxyfile
