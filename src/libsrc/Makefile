@@ -43,10 +43,11 @@ RLINK_OBJS = $(addprefix $(OBJ_DIR)/,$(RDOBJS))
 MAKE_SHARED_LIB = make_me_please
 MAKE_STATIC_LIB = make_me_please
 
-# Things for building libs
-include $(BMS_HOME)/Makefile.libs
-
 # This new target must come AFTER the makefile include above or else it's the first target.
 # The other stuff must come BEFORE since the included makefiles have a target defined.
 $(LIB_DIR)/libet_remote$(DEBUG_SUFFIX).so: $(RDOBJS)
 	$(LD) $(LD_SO_FLAGS) $(LD_DIRS) $(RLINK_OBJS) $(LD_LIBS) -o $@
+
+# Things for building libs
+include $(BMS_HOME)/Makefile.libs
+
