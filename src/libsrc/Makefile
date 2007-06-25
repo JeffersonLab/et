@@ -18,7 +18,7 @@ TOPLEVEL = ../..
 MODULE_NAME = et
 
 # filter this out of the regular libraries
-NO_OBJS = et_remoteclient.o et_monitor.o
+NO_OBJS = et_remoteclient.o
 
 # Things common to all builds live in Makefile.common
 include $(BMS_HOME)/Makefile.common
