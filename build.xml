@@ -31,6 +31,8 @@
         <echo message="Usage: ant [ant options] &lt;target1&gt; [target2 | target3 | ...]" />
         <echo message="" />
         <echo message="       targets:" />
+        <echo message="       help     - print out usage" />
+        <echo message="       env      - print out build file variables' values" />
         <echo message="       compile  - compile java files" />
         <echo message="       clean    - remove class files" />
         <echo message="       cleanall - remove all generated files" />
