@@ -52,7 +52,6 @@
 #ifdef sun
 #include <sys/filio.h>
 #endif
-#include "et_private.h"
 #include "et_network.h"
 
 #ifdef VXWORKS
@@ -77,8 +76,8 @@ struct hostent *gethostbyname(const char *hostName)
 #endif
 
 /* prototypes */
-static struct ifi_info *get_ifi_info(int family, int doaliases);
-static void free_ifi_info(struct ifi_info *ifihead);
+/*static struct ifi_info *get_ifi_info(int family, int doaliases);*/
+/*static void free_ifi_info(struct ifi_info *ifihead);*/
 
 /*****************************************************/
 /* 64 bit swap routine */
@@ -745,7 +744,7 @@ int et_defaultbroadcastaddr(char *baddr)
   }
   
   /* look through ET_MAXADDRESSES IPv4 interfaces at most */
-  ifihead = ifi = get_ifi_info(AF_INET, ET_MAXADDRESSES);
+  ifihead = ifi = get_ifi_info(AF_INET, 1);
   if (ifi == NULL) {
     fprintf(stderr, "et_defaultbroadcastaddr: cannot find network interface info\n");
     return ET_ERROR;
@@ -956,7 +955,7 @@ struct ifi_info *get_ifi_info(int family, int doaliases)
 	return(ifihead);	/* pointer to first structure in linked list */
 }
 #else
-static struct ifi_info *get_ifi_info(int family, int doaliases)
+struct ifi_info *get_ifi_info(int family, int doaliases)
 {
   struct ifi_info	*ifi, *ifihead, **ifipnext;
   int			sockfd, len, lastlen, flags, myflags;
@@ -1042,7 +1041,7 @@ static struct ifi_info *get_ifi_info(int family, int doaliases)
     
     myflags = 0;
     if ( (cptr = strchr(ifr->ifr_name, ':')) != NULL) {
-      *cptr = 0;	/* replace colon will null */
+      *cptr = 0;	/* replace colon with null */
     }
     if (strncmp(lastname, ifr->ifr_name, IFNAMSIZ) == 0) {
       if (doaliases == 0) {
@@ -1116,7 +1115,7 @@ static struct ifi_info *get_ifi_info(int family, int doaliases)
 
 #endif
 /******************************************************/
-static void free_ifi_info(struct ifi_info *ifihead)
+void free_ifi_info(struct ifi_info *ifihead)
 {
   struct ifi_info  *ifi, *ifinext;
 
@@ -1157,8 +1156,8 @@ int et_netinfo (et_ifnames *ifnames, et_ifaddrs *ifaddrs, et_subnets *nets)
   /* get fully qualified default hostname of this host */
   et_defaulthost(host, ET_MAXHOSTNAMELEN);
 
-  /* look through ET_MAXADDRESSES IPv4 interfaces at most */
-  ifihead = ifi = get_ifi_info(AF_INET, ET_MAXADDRESSES);
+  /* look through IPv4 interfaces */
+  ifihead = ifi = get_ifi_info(AF_INET, 1);
   if (ifi == NULL) {
     fprintf(stderr, "et_netinfo: cannot find network interface info\n");
     return ET_ERROR;
@@ -1490,7 +1489,6 @@ int et_findserver2(const char *etname, char *ethost, int *port,
       (strcmp(config->host, ET_HOST_ANYWHERE) != 0)) {
     
     /* Find host's address */
-    struct in_addr  ipaddress;	/* binary 32bit IPv4 addr */
     struct hostent  *hptr=NULL;
 
     /* if it's local, find address associated with uname */
@@ -1516,30 +1514,63 @@ int et_findserver2(const char *etname, char *ethost, int *port,
     
     /* store canonical name of specified host to contact */
     strcpy(specifiedhost, hptr->h_name);
-    
-    /* always send udp packet directly to udpport, local hostname */
-    ipaddress = *((struct in_addr *) *hptr->h_addr_list);
+        
+    /* for each listed subnet ... */
+    for (i=0; i < config->subnets.count; i++) {
+      /* if subnet is to be used ... */
+      if (config->activated & 1<<i) {
+	/* put address into net-ordered binary form */
+	if (inet_aton(config->subnets.addr[i], &castaddr) == INET_ATON_ERR) {
+	  fprintf(stderr, "et_findserver: inet_aton error net_addr = %s\n", config->subnets.addr[i]);
+          for (j=0; j<numsockets; j++) {
+	    close(send[j].sockfd);
+	  }
+          free(send);
+	  return ET_ERROR;
+	}
+/*
+printf("et_findserver: send broadcast packet to %s on port %d\n", config->subnets.addr[i],
+                                                                config->udpport);
+*/
+	/* server's location */
+	bzero((void *)&servaddr, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr   = castaddr;
+	servaddr.sin_port   = htons((unsigned short)config->udpport);
 
-    /* server's location */
-    bzero((void *)&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr   = ipaddress;
-    servaddr.sin_port   = htons((unsigned short)config->udpport);
+	/* create socket */
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0) {
+	  fprintf(stderr, "et_findserver: socket error\n");
+          for (j=0; j<numsockets; j++) {
+	    close(send[j].sockfd);
+	  }
+          free(send);
+	  return ET_ERROR;
+	}
 
-    /* create socket */
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-      fprintf(stderr, "et_findserver: socket error\n");
-      return ET_ERROR;
+	/* make this a broadcast socket */
+	err = setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, (void *) &on, sizeof(on));
+	if (err < 0) {
+	  fprintf(stderr, "et_findserver: setsockopt SO_BROADCAST error\n");
+	  close(sockfd);
+          for (j=0; j<numsockets; j++) {
+	    close(send[j].sockfd);
+	  }
+	  free(send);
+	  return ET_ERROR;
+	}
+
+	/* for sending packet and for select */
+	send[numsockets].sockfd   = sockfd;
+	send[numsockets].servaddr = servaddr;
+	if (biggestsockfd < sockfd) biggestsockfd = sockfd;
+	numsockets++;
+	FD_SET(sockfd, &rset);
+
+      }
     }
-    
-    /* for sending packet and for select */
-    send[numsockets].sockfd   = sockfd;
-    send[numsockets].servaddr = servaddr;
-    numsockets++;
-    biggestsockfd = sockfd;
-    FD_SET(sockfd, &rset);
-    
+
     /* if also configured for multicast, send that too */
     if ((config->cast == ET_MULTICAST) ||
 	(config->cast == ET_BROADANDMULTICAST)) {
@@ -1554,7 +1585,10 @@ int et_findserver2(const char *etname, char *ethost, int *port,
           free(send);
 	  return ET_ERROR;
 	}
-
+/*
+printf("et_findserver: send multicast packet to %s on port %d\n", config->mcastaddrs.addr[i],
+                                                                  config->multiport);
+*/
 	/* server's location */
 	bzero((void *)&servaddr, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -1621,7 +1655,10 @@ int et_findserver2(const char *etname, char *ethost, int *port,
             free(send);
 	    return ET_ERROR;
 	  }
-
+/*
+printf("et_findserver: send broadcast packet to %s on port %d\n", config->subnets.addr[i],
+                                                                  config->udpport);
+*/
 	  /* server's location */
 	  bzero((void *)&servaddr, sizeof(servaddr));
 	  servaddr.sin_family = AF_INET;
@@ -1676,8 +1713,10 @@ int et_findserver2(const char *etname, char *ethost, int *port,
           free(send);
 	  return ET_ERROR;
 	}
-
-/*  printf("et_findserver: send multicast packet to %s\n", config->mcastaddrs.addr[i]);*/
+/*
+printf("et_findserver: send multicast packet to %s on port %d\n", config->mcastaddrs.addr[i],
+                                                                  config->multiport);
+*/
 	/* server's location */
 	bzero((void *)&servaddr, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -1915,10 +1954,10 @@ anotherpacket:
 	  pbuf += sizeof(length);
 	  memcpy(answers[numresponses].unamehost, pbuf, length);
 	  
-/*printf("et_findserver: RESPONSE from %s at %d with addr = %s and uname = %s\n",
+printf("et_findserver: RESPONSE from %s at %d with addr = %s and uname = %s\n",
         answers[numresponses].host, answers[numresponses].port,
         answers[numresponses].address, answers[numresponses].unamehost);
-*/
+
           numresponses++;
 	  
 	  /* see if there's another packet to be read on this socket */
@@ -1942,7 +1981,7 @@ anotherpacket:
 	     * only in the one on the specified host.
 	     */
             if (strcmp(specifiedhost, answers[j].host) == 0) {
-/*  printf("et_findserver: got a match to local or specific\n");*/
+/*printf("et_findserver: got a match to local or specific\n");*/
 	      for (k=0; k<numsockets; k++) {
 		close(send[k].sockfd);
 	      }
@@ -1981,7 +2020,7 @@ anotherpacket:
              */
 	    if ((config->policy == ET_POLICY_FIRST) ||
 	        (config->policy == ET_POLICY_ERROR))  {
-/*  printf("et_findserver: got a match to .anywhere, first or error policy\n");*/
+/*printf("et_findserver: got a match to .anywhere, first or error policy\n");*/
 	      for (k=0; k<numsockets; k++) {
 		close(send[k].sockfd);
 	      }
@@ -1993,7 +2032,7 @@ anotherpacket:
 	    /* else if our policy is to take the first local response ... */
 	    else if (config->policy == ET_POLICY_LOCAL) {
 	      if (strcmp(localhost, answers[j].unamehost) == 0) {
-/*  printf("et_findserver: got a match to .anywhere, local policy\n");*/
+/*printf("et_findserver: got a match to .anywhere, local policy\n");*/
 		for (k=0; k<numsockets; k++) {
 		  close(send[k].sockfd);
 		}
@@ -2006,7 +2045,7 @@ anotherpacket:
 	       * a local one, pick the first one we received.
 	       */
 	      if (j == numresponses-1) {
-/*   printf("et_findserver: got a match to .anywhere, nothing local available\n");*/
+/*printf("et_findserver: got a match to .anywhere, nothing local available\n");*/
 		for (k=0; k<numsockets; k++) {
 		  close(send[k].sockfd);
 		}
@@ -2040,7 +2079,7 @@ anotherpacket:
 	     */
 	    if ((config->policy == ET_POLICY_FIRST) ||
 	        (config->policy == ET_POLICY_LOCAL))  {
-/*  printf("et_findserver: got a match to .remote, first or local policy\n");*/
+/*printf("et_findserver: got a match to .remote, first or local policy\n");*/
 	      for (k=0; k<numsockets; k++) {
 		close(send[k].sockfd);
 	      }
@@ -2053,7 +2092,7 @@ anotherpacket:
 	  
 	  if (config->policy == ET_POLICY_ERROR) {
 	    if (remoteresponses == 1) {
-/* printf("et_findserver: got a match to .remote, error policy\n");*/
+/*printf("et_findserver: got a match to .remote, error policy\n");*/
 	      for (k=0; k<numsockets; k++) {
 		close(send[k].sockfd);
 	      }
@@ -2089,7 +2128,7 @@ anotherpacket:
   for (k=0; k<numsockets; k++) {
     close(send[k].sockfd);
   }
-  /*printf(" No response here\n");*/
+/*printf("et_findserver: no valid response\n");*/
   free(send);
   return ET_ERROR_TIMEOUT;
 }
@@ -2102,11 +2141,11 @@ int et_findserver(const char *etname, char *ethost, int *port,
                   et_open_config *config)
 {
   struct timeval waittime;
-  /* wait 0.01 seconds before calling select */
+  /* wait 0.2 seconds before calling select */
   waittime.tv_sec  = 0;
-  waittime.tv_usec = 10000;
+  waittime.tv_usec = 200000;
   
-  return et_findserver2(etname, ethost, port, config, 4, &waittime);
+  return et_findserver2(etname, ethost, port, config, 2, &waittime);
 }
 
 /******************************************************
