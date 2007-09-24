@@ -178,6 +178,7 @@ static void *et_listen_thread(void *arg)
     }
     exit(1);
   }
+/*printf("Listening on port %d, address %s\n", config->port, addr);*/
 
 #ifdef sun
   /* increase concurrency for this thread */
@@ -371,9 +372,10 @@ void *et_netserver(void *arg)
       }
     }
   }
+/*printf("TCP server listening on port %d\n", port);*/
 
   if (etid->debug >= ET_DEBUG_INFO) {
-    et_logmsg("INFO", "et_netserver: am listening on port %d\n", port);
+    et_logmsg("INFO", "et_netserver: am listening on TCP port %d\n", port);
   }
 
   if (listenfd < 0) {
