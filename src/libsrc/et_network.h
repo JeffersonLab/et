@@ -39,6 +39,8 @@
 #include <sys/ioctl.h>   /* find broacast addr */
 #endif
 
+#include "et_private.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -151,7 +153,9 @@ extern int   et_findserver2(const char *etname, char *ethost, int *port,
 			    et_open_config *config, int trys,
 			    struct timeval *waittime);
 
-extern int   et_udpreceive(unsigned short port, const char *address, int cast);
+extern int    et_udpreceive(unsigned short port, const char *address, int cast);
+extern struct ifi_info *get_ifi_info(int family, int doaliases);
+extern void   free_ifi_info(struct ifi_info *ifihead);
 
 #ifdef	__cplusplus
 }
