@@ -547,7 +547,6 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
   et_id 	  *id;
   et_station      *ps;
   et_event	  *pe;
-  int             status;
 
   id = (et_id *) sys_id;
   sys = id->sys;
