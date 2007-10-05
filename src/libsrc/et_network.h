@@ -132,30 +132,35 @@ struct ifi_info {
 
 /* our prototypes */
 extern uint64_t et_ntoh64(uint64_t n);
-extern int   tcp_listen(unsigned short port);
-extern int   tcp_connect(const char *ip_address, unsigned short port);
-extern int   Accept(int fd, struct sockaddr *sa, socklen_t *salenptr);
+extern int   et_tcp_listen(unsigned short port);
+extern int   et_tcp_connect(const char *ip_address, unsigned short port);
+extern int   et_tcp_connect2(uint32_t inetaddr, unsigned short port);
+extern int   et_accept(int fd, struct sockaddr *sa, socklen_t *salenptr);
 
-extern ssize_t tcp_read(int fd, void *vptr, size_t n);
-extern ssize_t tcp_write(int fd, const void *vptr, size_t n);
-extern ssize_t tcp_writev(int fd, struct iovec iov[], int nbufs, int iov_max);
+extern ssize_t et_tcp_read(int fd, void *vptr, size_t n);
+extern ssize_t et_tcp_write(int fd, const void *vptr, size_t n);
+extern ssize_t et_tcp_writev(int fd, struct iovec iov[], int nbufs, int iov_max);
 
 extern int   et_CODAswap(int *src, int *dest, int nints, int same_endian);
 extern int   et_byteorder(void);
 extern const char *et_hstrerror(int err);
 extern int   et_nodesame(const char *node1, const char *node2);
 extern int   et_nodelocality(const char *host);
+extern int   et_getUname(char *host, int length);
 extern int   et_defaulthost(char *host, int length);
 extern int   et_defaultaddress(char *address, int length);
-extern int   et_defaultbroadcastaddr(char *baddr);
 extern int   et_isLinux(void);
+extern int   et_getBroadcastAddrs(et_bcastlist **addrs, et_bcastaddrs *bcaddrs);
+extern int   et_getNetInfo(et_ipaddr **ipaddrs, et_netinfo *info);
+extern void  et_freeIpAddrs(et_ipaddr *ipaddr);
+extern void  et_freeBroadcastAddrs(et_bcastlist *addr);
 extern int   et_findserver2(const char *etname, char *ethost, int *port,
-			    et_open_config *config, int trys,
+			    int32_t *inetaddr, et_open_config *config, int trys,
 			    struct timeval *waittime);
 
 extern int    et_udpreceive(unsigned short port, const char *address, int cast);
-extern struct ifi_info *get_ifi_info(int family, int doaliases);
-extern void   free_ifi_info(struct ifi_info *ifihead);
+extern struct ifi_info *et_get_ifi_info(int family, int doaliases);
+extern void   et_free_ifi_info(struct ifi_info *ifihead);
 
 #ifdef	__cplusplus
 }

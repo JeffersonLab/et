@@ -56,6 +56,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     int vxdelay;
     int err=ET_OK, openerror=ET_OK, transfer[5], incoming[9];
     int port=0;
+    uint32_t inetaddr = 0;
     et_id *etid;
     char *buf, *pbuf, ethost[ET_MAXHOSTNAMELEN];
 
@@ -92,46 +93,45 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
     /* set minimum time to wait for connection to ET */
     /* if timeout == 0, wait "forever" */
-    if ((config->timeout.tv_sec == 0) && (config->timeout.tv_nsec == 0))
-    {
+    if ((config->timeout.tv_sec == 0) && (config->timeout.tv_nsec == 0)) {
         dtimeout = 1.e9; /* 31 years */
     }
-    else
-    {
+    else {
         dtimeout = config->timeout.tv_sec + 1.e-9*(config->timeout.tv_nsec);
     }
 
     /* if port# & name of ET server specified */
-    if (config->cast == ET_DIRECT)
-    {
+    if (config->cast == ET_DIRECT) {
         port = config->serverport;
     }
 
-    while(1)
-    {
-        if (port > 0)
-        {
+    while(1) {
+        if (port > 0) {
             /* make the network connection */
-            et_logmsg("INFO","etr_open: tcp_connect to host %s on port %d\n",ethost,port);
-            if ( (sockfd = tcp_connect(ethost, (unsigned short)port)) >= 0)
-            {
-                break;
+            if (inetaddr == 0) {
+et_logmsg("INFO","etr_open: et_tcp_connect to host %s on port %d\n",ethost,port);
+              if ( (sockfd = et_tcp_connect(ethost, (unsigned short)port)) >= 0) {
+                  break;
+              }
+            }
+            else {
+et_logmsg("INFO","etr_open: et_tcp_connect2 to address %u on port %d\n",inetaddr,port);
+              if ( (sockfd = et_tcp_connect2(inetaddr, (unsigned short)port)) >= 0) {
+                  break;
+              }
             }
         }
-        else
-        {
+        else {
             /* else find port# & name of ET server by broad/multicasting */
-            printf("etr_open: calling et_findserver  file=%s host=%s port=%d\n",et_filename,ethost,port);
-            if ( (openerror = et_findserver(et_filename, ethost, &port, config)) == ET_OK)
-            {
+et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filename,ethost);
+            if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config)) == ET_OK) {
                 printf("etr_open: calling et_findserver SUCCESS\n");
                 continue;
             }
         }
 
         /* if user does NOT want to wait ... */
-        if (config->wait == ET_OPEN_NOWAIT)
-        {
+        if (config->wait == ET_OPEN_NOWAIT) {
             break;
         }
 
@@ -145,8 +145,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
         dnow = now.tv_sec + 1.e-9*(now.tv_nsec);
 #endif
 
-        if (dtimeout < dnow - dstart)
-        {
+        if (dtimeout < dnow - dstart) {
             break;
         }
 #ifdef VXWORKS
@@ -155,34 +154,26 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
         nanosleep(&sleeptime, NULL);
 #endif
-
     }
 
     /* check for errors */
     /*printf("etr_open: port %d sockfd = 0x%x\n",port,sockfd);*/
-    if ((port == 0) || (sockfd < 0))
-    {
-        if (openerror == ET_ERROR_TOOMANY)
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+    if ((port == 0) || (sockfd < 0)) {
+        if (openerror == ET_ERROR_TOOMANY) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_open: too many ET systems of that name responded\n");
             }
             return ET_ERROR_TOOMANY;
         }
-        else
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+        else {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_open: cannot find or connect to ET system\n");
             }
         }
         return ET_ERROR_REMOTE;
     }
-    else
-    {
-        if (etid->debug >= ET_DEBUG_INFO)
-        {
+    else {
+        if (etid->debug >= ET_DEBUG_INFO) {
             et_logmsg("INFO", "etr_open: ET system on %s, port# %d\n", ethost, port);
         }
     }
@@ -199,8 +190,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     etid->iov_max = ET_IOV_MAX;
 #else
 
-    if ( (etid->iov_max = sysconf(_SC_IOV_MAX)) == -1)
-    {
+    if ( (etid->iov_max = sysconf(_SC_IOV_MAX)) == -1) {
         /* set it to POSIX minimum by default (it always bombs on Linux) */
         etid->iov_max = ET_IOV_MAX;
     }
@@ -225,10 +215,8 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
     /* put everything in one buffer, extra room in "transfer" */
     bufsize = sizeof(transfer) + length;
-    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, cannot allocate memory\n");
         }
         err = ET_ERROR_REMOTE;
@@ -239,11 +227,9 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     memcpy(pbuf,et_filename, length);
 
     /* write it to server */
-    if (tcp_write(sockfd, (void *) buf, bufsize) != bufsize)
-    {
+    if (et_tcp_write(sockfd, (void *) buf, bufsize) != bufsize) {
         free(buf);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, write error\n");
         }
         err = ET_ERROR_WRITE;
@@ -252,29 +238,23 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     free(buf);
 
     /* read the return */
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, read error\n");
         }
         err = ET_ERROR_READ;
         goto error;
     }
     err = ntohl(err);
-    if (err != ET_OK)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (err != ET_OK) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open: found the wrong ET system\n");
         }
         goto error;
     }
 
-    if (tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming))
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, read error\n");
         }
         err = ET_ERROR_READ;
@@ -300,20 +280,16 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
      */
     etid->bit64 = ntohl(incoming[7]);
 
-    if (version != etid->version)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (version != etid->version) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, ET system & user use different versions of ET\n");
         }
         err = ET_ERROR_REMOTE;
         goto error;
     }
 
-    if (nselects != etid->nselects)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (nselects != etid->nselects) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, ET system & user compiled with different ET_STATION_SELECT_INTS\n");
         }
         err = ET_ERROR_REMOTE;
@@ -339,10 +315,8 @@ int etr_close(et_sys_id id)
     com = htonl(ET_NET_CLOSE);
     /* if communication with ET system fails, we've already been "closed" */
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com))
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_close, write error\n");
         }
         /* return ET_ERROR_WRITE; */
@@ -365,10 +339,8 @@ int etr_forcedclose(et_sys_id id)
     com = htonl(ET_NET_FCLOSE);
     /* if communication with ET system fails, we've already been "closed" */
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com))
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_forcedclose, write error\n");
         }
         /* return ET_ERROR_WRITE; */
@@ -394,20 +366,16 @@ int etr_alive(et_sys_id id)
      * so signal ET system as dead.
      */
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com))
-    {
+    if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_alive, write error\n");
         }
         return 0;
     }
-    if (tcp_read(sockfd, &alive, sizeof(alive)) != sizeof(alive))
-    {
+    if (et_tcp_read(sockfd, &alive, sizeof(alive)) != sizeof(alive)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_alive, read error\n");
         }
         return 0;
@@ -433,20 +401,16 @@ int etr_wait_for_alive(et_sys_id id)
 
     com = htonl(ET_NET_WAIT);
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com))
-    {
+    if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_wait_for_alive, write error\n");
         }
         return ET_ERROR_WRITE;
     }
-    if (tcp_read(sockfd, &returned, sizeof(returned)) != sizeof(returned))
-    {
+    if (et_tcp_read(sockfd, &returned, sizeof(returned)) != sizeof(returned)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_wait_for_alive, read error\n");
         }
         return ET_ERROR_READ;
@@ -466,11 +430,9 @@ int etr_wakeup_attachment(et_sys_id id, et_att_id att)
     transfer[1] = htonl(att);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_wakeup_attachment, write error\n");
         }
         return ET_ERROR_WRITE;
@@ -490,11 +452,9 @@ int etr_wakeup_all(et_sys_id id, et_stat_id stat_id)
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_wakeup_all, write error\n");
         }
         return ET_ERROR_WRITE;
@@ -529,8 +489,7 @@ int etr_station_create_at(et_sys_id id, et_stat_id *stat_id,const char *stat_nam
     ints[6] = htonl(sc->prescale);
     ints[7] = htonl(sc->cue);
     ints[8] = htonl(sc->select_mode);
-    for (i=0 ; i < ET_STATION_SELECT_INTS ; i++)
-    {
+    for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
         ints[9+i] = htonl(sc->select[i]);
     }
     lengthfname = strlen(sc->fname)+1;
@@ -549,10 +508,8 @@ int etr_station_create_at(et_sys_id id, et_stat_id *stat_id,const char *stat_nam
     /* send it all in one buffer */
     bufsize = sizeof(ints) + lengthname + lengthfname +
               lengthlib  + lengthclass;
-    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_create_at, cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -570,23 +527,19 @@ int etr_station_create_at(et_sys_id id, et_stat_id *stat_id,const char *stat_nam
     memcpy(pbuf, stat_name, lengthname);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) buf, bufsize) != bufsize)
-    {
+    if (et_tcp_write(sockfd, (void *) buf, bufsize) != bufsize) {
         et_tcp_unlock(etid);
         free(buf);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_create_at, write error\n");
         }
         return ET_ERROR_WRITE;
     }
     free(buf);
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_create_at, read error\n");
         }
         return ET_ERROR_READ;
@@ -594,14 +547,8 @@ int etr_station_create_at(et_sys_id id, et_stat_id *stat_id,const char *stat_nam
     et_tcp_unlock(etid);
     err = ntohl(transfer[0]);
 
-    if ((err == ET_OK) || (err == ET_ERROR_EXISTS))
-    {
+    if ((err == ET_OK) || (err == ET_ERROR_EXISTS)) {
         *stat_id = ntohl(transfer[1]);
-    }
-
-    if (etid->debug >= ET_DEBUG_INFO)
-    {
-        et_logmsg("INFO", "etr_station_create_at, done (err = %d)\n", err);
     }
 
     return err;
@@ -625,21 +572,17 @@ int etr_station_remove(et_sys_id id, et_stat_id stat_id)
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_remove, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_remove, read error\n");
         }
         return ET_ERROR_READ;
@@ -659,16 +602,13 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     char *buf, *pbuf, host[ET_MAXHOSTNAMELEN];
 
     /* find name of our host */
-    if (et_defaulthost(host, ET_MAXHOSTNAMELEN) != ET_OK)
-    {
-        if (etid->debug >= ET_DEBUG_WARN)
-        {
+    if (et_defaulthost(host, ET_MAXHOSTNAMELEN) != ET_OK) {
+        if (etid->debug >= ET_DEBUG_WARN) {
             et_logmsg("WARN", "etr_station_attach: cannot find hostname\n");
         }
         length = 0;
     }
-    else
-    {
+    else {
         length = strlen(host)+1;
     }
 
@@ -679,10 +619,8 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
 
     /* send it all in one buffer */
     bufsize = sizeof(transfer) + length;
-    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_attach: cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -692,23 +630,19 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     memcpy(pbuf, host, length);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) buf, bufsize) != bufsize)
-    {
+    if (et_tcp_write(sockfd, (void *) buf, bufsize) != bufsize) {
         et_tcp_unlock(etid);
         free(buf);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_attach, write error\n");
         }
         return ET_ERROR_WRITE;
     }
     free(buf);
 
-    if (tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming))
-    {
+    if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_attach, read error\n");
 
         }
@@ -717,10 +651,8 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     et_tcp_unlock(etid);
     err = ntohl(incoming[0]);
 
-    if (err == ET_OK)
-    {
-        if (att)
-        {
+    if (err == ET_OK) {
+        if (att) {
             *att = ntohl(incoming[1]);
         }
     }
@@ -741,21 +673,17 @@ int etr_station_detach(et_sys_id id, et_att_id att)
     transfer[1] = htonl(att);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_detach, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_detach, read error\n");
         }
         return ET_ERROR_READ;
@@ -780,21 +708,17 @@ int etr_station_setposition(et_sys_id id, et_stat_id stat_id, int position,
     transfer[2] = htonl(parallelposition);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_setposition, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_setposition, read error\n");
         }
         return ET_ERROR_READ;
@@ -816,21 +740,17 @@ int etr_station_getposition(et_sys_id id, et_stat_id stat_id, int *position,
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, 2*sizeof(int)) != 2*sizeof(int))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, 2*sizeof(int)) != 2*sizeof(int)) {
         et_tcp_unlock(id);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getposition, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getposition, read error\n");
         }
         return ET_ERROR_READ;
@@ -838,14 +758,11 @@ int etr_station_getposition(et_sys_id id, et_stat_id stat_id, int *position,
     et_tcp_unlock(etid);
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
-        if (position)
-        {
+    if (err == ET_OK) {
+        if (position) {
             *position = ntohl(transfer[1]);
         }
-        if (parallelposition)
-        {
+        if (parallelposition) {
             *parallelposition = ntohl(transfer[2]);
         }
     }
@@ -869,21 +786,17 @@ int etr_station_isattached(et_sys_id id, et_stat_id stat_id, et_att_id att)
     transfer[2] = htonl(att);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_isattached, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_isattached: read error\n");
         }
         return ET_ERROR_READ;
@@ -907,10 +820,8 @@ int etr_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name)
 
     /* send it all in one buffer */
     bufsize = sizeof(com)+sizeof(len)+length;
-    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_exists: cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -922,23 +833,19 @@ int etr_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name)
     memcpy(pbuf, stat_name, length);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) buf, bufsize) != bufsize)
-    {
+    if (et_tcp_write(sockfd, (void *) buf, bufsize) != bufsize) {
         et_tcp_unlock(etid);
         free(buf);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_exists, write error\n");
         }
         return ET_ERROR_WRITE;
     }
     free(buf);
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_exists, read error\n");
         }
         return ET_ERROR_READ;
@@ -946,10 +853,8 @@ int etr_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name)
     et_tcp_unlock(etid);
     err = ntohl(transfer[0]);
 
-    if (err == 1)
-    {
-        if (stat_id)
-        {
+    if (err == 1) {
+        if (stat_id) {
             *stat_id = ntohl(transfer[1]);
         }
     }
@@ -966,27 +871,22 @@ int etr_station_setselectwords (et_sys_id id, et_stat_id stat_id, int select[])
 
     transfer[0] = htonl(ET_NET_STAT_SSW);
     transfer[1] = htonl(stat_id);
-    for (i=0; i < ET_STATION_SELECT_INTS; i++)
-    {
+    for (i=0; i < ET_STATION_SELECT_INTS; i++) {
         transfer[i+2] = htonl(select[i]);
     }
 
     et_tcp_lock(id);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(id);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_setselectwords, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(id);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_setselectwords, read error\n");
         }
         return ET_ERROR_READ;
@@ -1007,21 +907,17 @@ int etr_station_getselectwords(et_sys_id id, et_stat_id stat_id, int select[])
     send[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) send, sizeof(send)) != sizeof(send))
-    {
+    if (et_tcp_write(sockfd, (void *) send, sizeof(send)) != sizeof(send)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getselectwords, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getselectwords, read error\n");
         }
         return ET_ERROR_READ;
@@ -1029,12 +925,9 @@ int etr_station_getselectwords(et_sys_id id, et_stat_id stat_id, int select[])
     et_tcp_unlock(etid);
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
-        if (select)
-        {
-            for (i=0; i<ET_STATION_SELECT_INTS; i++)
-            {
+    if (err == ET_OK) {
+        if (select) {
+            for (i=0; i<ET_STATION_SELECT_INTS; i++) {
                 select[i] = ntohl(transfer[i+1]);
             }
         }
@@ -1055,41 +948,33 @@ int etr_station_getlib(et_sys_id id, et_stat_id stat_id, char *lib)
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getlib, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getlib, read error\n");
         }
         return ET_ERROR_READ;
     }
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
+    if (err == ET_OK) {
         len = ntohl(transfer[1]);
-        if (tcp_read(sockfd, (void *) libname, len) != len)
-        {
+        if (et_tcp_read(sockfd, (void *) libname, len) != len) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_station_getlib, read error\n");
             }
             return ET_ERROR_READ;
         }
-        if (lib)
-        {
+        if (lib) {
             strcpy(lib, libname);
         }
     }
@@ -1110,41 +995,33 @@ int etr_station_getclass(et_sys_id id, et_stat_id stat_id, char *classs)
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getclass, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getclass, read error\n");
         }
         return ET_ERROR_READ;
     }
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
+    if (err == ET_OK) {
         len = ntohl(transfer[1]);
-        if (tcp_read(sockfd, (void *) classname, len) != len)
-        {
+        if (et_tcp_read(sockfd, (void *) classname, len) != len) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_station_getclass, read error\n");
             }
             return ET_ERROR_READ;
         }
-        if (classs)
-        {
+        if (classs) {
             strcpy(classs, classname);
         }
     }
@@ -1165,41 +1042,33 @@ int etr_station_getfunction(et_sys_id id, et_stat_id stat_id, char *function)
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getfunction, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_getfunction, read error\n");
         }
         return ET_ERROR_READ;
     }
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
+    if (err == ET_OK) {
         len = ntohl(transfer[1]);
-        if (tcp_read(sockfd, (void *) fname, len) != len)
-        {
+        if (et_tcp_read(sockfd, (void *) fname, len) != len) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_station_getfunction, read error\n");
             }
             return ET_ERROR_READ;
         }
-        if (function)
-        {
+        if (function) {
             strcpy(function, fname);
         }
     }
@@ -1221,21 +1090,17 @@ static int etr_station_getstuff (et_id *id, et_stat_id stat_id, int cmd,
     transfer[1] = htonl(stat_id);
 
     et_tcp_lock(id);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, write error\n", routine);
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, read error\n", routine);
         }
         return ET_ERROR_READ;
@@ -1243,10 +1108,8 @@ static int etr_station_getstuff (et_id *id, et_stat_id stat_id, int cmd,
     et_tcp_unlock(id);
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
-        if (stuff)
-        {
+    if (err == ET_OK) {
+        if (stuff) {
             *stuff = ntohl(transfer[1]);
         }
     }
@@ -1367,21 +1230,17 @@ static int etr_station_setstuff (et_id *id, et_stat_id stat_id, int cmd,
     transfer[2] = htonl(value);
 
     et_tcp_lock(id);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, write error\n", routine);
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, read error\n", routine);
         }
         return ET_ERROR_READ;
@@ -1442,21 +1301,17 @@ static int etr_system_getstuff (et_id *id, int cmd, int *stuff, const char *rout
     transfer[0] = htonl(cmd);
 
     et_tcp_lock(id);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(int)) != sizeof(int))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(int)) != sizeof(int)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, write error\n", routine);
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, read error\n", routine);
         }
         return ET_ERROR_READ;
@@ -1464,10 +1319,8 @@ static int etr_system_getstuff (et_id *id, int cmd, int *stuff, const char *rout
     et_tcp_unlock(id);
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
-        if (stuff)
-        {
+    if (err == ET_OK) {
+        if (stuff) {
             *stuff = ntohl(transfer[1]);
         }
     }
@@ -1588,21 +1441,17 @@ static int etr_attach_getstuff (et_id *id, et_att_id att_id, int cmd,
     transfer[1] = htonl(att_id);
 
     et_tcp_lock(id);
-    if (tcp_write(sockfd, (void *) transfer, 2*sizeof(int)) != 2*sizeof(int))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, 2*sizeof(int)) != 2*sizeof(int)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, write error\n", routine);
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_read(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(id);
-        if (id->debug >= ET_DEBUG_ERROR)
-        {
+        if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "%s, read error\n", routine);
         }
         return ET_ERROR_READ;
@@ -1610,10 +1459,8 @@ static int etr_attach_getstuff (et_id *id, et_att_id att_id, int cmd,
     et_tcp_unlock(id);
     err = ntohl(transfer[0]);
 
-    if (err == ET_OK)
-    {
-        if (stuff != NULL)
-        {
+    if (err == ET_OK) {
+        if (stuff != NULL) {
             *stuff = ET_64BIT_UINT(ntohl(transfer[1]),ntohl(transfer[2]));
         }
     }
@@ -1689,18 +1536,14 @@ int et_event_setdatabuffer(et_sys_id id, et_event *pe, void *data)
 {
     et_id *etid = (et_id *) id;
 
-    if (etid->locality != ET_REMOTE)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (etid->locality != ET_REMOTE) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_event_setdatapointer, user must be remote to use this routine\n");
         }
         return ET_ERROR;
     }
-    if (data == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if (data == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_event_setdatapointer, data argument cannot be null\n");
         }
         return ET_ERROR;
@@ -1734,29 +1577,24 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
     transfer[4] = htonl(ET_LOWINT(size));
     transfer[5] = 0;
     transfer[6] = 0;
-    if (deltatime)
-    {
+    if (deltatime) {
         transfer[5] = htonl(deltatime->tv_sec);
         transfer[6] = htonl(deltatime->tv_nsec);
     }
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_new, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
     /* get back a pointer which for later use */
-    if (tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming))
-    {
+    if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_new, read error\n");
         }
         return ET_ERROR_READ;
@@ -1765,16 +1603,13 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
     err    = ntohl(incoming[0]);
     pevent = ET_64BIT_UINT(ntohl(incoming[1]),ntohl(incoming[2]));
 
-    if (err != ET_OK)
-    {
+    if (err != ET_OK) {
         return err;
     }
 
     /* allocate memory for an event */
-    if ((newevent = (et_event *) malloc(sizeof(et_event))) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ((newevent = (et_event *) malloc(sizeof(et_event))) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_new, cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -1798,39 +1633,31 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
      */
 #ifndef _LP64
 
-    if (etid->bit64)
-    {
+    if (etid->bit64) {
         /* if event size > ~1G, only allocate what's asked for */
-        if (etid->esize > UINT32_MAX/5)
-        {
+        if (etid->esize > UINT32_MAX/5) {
             eventsize = size;
         }
-        else
-        {
+        else {
             eventsize = (size_t)etid->esize;
         }
     }
-    else
-    {
+    else {
         eventsize = (size_t)etid->esize;
     }
 #else
     eventsize = (size_t)etid->esize;
 #endif
 
-    if (size > etid->esize)
-    {
+    if (size > etid->esize) {
         eventsize = size;
         newevent->temp = ET_EVENT_TEMP;
     }
 
     /* if allocating memory as is normally the case ... */
-    if (noalloc == 0)
-    {
-        if ((newevent->pdata = malloc(eventsize)) == NULL)
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+    if (noalloc == 0) {
+        if ((newevent->pdata = malloc(eventsize)) == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_event_new, cannot allocate memory\n");
             }
             free(newevent);
@@ -1838,8 +1665,7 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
         }
     }
     /* else if user supplying a buffer ... */
-    else
-    {
+    else {
         /* Take an element of the et_event structure that is unused
          * in a remote setting and use it to record the fact that
          * the user is supplying the data buffer. This way when a
@@ -1872,10 +1698,8 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     /* Allocate array of event pointers - store new events here
      * until copied to evs[] when all danger of error is past.
      */
-    if ((newevents = (et_event **) calloc(num, sizeof(et_event *))) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ((newevents = (et_event **) calloc(num, sizeof(et_event *))) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -1897,18 +1721,15 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     transfer[6] = 0;
     transfer[7] = 0;
 
-    if (deltatime)
-    {
+    if (deltatime) {
         transfer[6] = htonl(deltatime->tv_sec);
         transfer[7] = htonl(deltatime->tv_nsec);
     }
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, write error\n");
         }
         free(newevents);
@@ -1916,11 +1737,9 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     }
     /*printf("etr_events_new: sent transfer array, will read err\n");*/
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, read error\n");
         }
         free(newevents);
@@ -1929,11 +1748,9 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 
     err = ntohl(err);
     /*printf("etr_events_new: err = %d\n", err);*/
-    if (err < 0)
-    {
+    if (err < 0) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, error in server\n");
         }
         free(newevents);
@@ -1945,11 +1762,9 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     /*printf("etr_events_new: num events coming = %d\n", nevents);*/
 
     /* allocate memory for event pointers */
-    if ((pevents = (uint64_t *) calloc(nevents, sizeof(uint64_t))) == NULL)
-    {
+    if ((pevents = (uint64_t *) calloc(nevents, sizeof(uint64_t))) == NULL) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
         }
         free(newevents);
@@ -1958,13 +1773,11 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 
     /* read array of event pointers */
     /*printf("etr_events_new: read in %d 64 bit event pointers\n", nevents);*/
-    if (tcp_read(sockfd, (void *) pevents, nevents*sizeof(uint64_t)) !=
-            nevents*sizeof(uint64_t) )
-    {
+    if (et_tcp_read(sockfd, (void *) pevents, nevents*sizeof(uint64_t)) !=
+            nevents*sizeof(uint64_t) ) {
 
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, read error\n");
         }
         free(pevents);
@@ -1975,20 +1788,16 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 
 #ifndef _LP64
 
-    if (etid->bit64)
-    {
+    if (etid->bit64) {
         /* if events size > ~1G, only allocate what's asked for */
-        if (num*etid->esize > UINT32_MAX/5)
-        {
+        if (num*etid->esize > UINT32_MAX/5) {
             eventsize = size;
         }
-        else
-        {
+        else {
             eventsize = (size_t)etid->esize;
         }
     }
-    else
-    {
+    else {
         eventsize = (size_t)etid->esize;
     }
 #else
@@ -1997,19 +1806,15 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 
     /* set size of an event's data memory */
     temp = ET_EVENT_NORMAL;
-    if (size > etid->esize)
-    {
+    if (size > etid->esize) {
         eventsize = size;
         temp = ET_EVENT_TEMP;
     }
 
-    for (i=0; i < nevents; i++)
-    {
+    for (i=0; i < nevents; i++) {
         /* allocate memory for event */
-        if ((newevents[i] = (et_event *) malloc(sizeof(et_event))) == NULL)
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+        if ((newevents[i] = (et_event *) malloc(sizeof(et_event))) == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
             }
             err = ET_ERROR_REMOTE;
@@ -2019,12 +1824,9 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
         et_init_event(newevents[i]);
 
         /* if allocating memory for event data as is normally the case ... */
-        if (noalloc == 0)
-        {
-            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL)
-            {
-                if (etid->debug >= ET_DEBUG_ERROR)
-                {
+        if (noalloc == 0) {
+            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL) {
+                if (etid->debug >= ET_DEBUG_ERROR) {
                     et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
                 }
                 free(newevents[i]);
@@ -2033,8 +1835,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
             }
         }
         /* else if user supplying a buffer ... */
-        else
-        {
+        else {
             /* Take an element of the et_event structure that is unused
              * in a remote setting and use it to record the fact that
              * the user is supplying the data buffer. This way when a
@@ -2051,13 +1852,10 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     }
 
     /* if error in above for loop ... */
-    if (err < 0)
-    {
+    if (err < 0) {
         /* free up all allocated memory */
-        for (j=0; j < i; j++)
-        {
-            if (noalloc == 0)
-            {
+        for (j=0; j < i; j++) {
+            if (noalloc == 0) {
                 free(newevents[j]->pdata);
             }
             free(newevents[j]);
@@ -2068,12 +1866,10 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     }
 
     /* now that all is OK, copy into user's array of event pointers */
-    for (i=0; i < nevents; i++)
-    {
+    for (i=0; i < nevents; i++) {
         evs[i] = newevents[i];
     }
-    if (nread != NULL)
-    {
+    if (nread != NULL) {
         *nread = nevents;
     }
     free(pevents);
@@ -2102,8 +1898,7 @@ int etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
      * only the header should the user specify both.
      */
     modify = mode & ET_MODIFY;
-    if (modify == 0)
-    {
+    if (modify == 0) {
         modify = mode & ET_MODIFY_HEADER;
     }
 
@@ -2113,55 +1908,45 @@ int etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
     transfer[3] = htonl(modify | (mode & ET_DUMP));
     transfer[4] = 0;
     transfer[5] = 0;
-    if (deltatime)
-    {
+    if (deltatime) {
         transfer[4] = htonl(deltatime->tv_sec);
         transfer[5] = htonl(deltatime->tv_nsec);
     }
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_get, write error\n");
         }
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_get, read error\n");
         }
         return ET_ERROR_READ;
     }
     err = ntohl(err);
-    if (err != ET_OK)
-    {
+    if (err != ET_OK) {
         et_tcp_unlock(etid);
         return err;
     }
 
-    if (tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header))
-    {
+    if (et_tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_get, read error\n");
         }
         return ET_ERROR_READ;
     }
 
     /* allocate memory for an event */
-    if ((newevent = (et_event *) malloc(sizeof(et_event))) == NULL)
-    {
+    if ((newevent = (et_event *) malloc(sizeof(et_event))) == NULL) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_event_get, cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -2176,42 +1961,34 @@ int etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
     newevent->datastatus   =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
     newevent->pointer      = ET_64BIT_UINT(ntohl(header[5]),ntohl(header[6]));
     newevent->byteorder    = header[7];
-    for (i=0; i < ET_STATION_SELECT_INTS; i++)
-    {
+    for (i=0; i < ET_STATION_SELECT_INTS; i++) {
         newevent->control[i] = ntohl(header[i+9]);
     }
     newevent->modify = modify;
 
 #ifndef _LP64
 
-    if (etid->bit64)
-    {
+    if (etid->bit64) {
         /* if event size > ~1G don't allocate all that space, only enough to hold data */
-        if (newevent->memsize > UINT32_MAX/5)
-        {
+        if (newevent->memsize > UINT32_MAX/5) {
             eventsize = len;
         }
-        else
-        {
+        else {
             eventsize = (size_t) newevent->memsize;
         }
     }
-    else
-    {
+    else {
         eventsize = (size_t) newevent->memsize;
     }
 #else
     eventsize = (size_t) newevent->memsize;
 #endif
 
-    if (!(mode & ET_NOALLOC) && (len==0))
-    {
+    if (!(mode & ET_NOALLOC)) {
 
-        if ((newevent->pdata = malloc(eventsize)) == NULL)
-        {
+        if ((newevent->pdata = malloc(eventsize)) == NULL) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_event_get, cannot allocate memory\n");
             }
             free(newevent);
@@ -2219,16 +1996,16 @@ int etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
         }
 
         /* read data */
-        if (tcp_read(sockfd, newevent->pdata, len) != len)
-        {
-            et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
-                et_logmsg("ERROR", "etr_event_get, read error\n");
+        if (len > 0) {
+            if (et_tcp_read(sockfd, newevent->pdata, len) != len) {
+                et_tcp_unlock(etid);
+                if (etid->debug >= ET_DEBUG_ERROR) {
+                    et_logmsg("ERROR", "etr_event_get, read error\n");
+                }
+                free(newevent->pdata);
+                free(newevent);
+                return ET_ERROR_READ;
             }
-            free(newevent->pdata);
-            free(newevent);
-            return ET_ERROR_READ;
         }
     }
     et_tcp_unlock(etid);
@@ -2252,10 +2029,8 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     /* Allocate array of event pointers - store new events here
      * until copied to evs[] when all danger of error is past.
      */
-    if ((newevents = (et_event **) calloc(num, sizeof(et_event *))) == NULL)
-    {
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+    if ((newevents = (et_event **) calloc(num, sizeof(et_event *))) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_get, cannot allocate memory\n");
         }
         return ET_ERROR_REMOTE;
@@ -2269,8 +2044,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
      * only the header should the user specify both.
      */
     modify = mode & ET_MODIFY;
-    if (modify == 0)
-    {
+    if (modify == 0) {
         modify = mode & ET_MODIFY_HEADER;
     }
 
@@ -2282,37 +2056,31 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     transfer[5] = 0;
     transfer[6] = 0;
 
-    if (deltatime)
-    {
+    if (deltatime) {
         transfer[5] = htonl(deltatime->tv_sec);
         transfer[6] = htonl(deltatime->tv_nsec);
     }
 
     et_tcp_lock(etid);
-    if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-    {
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_get, write error\n");
         }
         free(newevents);
         return ET_ERROR_WRITE;
     }
 
-    if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-    {
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_get, read error\n");
         }
         free(newevents);
         return ET_ERROR_READ;
     }
     err = ntohl(err);
-    if (err < 0)
-    {
+    if (err < 0) {
         et_tcp_unlock(etid);
         free(newevents);
         return err;
@@ -2320,11 +2088,9 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     nevents = err;
 
     /* read total size of data to come - in bytes */
-    if (tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming))
-    {
+    if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         et_tcp_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR)
-        {
+        if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_get, read error\n");
         }
         free(newevents);
@@ -2334,13 +2100,10 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
 
     error = ET_OK;
 
-    for (i=0; i < nevents; i++)
-    {
+    for (i=0; i < nevents; i++) {
 
-        if (tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header))
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+        if (et_tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header)) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_get, read error\n");
             }
             error = ET_ERROR_READ;
@@ -2348,10 +2111,8 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         }
 
         /* allocate memory for event */
-        if ((newevents[i] = (et_event *) malloc(sizeof(et_event))) == NULL)
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+        if ((newevents[i] = (et_event *) malloc(sizeof(et_event))) == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_get, cannot allocate memory\n");
             }
             err = ET_ERROR_REMOTE;
@@ -2369,9 +2130,9 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         /*printf("Got %llx, high = %x, low = %x\n", newevents[i]->pointer,
                                                   ntohl(header[5]),  ntohl(header[6]));
         */
+        /*printf("Event %d: len = %llu, memsize = %llu\n", i, len,  newevents[i]->memsize);*/
         newevents[i]->byteorder    = header[7];
-        for (j=0; j < ET_STATION_SELECT_INTS; j++)
-        {
+        for (j=0; j < ET_STATION_SELECT_INTS; j++) {
             newevents[i]->control[j] = ntohl(header[j+9]);
         }
         newevents[i]->modify = modify;
@@ -2380,32 +2141,25 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         /* The server will not send events that are too big for us,
          * we'll get an error above.
          */
-        if (etid->bit64)
-        {
+        if (etid->bit64) {
             /* if event size > ~1G don't allocate all that space, only enough to hold data */
-            if (newevents[i]->memsize > UINT32_MAX/5)
-            {
+            if (newevents[i]->memsize > UINT32_MAX/5) {
                 eventsize = len;
             }
-            else
-            {
+            else {
                 eventsize = (size_t) newevents[i]->memsize;
             }
         }
-        else
-        {
+        else {
             eventsize = (size_t) newevents[i]->memsize;
         }
 #else
         eventsize = (size_t) newevents[i]->memsize;
 #endif
 
-        if (!(mode & ET_NOALLOC) && (len==0))
-        {
-            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL)
-            {
-                if (etid->debug >= ET_DEBUG_ERROR)
-                {
+        if (!(mode & ET_NOALLOC)) {
+            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL) {
+                if (etid->debug >= ET_DEBUG_ERROR) {
                     et_logmsg("ERROR", "etr_events_get, cannot allocate memory\n");
                 }
                 free(newevents[i]);
@@ -2413,26 +2167,24 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
                 break;
             }
 
-            if (tcp_read(sockfd, newevents[i]->pdata, len) != len)
-            {
-                if (etid->debug >= ET_DEBUG_ERROR)
-                {
-                    et_logmsg("ERROR", "etr_events_get, read error\n");
+            if (len > 0) {
+                if (et_tcp_read(sockfd, newevents[i]->pdata, len) != len) {
+                    if (etid->debug >= ET_DEBUG_ERROR) {
+                        et_logmsg("ERROR", "etr_events_get, read error\n");
+                    }
+                    free(newevents[i]->pdata);
+                    free(newevents[i]);
+                    error = ET_ERROR_READ;
+                    break;
                 }
-                free(newevents[i]->pdata);
-                free(newevents[i]);
-                error = ET_ERROR_READ;
-                break;
             }
         }
     }
     et_tcp_unlock(etid);
 
-    if (error != ET_OK)
-    {
+    if (error != ET_OK) {
         /* free up all allocated memory */
-        for (j=0; j < i; j++)
-        {
+        for (j=0; j < i; j++) {
             free(newevents[j]->pdata);
             free(newevents[j]);
         }
@@ -2441,12 +2193,10 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     }
 
     /* now that all is OK, copy into user's array of event pointers */
-    for (i=0; i < nevents; i++)
-    {
+    for (i=0; i < nevents; i++) {
         evs[i] = newevents[i];
     }
-    if (nread != NULL)
-    {
+    if (nread != NULL) {
         *nread = nevents;
     }
     free(newevents);
@@ -2463,8 +2213,7 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
     struct iovec iov[2];
 
     /* if we're changing an event or writing a new event ... */
-    if (ev->modify > 0)
-    {
+    if (ev->modify > 0) {
         /* Do not send back datastatus bits since they
          * only change if this remote client dies.
          */
@@ -2477,8 +2226,7 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
         transfer[6] = htonl(ev->priority | ev->datastatus << ET_DATA_SHIFT);
         transfer[7] = ev->byteorder;
         transfer[8] = 0; /* not used */
-        for (i=0; i < ET_STATION_SELECT_INTS; i++)
-        {
+        for (i=0; i < ET_STATION_SELECT_INTS; i++) {
             transfer[i+9] = htonl(ev->control[i]);
         }
 
@@ -2488,16 +2236,13 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
         iov_bufs = 1;
 
         /* send data only if modifying whole event */
-        if (ev->modify == ET_MODIFY)
-        {
+        if (ev->modify == ET_MODIFY) {
             /* The data pointer might be null if using ET_NOALLOC
              * option in et_event(s)_new and the user never supplied
              * a data buffer.
              */
-            if (ev->pdata == NULL)
-            {
-                if (etid->debug >= ET_DEBUG_ERROR)
-                {
+            if (ev->pdata == NULL) {
+                if (etid->debug >= ET_DEBUG_ERROR) {
                     et_logmsg("ERROR", "etr_event_put, bad pointer to data\n");
                 }
                 return ET_ERROR_REMOTE;
@@ -2509,21 +2254,17 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
 
         /* write data */
         et_tcp_lock(etid);
-        if (tcp_writev(sockfd, iov, iov_bufs, 16) == -1)
-        {
+        if (et_tcp_writev(sockfd, iov, iov_bufs, 16) == -1) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_event_put, write error\n");
             }
             return ET_ERROR_WRITE;
         }
 
-        if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-        {
+        if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_event_put, read error\n");
             }
             free(ev->pdata);
@@ -2536,8 +2277,7 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
 
     /* If event data buffer was malloced, then free it,
      * if supplied by the user, do not free it. */
-    if (ev->owner != ET_NOALLOC)
-    {
+    if (ev->owner != ET_NOALLOC) {
         free(ev->pdata);
     }
     free(ev);
@@ -2563,28 +2303,22 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
     index      = 0;
     headersize = (7+ET_STATION_SELECT_INTS)*sizeof(int);
 
-    for (i=0; i < num; i++)
-    {
+    for (i=0; i < num; i++) {
         /* if modifying an event ... */
-        if (evs[i]->modify > 0)
-        {
+        if (evs[i]->modify > 0) {
             /* if first time thru ... */
             if (iov_init == 0)
             {
                 iov_init++;
                 index = 0;
-                if ( (iov = (struct iovec *) calloc(2*num+1, sizeof(struct iovec))) == NULL)
-                {
-                    if (etid->debug >= ET_DEBUG_ERROR)
-                    {
+                if ( (iov = (struct iovec *) calloc(2*num+1, sizeof(struct iovec))) == NULL) {
+                    if (etid->debug >= ET_DEBUG_ERROR) {
                         et_logmsg("ERROR", "etr_events_put, cannot allocate memory\n");
                     }
                     return ET_ERROR_REMOTE;
                 }
-                if ( (header = (int *) calloc(num, headersize)) == NULL)
-                {
-                    if (etid->debug >= ET_DEBUG_ERROR)
-                    {
+                if ( (header = (int *) calloc(num, headersize)) == NULL) {
+                    if (etid->debug >= ET_DEBUG_ERROR) {
                         et_logmsg("ERROR", "etr_events_put, cannot allocate memory\n");
                     }
                     free(iov);
@@ -2605,8 +2339,7 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
                                     evs[i]->datastatus << ET_DATA_SHIFT);
             header[index+5] = evs[i]->byteorder;
             header[index+6] = 0; /* not used */
-            for (j=0; j < ET_STATION_SELECT_INTS; j++)
-            {
+            for (j=0; j < ET_STATION_SELECT_INTS; j++) {
                 header[index+7+j] = htonl(evs[i]->control[j]);
             }
             /*
@@ -2629,14 +2362,12 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
             bytes += headersize;
 
             /* send data only if modifying whole event */
-            if (evs[i]->modify == ET_MODIFY)
-            {
+            if (evs[i]->modify == ET_MODIFY) {
                 /* The data pointer might be null if using ET_NOALLOC
                  * option in et_event(s)_new and the user never supplied
                  * a data buffer.
                  */
-                if (evs[i]->pdata == NULL)
-                {
+                if (evs[i]->pdata == NULL) {
                     if (etid->debug >= ET_DEBUG_ERROR)
                     {
                         et_logmsg("ERROR", "etr_events_put, bad pointer to data\n");
@@ -2656,19 +2387,16 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
         }
     }
 
-    if (nevents > 0)
-    {
+    if (nevents > 0) {
         /* send # of events & total # bytes */
         transfer[2] = htonl(nevents);
         transfer[3] = htonl(ET_HIGHINT(bytes));
         transfer[4] = htonl(ET_LOWINT(bytes));
 
         et_tcp_lock(etid);
-        if (tcp_writev(sockfd, iov, iov_bufs, 16) == -1)
-        {
+        if (et_tcp_writev(sockfd, iov, iov_bufs, 16) == -1) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_put, write error\n");
             }
             free(iov);
@@ -2678,28 +2406,23 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
         free(iov);
         free(header);
 
-        if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+        if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_put, read error\n");
             }
             err = ET_ERROR_READ;
         }
-        else
-        {
+        else {
             err = ntohl(err);
         }
         et_tcp_unlock(etid);
     }
 
 
-    for (i=0; i < num; i++)
-    {
+    for (i=0; i < num; i++) {
         /* if event data buffer was malloced, then free it,
          * if supplied by the user, do not free it. */
-        if (evs[i]->owner != ET_NOALLOC)
-        {
+        if (evs[i]->owner != ET_NOALLOC) {
             free(evs[i]->pdata);
         }
         free(evs[i]);
@@ -2721,8 +2444,7 @@ int etr_event_dump(et_sys_id id, et_att_id att, et_event *ev)
     /* If we've told the ET system that we're changing an event
      * or writing a new event, send back some info.
      */
-    if (ev->modify > 0)
-    {
+    if (ev->modify > 0) {
         transfer[0] = htonl(ET_NET_EV_DUMP);
         transfer[1] = htonl(att);
         transfer[2] = htonl(ET_HIGHINT((uint64_t) ev->pointer));
@@ -2730,21 +2452,17 @@ int etr_event_dump(et_sys_id id, et_att_id att, et_event *ev)
 
         /* write data */
         et_tcp_lock(etid);
-        if (tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer))
-        {
+        if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_event_dump, write error\n");
             }
             return ET_ERROR_WRITE;
         }
 
-        if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-        {
+        if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_event_dump, read error\n");
             }
             free(ev->pdata);
@@ -2774,19 +2492,14 @@ int etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
     count    = 0;
     iov_init = 0;
 
-    for (i=0; i < num; i++)
-    {
+    for (i=0; i < num; i++) {
         /* if modifying an event ... */
-        if (evs[i]->modify > 0)
-        {
+        if (evs[i]->modify > 0) {
             /* if first time thru ... */
-            if (iov_init == 0)
-            {
+            if (iov_init == 0) {
                 iov_init++;
-                if ( (transfer = (int *) calloc(2*num+3, sizeof(int))) == NULL)
-                {
-                    if (etid->debug >= ET_DEBUG_ERROR)
-                    {
+                if ( (transfer = (int *) calloc(2*num+3, sizeof(int))) == NULL) {
+                    if (etid->debug >= ET_DEBUG_ERROR) {
                         et_logmsg("ERROR", "etr_events_dump, cannot allocate memory\n");
                     }
                     return ET_ERROR_REMOTE;
@@ -2804,17 +2517,14 @@ int etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
         }
     }
 
-    if (count > 0)
-    {
+    if (count > 0) {
         transfer[2] = htonl(count);
 
         et_tcp_lock(etid);
-        if (tcp_write(sockfd, (void *) transfer, (2*count+3)*sizeof(int)) !=
-                (2*count+3)*sizeof(int))
-        {
+        if (et_tcp_write(sockfd, (void *) transfer, (2*count+3)*sizeof(int)) !=
+                (2*count+3)*sizeof(int)) {
             et_tcp_unlock(etid);
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_dump, write error\n");
             }
             free(transfer);
@@ -2823,24 +2533,20 @@ int etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
 
         free(transfer);
 
-        if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err))
-        {
-            if (etid->debug >= ET_DEBUG_ERROR)
-            {
+        if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_dump, read error\n");
             }
             err = ET_ERROR_READ;
         }
-        else
-        {
+        else {
             err = ntohl(err);
         }
         et_tcp_unlock(etid);
     }
 
 
-    for (i=0; i < num; i++)
-    {
+    for (i=0; i < num; i++) {
         free(evs[i]->pdata);
         free(evs[i]);
     }

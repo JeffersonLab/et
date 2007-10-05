@@ -164,6 +164,7 @@ extern "C" {
 #define ET_ERROR_REMOTE   -11
 #define ET_ERROR_NOREMOTE -12
 #define ET_ERROR_TOOBIG   -13 /* Changed, Added */
+#define ET_ERROR_NOMEM    -14 /* Changed, Added */
 
 /* debug levels */
 #define ET_DEBUG_NONE   0
@@ -587,9 +588,6 @@ extern int et_open_config_getaddress(et_openconfig sconfig, char *val);
 
 extern int et_open_config_sethost(et_openconfig sconfig, const char *val);
 extern int et_open_config_gethost(et_openconfig sconfig, char *val);
-
-extern int et_open_config_addbroadcast(et_openconfig sconfig, const char *val);
-extern int et_open_config_removebroadcast(et_openconfig sconfig, const char *val);
 
 extern int et_open_config_addmulticast(et_openconfig sconfig, const char *val);
 extern int et_open_config_removemulticast(et_openconfig sconfig, const char *val);

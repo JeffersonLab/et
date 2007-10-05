@@ -655,9 +655,6 @@ int et_system_close(et_sys_id id)
   for (i=0; i < config.mcastaddrs.count; i++) {
     et_sys_stopthread(config.mcastaddrs.tid[i]);
   }
-  for (i=0; i < config.subnets.count; i++) {
-    et_sys_stopthread(config.subnets.tid[i]);
-  }
 
   /* stop heartbeat & heartmonitor threads */
   et_sys_stopthread(etid->sys->tid_hb);
@@ -682,6 +679,11 @@ int et_system_close(et_sys_id id)
     ps++;
   }
 
+  /* wait for all conductor threads to stop before unmapping memory */
+  sometime.tv_sec  = 0;
+  sometime.tv_nsec = 100000000; /* 0.1 sec */
+  nanosleep(&sometime, NULL);
+  
   /* unmap ET memory */
   if (munmap(etid->pmap, etid->memsize) != 0) {
     if (etid->debug >= ET_DEBUG_ERROR) {

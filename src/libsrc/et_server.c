@@ -8,7 +8,7 @@
  *    Author:  Carl Timmer                                                    *
  *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*
  *
@@ -65,19 +65,21 @@ void *et_cast_thread(void *arg)
   et_netthread	  *threadarg = (et_netthread *) arg;
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
-  int             i;
+  int             i=0;
   pthread_attr_t  attr;
-  char            unamehost[ET_MAXHOSTNAMELEN], unameaddr[ET_IPADDRSTRLEN];
-
-  /* send signal to main thread that this thread has started */
-  etid->race = -1;
+  char            unamehost[ET_MAXHOSTNAMELEN];
 
   /* get thread attribute ready */
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  /* thread for each network interface - listen for broadcasts */
-  for (i=0; i<config->ifaddrs.count; i++) {
+  /* get uname of this host */
+  if (et_getUname(unamehost, ET_MAXHOSTNAMELEN) != ET_OK) {
+    strcpy(unamehost, "..."); /* nothing will match this */
+  }
+  
+  /* thread for each subnet broadcast IP address - listen for broadcasts */
+  for (i=0; i < config->bcastaddrs.count; i++) {
     /* allocate struct for passing info to listening thread */
     et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
     if (newarg == NULL) {
@@ -86,29 +88,32 @@ void *et_cast_thread(void *arg)
       }
       exit(1);
     }
-    /* ignore loopback address - don't need to listen on that */
-    if (strcmp(config->ifaddrs.addr[i], "127.0.0.1") == 0) {
-      free(newarg);
-      continue;
-    }
     /* each thread gets a slightly different arg passed to it */
-    newarg->config = config;
     newarg->id = etid;
     newarg->cast = ET_BROADCAST;
-    strcpy(newarg->host, config->ifnames.name[i]);
-    strcpy(newarg->listenaddr, config->ifaddrs.addr[i]);
-    strcpy(newarg->returnaddr, config->ifaddrs.addr[i]);
+    newarg->config = config;
+    newarg->listenaddr = config->bcastaddrs.addr[i];
+    strcpy(newarg->uname, unamehost);
 
-    pthread_create(&config->ifaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
+    pthread_create(&config->bcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
   }
 
-  /* get uname & addr of this host */
-  if (et_defaulthost(unamehost, ET_MAXHOSTNAMELEN) != ET_OK) {
-    strcpy(unamehost, "cannotfindhostname");
+  /* thread for the general subnet broadcast IP address of 255.255.255.255 - listen for broadcasts */
+  et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
+  if (newarg == NULL) {
+    if (etid->debug >= ET_DEBUG_SEVERE) {
+      et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
+    }
+    exit(1);
   }
-  if (et_defaultaddress(unameaddr, ET_IPADDRSTRLEN) != ET_OK) {
-    strcpy(unameaddr, "cannotfindaddr");
-  }
+  /* each thread gets a slightly different arg passed to it */
+  newarg->id = etid;
+  newarg->cast = ET_BROADCAST;
+  newarg->config = config;
+  newarg->listenaddr = "255.255.255.255";
+  strcpy(newarg->uname, unamehost);
+
+  pthread_create(&config->bcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
 
   /* If we wanted to, we could specify the interface address to accept
    * the multicast packet on, but we'll forget about it for now.
@@ -118,29 +123,23 @@ void *et_cast_thread(void *arg)
   for (i=0; i<config->mcastaddrs.count; i++) {
     /* each thread gets a slightly different arg passed to it */
     et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
-    newarg->config = config;
+    if (newarg == NULL) {
+      if (etid->debug >= ET_DEBUG_SEVERE) {
+        et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
+      }
+      exit(1);
+    }
     newarg->id = etid;
     newarg->cast = ET_MULTICAST;
-    strcpy(newarg->host, unamehost);
-    strcpy(newarg->listenaddr, config->mcastaddrs.addr[i]);
-    strcpy(newarg->returnaddr, unameaddr);
+    newarg->config = config;
+    newarg->listenaddr = config->mcastaddrs.addr[i];
+    strcpy(newarg->uname, unamehost);
 
     pthread_create(&config->mcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
   }
 
-  /* thread for each subnet address */
-  for (i=0; i<config->subnets.count; i++) {
-    /* each thread gets a slightly different arg passed to it */
-    et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
-    newarg->config = config;
-    newarg->id = etid;
-    newarg->cast = ET_BROADCAST;
-    strcpy(newarg->host, unamehost);
-    strcpy(newarg->listenaddr, config->subnets.addr[i]);
-    strcpy(newarg->returnaddr, unameaddr);
-
-    pthread_create(&config->subnets.tid[i], &attr, et_listen_thread, (void *) newarg);
-  }
+  /* send signal to main thread that this thread has started */
+  etid->race = -1;
 
   return NULL;
 }
@@ -149,29 +148,28 @@ void *et_cast_thread(void *arg)
 /************************************************************/
 static void *et_listen_thread(void *arg)
 {
-  et_netthread	     *threadarg = (et_netthread *) arg;
-  et_sys_config      *config    = threadarg->config;
-  et_id              *etid      = threadarg->id;
-  int                cast       = threadarg->cast;
-  char               *addr      = threadarg->listenaddr;
-  char               *retaddr   = threadarg->returnaddr;
-  char               *host      = threadarg->host;
+  et_netthread	     *threadarg  = (et_netthread *) arg;
+  et_sys_config      *config     = threadarg->config;
+  et_id              *etid       = threadarg->id;
+  int                cast        = threadarg->cast;
+  char               *uname      = threadarg->uname;
+  char               *listenaddr = threadarg->listenaddr;
+  et_ipinfo          *pinfo      = config->netinfo.ipinfo;
+  int                ipAddrCount = config->netinfo.count;
 
-  int                version, sockfd, nbytes, length, port;
-  int                len_host, len_address, len_uname;
-  int                host_len, address_len, uname_len;
+  int                i, j, k, version, sockfd, nbytes, length, len, nameCount=0, debug=0;
+  uint32_t           netint;
   size_t             bufsize;
   char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+4];
   char	             filename[ET_FILENAME_LENGTH];
-  char               unamehost[ET_MAXHOSTNAMELEN];
-  socklen_t          len;
+  socklen_t          slen;
   struct sockaddr_in cliaddr;
 #ifdef sun
   int con;
 #endif
 
   /* setup socket for receiving udp packets */
-  sockfd = et_udpreceive((unsigned short)config->port, addr, cast);
+  sockfd = et_udpreceive((unsigned short)config->port, listenaddr, cast);
   if (sockfd < 0) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_listen_thread: problem opening socket\n");
@@ -187,79 +185,181 @@ static void *et_listen_thread(void *arg)
 #endif
 
   /* Prepare output buffer we send in answer to inquiries:
-   * (1) ET version #,
-   * (2) port of tcp server thread (not udp config->port),
-   * (3) length of next string,
-   * (4) fully qualified hostname of this interface address
-   *     (from uname if multicasting),
-   * (5) length of next string
-   * (6) this interface's address in dotted-decimal form,
-   * (7) length of next string,
-   * (8) fully qualified hostname from "uname" (used as a
-   *     general identifier of this host no matter which
-   *     interface is used)
+   * (1)  ET version #
+   * (2)  port of tcp server thread (not udp config->port)
+   * (3)  ET_BROADCAST or ET_MULTICAST (int)
+   * (4)  length of next string
+   * (5)    broadcast address (dotted-dec) if broadcast received or
+   *        multicast address (dotted-dec) if multicast received
+   *        (see int #3)
+   * (6)  length of next string
+   * (7)    hostname given by "uname" (used as a general
+   *        identifier of this host no matter which interface is used)
+   * (8)  number of names for this IP addr starting with canonical
+   * (9)    32bit, net-byte ordered IPv4 address assoc with following name
+   * (10)   length of next string
+   * (11)       first name = canonical
+   * (12)   32bit, net-byte ordered IPv4 address assoc with following name
+   * (13)   length of next string
+   * (14)       first alias ...
+   *
+   * All aliases are sent here.
+   *
+   * Note that for a response to a broadcast, only the names and IP addresses
+   * associated with the subnet of the broadcast are sent back. The first
+   * address sent will generally be the primary address. And the first name
+   * for a particular address will be the canonical name followed by the
+   * aliases. There may be an exception to this IF a single interface is
+   * configured to have 2 IP addresses - each on a different subnet.
+   * (This is a practice best avoided in online data acquistion).
+   *
+   * However, if the broadcast address is the general address of 255.255.255.255,
+   * then send back all names and their IP addresses as this broadcast address
+   * is NOT associated with any particular subnet.
+   * 
+   * In a response to a multicast packet, all names and addresses of the host
+   * are sent back. The first is the primary address from the first interface.
+   * And the first name for a particular address will be the canonical name
+   * followed by the aliases. 
+   * 
    */
+  if (debug)
+    printf("\n\net_listen_thread: listening on addr = %s\n", listenaddr);
 
-  version  = htonl(etid->version);
-  bufsize  = sizeof(version);
+  /* find length of necessary buffer */
+  bufsize = 6*sizeof(int) + strlen(uname) + strlen(listenaddr) + 2 /* 2 NULLs */;
+  
+  /* look through the list of all IP addresses (and related data) */
+  for (i=0; i < ipAddrCount; i++) {
+    /* If receiving broadcasts, don't send back names associated with other broadcast
+       addresses unless we're the general broadcast address of 255.255.255.255 .*/
+    if (cast == ET_BROADCAST &&
+        strcmp("255.255.255.255",  listenaddr) != 0 &&
+        strcmp(pinfo[i].broadcast, listenaddr) != 0)  {
+/*printf("et_listen_thread: broadcast addr %s of IP addr #%d, does NOT match our listening addr %s, so skip it\n",
+        pinfo[i].broadcast, i, listenaddr);*/
+      continue;
+    }
 
-  port     = htonl(etid->sys->port);
-  bufsize += sizeof(port);
-
-  host_len = strlen(host)+1;
-  len_host = htonl(host_len);
-  bufsize += sizeof(len_host) + host_len;
-
-  address_len = strlen(retaddr)+1;
-  len_address = htonl(address_len);
-  bufsize    += sizeof(len_address) + address_len;
-
-  /* get uname of this host */
-  if (et_defaulthost(unamehost, ET_MAXHOSTNAMELEN) != ET_OK) {
-    len_uname = uname_len = 0;
+    if (debug)
+      printf("et_listen_thread: broadcast addr %s of IP addr #%d, MATCHES listening addr %s, so count names assoc. with it\n",
+              pinfo[i].broadcast, i, listenaddr);
+    
+    nameCount += 1 + pinfo[i].aliasCount;
+    if (debug)
+      printf("et_listen_thread: number of names = %d\n", nameCount);
+    bufsize += 2*sizeof(int) + strlen(pinfo[i].canon) + 1;
+    for (j=0; j < pinfo[i].aliasCount; j++) {
+      bufsize += 2*sizeof(int) + strlen(pinfo[i].aliases[j]) + 1;
+    }
   }
-  else {
-    uname_len = strlen(unamehost)+1;
-    len_uname = htonl(uname_len);
-  }
-  bufsize += sizeof(len_uname) + uname_len;
-
+    
   /* allocate packet's buffer */
-  if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL) {
+  if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
     }
     exit(1);
   }
-
+   
+  /* ******************** */
   /* put data into buffer */
-  memcpy(pbuf, &version, sizeof(version));
-  pbuf += sizeof(version);
-  memcpy(pbuf, &port, sizeof(port));
-  pbuf += sizeof(port);
-  memcpy(pbuf, &len_host, sizeof(len_host));
-  pbuf += sizeof(len_host);
-  memcpy(pbuf, host, host_len);
-  pbuf += host_len;
-  memcpy(pbuf, &len_address, sizeof(len_address));
-  pbuf += sizeof(len_address);
-  memcpy(pbuf, retaddr, address_len);
-  pbuf += address_len;
-  if (uname_len) {
-    memcpy(pbuf, &len_uname, sizeof(len_uname));
-    pbuf += sizeof(len_uname);
-    memcpy(pbuf, unamehost, uname_len);
-  }
+  /* ******************** */
+  
+  /* 1) ET version */
+  k = htonl(etid->version);
+  memcpy(pbuf, &k, sizeof(k));
+  pbuf += sizeof(k);
+  
+  /* 2) TCP server port */
+  k = htonl(etid->sys->port);
+  memcpy(pbuf, &k, sizeof(k));
+  pbuf += sizeof(k);
+  
+  /* 3) received broadcast or multicast packet? */
+  k = htonl(cast);
+  memcpy(pbuf, &k, sizeof(k));
+  pbuf += sizeof(k);
+  
+  /* 4 & 5) broadcast or multicast address (dotted-dec) */
+  len = strlen(listenaddr)+1;
+  k = htonl(len);
+  memcpy(pbuf, &k, sizeof(k));
+  pbuf += sizeof(k);
+  
+  memcpy(pbuf, listenaddr, len);
+  pbuf += len;
+  
+  /* 6 & 7) uname */
+  len = strlen(uname)+1;
+  k = htonl(len);
+  memcpy(pbuf, &k, sizeof(k));
+  pbuf += sizeof(k);
+  
+  memcpy(pbuf, uname, len);
+  pbuf += len;
+  
+   /* 8) number of host names to follow */
+  k = htonl(nameCount);
+  memcpy(pbuf, &k, sizeof(k));
+  pbuf += sizeof(k);
+  
+  /* look through the list of all IP addresses (and related data) */
+  for (i=0; i < ipAddrCount; i++) {
+    /* If receiving broadcasts, don't send back names associated with other broadcast
+       addresses unless we're the general broadcast address of 255.255.255.255 .*/
+    if (cast == ET_BROADCAST &&
+        strcmp("255.255.255.255",  listenaddr) != 0 &&
+        strcmp(pinfo[i].broadcast, listenaddr) != 0)  {
+/*printf("et_listen_thread: broadcast addr for this address does NOT match our listening addr %s, so skip it\n",
+          listenaddr);*/
+      continue;
+    }
+    
+    /* 9) 32 bit IP address (already network byte ordered) of canonical name */
+    netint = (uint32_t) pinfo[i].saddr.sin_addr.s_addr;
+    memcpy(pbuf, &netint, sizeof(netint));
+    pbuf += sizeof(netint);
 
+    /* 10 & 11) canonical name, length first */
+    len = strlen(pinfo[i].canon)+1;
+    k = htonl(len);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+    if (debug)
+      printf("et_listen_thread: will send to cli, addr = %u, len = %d, name = %s\n", netint, len, pinfo[i].canon);
+
+    memcpy(pbuf, pinfo[i].canon, len);
+    pbuf += len;
+    
+    /* now send each alias, (32bit addr, len, string) */
+    for (j=0; j < pinfo[i].aliasCount; j++) {      
+      /* 12) 32 bit IP address (already network byte ordered) of name */
+      netint = (uint32_t) pinfo[i].saddr.sin_addr.s_addr;
+      memcpy(pbuf, &netint, sizeof(netint));
+      pbuf += sizeof(netint);
+
+      /* 13 & 14) alias, length first */
+      len = strlen(pinfo[i].aliases[j])+1;
+      k = htonl(len);
+      memcpy(pbuf, &k, sizeof(k));
+      pbuf += sizeof(k);
+      if (debug)
+        printf("et_listen_thread: will send to cli, addr = %u, len = %d, name = %s\n", netint, len, pinfo[i].aliases[j]);
+      memcpy(pbuf, pinfo[i].aliases[j], len);
+      pbuf += len;
+    }
+  }
+  
   /* release memory allocated in et_cast_thread */
   /* free(arg); */
 
   for ( ; ; ) {
-    len = sizeof(cliaddr);
+    slen = sizeof(cliaddr);
 
     /* read incoming data */
     nbytes = recvfrom(sockfd, (void *) inbuf, ET_FILENAME_LENGTH+4,
-    			   0, (SA *) &cliaddr, &len);
+    			   0, (SA *) &cliaddr, &slen);
     if (nbytes < 0) {
       if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_listen_thread: error in recvfrom\n");
@@ -291,14 +391,14 @@ static void *et_listen_thread(void *arg)
       continue;
     }
     memcpy(filename, inbuf+sizeof(version)+sizeof(length), length);
-/*
-printf("et_listen_thread: received packet on %s @ %s for %s\n",
-        host, addr, filename);
-*/
+
+    if (debug)
+      printf("et_listen_thread: received packet on %s @ %s for %s\n", uname, listenaddr, filename);
+
     /* check if the ET system the client wants is ours */
     if (strcmp(filename, etid->sys->config.filename) == 0) {
       /* if we are the one the client is looking for, send a reply */
-      sendto(sockfd, (void *) outbuf, bufsize, 0, (SA *) &cliaddr, len);
+      sendto(sockfd, (void *) outbuf, bufsize, 0, (SA *) &cliaddr, slen);
     }
   }
 }
@@ -313,7 +413,7 @@ void *et_netserver(void *arg)
   et_netthread	  *threadarg = (et_netthread *) arg;
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
-  int             listenfd=0, endian, iov_max;
+  int             listenfd=0, endian, iov_max, debug=0;
   int             i, port=0, trylimit=2000;
   struct sockaddr_in cliaddr;
   socklen_t	  addrlen, len;
@@ -347,7 +447,7 @@ void *et_netserver(void *arg)
 
   /* if a server port was explicitly specified, use it and nothing else */
   if (config->serverport > 0) {
-    listenfd = tcp_listen((unsigned short)config->serverport);
+    listenfd = et_tcp_listen((unsigned short)config->serverport);
     if (listenfd < 0) {
       if (etid->debug >= ET_DEBUG_SEVERE) {
 	et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
@@ -359,7 +459,7 @@ void *et_netserver(void *arg)
   /* else, start with default & keeping trying different port #s until one works */
   else {
     for (i=0; i < trylimit; i++) {
-      listenfd = tcp_listen((unsigned short) (ET_SERVER_PORT+i));
+      listenfd = et_tcp_listen((unsigned short) (ET_SERVER_PORT+i));
       if (listenfd < 0) {
 	if (etid->debug >= ET_DEBUG_INFO) {
 	  et_logmsg("INFO", "et_netserver: tried but could not listen on port %d\n", ET_SERVER_PORT+i);
@@ -372,7 +472,9 @@ void *et_netserver(void *arg)
       }
     }
   }
-/*printf("TCP server listening on port %d\n", port);*/
+  
+  if (debug)
+    printf("TCP server listening on port %d\n", port);
 
   if (etid->debug >= ET_DEBUG_INFO) {
     et_logmsg("INFO", "et_netserver: am listening on TCP port %d\n", port);
@@ -410,7 +512,7 @@ void *et_netserver(void *arg)
     pinfo->id      = etid;
 
     /* wait for connection to client */
-    pinfo->connfd  = Accept(listenfd, (SA *) &cliaddr, &len);
+    pinfo->connfd  = et_accept(listenfd, (SA *) &cliaddr, &len);
     if (pinfo->connfd < 0) {
       if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_netserver: error accepting client connection\n");
@@ -418,6 +520,9 @@ void *et_netserver(void *arg)
       free(pinfo);
       continue;
     }
+    
+    if (debug)
+      printf("TCP server got a connection so spawn thread\n");
 
     /* create thread to deal with client */
     pthread_create(&tid, &attr, et_client_thread, (void *) pinfo);
@@ -443,7 +548,7 @@ static void *et_client_thread(void *arg)
   free(arg);
 
   /* read data from client, extra room for future if necessary */
-  if (tcp_read(connfd, incoming, sizeof(incoming)) != sizeof(incoming)) {
+  if (et_tcp_read(connfd, incoming, sizeof(incoming)) != sizeof(incoming)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_client_thread: read failure\n");
     }
@@ -459,7 +564,7 @@ static void *et_client_thread(void *arg)
   info.endian_client = endian;
 
   /* read ET filename */
-  if (tcp_read(connfd, et_name, length) != length) {
+  if (et_tcp_read(connfd, et_name, length) != length) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_client_thread: read failure\n");
     }
@@ -492,7 +597,7 @@ static void *et_client_thread(void *arg)
   /* not used */
   outgoing[9] = 0;
 
-  if (tcp_write(connfd, (void *) outgoing, sizeof(outgoing)) != sizeof(outgoing)) {
+  if (et_tcp_write(connfd, (void *) outgoing, sizeof(outgoing)) != sizeof(outgoing)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_client_thread: write failure\n");
     }
@@ -525,7 +630,7 @@ static void *et_client_thread(void *arg)
     /* if connection is NOT shut down, send reply */
     if (err == ET_ERROR) {
       err = htonl(err);
-      if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+      if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
 	if (etid->debug >= ET_DEBUG_ERROR) {
 	  et_logmsg("ERROR", "et_client_thread: write failure\n");
 	}
@@ -612,7 +717,7 @@ static void et_command_loop(et_threadinfo *info)
   while (1) {
 
     /* first, read the remote command */
-    if (tcp_read(connfd, &command, sizeof(command)) != sizeof(command)) {
+    if (et_tcp_read(connfd, &command, sizeof(command)) != sizeof(command)) {
       /*if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_command_loop: error reading command\n");
       }*/
@@ -639,7 +744,7 @@ static void et_command_loop(et_threadinfo *info)
 	  struct timespec deltatime;
 	  et_event *event;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -710,7 +815,7 @@ static void et_command_loop(et_threadinfo *info)
 	  transfer[1] = ET_HIGHINT((uintptr_t) event);
 	  transfer[2] = ET_LOWINT((uintptr_t) event);
 
-	  if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
 	}
@@ -723,7 +828,7 @@ static void et_command_loop(et_threadinfo *info)
           struct iovec iov[2];
 	  struct timespec deltatime;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
           att  = incoming[0];
@@ -790,7 +895,7 @@ static void et_command_loop(et_threadinfo *info)
 	  }
 
 	  if (err < 0) {
-	    if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
 	    break;
@@ -801,7 +906,7 @@ static void et_command_loop(et_threadinfo *info)
 	  iov[1].iov_base = (void *) events;
 	  iov[1].iov_len  = nevents*sizeof(et_event *);
 
-	  if (tcp_writev(connfd, iov, 2, iov_max) == -1) {
+	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
             goto end;
 	  }
 	}
@@ -813,7 +918,7 @@ static void et_command_loop(et_threadinfo *info)
 	  et_event    *pe;
           et_att_id   att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 
@@ -829,7 +934,7 @@ static void et_command_loop(et_threadinfo *info)
           
 	  err = et_event_put(id, att, pe);
 
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -841,20 +946,20 @@ static void et_command_loop(et_threadinfo *info)
           size_t    len;
           et_att_id att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 	  att     = incoming[0];
 	  nevents = incoming[1];
 	  len = nevents*sizeof(et_event *);
 
-	  if (tcp_read(connfd, (void *) events, len) != len) {
+	  if (et_tcp_read(connfd, (void *) events, len) != len) {
             goto end;
 	  }
 
 	  err = et_events_put(id, att, events, nevents);
 
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -868,7 +973,7 @@ static void et_command_loop(et_threadinfo *info)
 	  struct timespec deltatime;
 	  et_event *event;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -939,7 +1044,7 @@ static void et_command_loop(et_threadinfo *info)
 	  transfer[1] = ET_HIGHINT((uintptr_t) event);
 	  transfer[2] = ET_LOWINT((uintptr_t) event);
 
-	  if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
 	}
@@ -953,7 +1058,7 @@ static void et_command_loop(et_threadinfo *info)
           struct iovec iov[2];
 	  struct timespec deltatime;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -1022,7 +1127,7 @@ static void et_command_loop(et_threadinfo *info)
 	  }
 
 	  if (err < 0) {
-	    if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
 	    break;
@@ -1033,7 +1138,7 @@ static void et_command_loop(et_threadinfo *info)
 	  iov[1].iov_base = (void *) events;
 	  iov[1].iov_len  = nevents*sizeof(et_event *);
 
-	  if (tcp_writev(connfd, iov, 2, iov_max) == -1) {
+	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
             goto end;
 	  }
 	}
@@ -1045,7 +1150,7 @@ static void et_command_loop(et_threadinfo *info)
 	  et_event    *pe;
           et_att_id   att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 
@@ -1061,7 +1166,7 @@ static void et_command_loop(et_threadinfo *info)
 
 	  err = et_event_dump(id, att, pe);
 
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1073,20 +1178,20 @@ static void et_command_loop(et_threadinfo *info)
           size_t    len;
           et_att_id att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 	  att     = incoming[0];
 	  nevents = incoming[1];
 	  len = nevents*sizeof(et_event *);
 
-	  if (tcp_read(connfd, (void *) events, len) != len) {
+	  if (et_tcp_read(connfd, (void *) events, len) != len) {
             goto end;
 	  }
 
 	  err = et_events_dump(id, att, events, nevents);
 
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1100,7 +1205,7 @@ static void et_command_loop(et_threadinfo *info)
           struct iovec iov[2];
 	  et_event *event;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
           att    = ntohl(incoming[0]);
@@ -1123,7 +1228,7 @@ static void et_command_loop(et_threadinfo *info)
 	     * that case, the client can be killed and the ET system does NOT
 	     * know about it. Since this thread will be stuck in et_event_get,
 	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
+	     * not until events start flowing again. To circumvent this, implement
 	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
 	     * detection of broken socket between calls to et_event_get.
 	     */
@@ -1173,7 +1278,7 @@ static void et_command_loop(et_threadinfo *info)
           
 	  header[0] = htonl(err);
 	  if (err < ET_OK) {
-	    if (tcp_write(connfd, (void *) header, sizeof(header[0])) != sizeof(header[0])) {
+	    if (et_tcp_write(connfd, (void *) header, sizeof(header[0])) != sizeof(header[0])) {
               goto end;
             }
 	    break;
@@ -1192,7 +1297,7 @@ static void et_command_loop(et_threadinfo *info)
 	    }
             
 	    err = htonl(ET_ERROR_TOOBIG);
-	    if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
             
@@ -1224,7 +1329,7 @@ static void et_command_loop(et_threadinfo *info)
 	  iov[1].iov_len  = event->length;
 
 	  /* write data */
-	  if (tcp_writev(connfd, iov, 2, iov_max) == -1) {
+	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
             goto end;
 	  }
 
@@ -1250,7 +1355,7 @@ static void et_command_loop(et_threadinfo *info)
 	  int incoming[6], outgoing[3];
 	  struct timespec deltatime;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
           att    = ntohl(incoming[0]);
@@ -1323,7 +1428,7 @@ static void et_command_loop(et_threadinfo *info)
 
 	  if (err != ET_OK) {
 	    err = htonl(err);
-	    if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
 	    break;
@@ -1346,7 +1451,7 @@ static void et_command_loop(et_threadinfo *info)
 	        }
 
 	        err = htonl(ET_ERROR_TOOBIG);
-	        if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	        if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
                   goto end;
                 }
                 
@@ -1380,6 +1485,7 @@ static void et_command_loop(et_threadinfo *info)
             header[index+3] = htonl(ET_LOWINT(events[i]->memsize));
 	    header[index+4] = htonl(events[i]->priority |
 				    events[i]->datastatus << ET_DATA_SHIFT);
+/*printf("Event %d: len = %llu, memsize = %llu\n", i, events[i]->length,  events[i]->memsize);*/
                                     
 /*printf("Get %p, high = %x, low = %x\n", events[i],
 ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
@@ -1398,7 +1504,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	    index += (9+ET_STATION_SELECT_INTS);
 	  }
 
-	  if (tcp_writev(connfd, iov, 2*nevents+1, iov_max) == -1) {
+	  if (et_tcp_writev(connfd, iov, 2*nevents+1, iov_max) == -1) {
             goto end;
 	  }
 
@@ -1419,7 +1525,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	  et_event    *pe;
           et_att_id   att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
           
@@ -1442,7 +1548,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           
 	  /* only read data if modifying everything */
 	  if (pe->modify == ET_MODIFY) {
-	    if (tcp_read(connfd, pe->pdata, (size_t)pe->length) != (size_t)pe->length) {
+	    if (et_tcp_read(connfd, pe->pdata, (size_t)pe->length) != (size_t)pe->length) {
               goto end;
 	    }
           }
@@ -1450,7 +1556,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	  err = et_event_put(id, att, pe);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1465,7 +1571,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           et_att_id  att;
 
 /*printf("etr_events_put: read incoming array\n");*/
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 	  att     = ntohl(incoming[0]);
@@ -1475,7 +1581,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
 	  for (i=0; i < nevents; i++) {
 /*printf("etr_events_put: i = %d, read in header next, %d ints\n", i, 7+ET_STATION_SELECT_INTS);*/
-	    if (tcp_read(connfd, (void *) header, sizeof(header)) != sizeof(header)) {
+	    if (et_tcp_read(connfd, (void *) header, sizeof(header)) != sizeof(header)) {
               goto end;
 	    }
 
@@ -1499,7 +1605,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	    /* only read data if modifying everything */
 	    if (events[i]->modify == ET_MODIFY) {
 /*printf("etr_events_put: read in data next\n");*/
-	      if (tcp_read(connfd, events[i]->pdata, len) != len) {
+	      if (et_tcp_read(connfd, events[i]->pdata, len) != len) {
         	goto end;
 	      }
 	    }
@@ -1508,7 +1614,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	  err = et_events_put(id, att, events, nevents);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1522,7 +1628,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	  struct timespec deltatime;
 	  et_event *pe = NULL;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -1537,7 +1643,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	    transfer[1] = 0;
 	    transfer[2] = 0;
 
-	    if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	    if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
               goto end;
             }
             break;
@@ -1608,7 +1714,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	  transfer[1] = htonl(ET_HIGHINT((uintptr_t) pe));
 	  transfer[2] = htonl(ET_LOWINT((uintptr_t) pe));
 
-	  if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
 	}
@@ -1624,7 +1730,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 	  struct timespec deltatime;
           struct iovec iov[2];
 
-         if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+         if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -1637,7 +1743,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           /* if we're 32 bit, an 64 bit app may ask for events which are too big */
           if (bit64 && num*size > UINT32_MAX/5) {
 	    err = htonl(ET_ERROR_TOOBIG);
-	    if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
 	    break;
@@ -1705,7 +1811,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
 	  if (err < 0) {
 	    err = htonl(err);
-	    if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
 	    break;
@@ -1735,7 +1841,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  iov[1].iov_base = (void *) ints64;
  	  iov[1].iov_len  = nevents*sizeof(uint64_t);
           
-	  if (tcp_writev(connfd, iov, 2, iov_max) == -1) {
+	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
             goto end;
 	  }
 	}
@@ -1747,7 +1853,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  et_event    *pe;
           et_att_id   att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 
@@ -1764,7 +1870,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  err = et_event_dump(id, att, pe);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1775,13 +1881,13 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  int i, nevents, incoming[2];
           et_att_id  att;
 
-	  if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
 	  }
 	  att     = ntohl(incoming[0]);
 	  nevents = ntohl(incoming[1]);
 
-	  if (tcp_read(connfd, (void *) ints64, 2*nevents*sizeof(int)) != 2*nevents*sizeof(int)) {
+	  if (et_tcp_read(connfd, (void *) ints64, 2*nevents*sizeof(int)) != 2*nevents*sizeof(int)) {
             goto end;
 	  }
 
@@ -1792,7 +1898,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  err = et_events_dump(id, att, events, nevents);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1802,7 +1908,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         {
 	  /* we must be alive by definition as this is in the ET process */
           err = htonl(1);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
         }
@@ -1814,7 +1920,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	   * hence there is no need to call et_wait_for_alive(id)
 	   */
           err = htonl(ET_OK);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -1826,7 +1932,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  int errnet;
 
           errnet = htonl(ET_OK);
-          tcp_write(connfd, (void *) &errnet, sizeof(errnet));
+          et_tcp_write(connfd, (void *) &errnet, sizeof(errnet));
 
 	  /* detach all attachments */
 	  for (i=0; i <ET_ATTACHMENTS_MAX ; i++) {
@@ -1848,7 +1954,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         {
           et_att_id  att;
 
-          if (tcp_read(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
+          if (et_tcp_read(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
             goto end;
           }
           att = ntohl(att);
@@ -1861,7 +1967,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         {
           et_stat_id stat_id;
 
-          if (tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+          if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
           stat_id = ntohl(stat_id);
@@ -1878,7 +1984,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  char host[ET_MAXHOSTNAMELEN];
 	  pid_t pid;
 
-          if (tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
           stat_id = ntohl(transfer[0]);
@@ -1886,7 +1992,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           length  = ntohl(transfer[2]);
 
 	  if (length > 0) {
-            if (tcp_read(connfd, (void *) host, length) != length) {
+            if (et_tcp_read(connfd, (void *) host, length) != length) {
               goto end;
             }
 	  }
@@ -1907,7 +2013,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
 	  outgoing[0] = htonl(err);
 	  outgoing[1] = htonl(att);
-          if (tcp_write(connfd, (void *) outgoing, sizeof(outgoing)) != sizeof(outgoing)) {
+          if (et_tcp_write(connfd, (void *) outgoing, sizeof(outgoing)) != sizeof(outgoing)) {
             goto end;
           }
 
@@ -1918,7 +2024,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         {
           et_att_id  att;
 
-	  if (tcp_read(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
+	  if (et_tcp_read(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
             goto end;
           }
           att = ntohl(att);
@@ -1930,7 +2036,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  }
 
           err = htonl(err);
-	  if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+	  if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 
@@ -1946,7 +2052,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  int incoming[14+ET_STATION_SELECT_INTS], transfer[2];
           int i, position, pposition, lengthname, lengthfname, lengthlib, lengthclass;
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -1968,16 +2074,16 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  position    = ntohl(incoming[12+ET_STATION_SELECT_INTS]);
 	  pposition   = ntohl(incoming[13+ET_STATION_SELECT_INTS]);
 
-	  if (tcp_read(connfd, (void *) sc.fname, lengthfname) != lengthfname) {
+	  if (et_tcp_read(connfd, (void *) sc.fname, lengthfname) != lengthfname) {
 	    goto end;
 	  }
-	  if (tcp_read(connfd, (void *) sc.lib, lengthlib) != lengthlib) {
+	  if (et_tcp_read(connfd, (void *) sc.lib, lengthlib) != lengthlib) {
 	    goto end;
 	  }
-	  if (tcp_read(connfd, (void *) sc.classs, lengthclass) != lengthclass) {
+	  if (et_tcp_read(connfd, (void *) sc.classs, lengthclass) != lengthclass) {
 	    goto end;
 	  }
-          if (tcp_read(connfd, (void *) stat_name, lengthname) != lengthname) {
+          if (et_tcp_read(connfd, (void *) stat_name, lengthname) != lengthname) {
             goto end;
           }
 
@@ -1986,7 +2092,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
           transfer[0] = htonl(err);
           transfer[1] = htonl(stat_id);
-          if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
 	}
@@ -1997,7 +2103,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	{
           et_stat_id stat_id;
 
-          if (tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+          if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
           stat_id = ntohl(stat_id);
@@ -2005,7 +2111,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           err = et_station_remove(id, stat_id);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
            goto end;
           }
 	}
@@ -2016,7 +2122,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           et_stat_id  stat_id;
           int  position, pposition, transfer[3];
 
-	  if (tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	  if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
           stat_id   = ntohl(transfer[0]);
@@ -2026,7 +2132,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           err = et_station_setposition(id, stat_id, position, pposition);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -2037,7 +2143,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           et_stat_id  stat_id;
           int  position, pposition, transfer[3];
 
-	  if (tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+	  if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
 	  }
 	  stat_id = ntohl(stat_id);
@@ -2047,7 +2153,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  transfer[0] = htonl(err);
 	  transfer[1] = htonl(position);
 	  transfer[2] = htonl(pposition);
-	  if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
 	  }
 	}
@@ -2059,7 +2165,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           et_att_id   att;
 	  int  transfer[2];
 
-	  if (tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	  if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
           stat_id = ntohl(transfer[0]);
@@ -2068,7 +2174,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           err = et_station_isattached(id, stat_id, att);
 
 	  err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -2080,11 +2186,11 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  char stat_name[ET_STATNAME_LENGTH];
 	  int  length, transfer[2];
 
-          if (tcp_read(connfd, (void *) &length, sizeof(length)) != sizeof(length)) {
+          if (et_tcp_read(connfd, (void *) &length, sizeof(length)) != sizeof(length)) {
             goto end;
           }
           length = ntohl(length);
-          if (tcp_read(connfd, (void *) stat_name, length) != length) {
+          if (et_tcp_read(connfd, (void *) stat_name, length) != length) {
             goto end;
           }
 
@@ -2092,7 +2198,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
 	  transfer[0] = htonl(err);
 	  transfer[1] = htonl(stat_id);
-          if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
 	}
@@ -2103,7 +2209,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           et_stat_id  stat_id;
 	  int i, incoming[1+ET_STATION_SELECT_INTS];
 
-          if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
@@ -2115,7 +2221,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           err = et_station_setselectwords(id, stat_id, incoming);
 
           err = htonl(err);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -2127,7 +2233,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           et_stat_id  stat_id;
 	  int i, sw[1+ET_STATION_SELECT_INTS];
 
-	  if (tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+	  if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
 	  }
           stat_id = ntohl(stat_id);
@@ -2138,7 +2244,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  for (i=1; i <= ET_STATION_SELECT_INTS; i++) {
 	    sw[i] = htonl(sw[i]);
 	  }
-	  if (tcp_write(connfd, (void *) sw, sizeof(sw)) != sizeof(sw)) {
+	  if (et_tcp_write(connfd, (void *) sw, sizeof(sw)) != sizeof(sw)) {
             goto end;
           }
 	}
@@ -2156,7 +2262,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	   */
 	  char *name, buf[128+ET_FILENAME_LENGTH];
 
-	  if (tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+	  if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
 	  }
           stat_id = ntohl(stat_id);
@@ -2175,7 +2281,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  if (err != ET_OK) {
 	    transfer[0] = htonl(err);
 	    transfer[1] = 0;
-	    if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+	    if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
               goto end;
             }
 	  }
@@ -2185,7 +2291,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	    transfer[1] = htonl(len);
 	    memcpy(buf, transfer, sizeof(transfer));
 	    size = sizeof(transfer) + len;
-	    if (tcp_write(connfd, (void *) buf, size) != size) {
+	    if (et_tcp_write(connfd, (void *) buf, size) != size) {
               goto end;
             }
 	  }
@@ -2203,7 +2309,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       et_stat_id  stat_id;
       int  val, transfer[2];
 
-      if (tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+      if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
         goto end;
       }
       stat_id = ntohl(stat_id);
@@ -2248,7 +2354,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       
       transfer[0] = htonl(err);
       transfer[1] = htonl(val);
-      if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+      if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         goto end;
       }
     }
@@ -2260,7 +2366,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       et_stat_id  stat_id;
       int  val, incoming[2];
 
-      if (tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+      if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         goto end;
       }
       stat_id = ntohl(incoming[0]);
@@ -2290,7 +2396,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       }
       
       err = htonl(err);
-      if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+      if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         goto end;
       }
     }
@@ -2302,7 +2408,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       int        transfer[3];
       uint64_t   llevents;
 
-      if (tcp_read(connfd, (void *) &att_id, sizeof(att_id)) != sizeof(att_id)) {
+      if (et_tcp_read(connfd, (void *) &att_id, sizeof(att_id)) != sizeof(att_id)) {
         goto end;
       }
       att_id = ntohl(att_id);
@@ -2330,7 +2436,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       transfer[0] = htonl(err);
       transfer[1] = htonl(ET_HIGHINT(llevents));
       transfer[2] = htonl(ET_LOWINT(llevents));
-      if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+      if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         goto end;
       }
     }
@@ -2383,7 +2489,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
       
       transfer[0] = htonl(err);
       transfer[1] = htonl(val);
-      if (tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+      if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         goto end;
       }
     }
@@ -2417,7 +2523,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
         if (err != ET_OK) {
 	  err = htonl(ET_ERROR);
-          if (tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 	}
@@ -2434,7 +2540,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  iov[0].iov_base = (void *) outgoing;
 	  iov[0].iov_len  = sizeof(outgoing);
 
-	  if (tcp_writev(connfd, iov, 5, iov_max) == -1) {
+	  if (et_tcp_writev(connfd, iov, 5, iov_max) == -1) {
 	    free(iov[1].iov_base);
 	    free(iov[2].iov_base);
 	    free(iov[3].iov_base);
@@ -2458,7 +2564,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
 	if (err != ET_OK) {
 	  histogram[0] = htonl(histogram[0]);
-          if (tcp_write(connfd, (void *) histogram, sizeof(int)) != sizeof(int)) {
+          if (et_tcp_write(connfd, (void *) histogram, sizeof(int)) != sizeof(int)) {
             goto end;
           }
 	}
@@ -2467,7 +2573,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 	  for (i=0; i < nevents_max+2; i++) {
 	    histogram[i] = htonl(histogram[i]);
 	  }
-          if (tcp_write(connfd, (void *) histogram, sizeof(int)*(nevents_max+2)) !=
+          if (et_tcp_write(connfd, (void *) histogram, sizeof(int)*(nevents_max+2)) !=
 	      sizeof(int)*(nevents_max+2)) {
             goto end;
           }

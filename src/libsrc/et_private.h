@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <limits.h>
+#include <netinet/in.h>	 /* sockaddr_in definition */
 #include "et.h"
 
 #ifdef	__cplusplus
@@ -50,7 +51,7 @@ extern "C" {
 #endif
 
 /* Version Number of this ET software package release */
-#define ET_VERSION 9      /* treated as an int */
+#define ET_VERSION 10     /* treated as an int */
 #define ET_MINORVERSION 0 /* treated as an int */
 
 /* Language of ET software package - implementation 
@@ -68,16 +69,19 @@ extern "C" {
 #define ET_IPADDRSTRLEN 16
 
 /*
- * MAXHOSTNAMELEN is defined to be 256 on Solaris and 64 on Linux.
+ * MAXHOSTNAMELEN is defined to be 256 on Solaris and is the max length
+ * of the host name so we add one for the terminator. On Linux the
+ * situation is less clear but 257 appears to be the max (whether that
+ * includes termination is not clear).
  * We need it to be uniform across all platforms since we transfer
  * this info across the network. Define it to be 256 for everyone.
  */
-#define ET_MAXHOSTNAMELEN 256
+#define ET_MAXHOSTNAMELEN 257
 
 
-/******************************************************************
- *      items to handle multiple network addresses or names       *
- ******************************************************************/
+/* *****************************************************************
+ *      items to handle multiple network addresses or names        *
+ * *****************************************************************/
 /* max # of network addresses/names per host we'll examine */
 #define ET_MAXADDRESSES 10
 
@@ -95,12 +99,18 @@ typedef struct et_mcastaddrs_t {
   pthread_t tid[ET_MAXADDRESSES];
 } et_mcastaddrs;
 
-/* struct to handle multiple subnet addresses */
-typedef struct et_subnets_t {
+/* struct to handle multiple broadcast addresses in linked list */
+typedef struct et_bcastlist_t {
+  char                   addr[ET_IPADDRSTRLEN];
+  struct et_bcastlist_t *next;
+} et_bcastlist;
+
+/* struct to handle multiple broadcast addresses */
+typedef struct et_bcastaddrs_t {
   int       count;
   char      addr[ET_MAXADDRESSES][ET_IPADDRSTRLEN];
   pthread_t tid[ET_MAXADDRESSES];
-} et_subnets;
+} et_bcastaddrs;
 
 /* struct to handle multiple network interface addresses */
 typedef struct et_ifaddrs_t {
@@ -109,12 +119,43 @@ typedef struct et_ifaddrs_t {
   pthread_t tid[ET_MAXADDRESSES];
 } et_ifaddrs;
 
-/* struct to handle multiple network interface (host)names */
-typedef struct et_ifnames_t {
-  int   count;
-  char	name[ET_MAXADDRESSES][ET_MAXHOSTNAMELEN];
-} et_ifnames;
 
+/**
+ * This structure holds a single IP address (dotted-decimal
+ * and binary forms) along with its canonical name, aliases,
+ * broadcast address, and a place to store a thread id.
+ */
+typedef struct et_ipaddr_t {
+  int    aliasCount;                 /**< Number of aliases stored in this item. */
+  char   **aliases;                  /**< Array of alias strings. */
+  char   addr[ET_IPADDRSTRLEN];      /**< IP address in dotted-decimal form. */
+  char   canon[ET_MAXHOSTNAMELEN];   /**< Canonical name of host associated with addr. */
+  char   broadcast[ET_IPADDRSTRLEN]; /**< Broadcast address in dotted-decimal form. */
+  struct sockaddr_in saddr;          /**< Binary form of IP address. */
+  pthread_t tid;                     /**< Pthread thread id. */
+  struct et_ipaddr_t *next;         /**< Next item in linked list. */
+} et_ipaddr;
+
+/**
+ * This structure holds a single IP address (dotted-decimal
+ * and binary forms) along with its canonical name, aliases,
+ * broadcast address, and a place to store a thread id. This
+ * form is for use with shared memory since it is of fixed size.
+ */
+typedef struct et_ipinfo_t {
+  int    aliasCount;                 /**< Number of aliases stored in this item. */
+  char   addr[ET_IPADDRSTRLEN];      /**< IP address in dotted-decimal form. */
+  char   canon[ET_MAXHOSTNAMELEN];   /**< Canonical name of host associated with addr. */
+  char   broadcast[ET_IPADDRSTRLEN]; /**< Broadcast address in dotted-decimal form. */
+  char   aliases[ET_MAXADDRESSES][ET_MAXHOSTNAMELEN]; /**< Array of alias strings. */
+  struct sockaddr_in saddr;          /**< Binary form of IP address (net byte order). */
+  pthread_t tid;                     /**< Pthread thread id. */
+} et_ipinfo;
+
+typedef struct et_netinfo_t {
+  int       count;
+  et_ipinfo ipinfo[ET_MAXADDRESSES];
+} et_netinfo;
 
 /****************************************
  * times for heart beating & monitoring *
@@ -501,13 +542,10 @@ struct et_attach {
  * filename	  : name of the ET system file
  * port		  : broad/multicast port # for udp message
  * serverport	  : port # for ET system's tcp server thread
- * subnets	  : list of all local subnet broadcast addrs (dotted-decimal)
+ * netinfo        : holds all IP info
+ * bcastaddrs	  : holds all local subnet broadcast addrs (dotted-decimal)
  * ifaddrs	  : list of all local network interfaces' addrs (dotted-dec)
- * ifnames	  : list of all interface hostnames corresponding to the IP
- *                : addresses listed in "ifaddrs". May be duplicates as several
- *                : IP addresses may be associated with the same hostname. Thus
- *                : there are "ifaddr.count" number of array members.
- * mcastaddrs	  : list of all multicast addresses to listen on (dotted-dec)
+ * mcastaddrs	  : holds all multicast addresses to listen on (dotted-dec)
  */
  
 typedef struct  et_sys_config_t {
@@ -522,9 +560,9 @@ typedef struct  et_sys_config_t {
   /* for remote use */
   int             port;
   int             serverport;
-  et_subnets      subnets;
+  et_netinfo      netinfo;
+  et_bcastaddrs   bcastaddrs;
   et_ifaddrs      ifaddrs;
-  et_ifnames      ifnames;
   et_mcastaddrs   mcastaddrs;
 } et_sys_config;
 
@@ -639,8 +677,6 @@ typedef struct et_system_t {
  *              : = ET_POLICY_FIRST - pick the first to respond
  *              : = ET_POLICY_LOCAL - pick the local system first and
  *              :   if it doesn't respond, the first that does
- * activated    : keep track of which subnets are to be used 
- *              : lowest bit corresponds to first element of "subnets"
  * timeout	: max time to wait for ET system to appear if wait=ET_OPEN_WAIT
  * host		: name of host computer that has ET system. Defaults to 
  *		: local host if unset. If domain not included, assumed local.
@@ -648,7 +684,8 @@ typedef struct et_system_t {
  *		: its value may also be ET_HOST_ANYWHERE for an ET system that
  *		: may be local or remote, ET_HOST_REMOTE for an ET system that's
  *		: remote, or ET_HOST_LOCAL for an ET system that is local.
- * subnets	: list of all local subnet broadcast addrs (dotted-decimal)
+ * netinfo	: linked list of structs containing network info
+ * bcastaddrs	: linked list of all local subnet broadcast addrs (dotted-decimal)
  * mcastaddrs	: list of all multicast addresses (dotted-dec)
  */
 
@@ -663,10 +700,10 @@ typedef struct et_open_config_t {
   int             multiport;
   int             serverport;
   int             policy;
-  int             activated;
   struct timespec timeout;
   char            host[ET_MAXHOSTNAMELEN];
-  et_subnets      subnets;
+  et_ipaddr       *netinfo;
+  et_bcastlist    *bcastaddrs;
   et_mcastaddrs   mcastaddrs;
 } et_open_config;
 
@@ -871,15 +908,11 @@ typedef struct  et_mem_t {
 
 /* struct for passing data from system to network threads */
 typedef struct et_netthread_t {
+  int   cast;			      /* broad or multicast */
   et_id *id;			      /* system id */
   et_sys_config *config;	      /* system configuration */
-  int  cast;			      /* broad or multicast */
-  char host[ET_MAXHOSTNAMELEN];       /* host assoc with this address */
-  char listenaddr[ET_IPADDRSTRLEN];   /* interface, broadcast, or multicast address
-                                      (dot-decimal) being bound to socket so it
-				      can receive udp packets on the address */
-  char returnaddr[ET_IPADDRSTRLEN];   /* interface address (dot-decimal) being
-                                      returned to client along with hostname */
+  char *listenaddr;	              /* broadcast or multicast address  (dot-decimal) */
+  char uname[ET_MAXHOSTNAMELEN];      /* host obtained with "uname" cmd */
 } et_netthread;
 
 /****************************
@@ -1129,11 +1162,10 @@ extern int  et_unlook(et_sys_id id);
 extern void *et_cast_thread(void *arg);
 extern void *et_netserver(void *arg);
 extern int   et_findserver(const char *etname, char *ethost, int *port,
-		           et_open_config *config);
+		           int32_t *inetaddr, et_open_config *config);
 extern int   et_responds(const char *etname);
 extern int   et_sharedmutex(void);
 extern int   et_findlocality(const char *filename, et_openconfig openconfig);
-extern int   et_netinfo (et_ifnames *ifnames, et_ifaddrs *ifaddrs, et_subnets *nets);
 /* end server/network routines */
  
 /* station configuration checks */

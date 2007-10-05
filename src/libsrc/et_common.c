@@ -91,13 +91,14 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
   /* else if ET system host name is unknown and maybe anywhere ... */
   else if (strcmp(config->host, ET_HOST_ANYWHERE) == 0) {
     int err, port;
+    uint32_t inetaddr;
     struct timeval waittime;
     
     waittime.tv_sec  = 0;
     waittime.tv_usec = 10000; /* 0.1 sec */
     
-    /* send only 1 broadcast with a 0.01 sec wait */
-    err = et_findserver2(filename, ethost, &port, config, 1, &waittime);
+    /* send only 1 broadcast with a 0.1 sec wait */
+    err = et_findserver2(filename, ethost, &port, &inetaddr, config, 1, &waittime);
     if ((err == ET_ERROR) || (err == ET_ERROR_TIMEOUT)) {
       et_logmsg("ERROR", "et_findlocality, cannot find ET system\n");
       return err;
@@ -107,8 +108,10 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
       et_logmsg("ERROR", "et_findlocality, multiple ET systems reponded\n");
       return err;
     }
+/*
 printf("et_findlocality: for ET_HOST_ANYWHERE, host = %s, locality = %d\n",
 ethost, et_nodelocality(ethost));
+*/
     return et_nodelocality(ethost);
   }
   

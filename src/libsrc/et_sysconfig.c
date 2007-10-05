@@ -52,32 +52,33 @@ int et_system_config_init(et_sysconfig* sconfig)
   sc->port             = ET_BROADCAST_PORT;
   sc->serverport       = 0;
   sc->mcastaddrs.count = 0;
+ *sc->filename         = '\0';
   
-  /* Find our local subnets' broadcast addresses as
-   * well as the interfaces' addresses and names.
-   */
-  if (et_netinfo(&sc->ifnames, &sc->ifaddrs, &sc->subnets) == ET_ERROR) {
-    strcpy(sc->subnets.addr[0], ET_BROADCAST_ADDR);
-    sc->subnets.count = 1;
+  /* Find our local subnets' broadcast addresses */
+  if (et_getBroadcastAddrs(NULL, &sc->bcastaddrs) == ET_ERROR) {
+    sc->bcastaddrs.count = 0;
   }
-  
-  /*
-  if (et_defaultbroadcastaddr(sc->address) == ET_ERROR) {
-    strcpy(sc->address, ET_BROADCAST_ADDR);
+
+  /* Find our local interfaces' addresses and names. */
+  if (et_getNetInfo(NULL, &sc->netinfo) != ET_OK) {
+    sc->netinfo.count = 0;
+printf("et_system_config_init: error in et_getNetInfo\n");
   }
-  */
-		  
- *sc->filename      = '\0';
-  sc->init          = ET_STRUCT_OK;
-  
+   		  
+  sc->init = ET_STRUCT_OK;
   *sconfig = (et_sysconfig) sc;
+  
   return ET_OK;
 }
 
 /*****************************************************/
 int et_system_config_destroy(et_sysconfig sconfig)
 {
-  free((et_sys_config *) sconfig);
+  et_sys_config *sc = (et_sys_config *)sconfig;
+  
+  if (sc == NULL) return ET_OK;
+  
+  free(sc);
   return ET_OK;
 }
 

@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "et_private.h"
+#include "et_network.h"
 
 /*****************************************************/
 /*          OPEN SYSTEM CONFIGURATION                */
@@ -49,16 +50,19 @@ int et_open_config_init(et_openconfig *sconfig)
   sc->timeout.tv_nsec  = 0;
   strcpy(sc->host, ET_HOST_LOCAL);
   sc->policy           = ET_POLICY_FIRST; /* use first response to broad/multicast */
-  sc->activated        = 1; /* activate default subnet */
   sc->mcastaddrs.count = 0;
   
   /* find our local subnets' broadcast addresses */
-  if (et_netinfo(NULL, NULL, &sc->subnets) == ET_ERROR) {
-    strcpy(sc->subnets.addr[0], ET_BROADCAST_ADDR);
-    sc->subnets.count = 1;
+  if (et_getBroadcastAddrs(&sc->bcastaddrs, NULL) == ET_ERROR) {
+    sc->bcastaddrs = NULL;
   }
   
-  sc->init            = ET_STRUCT_OK;
+  if (et_getNetInfo(&sc->netinfo, NULL) != ET_OK) {
+    sc->netinfo = NULL;
+printf("et_open_config_init: error in et_getNetInfo\n");
+  }
+  
+  sc->init = ET_STRUCT_OK;
   
   *sconfig = (et_openconfig) sc;
   return ET_OK;
@@ -67,9 +71,17 @@ int et_open_config_init(et_openconfig *sconfig)
 /*****************************************************/
 int et_open_config_destroy(et_openconfig sconfig)
 {
-  if (sconfig != NULL) {
-    free((et_open_config *) sconfig);
-  }
+  et_open_config *sc = (et_open_config *)sconfig;
+  
+  if (sc == NULL) return ET_OK;
+  
+  /* first, free network info (linked list) */
+  et_freeIpAddrs(sc->netinfo);
+  
+  /* next, free broadcast info (linked list) */
+  et_freeBroadcastAddrs(sc->bcastaddrs);
+  
+  free(sc);
   return ET_OK;
 }
 
@@ -305,91 +317,6 @@ int et_open_config_gettimeout(et_openconfig sconfig, struct timespec *val)
   et_open_config *sc = (et_open_config *) sconfig;
   
   *val = sc->timeout;
-  return ET_OK;
-}
-
-/*****************************************************
- * This routine together with et_open_config_addmulticast
- * replaces et_open_config_setaddress.
- ****************************************************/
-int et_open_config_addbroadcast(et_openconfig sconfig, const char *val)
-{
-  et_open_config *sc = (et_open_config *) sconfig;
-  int  i;
-  
-  if (sc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-  
-  if (val == NULL) {
-    return ET_ERROR;
-  }
-  
-  if (strcmp(val, ET_SUBNET_ALL) == 0) {
-    sc->activated = 0;
-    /* mark the bits of all the subnet addresses */
-    for (i=0; i < sc->subnets.count; i++) {
-      sc->activated = sc->activated | 1<<i;
-    }
-  }
-  else if (strcmp(val, ET_SUBNET_DEFAULT) == 0) {
-    /* default subnet address is the first */
-    sc->activated = 1;
-  }
-  else if ((strlen(val) < ET_IPADDRSTRLEN) && (strlen(val) > 6)) {
-    /* Compare this subnet address with the list of those
-     * that are available. Activate it if there's a match.
-     */
-    for (i=0; i < sc->subnets.count; i++) {
-      if (strcmp(val, sc->subnets.addr[i]) == 0) {
-        sc->activated = sc->activated | 1<<i;
-        return ET_OK;
-      }
-    }
-  }
-  else {
-    return ET_ERROR;
-  }
-    
-  return ET_OK;
-}
-
-/*****************************************************/
-int et_open_config_removebroadcast(et_openconfig sconfig, const char *val)
-{
-  et_open_config *sc = (et_open_config *) sconfig;
-  int  i;
-  
-  if (sc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-  
-  if (val == NULL) {
-    return ET_ERROR;
-  }
-  
-  if (strcmp(val, ET_SUBNET_ALL) == 0) {
-    sc->activated = 0;
-  }
-  else if (strcmp(val, ET_SUBNET_DEFAULT) == 0) {
-    /* default subnet address is the first */
-    sc->activated = sc->activated & ~1;
-  }
-  else if ((strlen(val) < ET_IPADDRSTRLEN) && (strlen(val) > 6)) {
-    /* Compare this subnet address with the list of those
-     * that are available. Deactivate it if there's a match.
-     */
-    for (i=0; i < sc->subnets.count; i++) {
-      if (strcmp(val, sc->subnets.addr[i]) == 0) {
-	sc->activated = sc->activated & ~(1<<i);
-        return ET_OK;
-      }
-    }
-  }
-  else {
-    return ET_ERROR;
-  }
-    
   return ET_OK;
 }
 
