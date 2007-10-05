@@ -99,7 +99,7 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
   int   i, err, com, sockfd = etid->sockfd;
 
   com = htonl(ET_NET_SYS_HIST);
-  if (tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
+  if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etr_data_gethistogram, write error\n");
     }
@@ -107,7 +107,7 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
   }
 
   /* read routine's return error value */
-  if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etr_data_gethistogram, read error\n");
     }
@@ -119,7 +119,7 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
   }
 
   /* read histogram data */
-  if (tcp_read(sockfd, (void *) hist, sizeof(int)*(etid->nevents+1)) !=
+  if (et_tcp_read(sockfd, (void *) hist, sizeof(int)*(etid->nevents+1)) !=
 		sizeof(int)*(etid->nevents+1)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etr_data_gethistogram, read error\n");
@@ -847,7 +847,7 @@ int et_data_get(et_sys_id id, et_alldata *alldata)
 
 
   com = htonl(ET_NET_SYS_DATA);
-  if (tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
+  if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_data_get, write error\n");
     }
@@ -855,7 +855,7 @@ int et_data_get(et_sys_id id, et_alldata *alldata)
   }
 
   /* read first piece of data which is the error */
-  if (tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_data_get, read error\n");
     }
@@ -867,7 +867,7 @@ int et_data_get(et_sys_id id, et_alldata *alldata)
   }
   
   /* read second piece of data which is size of all the rest of the data */
-  if (tcp_read(sockfd, (void *) &bufsize, sizeof(bufsize)) != sizeof(bufsize)) {
+  if (et_tcp_read(sockfd, (void *) &bufsize, sizeof(bufsize)) != sizeof(bufsize)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_data_get, read error\n");
     }
@@ -883,7 +883,7 @@ int et_data_get(et_sys_id id, et_alldata *alldata)
   }
 
   /* read in all the actual data into a single buffer */
-  if (tcp_read(sockfd, (void *) pbuf, bufsize) != bufsize) {
+  if (et_tcp_read(sockfd, (void *) pbuf, bufsize) != bufsize) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_data_get, read error\n");
     }
