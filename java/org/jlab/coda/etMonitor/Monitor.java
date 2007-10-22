@@ -752,10 +752,6 @@ public class Monitor extends JFrame {
                         "system and the user. In this case, a specific hostname must be used (not \"local\", " +
                         "\"remote\", or \"anywhere\"). The \"TCP Port\" entry is used for the port number.\n\n" +
 
-                        "\te) udp to specified host\nThis selection sends a UDP packet to a specified " +
-                        "hostname on the \"UDP Port\". Again, the ET system " +
-                        "responds with data allowing a permanent tcp connection.\n\n\n\n" +
-
                         "RESETTING CONNECTION PARAMETERS\n" +
                         "Reseting all connection parameters to those previously used to make an actual " +
                         "connection can be done by selecting the \"Load connection parameters\" item from " +
@@ -1339,8 +1335,7 @@ public class Monitor extends JFrame {
         cast = new JComboBox(new String[]{"broadcasting",
                 "multicasting",
                 "broad & multicasting",
-                "direct connection",
-                "udp to specified host"
+                "direct connection"
         });
         cast.setEditable(false);
         cast.setFont(MonitorFonts.inputFont);
@@ -1626,21 +1621,6 @@ public class Monitor extends JFrame {
                 config = new SystemOpenConfig(etSystem, host, port);
             }
 
-            else if (howToConnect.equals("udp to specified host")) {
-                // A host name (not local, remote, or anywhere) must be specified.
-                if (!specifingHostname) {
-                    throw new EtException("Specify a host's name (not remote, or anywhere).");
-                }
-                int uPort = udpPort.getValue();
-                int mPort = mcastPort.getValue();
-                int tPort = tcpPort.getValue();
-                int ttlval = ttl.getValue();
-                config = new SystemOpenConfig(etSystem, host, false, null,
-                                              Constants.udpToHost,
-                                              tPort, uPort, mPort, ttlval,
-                                              Constants.policyError);
-            }
-
             return config;
         }
 
@@ -1881,11 +1861,6 @@ public class Monitor extends JFrame {
                             cast.setSelectedItem("direct connection");
                             // tcp port
                             tcpPort.setValue(config.getTcpPort());
-                        }
-                        else if (method == Constants.udpToHost) {
-                            cast.setSelectedItem("udp to specified host");
-                            // udp port
-                            udpPort.setValue(config.getUdpPort());
                         }
                     }
                 }

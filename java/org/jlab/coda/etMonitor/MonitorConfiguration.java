@@ -390,26 +390,7 @@ public class MonitorConfiguration extends DefaultHandler {
                     port = Integer.parseInt((String) dataStorage.get("tcpPort"));
                     config = new SystemOpenConfig(etSystem, host, port);
                 }
-                else if (findMethod.equals("udpToHost")) {
-                    if (dataStorage.containsKey("location")) {
-                        host = (String) dataStorage.get("location");
-                        if (host.equals("local")) {
-                            host = Constants.hostLocal;
-                        }
-                    }
-                    else {
-                        host = (String) dataStorage.get("host");
-                        monitor.addHostname(host);
-                    }
-                    port = Integer.parseInt((String) dataStorage.get("udpPort"));
-                    config = new SystemOpenConfig(etSystem, host, false, null,
-                                                  Constants.udpToHost,
-                                                  Constants.serverPort,
-                                                  port,
-                                                  Constants.multicastPort,
-                                                  Constants.multicastTTL,
-                                                  Constants.policyError);
-                }
+
             }
             catch (EtException ex) {
                 // Should never occur. All problems should be caught by schema validation.

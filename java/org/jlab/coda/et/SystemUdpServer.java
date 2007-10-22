@@ -54,19 +54,13 @@ public class SystemUdpServer extends Thread {
           port = Constants.serverPort;
       }
 
-      // If we're not multicasting or broadcasting, this thread starts one thread
-      // for each local IP address (from one or more interfaces).
-      //
-      // If we're broadcasting, then we use one (1) thread to listen to broadcasts
-      // from all local subnets and traffic to all interfaces on one socket. That
-      // is because to get broadcasts, Java forces the programmer to bind all
-      // addresses to the port being listened on.
+      // If we're broadcasting, then we use 1 thread with 1 socket,
+      // bound to the wildcard address, to listen to broadcasts from all local
+      // subnets.
       //
       // If we're multicasting and the specified multicast port is the same as the
-      // broadcast port, then we use one (1) thread to listen to multicasts,
-      // broadcasts from all local subnets, and traffic to all interfaces on one socket.
-      // That is because to get multicasts, Java forces the programmer to bind all
-      // addresses to the port being listened on and it also gets all broadcasts too.
+      // broadcast port, then we use 1 thread to listen to multicasts and broadcasts
+      // on one socket.
       //
       // If we're multicasting with a different port than the broadcasting/direct
       // port, then multicasting is treated separately from everything else and has
@@ -74,7 +68,7 @@ public class SystemUdpServer extends Thread {
 
       if (config.getMulticastAddrs().size() > 0) {
           try {
-//System.out.println("setting up for multicast on port " + config.getMulticastPort());
+System.out.println("setting up for multicast on port " + config.getMulticastPort());
               MulticastSocket sock = new MulticastSocket(config.getMulticastPort());
               sock.setReceiveBufferSize(512);
               sock.setSendBufferSize(512);
@@ -92,49 +86,20 @@ public class SystemUdpServer extends Thread {
           }
       }
 
-      if (config.isListeningForBroadcasts()) {
-          try {
-//System.out.println("setting up for broadcast on port " + config.getUdpPort());
-              DatagramSocket sock = new DatagramSocket(config.getUdpPort());
-              sock.setBroadcast(true);
-              sock.setReceiveBufferSize(512);
-              sock.setSendBufferSize(512);
-              ListeningThread lis = new ListeningThread(sys, sock);
-              lis.start();
-          }
-          catch (SocketException e) {
-              e.printStackTrace();
-          }
-          catch (UnknownHostException e) {
-              e.printStackTrace();
-          }
+      try {
+System.out.println("setting up for broadcast on port " + config.getUdpPort());
+          DatagramSocket sock = new DatagramSocket(config.getUdpPort());
+          sock.setBroadcast(true);
+          sock.setReceiveBufferSize(512);
+          sock.setSendBufferSize(512);
+          ListeningThread lis = new ListeningThread(sys, sock);
+          lis.start();
       }
-      else {
-
-          ListeningThread lis;
-
-          for (InetAddress addr : sys.netAddresses) {
-              // ignore loopback address - don't need to listen on that
-              //if (addr.getHostAddress().equals("127.0.0.1")) {
-              //  continue;
-              //}
-              if (config.debug >= Constants.debugInfo) {
-                  System.out.println("Listening on interface " +
-                          addr.getHostAddress() + ", port " + config.udpPort);
-              }
-              DatagramSocket sock = null;
-              try {
-                  sock = new DatagramSocket(config.udpPort, addr);
-                  sock.setReceiveBufferSize(512);
-                  sock.setSendBufferSize(512);
-              }
-              catch (SocketException e) {
-                  e.printStackTrace();
-                  System.exit(-1);
-              }
-              lis = new ListeningThread(sys, addr, sock);
-              lis.start();
-          }
+      catch (SocketException e) {
+          e.printStackTrace();
+      }
+      catch (UnknownHostException e) {
+          e.printStackTrace();
       }
   }
 }
@@ -152,14 +117,17 @@ public class SystemUdpServer extends Thread {
 
 class ListeningThread extends Thread {
 
-  /** Address to listen on. */
-  private InetAddress  addr;
   /** ET system object. */
   private SystemCreate sys;
   /** ET system configuration object. */
   private SystemConfig config;
   /** Setup a socket for receiving udp packets. */
   private DatagramSocket sock = null;
+  /** Is this thread responding to a multicast or broadcast or perhaps either. */
+  private int cast;
+  /** Don't know which address the broad/multicast was sent to since we're using
+   * "INADDR_ANY" so just return this. */
+  private String incomingAddress = "0.0.0.0";
 
     /**
      *  Creates a new ListeningThread object for a UDP multicasts.
@@ -175,8 +143,8 @@ class ListeningThread extends Thread {
                 mSock.joinGroup(address);
             }
         }
-        sock = (DatagramSocket) mSock;
-        addr = InetAddress.getLocalHost();
+        sock = mSock;
+        cast = Constants.broadAndMulticast;
     }
 
     /**
@@ -189,22 +157,9 @@ class ListeningThread extends Thread {
         this.sys  = sys;
         config    = sys.config;
         this.sock = sock;
-        addr = InetAddress.getLocalHost();
+        cast = Constants.broadcast;
     }
 
-  /**
-   *  Creates a new ListeningThread object.
-   *
-   *  @param sys ET system object
-   *  @param addr address to listen on
-   *  a broad/multicasting address (false)
-   */
-  ListeningThread(SystemCreate sys, InetAddress addr, DatagramSocket sock) {
-      this.sys  = sys;
-      config    = sys.config;
-      this.addr = addr;
-      this.sock = sock;
-  }
 
   /** Starts a single thread to listen for udp packets at a specific address
    *  and respond with ET system information. */
@@ -215,49 +170,85 @@ class ListeningThread extends Thread {
       DatagramPacket rPacket = new DatagramPacket(rBuffer, 512);
 
       // Prepare output buffer we send in answer to inquiries:
-      // (1) ET version #,
-      // (2) port of tcp server thread (not udp port),
-      // (3) length of next string,
-      // (4) hostname of this interface address
-      //     (may or may not be fully qualified),
-      // (5) length of next string
-      // (6) this interface's address in dotted-decimal form,
-      // (7) length of next string,
-      // (8) default hostname from getLocalHost (used as a
-      //     general identifier of this host no matter which
-      //     interface is used). May or may not be fully qualified.
+      // (1)  ET version #
+      // (2)  port of tcp server thread (not udp config->port)
+      // (3)  ET_BROADCAST or ET_MULTICAST (int)
+      // (4)  length of next string
+      // (5)    broadcast address (dotted-dec) if broadcast received or
+      //        multicast address (dotted-dec) if multicast received
+      //        (see int #3)
+      // (6)  length of next string
+      // (7)    hostname given by "uname" (used as a general
+      //        identifier of this host no matter which interface is used)
+      // (8)  number of names for this IP addr starting with canonical
+      // (9)    32bit, net-byte ordered IPv4 address assoc with following name
+      // (10)   length of next string
+      // (11)       first name = canonical
+      // (12)   32bit, net-byte ordered IPv4 address assoc with following name
+      // (13)   length of next string
+      // (14)       first alias ...
+      //
+      // All aliases are sent here.
+      //
 
       // Put outgoing packet into byte array
       ByteArrayOutputStream baos = null;
 
       try {
-          String localHost = InetAddress.getLocalHost().getHostName();
+          InetAddress addr = InetAddress.getLocalHost();
+          String canon = addr.getCanonicalHostName();
+          String hostName = addr.getHostName();
 
           // the send buffer needs to be of byte size ...
-          int bufferSize = 3 * 4 + addr.getHostName().length() + 1 +
-                  4 + addr.getHostAddress().length() + 1 +
-                  4 + localHost.length() + 1;
+          int bufferSize = 8*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
+          for (InetAddress netAddress : sys.netAddresses) {
+              bufferSize += 8 + netAddress.getHostName().length() + 1;
+          }
 
           baos = new ByteArrayOutputStream(bufferSize);
           DataOutputStream dos = new DataOutputStream(baos);
 
           dos.writeInt(Constants.version);
           dos.writeInt(config.serverPort);
+          dos.writeInt(cast);
 
-          // Host name associated with interface, else local host name for broad/multicast
-          dos.writeInt(addr.getHostName().length() + 1);
-          dos.write(addr.getHostName().getBytes("ASCII"));
+          // 0.0.0.0
+          dos.writeInt(incomingAddress.length() + 1);
+          dos.write(incomingAddress.getBytes("ASCII"));
           dos.writeByte(0);
 
-          // IP address associated with interface, else local IP address for broad/multicast
-          dos.writeInt(addr.getHostAddress().length() + 1);
-          dos.write(addr.getHostAddress().getBytes("ASCII"));
+          // Local host name (equivalent to uname?)
+          dos.writeInt(hostName.length() + 1);
+          dos.write(hostName.getBytes("ASCII"));
           dos.writeByte(0);
 
-          // Send local host name (results of uname in UNIX)
-          dos.writeInt(localHost.length() + 1);
-          dos.write(localHost.getBytes("ASCII"));
+          // number of names/addrs to follow
+          dos.writeInt(sys.netAddresses.length);
+
+          // Send all names and 32 bit addresses associated with this host, starting w/ canonical name
+          int addr32 = 0;
+          for (int j = 0; j < 4; j++) {
+              addr32 = addr32 << 8 | (((int) (addr.getAddress())[j]) & 0xFF);
+          }
+// System.out.println("sending addr32 = " + addr32 + ", canon = " + canon);
+          dos.writeInt(addr32);
+          dos.writeInt(canon.length() + 1);
+          dos.write(canon.getBytes("ASCII"));
           dos.writeByte(0);
+
+          for (InetAddress netAddress : sys.netAddresses) {
+              // convert array of 4 bytes into 32 bit network byte-ordered address
+              addr32 = 0;
+              for (int j = 0; j < 4; j++) {
+                  addr32 = addr32 << 8 | (((int) (netAddress.getAddress())[j]) & 0xFF);
+              }
+// System.out.println("sending addr32 = " + addr32 + ", name = " + netAddress.getHostName());
+              dos.writeInt(addr32);
+              dos.writeInt(netAddress.getHostName().length() + 1);
+              dos.write(netAddress.getHostName().getBytes("ASCII"));
+              dos.writeByte(0);
+          }
+
           dos.flush();
       }
       catch (UnsupportedEncodingException ex) {
@@ -316,6 +307,8 @@ class ListeningThread extends Thread {
 
               String etName = new String(rPacket.getData(), 8, length - 1, "ASCII");
 
+//System.out.println("et_listen_thread: received packet version =  " + version +
+//                                  ", ET = " + etName);
               if (config.debug >= Constants.debugInfo) {
                   System.out.println("et_listen_thread: received packet from " +
                           rPacket.getAddress().getHostName() +

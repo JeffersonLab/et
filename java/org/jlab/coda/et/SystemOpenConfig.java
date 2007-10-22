@@ -39,9 +39,8 @@ public class SystemOpenConfig {
    * Means used to contact an ET system. The possible values are
    *  {@link Constants#broadcast} for broadcasting, {@link Constants#multicast}
    *  for multicasting, {@link Constants#direct} for connecting directly to the
-   *  ET tcp server, {@link Constants#broadAndMulticast} for using both
-   *  broadcasting and multicasting, and {@link Constants#udpToHost} for sending
-   *  a udp packet to a known host to find an ET system.
+   *  ET tcp server, and {@link Constants#broadAndMulticast} for using both
+   *  broadcasting and multicasting.
    */
   int  contactMethod;
   /** UDP port number for broadcasting or sending udp packets to known hosts. */
@@ -82,9 +81,8 @@ public class SystemOpenConfig {
    *
    * @exception org.jlab.coda.et.EtException
    *     if method is not {@link Constants#broadcast},
-   *     {@link Constants#multicast}, {@link Constants#direct},
-   *     {@link Constants#broadAndMulticast}, or
-   *     {@link Constants#udpToHost}.
+   *     {@link Constants#multicast}, {@link Constants#direct}, or
+   *     {@link Constants#broadAndMulticast}.
    * @exception org.jlab.coda.et.EtException
    *     if method is not direct and no broad/multicast addresses were
    *     specified, or if method is direct and no actual host name was
@@ -130,8 +128,7 @@ public class SystemOpenConfig {
     if ((method != Constants.multicast) &&
         (method != Constants.broadcast) &&
         (method != Constants.broadAndMulticast) &&
-        (method != Constants.direct) &&
-        (method != Constants.udpToHost))     {
+        (method != Constants.direct))     {
       throw new EtException("Bad contact method value");
     }
     else {
@@ -139,8 +136,7 @@ public class SystemOpenConfig {
     }
 
 
-    if ((contactMethod == Constants.direct) ||
-        (contactMethod == Constants.udpToHost)) {
+    if (contactMethod == Constants.direct) {
         if (host.equals(Constants.hostRemote) ||
 	        host.equals(Constants.hostAnywhere)) {
           throw new EtException("Need to specify an actual host name");
@@ -189,24 +185,43 @@ public class SystemOpenConfig {
     responsePolicy = policy;
   }
 
-  /**
-   * Constructor for broadcasting. First responder is chosen.
-   *
-   * @param etName ET system name
-   * @param destination  destination of broadcasts
-   * @param uPort UDP port number to broadcast to
-   *
-   * @exception org.jlab.coda.et.EtException
-   *     if no broadcast addresses were specified
-   * @exception org.jlab.coda.et.EtException
-   *     if port number is < 1024 or > 65535
-   */
-  public SystemOpenConfig (String etName, int uPort, String destination)
-			   throws EtException {
-    this (etName, destination, true, null, Constants.broadcast,
-          Constants.serverPort, uPort, Constants.multicastPort,
-	      Constants.multicastTTL, Constants.policyFirst);
-  }
+    /**
+     * Constructor for broadcasting. First responder is chosen.
+     *
+     * @param etName ET system name
+     * @param destination  destination of broadcasts
+     *
+     * @exception org.jlab.coda.et.EtException
+     *     if no broadcast addresses were specified
+     * @exception org.jlab.coda.et.EtException
+     *     if port number is < 1024 or > 65535
+     */
+    public SystemOpenConfig (String etName, String destination)
+                 throws EtException {
+      this (etName, destination, true, null, Constants.broadcast,
+            Constants.serverPort, Constants.broadcastPort, Constants.multicastPort,
+            Constants.multicastTTL, Constants.policyFirst);
+    }
+
+
+    /**
+     * Constructor for broadcasting. First responder is chosen.
+     *
+     * @param etName ET system name
+     * @param destination  destination of broadcasts
+     * @param uPort UDP port number to broadcast to
+     *
+     * @exception org.jlab.coda.et.EtException
+     *     if no broadcast addresses were specified
+     * @exception org.jlab.coda.et.EtException
+     *     if port number is < 1024 or > 65535
+     */
+    public SystemOpenConfig (String etName, int uPort, String destination)
+                 throws EtException {
+      this (etName, destination, true, null, Constants.broadcast,
+            Constants.serverPort, uPort, Constants.multicastPort,
+            Constants.multicastTTL, Constants.policyFirst);
+    }
 
 
   /**
@@ -324,11 +339,11 @@ public class SystemOpenConfig {
    *  @return the number of multicast addresses */
   public int      getNumMulticastAddrs() {return multicastAddrs.size();}
 
-    /** Are we listening for broadcasts?
-     *  @return boolean indicating wether we are listening for broadcasts */
-    public boolean isBroadcasting() {return broadcasting;}
-    /** Set true if we're listening for broadcasts. */
-    public void broadcasting(boolean on) {broadcasting = on;}
+  /** Are we listening for broadcasts?
+   *  @return boolean indicating wether we are listening for broadcasts */
+  public boolean isBroadcasting() {return broadcasting;}
+  /** Set true if we're listening for broadcasts. */
+  public void broadcasting(boolean on) {broadcasting = on;}
 
 
   // Set methods
@@ -390,9 +405,8 @@ public class SystemOpenConfig {
    *  Sets the means or method of contacting an ET system. Its values may be
    *  {@link Constants#broadcast} for broadcasting, {@link Constants#multicast}
    *  for multicasting, {@link Constants#direct} for connecting directly to the
-   *  ET tcp server, {@link Constants#broadAndMulticast} for using both
-   *  broadcasting and multicasting, and {@link Constants#udpToHost} for sending
-   *  a udp packet to a known host to find an ET system.
+   *  ET tcp server, and {@link Constants#broadAndMulticast} for using both
+   *  broadcasting and multicasting.
    *
    *  @param method means or method of contacting an ET system
    *  @exception org.jlab.coda.et.EtException
@@ -402,8 +416,7 @@ public class SystemOpenConfig {
     if ((method != Constants.multicast) &&
         (method != Constants.broadcast) &&
         (method != Constants.broadAndMulticast) &&
-        (method != Constants.direct) &&
-        (method != Constants.udpToHost))     {
+        (method != Constants.direct))     {
       throw new EtException("bad contact method value");
     }
     contactMethod = method;

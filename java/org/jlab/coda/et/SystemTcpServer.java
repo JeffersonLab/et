@@ -271,7 +271,7 @@ class ClientThread extends Thread {
                           int mod   = Event.bytesToInt(params, 8);
                           int sec   = Event.bytesToInt(params, 12);
                           int nsec  = Event.bytesToInt(params, 16);
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
 
                           try {
                               if (mode == Constants.timed) {
@@ -368,7 +368,7 @@ class ClientThread extends Thread {
                           Event.longToBytes((long)ev.length,  buf,  4);
                           Event.longToBytes((long)ev.memSize, buf, 12);
                           Event.intToBytes(ev.priority | ev.dataStatus << dataShift, buf, 20);
-                          Event.longToBytes((long)ev.id, buf, 24);
+                          Event.longToBytes(ev.id, buf, 24);
                           Event.intToBytes(ev.byteOrder, buf, 32);
                           // arrays are initialized to zero so skip 0 values elements
                           int index = 36;
@@ -398,7 +398,7 @@ class ClientThread extends Thread {
                           int count = Event.bytesToInt(params, 12);
                           int sec   = Event.bytesToInt(params, 16);
                           int nsec  = Event.bytesToInt(params, 20);
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
 
                           try {
                               if (mode == Constants.timed) {
@@ -512,8 +512,8 @@ class ClientThread extends Thread {
                           int length, index = 12;
                           int headerSize = 4 * (6 + selectInts);
                           int size = evs.length * headerSize;
-                          for (int j = 0; j < evs.length; j++) {
-                              size += evs[j].length;
+                          for (Event ev1 : evs) {
+                              size += ev1.length;
                           }
 
                           Event.intToBytes(evs.length, buffer, 0);
@@ -562,7 +562,7 @@ class ClientThread extends Thread {
                           in.readFully(params, 0, 32 + 4 * selectInts);
 
                           int attId = Event.bytesToInt(params, 0);
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
 
                           long id = Event.bytesToLong(params, 4);
                           Event ev = sys.events.get(new Long(id));
@@ -602,7 +602,7 @@ class ClientThread extends Thread {
                       case Constants.netEvsPut: {
                           in.readFully(params, 0, 16);
                           int attId           = Event.bytesToInt(params, 0);
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
                           int numEvents       = Event.bytesToInt(params,  4);
                           long size           = Event.bytesToLong(params, 8);
 
@@ -657,7 +657,7 @@ class ClientThread extends Thread {
                           long size  = Event.bytesToLong(params, 8);
                           int  sec   = Event.bytesToInt(params, 16);
                           int  nsec  = Event.bytesToInt(params, 20);
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
 
                           if (bit64 && size > Integer.MAX_VALUE/5) {
                               out.writeInt(Constants.errorTooBig);
@@ -770,7 +770,7 @@ class ClientThread extends Thread {
                           int  sec   = Event.bytesToInt(params, 20);
                           int  nsec  = Event.bytesToInt(params, 24);
 
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
 
                           if (bit64 && count*size > Integer.MAX_VALUE/5) {
                               out.writeInt(Constants.errorTooBig);
@@ -868,9 +868,9 @@ class ClientThread extends Thread {
 
                           // first send number of events
                           Event.intToBytes(evs.length, buf, 0);
-                          for (int j = 0; j < evs.length; j++) {
-                              evs[j].modify = modify;
-                              Event.longToBytes(evs[j].id, buf, index += 8);
+                          for (Event ev : evs) {
+                              ev.modify = modify;
+                              Event.longToBytes(ev.id, buf, index += 8);
                           }
                           out.write(buf);
                           out.flush();
@@ -884,7 +884,7 @@ class ClientThread extends Thread {
                           int  attId = in.readInt();
                           long id    = in.readLong();
 
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
                           Event ev = (Event) sys.events.get(new Long(id));
                           Event[] evArray = new Event[1];
                           evArray[0] = ev;
@@ -900,7 +900,7 @@ class ClientThread extends Thread {
                           int attId     = in.readInt();
                           int numEvents = in.readInt();
                           evs = new Event[numEvents];
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
 
                           long id;
                           byte[] buf = new byte[8 * numEvents];
@@ -909,7 +909,7 @@ class ClientThread extends Thread {
 
                           for (int j = 0; j < numEvents; j++) {
                               id = Event.bytesToLong(buf, index += 8);
-                              evs[j] = (Event) sys.events.get(new Long(id));
+                              evs[j] = sys.events.get(new Long(id));
                           }
 
                           sys.dumpEvents(att, evs);
@@ -967,7 +967,7 @@ class ClientThread extends Thread {
                       case Constants.netWakeAtt: {
                           int attId = in.readInt();
                           // look locally for attachments
-                          AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                          AttachmentLocal att = attachments.get(new Integer(attId));
                           if (att != null) {
                               att.station.inputList.wakeUp(att);
                               if (att.sleepMode) {
@@ -1028,7 +1028,7 @@ class ClientThread extends Thread {
                                   att.host = host;
                               }
                               // keep track of all attachments locally
-                              attachments.put(new Integer(att.id), att);
+                              attachments.put(att.id, att);
                           }
                           catch (EtException ex) {
                               err = Constants.error;
@@ -1195,7 +1195,7 @@ class ClientThread extends Thread {
 
 
                       case Constants.netStatIsAt: {
-                          int attached = 0; // not attached by default
+                          int attached; // not attached by default
                           int statId = in.readInt();
                           int attId = in.readInt();
 
@@ -1228,7 +1228,7 @@ class ClientThread extends Thread {
                               exists = false;
                           }
 
-                          out.writeInt(exists ? (int) 1 : (int) 0);
+                          out.writeInt(exists ? 1 : 0);
                           out.writeInt(statId);
                           out.flush();
                       }
@@ -1290,11 +1290,11 @@ class ClientThread extends Thread {
                       case Constants.netStatLib:
                       case Constants.netStatClass: {
                           int statId = in.readInt();
-                          StationLocal stat = null;
+                          StationLocal stat;
 
                           try {
                               stat = sys.stationIdToObject(statId);
-                              String returnString = null;
+                              String returnString;
                               if (command == Constants.netStatFunc) {
                                   returnString = stat.config.selectFunction;
                               }
@@ -1434,7 +1434,7 @@ class ClientThread extends Thread {
               else if (command < Constants.netSysTmp) {
                   int attId = in.readInt();
                   // look locally for attachments
-                  AttachmentLocal att = (AttachmentLocal) attachments.get(new Integer(attId));
+                  AttachmentLocal att = attachments.get(new Integer(attId));
                   if (att == null) {
                       out.writeInt(Constants.error);
                       out.writeLong(0);
@@ -1543,10 +1543,8 @@ class ClientThread extends Thread {
       // attachments or risked stopping the ET java.lang.System. The client
       // will not be asking for or processing any more events.
 
-      Entry ent;
-      for (Iterator i = attachments.entrySet().iterator(); i.hasNext();) {
-          ent = (Entry) i.next();
-          sys.detach((AttachmentLocal) ent.getValue());
+      for (Entry<Integer, AttachmentLocal> entry : attachments.entrySet()) {
+          sys.detach(entry.getValue());
       }
 
       if (config.debug >= Constants.debugError) {

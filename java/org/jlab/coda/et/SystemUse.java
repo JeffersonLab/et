@@ -198,9 +198,9 @@ public class SystemUse {
     catch (EtTooManyException ex) {
       if (debug >= Constants.debugError) {
         System.out.println("The following hosts responded:");
-        for (int i=0; i < sys.respondingHosts.size(); i++) {
-          System.out.println("  " + (String) sys.respondingHosts.get(i) +
-             " at port " + ((Integer) sys.respondingPorts.get(i)).intValue());
+        for (Map.Entry<String,Integer> entry : sys.responders.entrySet()) {
+            System.out.println("  " + entry.getKey() +
+               " at port " + entry.getValue());
         }
       }
       throw ex;
