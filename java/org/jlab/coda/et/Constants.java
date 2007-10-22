@@ -52,9 +52,6 @@ public final class Constants {
   /** Discover an ET system by broadcasting and multicasting.
    *  @see SystemOpenConfig#setContactMethod */
   public static final int    broadAndMulticast   = 3;
-  /** Discover an ET system by sending a udp packet to a known host.
-   *  @see SystemOpenConfig#setContactMethod */
-  public static final int    udpToHost           = 4;
   /** A default port on which to broadcast when finding an ET system. */
   public static final int    broadcastPort       = 11111;
   /** A default port on which to multicast when finding an ET system.
@@ -316,7 +313,7 @@ public final class Constants {
   /** Java ET systems are 32 bit since arrays can only be of size Integer.MAX_VALUE. */
   static final int    bit64               = 0;
   /** Major ET version number. */
-  static final int    version             = 9;
+  static final int    version             = 10;
   /** Minor ET version number. */
   static final int    minorVersion        = 0;
   /** Maximum number of attachments to an ET system. */
