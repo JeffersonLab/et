@@ -60,10 +60,8 @@ public class SystemOpen {
 
   // set of all ET systems that respond - host & port
 
-  /** In case of multiple responding ET systems, a list of their hosts. */
-  ArrayList<String> respondingHosts;
-  /** In case of multiple responding ET systems, a list of their ports. */
-  ArrayList<Integer> respondingPorts;
+  /** In case of multiple responding ET systems, a map of their hosts & ports. */
+  LinkedHashMap<String, Integer> responders;
 
   // status indicators
   private boolean connected;
@@ -74,10 +72,9 @@ public class SystemOpen {
   /** Create a SystemOpen object.
    *  @param _config SystemOpenConfig object  */
   public SystemOpen (SystemOpenConfig _config) {
-    config = new SystemOpenConfig(_config);
-    debug = Constants.debugError;
-    respondingHosts = new ArrayList<String>(20);
-    respondingPorts = new ArrayList<Integer>(20);
+      config = new SystemOpenConfig(_config);
+      debug = Constants.debugError;
+      responders = new  LinkedHashMap<String, Integer>(20);
   }
 
   // public sets
@@ -151,33 +148,29 @@ public class SystemOpen {
   /** Gets all host names when multiple ET systems respond.
    *  @return all host names from responding ET systems */
   public String[] getAllHosts() {
-    int size = respondingHosts.size();
-    if (size == 0) {
+    if (responders.size() == 0) {
       if (host == null) {
         return null;
       }
       return new String[] {host};
     }
-    String[] hosts = new String[size];
-    for (int i=0; i < size; i++) {
-      hosts[i] = (String) respondingHosts.get(i);
-    }
-    return hosts;
+    return (String []) responders.keySet().toArray();
   }
 
   /** Gets all port numbers when multiple ET systems respond.
    *  @return all port numbers from responding ET systems */
   public int[] getAllPorts() {
-    int size = respondingPorts.size();
-    if (size == 0) {
+    if (responders.size() == 0) {
       if (tcpPort == 0) {
         return null;
       }
       return new int[] {tcpPort};
     }
-    int[] ports = new int[size];
-    for (int i=0; i < size; i++) {
-      ports[i] = ((Integer) respondingPorts.get(i)).intValue();
+
+    Integer[] p = (Integer []) responders.values().toArray();
+    int[] ports = new int[p.length];
+    for (int i=0; i < p.length; i++) {
+      ports[i] = p[i];
     }
     return ports;
   }
@@ -198,13 +191,12 @@ public class SystemOpen {
   private boolean findServerPort() throws IOException, UnknownHostException, EtTooManyException {
     boolean match = noMatch;
     int     status, totalPacketsSent = 0, sendPacketLimit = 4;
-    int     timeOuts[] = {50, 2000, 4000, 7000};
+    int     timeOuts[] = {100, 2000, 4000, 7000};
     int     waitTime, socketTimeOut = 20000; // socketTimeOut > sum of timeOuts
     String  specifiedHost = null;
     
     // clear out any previously stored objects
-    respondingHosts.clear();
-    respondingPorts.clear();
+    responders.clear();
 
     // Put outgoing packet info into a byte array to send to ET systems
     ByteArrayOutputStream  baos = new ByteArrayOutputStream(110);
@@ -252,9 +244,16 @@ public class SystemOpen {
     int numAddrs = numBroadcastAddrs + numMulticastAddrs + 1;
     send[] sendIt = new send[numAddrs];
 
-    // find local host
+    // unqualifed, specified host
+    String unqualifedHost = null;
+
+    // find fully-qualifed, canonical local host
     String localHost = null;
-    try {localHost = InetAddress.getLocalHost().getHostName();}
+    InetAddress localAddr = null;
+    try {
+        localAddr = InetAddress.getLocalHost();
+        localHost = localAddr.getHostName();
+    }
     catch (UnknownHostException ex) {}
 
     // If the host is not remote or anywhere out there. If it's
@@ -269,7 +268,10 @@ public class SystemOpen {
       try {socket.setSoTimeout(socketTimeOut);}
       catch (SocketException ex) {}
 
-      // if it's local ...
+      // If it's local, find name and send packet directly there.
+      // This will work in Java where the server listens on all addresses.
+      // But it won't work for C where only broad and multicast address
+      // are listened to.
       if ((config.host.equals(Constants.hostLocal)) ||
           (config.host.equals("localhost")))  {
 	    specifiedHost = localHost;
@@ -277,26 +279,53 @@ public class SystemOpen {
       } else {
 	    specifiedHost = config.host;
       }
+      unqualifedHost = specifiedHost.substring(0, specifiedHost.indexOf("."));
       sendIt[index++] = new send(specifiedHost, socket, config.udpPort);
       numAddrs = 1;
+
+        // setup broadcast sockets & packets first
+        if ((config.contactMethod == Constants.broadcast) ||
+                (config.contactMethod == Constants.broadAndMulticast)) {
+
+            // We can use multicast socket for broadcasting - it works
+            socket = new MulticastSocket();    //IOEx
+            // Socket will unblock after timeout,
+            // letting reply collecting thread quit
+            try {
+                socket.setSoTimeout(socketTimeOut);
+                socket.setBroadcast(true);
+            }
+            catch (SocketException ex) {
+            }
+
+            sendIt[index++] = new send(config.broadcastIP, socket, config.udpPort);
+            if (debug >= Constants.debugInfo) {
+                System.out.println("findServerPort: broadcasting to " + config.broadcastIP +
+                " on port " + config.udpPort);
+            }
+            numBroadcastAddrs = 1;
+        }
+        else {
+            numBroadcastAddrs = 0;
+        }
 
         // setup multicast sockets & packets next
         if ((config.contactMethod == Constants.multicast) ||
                 (config.contactMethod == Constants.broadAndMulticast)) {
 
             for (String addr : config.multicastAddrs) {
-                MulticastSocket sock = new MulticastSocket();    //IOEx
+                socket = new MulticastSocket();    //IOEx
                 try {
-                    sock.setSoTimeout(socketTimeOut);
+                    socket.setSoTimeout(socketTimeOut);
                 }
                 catch (SocketException ex) {
                 }
 
                 if (config.ttl != 1) {
-                    sock.setTimeToLive(config.ttl);        //IOEx
+                    socket.setTimeToLive(config.ttl);        //IOEx
                 }
 
-                sendIt[index++] = new send(addr, sock, config.multicastPort);
+                sendIt[index++] = new send(addr, socket, config.multicastPort);
                 if (debug >= Constants.debugInfo) {
                     System.out.println("findServerPort: multicasting to " + addr + " on port " + config.multicastPort);
                 }
@@ -305,13 +334,16 @@ public class SystemOpen {
         else {
             numMulticastAddrs = 0;
         }
-        numAddrs += numMulticastAddrs;
+        numAddrs += numBroadcastAddrs + numMulticastAddrs;
 
         if (debug >= Constants.debugInfo) {
             System.out.println("findServerPort: send to local or specified host " + specifiedHost +
             " on port " + config.udpPort);
         }
     }
+
+    // else if the host name is not specified, and it's either
+    // remote or anywhere out there, broad/multicast to find it
     else {
 
         // setup broadcast sockets & packets first
@@ -370,10 +402,10 @@ public class SystemOpen {
 
       /** Class to help receive a packet on a socket. */
       class get {
-          // data size = 4*4 + 2 + Constants.ipAddrStrLen +
-          //             2*Constants.maxHostNameLen(); = 546 bytes
-          // but give us a bit of extra room with 1k bytes
-          byte[] buffer = new byte[1000];
+          // min data size = 8*4 + 3 + Constants.ipAddrStrLen +
+          //                 2*Constants.maxHostNameLen(); = 558 bytes
+          // but give us a bit of extra room for lots of names with 4k bytes
+          byte[] buffer = new byte[4096];
           DatagramReceive thread;
           DatagramPacket packet;
           MulticastSocket socket;
@@ -486,50 +518,54 @@ public class SystemOpen {
 
 
       if (match) {
-          // If the host is not remote or anywhere out there (i.e. we
-          // know its name).
+          // If the host is not remote or anywhere (i.e. we know its name).
           if ((!config.host.equals(Constants.hostRemote)) &&
               (!config.host.equals(Constants.hostAnywhere))) {
 
               // if we have more than one responding ET system ...
-              if (respondingHosts.size() > 1) {
+              if (responders.size() > 1) {
                   // pick first ET system that matches the specified host's name
-                  for (String listedHost : respondingHosts) {
-                      if (specifiedHost.equals(listedHost)) {
-                          host = listedHost;
-                          tcpPort = ((Integer) respondingPorts.get
-                                  (respondingHosts.indexOf(listedHost))).intValue();
+                  for (Map.Entry<String, Integer> entry : responders.entrySet()) {
+                      String h = entry.getKey();
+                      if (specifiedHost.equals(h) || unqualifedHost.equals(h)) {
+                          host = h;
+                          tcpPort = entry.getValue();
                           return foundServer;
                       }
                   }
               }
-
           }
           // if we're looking remotely or anywhere
           else {
               // if we have more than one responding ET system
-              if (respondingHosts.size() > 1) {
+              if (responders.size() > 1) {
                   // if picking first responding ET system ...
                   if (config.responsePolicy == Constants.policyFirst) {
-                      host = (String) respondingHosts.get(0);
-                      tcpPort = ((Integer) respondingPorts.get(0)).intValue();
+                      Iterator<Map.Entry<String,Integer>> i = responders.entrySet().iterator();
+                      Map.Entry<String,Integer> e = i.next();
+                      host = e.getKey();
+                      tcpPort = e.getValue();
                   }
                   // else if picking local system first ...
                   else if (config.responsePolicy == Constants.policyLocal) {
                       // compare local host to responding hosts
                       boolean foundLocalHost = false;
-                      for (String listedHost : respondingHosts) {
-                          if (localHost.equals(listedHost)) {
-                              host = listedHost;
-                              tcpPort = ((Integer) respondingPorts.get
-                                      (respondingHosts.indexOf(listedHost))).intValue();
+
+                      for (Map.Entry<String, Integer> entry : responders.entrySet()) {
+                          InetAddress hAddr = InetAddress.getByName(entry.getKey());
+                          if (localAddr.equals(hAddr)) {
+                              host = entry.getKey();
+                              tcpPort = entry.getValue();
                               foundLocalHost = true;
                           }
                       }
+
                       // if no local host found, pick first responder
                       if (!foundLocalHost) {
-                          host = (String) respondingHosts.get(0);
-                          tcpPort = ((Integer) respondingPorts.get(0)).intValue();
+                          Iterator<Map.Entry<String,Integer>> i = responders.entrySet().iterator();
+                          Map.Entry<String,Integer> e = i.next();
+                          host = e.getKey();
+                          tcpPort = e.getValue();
                       }
                   }
                   // else if policy.Error
@@ -561,117 +597,158 @@ public class SystemOpen {
    */
   private boolean replyMatch(DatagramPacket packet)
 			throws IOException, UnknownHostException {
-      int port, length;
+
       byte buf[];
       ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData());
       DataInputStream dis = new DataInputStream(bais);
+      // In case of multiple names from a responding ET system, a list of names. */
+      ArrayList<String> hosts = new ArrayList<String>(20);
 
-      // read ET version #
+      // decode packet from ET system:
+      // (1)  ET version #
+      // (2)  port of tcp server thread (not udp config->port)
+      // (3)  Constants.broadcast .multicast or broadAndMulticast (int)
+      // (4)  length of next string
+      // (5)    broadcast address (dotted-dec) if broadcast received or
+      //        multicast address (dotted-dec) if multicast received
+      //        (see int #3)
+      // (6)  length of next string
+      // (7)    hostname given by "uname" (used as a general
+      //        identifier of this host no matter which interface is used)
+      // (8)  number of names for this IP addr starting with canonical
+      // (9)    32bit, net-byte ordered IPv4 address assoc with following name
+      // (10)   length of next string
+      // (11)       first name = canonical
+      // (12)   32bit, net-byte ordered IPv4 address assoc with following name
+      // (13)   length of next string
+      // (14)       first alias ...
+      //
+      // All aliases are sent here.
+
+      // (1) ET version #
       dis.readInt();         //IOEx
-      // server port #
-      port = dis.readInt();
+      // (2) server port #
+      int port = dis.readInt();
+      // (3) response to what type of cast?
+      int cast = dis.readInt();
 
-      // read length of fully qualified hostname of responding interface
-      length = dis.readInt();
-      // read fully qualified ET server host name (minus ending null)
-      buf = new byte[length];
-      dis.readFully(buf, 0, length);
-      String repliedHostName = null;
-      try {repliedHostName = new String(buf, 0, length - 1, "ASCII");}
-      catch (UnsupportedEncodingException e) {/*never happen*/}
-
-      // read length of IP address (dotted-decimal) of responding interface
-      length = dis.readInt();
-      // read IP address
+      // (4) read length of IP address (dotted-decimal) of responding address
+      //     or 0.0.0.0 if java
+      int length = dis.readInt();
+      // (5) read IP address
       buf = new byte[length];
       dis.readFully(buf, 0, length);
       String repliedIpAddress = null;
       try {repliedIpAddress = new String(buf, 0, length - 1, "ASCII");}
-      catch (UnsupportedEncodingException e) {}
+      catch (UnsupportedEncodingException e) {/*never happens*/}
 
-      // Read length of fully qualified hostname from "uname".
-      // Used as identifier of this host no matter which interface used.
+      // (6) Read length of "uname" or InetAddress.getLocalHost().getHostName() if java,
+      //     used as identifier of this host no matter which interface used.
       length = dis.readInt();
-      // read uname
+      // (7) read uname
       buf = new byte[length];
       dis.readFully(buf, 0, length);
       String repliedUname = null;
       try {repliedUname = new String(buf, 0, length - 1, "ASCII");}
       catch (UnsupportedEncodingException e) {}
 
+      // (8) # of following names
+      int numNames = dis.readInt();
+      int addr;
+
+      for (int i=0; i<numNames; i++) {
+          // (9) 32 bit network byte ordered address - not currently used
+          addr = dis.readInt();
+          // (10) read length of name of responding interface
+          //      or name returned by InetAddress.getAllByName() if java
+          length = dis.readInt();
+          // (11) read host name (minus ending null)
+          buf = new byte[length];
+          dis.readFully(buf, 0, length);
+          String repliedHostName = null;
+          try {repliedHostName = new String(buf, 0, length - 1, "ASCII");}
+          catch (UnsupportedEncodingException e) {}
+
+          // store things
+          hosts.add(repliedHostName);
+      }
 
       if (debug >= Constants.debugInfo) {
           System.out.println("replyMatch: port = " + port +
-                  ", server = " + repliedHostName +
-                  ", IP addr = " + repliedIpAddress +
+                  ", replied IP addr = " + repliedIpAddress +
                   ", uname = " + repliedUname);
+          for (int i=0; i<numNames; i++) {
+              System.out.println("          : name " + (i+1) + " = " + hosts.get(i));
+          }
       }
 
       dis.close();
       bais.close();
 
-      // set ip address values for replied & local host
-      InetAddress repliedHost = InetAddress.getByName(repliedHostName);   //UnknownHostEx
-      InetAddress localHost   = InetAddress.getLocalHost();               //UnknownHostEx
+      InetAddress localHost = InetAddress.getLocalHost();      //UnknownHostEx
 
-      // if we're looking for a host anywhere
-      if (config.host.equals(Constants.hostAnywhere)) {
-          if (debug >= Constants.debugInfo) {
-              System.out.println("replyMatch: .anywhere");
-          }
+      for (String rHost : hosts) {
 
-          // Store host & port in lists in case there are several systems
-          // that respond and user must chose which one he wants.
-          respondingHosts.add(repliedHostName);
-          respondingPorts.add(new Integer(port));
+          // set ip address value for replied host
+          InetAddress repliedHost = InetAddress.getByName(rHost);   //UnknownHostEx
 
-          // store info here in case only 1 response
-          host = repliedHostName;
-          tcpPort = port;
-          return gotMatch;
-      }
-      // else if we're looking for a remote host
-      else if (config.host.equals(Constants.hostRemote)) {
-          if (debug >= Constants.debugInfo) {
-              System.out.println("replyMatch: .remote");
-          }
-          if (!localHost.equals(repliedHost)) {
-              // Store host & port in lists in case there are several systems
-              // that respond and user must chose which one he wants
-              respondingHosts.add(repliedHostName);
-              respondingPorts.add(new Integer(port));
+          // if we're looking for a host anywhere
+          if (config.host.equals(Constants.hostAnywhere)) {
+              if (debug >= Constants.debugInfo) {
+                  System.out.println("replyMatch: .anywhere");
+              }
+
+              // Store host & port in ordered map in case there are several systems
+              // that respond and user must chose which one he wants.
+              responders.put(rHost, port);
 
               // store info here in case only 1 response
-              host = repliedHostName;
+              host = rHost;
               tcpPort = port;
               return gotMatch;
           }
-      }
-      // else if we're looking for a local host
-      else if ((config.host.equals(Constants.hostLocal)) ||
-               (config.host.equals("localhost"))) {
-          if (debug >= Constants.debugInfo) {
-              System.out.println("replyMatch: .local");
+          // else if we're looking for a remote host
+          else if (config.host.equals(Constants.hostRemote)) {
+              if (debug >= Constants.debugInfo) {
+                  System.out.println("replyMatch: .remote");
+              }
+              if (!localHost.equals(repliedHost)) {
+                  // Store host & port in lists in case there are several systems
+                  // that respond and user must chose which one he wants
+                  responders.put(rHost, port);
+
+                  // store info here in case only 1 response
+                  host = rHost;
+                  tcpPort = port;
+                  return gotMatch;
+              }
           }
-          if (localHost.equals(repliedHost)) {
-              // Store values. In this case no other match will be found.
-              host = repliedHostName;
-              tcpPort = port;
-              return gotMatch;
+          // else if we're looking for a local host
+          else if ((config.host.equals(Constants.hostLocal)) ||
+                  (config.host.equals("localhost"))) {
+              if (debug >= Constants.debugInfo) {
+                  System.out.println("replyMatch: .local");
+              }
+              if (localHost.equals(repliedHost)) {
+                  // Store values. In this case no other match will be found.
+                  host = rHost;
+                  tcpPort = port;
+                  return gotMatch;
+              }
           }
-      }
-      // else a specific host name has been specified
-      else {
-          if (debug >= Constants.debugInfo) {
-              System.out.println("replyMatch: <name>");
-          }
-          // "config.host" is the host name we're looking for
-          InetAddress etHost = InetAddress.getByName(config.host);    //UnknownHostEx
-          if (etHost.equals(repliedHost)) {
-              // Store values. In this case no other match will be found.
-              host = repliedHostName;
-              tcpPort = port;
-              return gotMatch;
+          // else a specific host name has been specified
+          else {
+              if (debug >= Constants.debugInfo) {
+                  System.out.println("replyMatch: <name>");
+              }
+              // "config.host" is the host name we're looking for
+              InetAddress etHost = InetAddress.getByName(config.host);    //UnknownHostEx
+              if (etHost.equals(repliedHost)) {
+                  // Store values. In this case no other match will be found.
+                  host = rHost;
+                  tcpPort = port;
+                  return gotMatch;
+              }
           }
       }
 
@@ -864,9 +941,7 @@ class DatagramReceive extends Thread {
    * @param recvSocket UDP Socket over which to communicate
    *
    */
-  DatagramReceive(DatagramPacket recvPacket,
-                         DatagramSocket recvSocket)
-  {
+  DatagramReceive(DatagramPacket recvPacket, DatagramSocket recvSocket) {
     packet = recvPacket;
     socket = recvSocket;
   }
@@ -877,8 +952,7 @@ class DatagramReceive extends Thread {
    * Waits for a UDP packet to be received.
    * @param time time to wait in milliseconds before timing out.
    */
-  synchronized int waitForReply(int time)
-  {
+  synchronized int waitForReply(int time) {
     // If the thread was started before we got a chance to wait for the
     // reply, check to see if a reply has already come.
     if (status != timedOut) {
@@ -901,8 +975,7 @@ class DatagramReceive extends Thread {
   /**
    * Method to run thread to receive UDP packet and notify waiters.
    */
-  public void run()
-  {
+  public void run() {
     status = timedOut;
     try {
       socket.receive(packet);
