@@ -171,6 +171,7 @@ int main(int argc, char **argv)
   /* et_system_config_setserverport(config, 11222); */
   
   /* add multicast address to listen to  */
+  /* et_system_config_addmulticast(config, "239.111.1.1"); */
   /* et_system_config_addmulticast(config, ET_MULTICAST_ADDR); */
   
   /* Make sure filename is null-terminated string */
