@@ -28,7 +28,7 @@
 #endif
 #include "et.h"
 
-#define NUMEVENTS 4000000
+#define NUMEVENTS 400
 #define CHUNK 100
 
 /* prototype */
@@ -87,7 +87,7 @@ int main(int argc,char **argv) {
   /* open ET system */
   et_open_config_init(&openconfig);
   /* et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
-  et_open_config_setwait(openconfig, ET_OPEN_WAIT);
+  /* et_open_config_setwait(openconfig, ET_OPEN_WAIT);*/
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("et_client: et_open problems\n");
     exit(1);
@@ -128,11 +128,11 @@ int main(int argc,char **argv) {
       et_station_config_setselect(sconfig, ET_STATION_SELECT_USER);
       et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
       et_station_config_setselectwords(sconfig, selections);
-      if (et_station_config_setfunction(sconfig, "et_carls_function") == ET_ERROR) {
+      if (et_station_config_setfunction(sconfig, "et_carls_function") != ET_OK) {
 	printf("et_client: cannot set function\n");
 	exit(1);
       }
-      if (et_station_config_setlib(sconfig, "/home/timmer/cvs/coda/source/et/src/libet_user.so") == ET_ERROR) {
+      if (et_station_config_setlib(sconfig, "/home/timmer/cvs/coda/source/et/src/libet_user.so") != ET_OK) {
         printf("et_client: cannot set library\n");
 	exit(1);
       }
@@ -149,7 +149,7 @@ int main(int argc,char **argv) {
     /* set debug level */
     et_system_setdebug(id, ET_DEBUG_INFO);
   
-    if ((status = et_station_create(id, &my_stat, argv[2], sconfig)) < ET_OK) {
+    if ((status = et_station_create(id, &my_stat, argv[2], sconfig)) != ET_OK) {
       if (status == ET_ERROR_EXISTS) {
         /* my_stat contains pointer to existing station */;
         printf("et_client: station already exists\n");
@@ -165,7 +165,7 @@ int main(int argc,char **argv) {
     }
     et_station_config_destroy(sconfig);
 
-    if (et_station_attach(id, my_stat, &attach1) < 0) {
+    if (et_station_attach(id, my_stat, &attach1) != ET_OK) {
       printf("et_client: error in station attach\n");
       goto error;
     }
