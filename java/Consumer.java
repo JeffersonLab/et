@@ -42,10 +42,10 @@ public class Consumer {
     System.out.println("\nUsage: java Consumer -f <et name> -s <station> [-p <server port>] [-h <host>]\n\n" +
 	               "       -f  ET system's name\n" +
 	               "       -s  station name\n" +
-	               "       -p  port number for a direct connection\n" +
+	               "       -p  port number for a udp broadcast\n" +
 	               "       -pos  position in station list (GC=0)\n" +
 	               "       -ppos position in group of parallel staton (-1=end, -2=head)\n" +
-	               "       -h  host the ET system resides on (defaults to local)\n" +
+	               "       -h  host the ET system resides on (defaults to anywhere)\n" +
 	               "       -a  # of attachments\n" +
 	               "       -nb make station non-blocking\n" +
 	               "        This consumer works by making a direct connection to the\n" +
@@ -54,92 +54,103 @@ public class Consumer {
   
 
   public static void main(String[] args) {
-    
-    int numAttachments = 0, position=1, pposition=0, blocking=1;
-    String etName = null, host = null, statName = null;
-    int port = Constants.serverPort;
 
-    try {
-      for (int i=0; i < args.length; i++) {
-        if (args[i].equalsIgnoreCase("-f")) {
-	  etName = args[++i];
-	}
-        else if (args[i].equalsIgnoreCase("-h")) {
-	  host = args[++i];
-	}
-        else if (args[i].equalsIgnoreCase("-nb")) {
-	  blocking = 0;
-	}
-        else if (args[i].equalsIgnoreCase("-a")) {
-	  try {numAttachments = Integer.parseInt(args[++i]);}
-	  catch (NumberFormatException ex) {
-	    numAttachments = 1;
-	  }
-	}
-        else if (args[i].equalsIgnoreCase("-s")) {
-	  statName = args[++i];
-	}
-        else if (args[i].equalsIgnoreCase("-p")) {
-	  try {
-	    port = Integer.parseInt(args[++i]);
-	    if ((port < 1024) || (port > 65535)) {
-	      System.out.println("Port number must be between 1024 and 65535.");
-	      usage();
-	      return;
-	    }
-	  }
-	  catch (NumberFormatException ex) {
-	    System.out.println("Did not specify a proper port number.");
-	    usage();
-	    return;
-	  }
-	}
-        else if (args[i].equalsIgnoreCase("-pos")) {
-	  try {
-	    position = Integer.parseInt(args[++i]);
-	  }
-	  catch (NumberFormatException ex) {
-	    System.out.println("Did not specify a proper position number.");
-	    usage();
-	    return;
-	  }
-	}
-        else if (args[i].equalsIgnoreCase("-ppos")) {
-	  try {
-	    pposition = Integer.parseInt(args[++i]);
-	  }
-	  catch (NumberFormatException ex) {
-	    System.out.println("Did not specify a proper parallel position number.");
-	    usage();
-	    return;
-	  }
-	}
-	else {
-	  usage();
-	  return;
-	}
-      }
-      
-      if (host == null) {
-        try {host = InetAddress.getLocalHost().getHostName();}
-	catch (UnknownHostException ex) {
-	  System.out.println("Host not specified and cannot find local host name.");
-	  usage();
-	  return;
-	}
-      }
-      
+      int numAttachments = 0, position = 1, pposition = 0, blocking = 1;
+      String etName = null, host = null, statName = null;
+      //int port = Constants.serverPort;
+      int port = Constants.broadcastPort;
+
+      try {
+          for (int i = 0; i < args.length; i++) {
+              if (args[i].equalsIgnoreCase("-f")) {
+                  etName = args[++i];
+              }
+              else if (args[i].equalsIgnoreCase("-h")) {
+                  host = args[++i];
+              }
+              else if (args[i].equalsIgnoreCase("-nb")) {
+                  blocking = 0;
+              }
+              else if (args[i].equalsIgnoreCase("-a")) {
+                  try {
+                      numAttachments = Integer.parseInt(args[++i]);
+                  }
+                  catch (NumberFormatException ex) {
+                      numAttachments = 1;
+                  }
+              }
+              else if (args[i].equalsIgnoreCase("-s")) {
+                  statName = args[++i];
+              }
+              else if (args[i].equalsIgnoreCase("-p")) {
+                  try {
+                      port = Integer.parseInt(args[++i]);
+                      if ((port < 1024) || (port > 65535)) {
+                          System.out.println("Port number must be between 1024 and 65535.");
+                          usage();
+                          return;
+                      }
+                  }
+                  catch (NumberFormatException ex) {
+                      System.out.println("Did not specify a proper port number.");
+                      usage();
+                      return;
+                  }
+              }
+              else if (args[i].equalsIgnoreCase("-pos")) {
+                  try {
+                      position = Integer.parseInt(args[++i]);
+                  }
+                  catch (NumberFormatException ex) {
+                      System.out.println("Did not specify a proper position number.");
+                      usage();
+                      return;
+                  }
+              }
+              else if (args[i].equalsIgnoreCase("-ppos")) {
+                  try {
+                      pposition = Integer.parseInt(args[++i]);
+                  }
+                  catch (NumberFormatException ex) {
+                      System.out.println("Did not specify a proper parallel position number.");
+                      usage();
+                      return;
+                  }
+              }
+              else {
+                  usage();
+                  return;
+              }
+          }
+
+          if (host == null) {
+              host = Constants.hostAnywhere;
+              /*
+              try {
+                  host = InetAddress.getLocalHost().getHostName();
+              }
+              catch (UnknownHostException ex) {
+                  System.out.println("Host not specified and cannot find local host name.");
+                  usage();
+                  return;
+              }
+              */
+          }
+
       if (etName == null) {
-	  usage();
-	  return;
+	    usage();
+	    return;
       }
       else if (statName == null) {
-	  usage();
-	  return;
+	    usage();
+	    return;
       }
       
       // make a direct connection to ET system's tcp server
-      SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+      //SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+
+      // broadcast to ET system's tcp server
+      SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
       
       // create ET system object with verbose debugging output
       SystemUse sys = new SystemUse(config, Constants.debugInfo);

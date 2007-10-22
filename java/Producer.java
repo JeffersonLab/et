@@ -39,8 +39,8 @@ public class Producer {
   private static void usage() {
     System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-h <host>]\n\n" +
 	               "       -f  ET system's name\n" +
-	               "       -p  port number for a direct connection\n" +
-	               "       -h  host the ET system resides on (defaults to local)\n" +
+	               "       -p  port number for a udp broadcast\n" +
+	               "       -h  host the ET system resides on (defaults to anywhere)\n" +
 	               "        This consumer works by making a direct connection to the\n" +
 		       "        ET system's tcp server port.\n");
   }
@@ -49,7 +49,8 @@ public class Producer {
     public static void main(String[] args) {
 
         String etName = null, host = null;
-        int port = Constants.serverPort;
+        //int port = Constants.serverPort;
+        int port = Constants.broadcastPort;
 
         try {
             for (int i = 0; i < args.length; i++) {
@@ -81,6 +82,8 @@ public class Producer {
             }
 
             if (host == null) {
+                host = Constants.hostAnywhere;
+                /*
                 try {
                     host = InetAddress.getLocalHost().getHostName();
                 }
@@ -89,6 +92,7 @@ public class Producer {
                     usage();
                     return;
                 }
+                */
             }
 
             if (etName == null) {
@@ -97,7 +101,10 @@ public class Producer {
             }
 
             // make a direct connection to ET system's tcp server
-            SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+            //SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+
+            // broadcast to ET system's tcp server
+            SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
 
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);

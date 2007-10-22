@@ -30,8 +30,6 @@ public class StartEt {
     try {
       // ET system configuration object
       SystemConfig config = new SystemConfig();
-      // listen on local subnets for broadcasts
-      config.listenForBroadcasts(true);
       // listen for multicasts at this address
       config.addMulticastAddr(Constants.multicastAddr);
       // set tcp server port
