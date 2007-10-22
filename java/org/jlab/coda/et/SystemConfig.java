@@ -51,14 +51,10 @@ public class SystemConfig {
    *  otherwise referred to as the ET server thread. */
   int      serverPort;
   /** UDP port number for thread responding to users' multicasts looking for the
-   *  ET system. In Java, a multicast socket cannot have same port number as
-   *  another datagram socket. */
+   *  ET system. */
   int      multicastPort;
   /** Set of all multicast addresses to listen on (in String form). */
   HashSet<InetAddress>  multicastAddrs;
-  /** Do we listen for broadcasts on all local subnets? */
-  boolean listenForBroadcasts;
-
 
   /**
    * Creates a new SystemConfig object using default parameters.
@@ -95,7 +91,6 @@ public class SystemConfig {
     serverPort      = config.serverPort;
     multicastPort   = config.multicastPort;
     multicastAddrs  = new HashSet<InetAddress>(config.multicastAddrs);
-    listenForBroadcasts = config.listenForBroadcasts;
   }
 
   // public gets
@@ -127,11 +122,6 @@ public class SystemConfig {
   /** Gets the set of multicast addresses.
    *  @return set of multicast addresses */
   public Set<InetAddress> getMulticastAddrs() {return new HashSet<InetAddress>(multicastAddrs);}
-    /** Are we listening for broadcasts?
-     *  @return boolean indicating wether we are listening for broadcasts */
-    public boolean isListeningForBroadcasts() {return listenForBroadcasts;}
-    /** Set true if we're listening for broadcasts. */
-    public void listenForBroadcasts(boolean on) {listenForBroadcasts = on;}
 
   /** Gets the multicast addresses as a String array.
    *  @return multicast addresses as a String array */
