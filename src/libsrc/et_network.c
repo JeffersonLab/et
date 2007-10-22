@@ -1736,9 +1736,8 @@ if (debug)
       /* for each listed broadcast address ... */
       baddr = config->bcastaddrs;
       while (baddr != NULL) {
-	  char *ba = "255.255.255.255";
           /* put address into net-ordered binary form */
-	  if (inet_aton(ba, &castaddr) == INET_ATON_ERR) {
+	  if (inet_aton(baddr->addr, &castaddr) == INET_ATON_ERR) {
 	    fprintf(stderr, "et_findserver: inet_aton error net_addr = %s\n",  baddr->addr);
             for (j=0; j<numsockets; j++) {
 	      close(send[j].sockfd);
@@ -1748,7 +1747,7 @@ if (debug)
 	  }
 
 if (debug)
-    printf("et_findserver: send broadcast packet to %s on port %d\n", ba, config->udpport);
+    printf("et_findserver: send broadcast packet to %s on port %d\n", baddr->addr, config->udpport);
 
 	  /* server's location */
 	  bzero((void *)&servaddr, sizeof(servaddr));
@@ -2172,10 +2171,12 @@ anotherpacket:
 	    answer->port = serverport;
 	    pbuf += sizeof(serverport);
 
-            /* broad or multi cast? */
+            /* broad or multi cast? might be both for java. */
 	    memcpy(&castType, pbuf, sizeof(castType));
 	    castType = ntohl(castType);
-	    if ((castType != ET_BROADCAST) && (castType != ET_MULTICAST)) {
+	    if ((castType != ET_BROADCAST) &&
+                (castType != ET_MULTICAST) &&
+                (castType != ET_BROADANDMULTICAST)) {
               free(answer);
 	      break;
 	    }
