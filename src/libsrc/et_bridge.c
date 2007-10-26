@@ -490,6 +490,9 @@ static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
 	    
 	    put[i]->byteorder = ET_SWAP32(put[i]->byteorder);
 	  }
+          else {
+	    memcpy(put[i]->pdata, get[j]->pdata, get[j]->length);
+          }
 	}
 
       }
@@ -800,7 +803,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
   et_event **get=NULL, **put=NULL, **dump=NULL;
   int sockfd = idto->sockfd;
   int i, j, k, status=ET_OK, err, headersize;
-  int swap=0, byteordershouldbe=0, same_endian;
+  int swap=0, byteorder, byteordershouldbe=0, same_endian;
   int transfer[5], index=0, iov_bufs=0, *header=NULL;
   int num_limit, num_2get, num_read=0, num_new=0, num_dump=0, num_new_prev=0;
   int total_put=0, total_read=0, total_new=0;
@@ -941,7 +944,8 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
 	}
 	
 	/* here's where the data usually is */
-	databuf = get[j]->pdata;
+	databuf   = get[j]->pdata;
+        byteorder = get[j]->byteorder;
 	
 	/* Do NOT copy data into the locally allocated buffers
 	 * given by a remote et_events_new. Instead, when doing
@@ -969,7 +973,9 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
 	      status = ET_ERROR;
 	      goto end;
 	    }
-	    get[j]->byteorder = ET_SWAP32(get[j]->byteorder);
+            /* bug, we don't want to swap byte order of original event */
+	    /* get[j]->byteorder = ET_SWAP32(get[j]->byteorder); */
+            byteorder = ET_SWAP32(get[j]->byteorder);
 	  }
 	}
 	
@@ -979,7 +985,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
         header[index+3] = htonl(ET_LOWINT(get[j]->length));
         header[index+4] = htonl(get[j]->priority |
 			        get[j]->datastatus << ET_DATA_SHIFT);
-        header[index+5] = get[j]->byteorder;
+        header[index+5] = byteorder;
         header[index+6] = 0; /* not used */
 
 	for (k=0; k < ET_STATION_SELECT_INTS; k++) {
