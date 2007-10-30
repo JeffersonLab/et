@@ -28,6 +28,8 @@ first: all
 help:
 	@echo "make [option]"
 	@echo "      env       - list env variables"
+	@echo "      doc       - generate java doc for java ET"
+	@echo "      tar       - create ET tar file"
 	@echo "      mkdirs    - make necessary directories for C,C++"
 	@echo "      install   - install all headers and compiled files for C,C++"
 	@echo "      uninstall - uninstall all headers and compiled files for C,C++"
@@ -35,6 +37,9 @@ help:
 	@echo "      clean     - delete all exec, library, object, and dependency files"
 	@echo "      distClean - clean and remove hidden OS directory"
 	@echo "      execClean - delete all exec and library files"
+	@echo "      java      - make java files"
+	@echo "      javaClean - remove java class files"
+	@echo "      javaDistClean - remove java class files and generated documentation"
 
 java:
 	ant;
