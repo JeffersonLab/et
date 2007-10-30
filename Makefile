@@ -47,13 +47,10 @@ javaDistClean:
 
 doc:
 	ant javadoc;
-	export TOPLEVEL=$(TOPLEVEL); doxygen doc/doxygen/DoxyfileC
-	export TOPLEVEL=$(TOPLEVEL); doxygen doc/doxygen/DoxyfileCC
-	cd doc; $(MAKE) -f $(MAKEFILE);
 
 tar:
-	-$(RM) tar/et-9.0.tar.gz;
-	tar -X tar/tarexclude -C .. -c -z -f tar/et-9.0.tar.gz et
+	-$(RM) tar/et-10.0.tar.gz;
+	tar -X tar/tarexclude -C .. -c -z -f tar/et-10.0.tar.gz et
 
 # Use this pattern rule for all other targets
 %:
