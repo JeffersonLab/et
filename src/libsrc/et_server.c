@@ -98,7 +98,11 @@ void *et_cast_thread(void *arg)
     pthread_create(&config->bcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
   }
 
-  /* thread for the general subnet broadcast IP address of 255.255.255.255 - listen for broadcasts */
+  /* Thread for the general subnet broadcast IP address of 255.255.255.255 to
+   * listen for broadcasts (sent by java clients). Some recent versions of the
+   * Mac OS give an error when binding a socket to the 255.255.255.255 address.
+   * If the error occurs, exit that listen thread and forget about it.
+   */
   et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
   if (newarg == NULL) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
@@ -173,6 +177,10 @@ static void *et_listen_thread(void *arg)
   if (sockfd < 0) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_listen_thread: problem opening socket\n");
+    }
+    /* if Mac OS bombs on binding to this address, just exit thread and forget about it */
+    if (strcmp("255.255.255.255", listenaddr) == 0) {
+      pthread_exit(NULL);
     }
     exit(1);
   }
