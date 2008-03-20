@@ -1061,10 +1061,10 @@ static void et_command_loop(et_threadinfo *info)
         case  ET_NET_EVS_NEW_L:
         {
           et_att_id  att;
-	  int mode, nevents, num, incoming[7];
+          int mode, nevents, num, incoming[7];
           size_t size;
           struct iovec iov[2];
-	  struct timespec deltatime;
+          struct timespec deltatime;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -1072,85 +1072,174 @@ static void et_command_loop(et_threadinfo *info)
 
           att  = incoming[0];
           mode = incoming[1];
-	  size = ET_64BIT_UINT(incoming[2], incoming[3]);
-	  num  = incoming[4];
+          size = ET_64BIT_UINT(incoming[2], incoming[3]);
+          num  = incoming[4];
 
-	  if (mode == ET_TIMED) {
+          if (mode == ET_TIMED) {
             deltatime.tv_sec  = incoming[5];
             deltatime.tv_nsec = incoming[6];
             err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
-	  }
-	  else if (mode == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for a new event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_events_new,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_events_new.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
-            etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+          }
+          else if (mode == ET_SLEEP) {
+              /* There's a problem if we have a remote client that is waiting
+               * for a new event by sleeping and the events stop flowing. In
+               * that case, the client can be killed and the ET system does NOT
+               * know about it. Since this thread will be stuck in et_events_new,
+               * it will not immediately detect the break in the socket - at least
+               * not until event start flowing again. To circumvent this, implement
+               * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+               * detection of broken socket between calls to et_events_new.
+               */
+              struct timeval timeout;
+              fd_set myset;
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              FD_ZERO(&myset);
+              err = ET_ERROR_TIMEOUT;
 
-            /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
-            deltatime.tv_nsec = 0;
+              /* 3 second timed wait */
+              deltatime.tv_sec  = 3;
+              deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
+              while (err == ET_ERROR_TIMEOUT) {
+                  /* Linux modifies timeout, so reset each round */
+                  timeout.tv_sec  = 0;
+                  timeout.tv_usec = 0;
+                  FD_SET(connfd, &myset);
 
-              /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
-                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_events_new(id, att, events, ET_TIMED, &deltatime, size, num, &nevents);
+                  /* before waiting 3 sec in "get", check here if we're to wake up */
+                  if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                      etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                      etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                      err = ET_ERROR_WAKEUP;
+                      break;
+                  }
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
-                etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_events_new(id, att, events, mode, NULL, size, num, &nevents);
-	  }
+                  err = et_events_new(id, att, events, ET_TIMED, &deltatime, size, num, &nevents);
 
-	  if (err < 0) {
-	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                  /* Async call to select to see if this socket is still open.
+                   * Ready to read only if socket error in this case.
+                   */
+                  if (err == ET_ERROR_TIMEOUT) {
+                      if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                          goto end;
+                      }
+                  }
+                  else {
+                      etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                      etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  }
+              }
+          }
+          else {
+              err = et_events_new(id, att, events, mode, NULL, size, num, &nevents);
+          }
+
+          if (err < 0) {
+              if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                  goto end;
+              }
+              break;
+          }
+
+          iov[0].iov_base = (void *) &nevents;
+          iov[0].iov_len  = sizeof(nevents);
+          iov[1].iov_base = (void *) events;
+          iov[1].iov_len  = nevents*sizeof(et_event *);
+
+          if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
               goto end;
-            }
-	    break;
-	  }
+          }
+        }
+        break;
 
-	  iov[0].iov_base = (void *) &nevents;
-	  iov[0].iov_len  = sizeof(nevents);
-	  iov[1].iov_base = (void *) events;
-	  iov[1].iov_len  = nevents*sizeof(et_event *);
+        case  ET_NET_EVS_NEW_GRP_L:
+        {
+          et_att_id  att;
+          int mode, nevents, num, group, incoming[8];
+          size_t size;
+          struct iovec iov[2];
+          struct timespec deltatime;
 
-	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
-	}
-	break;
+          }
+
+          att   = incoming[0];
+          mode  = incoming[1];
+          size  = ET_64BIT_UINT(incoming[2], incoming[3]);
+          num   = incoming[4];
+          group = incoming[5];
+
+          if (mode == ET_TIMED) {
+            deltatime.tv_sec  = incoming[6];
+            deltatime.tv_nsec = incoming[7];
+            err = et_events_new_group(id, att, events, mode, &deltatime,
+                    size, num, group, &nevents);
+          }
+          else if (mode == ET_SLEEP) {
+              struct timeval timeout;
+              fd_set myset;
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              FD_ZERO(&myset);
+              err = ET_ERROR_TIMEOUT;
+
+              /* 3 second timed wait */
+              deltatime.tv_sec  = 3;
+              deltatime.tv_nsec = 0;
+
+              while (err == ET_ERROR_TIMEOUT) {
+                  /* Linux modifies timeout, so reset each round */
+                  timeout.tv_sec  = 0;
+                  timeout.tv_usec = 0;
+                  FD_SET(connfd, &myset);
+
+                  /* before waiting 3 sec in "get", check here if we're to wake up */
+                  if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                      etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                      etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                      err = ET_ERROR_WAKEUP;
+                      break;
+                  }
+
+                  err = et_events_new_group(id, att, events, ET_TIMED, &deltatime,
+                          size, num, group, &nevents);
+
+                  /* Async call to select to see if this socket is still open.
+                   * Ready to read only if socket error in this case.
+                   */
+                  if (err == ET_ERROR_TIMEOUT) {
+                      if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                          goto end;
+                      }
+                  }
+                  else {
+                      etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                      etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  }
+              }
+          }
+          else {
+              err = et_events_new_group(id, att, events, mode, NULL,
+                      size, num, group, &nevents);
+          }
+
+          if (err < 0) {
+              if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                  goto end;
+              }
+              break;
+          }
+
+          iov[0].iov_base = (void *) &nevents;
+          iov[0].iov_len  = sizeof(nevents);
+          iov[1].iov_base = (void *) events;
+          iov[1].iov_len  = nevents*sizeof(et_event *);
+
+          if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
+              goto end;
+          }
+        }
+        break;
 
         case  ET_NET_EV_DUMP_L:
         {
@@ -1731,131 +1820,261 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
         case  ET_NET_EVS_NEW:
         {
-          et_att_id  att;
-	  int i, mode, nevents, num, nevents_net;
-	  int incoming[7];
-          uint64_t size;
-	  struct timespec deltatime;
-          struct iovec iov[2];
+            et_att_id  att;
+            int i, mode, nevents, num, nevents_net;
+            int incoming[7];
+            uint64_t size;
+            struct timespec deltatime;
+            struct iovec iov[2];
 
-         if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
-            goto end;
-          }
+            if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+                goto end;
+            }
 
-          att  = ntohl(incoming[0]);
-          mode = ntohl(incoming[1]);
-	  size = ET_64BIT_UINT(ntohl(incoming[2]), ntohl(incoming[3]));
-	  num  = ntohl(incoming[4]);
+            att  = ntohl(incoming[0]);
+            mode = ntohl(incoming[1]);
+            size = ET_64BIT_UINT(ntohl(incoming[2]), ntohl(incoming[3]));
+            num  = ntohl(incoming[4]);
 
 #ifndef _LP64
-          /* if we're 32 bit, an 64 bit app may ask for events which are too big */
-          if (bit64 && num*size > UINT32_MAX/5) {
-	    err = htonl(ET_ERROR_TOOBIG);
-	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
-              goto end;
+            /* if we're 32 bit, an 64 bit app may ask for events which are too big */
+            if (bit64 && num*size > UINT32_MAX/5) {
+                err = htonl(ET_ERROR_TOOBIG);
+                if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                    goto end;
+                }
+                break;
             }
-	    break;
-          }
 #endif
-                  
-	  if (mode == ET_TIMED) {
-            deltatime.tv_sec  = ntohl(incoming[5]);
-            deltatime.tv_nsec = ntohl(incoming[6]);
-            err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
-	  }
-	  else if (mode == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for a new event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_events_new,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_events_new.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
-            etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
 
-            /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
-            deltatime.tv_nsec = 0;
-
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
-
-              /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
-                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_events_new(id, att, events, ET_TIMED, &deltatime, size, num, &nevents);
-
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
-                etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_events_new(id, att, events, mode, NULL, size, num, &nevents);
-	  }
-
-	  if (err < 0) {
-	    err = htonl(err);
-	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
-              goto end;
+            if (mode == ET_TIMED) {
+                deltatime.tv_sec  = ntohl(incoming[5]);
+                deltatime.tv_nsec = ntohl(incoming[6]);
+                err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
             }
-	    break;
-	  }
+            else if (mode == ET_SLEEP) {
+                /* There's a problem if we have a remote client that is waiting
+                 * for a new event by sleeping and the events stop flowing. In
+                 * that case, the client can be killed and the ET system does NOT
+                 * know about it. Since this thread will be stuck in et_events_new,
+                 * it will not immediately detect the break in the socket - at least
+                 * not until event start flowing again. To circumvent this, implement
+                 * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+                 * detection of broken socket between calls to et_events_new.
+                 */
+                struct timeval timeout;
+                fd_set myset;
+                etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+                FD_ZERO(&myset);
+                err = ET_ERROR_TIMEOUT;
 
-          /* If we're on a 32 bit machine, we need to translate these
-           * 32 bit pointers to 64 bit ints and send over the wire in
-           * order to be compatible with 64 bit ET systems.
-           */
-	  for (i=0; i < nevents; i++) {
-	    /* keep track of how this event is to be modified */
-            events[i]->modify = ET_MODIFY;
-	    ints64[i] = hton64((uintptr_t)events[i]);
-/*
+                /* 3 second timed wait */
+                deltatime.tv_sec  = 3;
+                deltatime.tv_nsec = 0;
+
+                while (err == ET_ERROR_TIMEOUT) {
+                    /* Linux modifies timeout, so reset each round */
+                    timeout.tv_sec  = 0;
+                    timeout.tv_usec = 0;
+                    FD_SET(connfd, &myset);
+
+                    /* before waiting 3 sec in "get", check here if we're to wake up */
+                    if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                        etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                        err = ET_ERROR_WAKEUP;
+                        break;
+                    }
+
+                    err = et_events_new(id, att, events, ET_TIMED, &deltatime, size, num, &nevents);
+
+                    /* Async call to select to see if this socket is still open.
+                     * Ready to read only if socket error in this case.
+                     */
+                    if (err == ET_ERROR_TIMEOUT) {
+                        if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                            goto end;
+                        }
+                    }
+                    else {
+                        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                        etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                    }
+                }
+            }
+            else {
+                err = et_events_new(id, att, events, mode, NULL, size, num, &nevents);
+            }
+
+            if (err < 0) {
+                err = htonl(err);
+                if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                    goto end;
+                }
+                break;
+            }
+
+            /* If we're on a 32 bit machine, we need to translate these
+             * 32 bit pointers to 64 bit ints and send over the wire in
+             * order to be compatible with 64 bit ET systems.
+             */
+            for (i=0; i < nevents; i++) {
+                /* keep track of how this event is to be modified */
+                events[i]->modify = ET_MODIFY;
+                ints64[i] = hton64((uintptr_t)events[i]);
+                /*
 printf("   32 bit pointer             [%d] = 0x%p\n",i, events[i]);
 printf("   32 bit pointer->uint       [%d] = 0x%x\n",i, (unsigned int)events[i]);
 printf("   32 bit pointer->uint64     [%d] = 0x%llx\n",i, (uint64_t)events[i]);
 printf("   32 bit pointer->uint64 swap[%d] = 0x%llx\n",i, ints64[i]);
 printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
-*/
-	  }
-/*printf("etr_events_new: writing %d 64 bit pointers\n", nevents);*/
+                 */
+            }
+            /*printf("etr_events_new: writing %d 64 bit pointers\n", nevents);*/
 
-	  nevents_net = htonl(nevents);
-	  iov[0].iov_base = (void *) &nevents_net;
-	  iov[0].iov_len  = sizeof(nevents_net);
-	  iov[1].iov_base = (void *) ints64;
- 	  iov[1].iov_len  = nevents*sizeof(uint64_t);
-          
-	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
-            goto end;
-	  }
-	}
-	break;
+            nevents_net = htonl(nevents);
+            iov[0].iov_base = (void *) &nevents_net;
+            iov[0].iov_len  = sizeof(nevents_net);
+            iov[1].iov_base = (void *) ints64;
+            iov[1].iov_len  = nevents*sizeof(uint64_t);
 
-        case  ET_NET_EV_DUMP:
+            if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
+                goto end;
+            }
+        }
+        break;
+
+        case  ET_NET_EVS_NEW_GRP:
+        {
+            et_att_id  att;
+            int i, mode, nevents, num, group, nevents_net;
+            int incoming[8];
+            uint64_t size;
+            struct timespec deltatime;
+            struct iovec iov[2];
+
+            if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+                goto end;
+            }
+
+            att   = ntohl(incoming[0]);
+            mode  = ntohl(incoming[1]);
+            size  = ET_64BIT_UINT(ntohl(incoming[2]), ntohl(incoming[3]));
+            num   = ntohl(incoming[4]);
+            group = ntohl(incoming[5]);
+
+#ifndef _LP64
+            /* if we're 32 bit, a 64 bit app may ask for events which are too big */
+            if (bit64 && num*size > UINT32_MAX/5) {
+                err = htonl(ET_ERROR_TOOBIG);
+                if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                    goto end;
+                }
+                break;
+            }
+#endif
+
+            if (mode == ET_TIMED) {
+                deltatime.tv_sec  = ntohl(incoming[6]);
+                deltatime.tv_nsec = ntohl(incoming[7]);
+                err = et_events_new_group(id, att, events, mode, &deltatime,
+                        size, num, group, &nevents);
+            }
+            else if (mode == ET_SLEEP) {
+                /* There's a problem if we have a remote client that is waiting
+                 * for a new event by sleeping and the events stop flowing. In
+                 * that case, the client can be killed and the ET system does NOT
+                 * know about it. Since this thread will be stuck in et_events_new,
+                 * it will not immediately detect the break in the socket - at least
+                 * not until event start flowing again. To circumvent this, implement
+                 * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+                 * detection of broken socket between calls to et_events_new.
+                 */
+                struct timeval timeout;
+                fd_set myset;
+                etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+                FD_ZERO(&myset);
+                err = ET_ERROR_TIMEOUT;
+
+                /* 3 second timed wait */
+                deltatime.tv_sec  = 3;
+                deltatime.tv_nsec = 0;
+
+                while (err == ET_ERROR_TIMEOUT) {
+                    /* Linux modifies timeout, so reset each round */
+                    timeout.tv_sec  = 0;
+                    timeout.tv_usec = 0;
+                    FD_SET(connfd, &myset);
+
+                    /* before waiting 3 sec in "get", check here if we're to wake up */
+                    if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                        etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                        err = ET_ERROR_WAKEUP;
+                        break;
+                    }
+
+                    err = et_events_new_group(id, att, events, ET_TIMED, &deltatime,
+                            size, num, group, &nevents);
+
+                    /* Async call to select to see if this socket is still open.
+                     * Ready to read only if socket error in this case.
+                     */
+                    if (err == ET_ERROR_TIMEOUT) {
+                        if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                            goto end;
+                        }
+                    }
+                    else {
+                        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                        etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                    }
+                }
+            }
+            else {
+                err = et_events_new_group(id, att, events, mode, NULL,
+                        size, num, group, &nevents);
+            }
+
+            if (err < 0) {
+                err = htonl(err);
+                if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                    goto end;
+                }
+                break;
+            }
+
+            /* If we're on a 32 bit machine, we need to translate these
+             * 32 bit pointers to 64 bit ints and send over the wire in
+             * order to be compatible with 64 bit ET systems.
+             */
+            for (i=0; i < nevents; i++) {
+                /* keep track of how this event is to be modified */
+                events[i]->modify = ET_MODIFY;
+                ints64[i] = hton64((uintptr_t)events[i]);
+                /*
+printf("   32 bit pointer             [%d] = 0x%p\n",i, events[i]);
+printf("   32 bit pointer->uint       [%d] = 0x%x\n",i, (unsigned int)events[i]);
+printf("   32 bit pointer->uint64     [%d] = 0x%llx\n",i, (uint64_t)events[i]);
+printf("   32 bit pointer->uint64 swap[%d] = 0x%llx\n",i, ints64[i]);
+printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
+                 */
+            }
+            /*printf("etr_events_new: writing %d 64 bit pointers\n", nevents);*/
+
+            nevents_net = htonl(nevents);
+            iov[0].iov_base = (void *) &nevents_net;
+            iov[0].iov_len  = sizeof(nevents_net);
+            iov[1].iov_base = (void *) ints64;
+            iov[1].iov_len  = nevents*sizeof(uint64_t);
+
+            if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
+                goto end;
+            }
+        }
+        break;
+
+       case  ET_NET_EV_DUMP:
         {
 	  int incoming[3];
 	  et_event    *pe;
@@ -2451,7 +2670,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
 
     /* the following commands get values associated with the system */
-    else if (command <= ET_NET_SYS_PID) {
+    else if (command <= ET_NET_SYS_GRP) {
 
       int  val, transfer[2];
       pid_t pid; /* int in Linux, long in Solaris */
@@ -2486,7 +2705,12 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           break;
         case  ET_NET_SYS_PID:
           err = et_system_getpid(id, &pid);
-	  val = pid;
+          val = pid;
+          break;
+        case  ET_NET_SYS_GRP:
+            {et_id *etid = (et_id *) id;
+            val = etid->sys->config.groupCount;}
+            err = ET_OK;
           break;
         default:
           if (etid->debug >= ET_DEBUG_ERROR) {

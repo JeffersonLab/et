@@ -596,6 +596,102 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
   return ET_OK;
 }
 
+/******************************************************/
+int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
+         int mode, struct timespec *deltatime,
+         size_t size, int num, int group, int *nread)
+{
+  et_id *etid = (et_id *) id;
+  int sockfd = etid->sockfd;
+  int i, nevents, err, transfer[9];
+  void *pdata;
+  
+  transfer[0] = htonl(ET_NET_EVS_NEW_GRP_L);
+  transfer[1] = att;
+  transfer[2] = mode;
+  transfer[3] = ET_HIGHINT(size);
+  transfer[4] = ET_LOWINT(size);
+  transfer[5] = num;
+  transfer[6] = group;
+  transfer[7] = 0;
+  transfer[8] = 0;
+  
+  if (deltatime) {
+    transfer[7] = deltatime->tv_sec;
+    transfer[8] = deltatime->tv_nsec;
+  }
+ 
+  et_tcp_lock(etid);
+  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+    et_tcp_unlock(etid);
+    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "etn_events_new, write error\n");
+    }
+    return ET_ERROR_WRITE;
+  }
+ 
+  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+    et_tcp_unlock(etid);
+    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "etn_events_new, read error\n");
+    }
+    return ET_ERROR_READ;
+  }
+
+  if (err < 0) {
+    et_tcp_unlock(etid);
+    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "etn_events_new, error in server\n");
+    }
+    return err;
+  }
+  
+  nevents = err;
+  
+  /* The following should be independent of whether 64 or 32 bit code.
+   * Take advantage of the fact that in local Linux mode, the sizeof
+   * a pointer is the same here in client as it is in server.
+   * If it weren't, the client would never have been able to do an
+   * et_open which checks to see if it's 64 or 32 bit file.
+   */
+  size = nevents*sizeof(et_event *);  /* double use of size */
+  
+  if (et_tcp_read(sockfd, (void *) evs, size) != size) {
+    et_tcp_unlock(etid);
+    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "etn_events_new, read error\n");
+    }
+    return ET_ERROR_READ;
+  }
+  et_tcp_unlock(etid);
+  
+  /* pointers in ET system space and must be translated */
+  for (i=0; i < nevents; i++) {
+    evs[i] = ET_PEVENT2USR(evs[i], etid->offset);
+    
+    /* if not a temp event, data is in mem already mmapped */
+    if (evs[i]->temp != ET_EVENT_TEMP) {
+      evs[i]->pdata = ET_PDATA2USR(evs[i]->data, etid->offset);
+    }
+    /* else, mmap file so we can get at data */
+    else {
+      /* store ET system's temp data pointer so it doesn't get lost */
+      evs[i]->tempdata = evs[i]->pdata;
+      /* attach to temp event mem */
+      if ((pdata = et_temp_attach(evs[i]->filename, evs[i]->memsize)) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "etn_events_new, cannot attach to temp event\n");
+        }
+        return ET_ERROR_REMOTE;
+      }
+      evs[i]->pdata = pdata;
+    }
+  }
+  
+  *nread = nevents;
+  return ET_OK;
+}
+
 /******************************************************
  * NO SWAPPING IS NECESSARY 
  ******************************************************/

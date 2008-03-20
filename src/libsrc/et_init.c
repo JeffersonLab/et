@@ -178,22 +178,13 @@ void et_init_llist(et_list *pl)
 }
 
 /*****************************************************/
-void et_init_event(et_event *pe)
-{
-  et_init_event_(pe);
-  pe->owner = ET_SYS;
-}
-
-/*****************************************************/
-/* doesn't change owner, only called directly by
- * et_event(s)_new. Called indirectly by et_init_mem_event,
- * etr_event(s)_new
+/* 
+ * Called directly by et_init_mem_event,
+ * etr_event(s)_new(_group). Full initialization.
  */
-
-void et_init_event_(et_event *pe)
-{
-  int i;
-  
+void et_init_event(et_event *pe)
+{ int i;
+  pe->owner      = ET_SYS;
   pe->next       = NULL;
   pe->tempdata   = NULL;
   pe->pdata      = NULL;
@@ -204,11 +195,25 @@ void et_init_event_(et_event *pe)
   pe->age        = ET_EVENT_NEW;
   pe->datastatus = ET_DATA_OK;
   pe->byteorder  = 0x04030201;
+  pe->group      = 0;
   pe->pointer    = 0;
   pe->modify     = 0;
   for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
     pe->control[i] = 0;
   }
+}
+
+/*****************************************************/
+/* Doesn't change owner or group number. Only called directly by
+ * et_event_make, et_event(s)_new(_group).
+ */
+
+void et_init_event_(et_event *pe)
+{
+  int group=pe->group, owner=pe->owner;
+  et_init_event(pe);
+  pe->owner = owner;
+  pe->group = group;
 }
 
 /*****************************************************/
@@ -297,6 +302,7 @@ int et_id_init(et_sys_id *id)
   etid->cleanup      = 0;
   etid->debug        = ET_DEBUG_ERROR;
   etid->nevents      = 0;
+  etid->group        = 0;
   etid->version      = ET_VERSION;
   etid->nselects     = ET_STATION_SELECT_INTS;
   etid->memsize      = 0;

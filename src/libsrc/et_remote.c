@@ -1428,6 +1428,16 @@ int etr_system_getpid (et_sys_id id, int *pid)
     return err;
 }
 
+/*****************************************************/
+int etr_system_getgroup (et_sys_id id, int *group)
+{
+    int err;
+    et_id *etid = (et_id *) id;
+
+    err = etr_system_getstuff(etid, ET_NET_SYS_GRP, group, "etr_system_getgroup");
+    return err;
+}
+
 /*****************************************************
  * This gets 64 bit integer attachment data
  *****************************************************/
@@ -1688,7 +1698,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
                    int mode, struct timespec *deltatime,
                    size_t size, int num, int *nread)
 {
-    int i, j, err, temp, nevents, /* *pevents,*/ transfer[8], wait, noalloc;
+    int i, j, err, temp, nevents, transfer[8], wait, noalloc;
     size_t eventsize;
     uint64_t *pevents;
     et_id *etid = (et_id *) id;
@@ -1822,6 +1832,203 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
         }
         /* initialize new event */
         et_init_event(newevents[i]);
+
+        /* if allocating memory for event data as is normally the case ... */
+        if (noalloc == 0) {
+            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL) {
+                if (etid->debug >= ET_DEBUG_ERROR) {
+                    et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
+                }
+                free(newevents[i]);
+                err = ET_ERROR_REMOTE;
+                break;
+            }
+        }
+        /* else if user supplying a buffer ... */
+        else {
+            /* Take an element of the et_event structure that is unused
+             * in a remote setting and use it to record the fact that
+             * the user is supplying the data buffer. This way when a
+             * "put" is done, ET will not try to free the memory.
+             */
+            newevents[i]->owner = ET_NOALLOC;
+        }
+        newevents[i]->length  = size;
+        newevents[i]->memsize = eventsize;
+        newevents[i]->modify  = ET_MODIFY;
+        newevents[i]->pointer = ntoh64(pevents[i]);
+        /*printf("etr_events_new:   pointer[%d] = 0x%llx\n",i,newevents[i]->pointer );*/
+        newevents[i]->temp    = temp;
+    }
+
+    /* if error in above for loop ... */
+    if (err < 0) {
+        /* free up all allocated memory */
+        for (j=0; j < i; j++) {
+            if (noalloc == 0) {
+                free(newevents[j]->pdata);
+            }
+            free(newevents[j]);
+        }
+        free(pevents);
+        free(newevents);
+        return err;
+    }
+
+    /* now that all is OK, copy into user's array of event pointers */
+    for (i=0; i < nevents; i++) {
+        evs[i] = newevents[i];
+    }
+    if (nread != NULL) {
+        *nread = nevents;
+    }
+    free(pevents);
+    free(newevents);
+
+    return ET_OK;
+}
+
+/******************************************************/
+int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
+                   int mode, struct timespec *deltatime,
+                   size_t size, int num, int group, int *nread)
+{
+    int i, j, err, temp, nevents, transfer[9], wait, noalloc;
+    size_t eventsize;
+    uint64_t *pevents;
+    et_id *etid = (et_id *) id;
+    int sockfd = etid->sockfd;
+    et_event **newevents;
+
+    /* Allocate array of event pointers - store new events here
+     * until copied to evs[] when all danger of error is past.
+     */
+    if ((newevents = (et_event **) calloc(num, sizeof(et_event *))) == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
+        }
+        return ET_ERROR_REMOTE;
+    }
+
+    /* Pick out wait & no-allocate parts of mode.
+     * Value of wait is checked in et_events_new. */
+    wait = mode & ET_WAIT_MASK;
+
+    /* Do not allocate memory. Use buffer to be designated later. */
+    noalloc = mode & ET_NOALLOC;
+
+    transfer[0] = htonl(ET_NET_EVS_NEW_GRP);
+    transfer[1] = htonl(att);
+    transfer[2] = htonl(wait);
+    transfer[3] = htonl(ET_HIGHINT(size));
+    transfer[4] = htonl(ET_LOWINT(size));
+    transfer[5] = htonl(num);
+    transfer[6] = htonl(group);
+    transfer[7] = 0;
+    transfer[8] = 0;
+
+    if (deltatime) {
+        transfer[7] = htonl(deltatime->tv_sec);
+        transfer[8] = htonl(deltatime->tv_nsec);
+    }
+
+    et_tcp_lock(etid);
+    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+        et_tcp_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_events_new, write error\n");
+        }
+        free(newevents);
+        return ET_ERROR_WRITE;
+    }
+    /*printf("etr_events_new: sent transfer array, will read err\n");*/
+
+    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+        et_tcp_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_events_new, read error\n");
+        }
+        free(newevents);
+        return ET_ERROR_READ;
+    }
+
+    err = ntohl(err);
+    /*printf("etr_events_new: err = %d\n", err);*/
+    if (err < 0) {
+        et_tcp_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_events_new, error in server\n");
+        }
+        free(newevents);
+        return err;
+    }
+
+    /* number of events to expect */
+    nevents = err;
+    /*printf("etr_events_new: num events coming = %d\n", nevents);*/
+
+    /* allocate memory for event pointers */
+    if ((pevents = (uint64_t *) calloc(nevents, sizeof(uint64_t))) == NULL) {
+        et_tcp_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
+        }
+        free(newevents);
+        return ET_ERROR_REMOTE;
+    }
+
+    /* read array of event pointers */
+    /*printf("etr_events_new: read in %d 64 bit event pointers\n", nevents);*/
+    if (et_tcp_read(sockfd, (void *) pevents, nevents*sizeof(uint64_t)) !=
+            nevents*sizeof(uint64_t) ) {
+
+        et_tcp_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_events_new, read error\n");
+        }
+        free(pevents);
+        free(newevents);
+        return ET_ERROR_READ;
+    }
+    et_tcp_unlock(etid);
+
+#ifndef _LP64
+
+    if (etid->bit64) {
+        /* if events size > ~1G, only allocate what's asked for */
+        if (num*etid->esize > UINT32_MAX/5) {
+            eventsize = size;
+        }
+        else {
+            eventsize = (size_t)etid->esize;
+        }
+    }
+    else {
+        eventsize = (size_t)etid->esize;
+    }
+#else
+    eventsize = (size_t)etid->esize;
+#endif
+
+    /* set size of an event's data memory */
+    temp = ET_EVENT_NORMAL;
+    if (size > etid->esize) {
+        eventsize = size;
+        temp = ET_EVENT_TEMP;
+    }
+
+    for (i=0; i < nevents; i++) {
+        /* allocate memory for event */
+        if ((newevents[i] = (et_event *) malloc(sizeof(et_event))) == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
+            }
+            err = ET_ERROR_REMOTE;
+            break;
+        }
+        /* initialize new event */
+        et_init_event(newevents[i]);
+        /*newevents[i]->group = group;*/
 
         /* if allocating memory for event data as is normally the case ... */
         if (noalloc == 0) {

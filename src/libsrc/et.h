@@ -72,6 +72,8 @@ extern "C" {
 
 #define ET_MULTICAST_ADDR  "239.200.0.0"    /* random multicast addr */
 #define ET_BROADCAST_ADDR  "129.57.15.255"  /* daq group subnet */
+    
+#define ET_EVENT_GROUPS_MAX 500 /* max # of groups events are divided into */
 
 /*********************************************************************/
 /*                              WARNING                              */
@@ -258,35 +260,37 @@ extern "C" {
 /*
  * et_event:
  *-----------------------------
- * next		: next event in linked list
- * tempdata	: for Linux or non mutex-sharing systems, a temp event
- *		: gotten by the server thread needs its data pointer stored
- *		: while the user maps the temp file and puts that pointer
- *		: in ev->pdata. When converting the pdata pointer back to
- *		: a value the ET system uses, so the server thread can
- *		: unmap it from memory, grab & restore the stored value.
- * pdata	: = pointer below, or points to temp event buffer
- * data		: pointer to data if not temp event
- * length	: size of actual data in bytes
- * memsize	: total size of available data memory in bytes
- * priority	: ET_HIGH or ET_LOW
- * owner	: # of attachment that owns it, else ET_EVENT_SYS (-1)
- * temp		: =ET_EVENT_TEMP if temporary event, else =ET_EVENT_NORMAL
- * age		: =ET_EVENT_NEW if it's a new event, else =ET_EVENT_USED
- *		: New events always go to GrandCentral if user crashes.
- * datastatus	: =ET_DATA_OK normally, =ET_DATA_CORRUPT if data corrupt,
- *		: =ET_DATA_POSSIBLY_CORRUPT if data questionable.
- * byteorder	: use to track the data's endianness (set to 0x04030201)
- * pointer	: for REMOTE events- pointer to this event in the
- *		: server's space. Used for writing of modified events.
- * modify	: when "getting" events from a remote client - flag to tell
- *		: server whether this event will be modified with the
- *		: intention of sending it back to the server (ET_MODIFY) or
- * 		: whether only the header will be modified and returned
- *		: (ET_MODIFY_HEADER) or whether there'll be no modification
- *		: of the event (0).
- * control	: array of ints to select on (see et_stat_config->select)
- * filename	: filename of temp event
+ * next     : next event in linked list
+ * tempdata : for Linux or non mutex-sharing systems, a temp event
+ *          : gotten by the server thread needs its data pointer stored
+ *          : while the user maps the temp file and puts that pointer
+ *          : in ev->pdata. When converting the pdata pointer back to
+ *          : a value the ET system uses, so the server thread can
+ *          : unmap it from memory, grab & restore the stored value.
+ * pdata    : = pointer below, or points to temp event buffer
+ * data     : pointer to data if not temp event
+ * length   : size of actual data in bytes
+ * memsize  : total size of available data memory in bytes
+ * priority : ET_HIGH or ET_LOW
+ * owner    : # of attachment that owns it, else ET_EVENT_SYS (-1)
+ * temp     : =ET_EVENT_TEMP if temporary event, else =ET_EVENT_NORMAL
+ * age      : =ET_EVENT_NEW if it's a new event, else =ET_EVENT_USED
+ *          : New events always go to GrandCentral if user crashes.
+ * datastatus: =ET_DATA_OK normally, =ET_DATA_CORRUPT if data corrupt,
+ *          : =ET_DATA_POSSIBLY_CORRUPT if data questionable.
+ * byteorder: use to track the data's endianness (set to 0x04030201)
+ * group    : group number - events are divided into groups for limiting
+ *          : the number of events producers have access to
+ * pointer  : for REMOTE events- pointer to this event in the
+ *          : server's space. Used for writing of modified events.
+ * modify   : when "getting" events from a remote client - flag to tell
+ *          : server whether this event will be modified with the
+ *          : intention of sending it back to the server (ET_MODIFY) or
+ *          : whether only the header will be modified and returned
+ *          : (ET_MODIFY_HEADER) or whether there'll be no modification
+ *          : of the event (0).
+ * control  : array of ints to select on (see et_stat_config->select)
+ * filename : filename of temp event
  */
  
 typedef struct et_event_t {
@@ -294,16 +298,17 @@ typedef struct et_event_t {
   void    *tempdata;
   void    *pdata;
   char    *data;
-  uint64_t  length; /* CHANGED */
-  uint64_t  memsize; /* CHANGED */
+  uint64_t  length;
+  uint64_t  memsize;
   int     priority;
   int     owner;
   int     temp;
   int     age;
   int     datastatus;
   int     byteorder;
+  int     group;
   /* for remote events */
-  uint64_t pointer; /* CHANGED */
+  uint64_t pointer;
   int      modify;
   /* ***************** */
   int     control[ET_STATION_SELECT_INTS];
@@ -333,6 +338,12 @@ extern int  et_event_new(et_sys_id id, et_att_id att, et_event **pe,
 extern int  et_events_new(et_sys_id id, et_att_id att, et_event *pe[], 
                           int mode, struct timespec *deltatime, size_t size, 
                           int num, int *nread);
+extern int  et_event_new_group(et_sys_id id, et_att_id att, et_event **pe,
+                               int mode, struct timespec *deltatime,
+                               size_t size, int group);
+extern int  et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
+                                int mode, struct timespec *deltatime,
+                                size_t size, int num, int group, int *nread);
 
 extern int  et_event_get(et_sys_id id, et_att_id att, et_event **pe,  
                          int mode, struct timespec *deltatime);
@@ -347,6 +358,8 @@ extern int  et_events_put(et_sys_id id, et_att_id att, et_event *pe[],
 extern int  et_event_dump(et_sys_id id, et_att_id att, et_event *pe);
 extern int  et_events_dump(et_sys_id id, et_att_id att, et_event *pe[],
 			   int num);
+
+extern int  et_event_getgroup(et_event *pe, int *grp);
 
 extern int  et_event_setpriority(et_event *pe, int pri);
 extern int  et_event_getpriority(et_event *pe, int *pri);
@@ -507,6 +520,8 @@ extern int et_system_config_getprocs(et_sysconfig sconfig, int *val);
 extern int et_system_config_setattachments(et_sysconfig sconfig, int val);
 extern int et_system_config_getattachments(et_sysconfig sconfig, int *val);
 
+extern int et_system_config_setgroups(et_sysconfig sconfig, int groups[], int size);
+
 extern int et_system_config_setfile(et_sysconfig sconfig, const char *val);
 extern int et_system_config_getfile(et_sysconfig sconfig, char *val);
 
@@ -528,11 +543,13 @@ extern int et_system_config_addmulticast(et_sysconfig sconfig, const char *val);
 extern int et_system_config_removemulticast(et_sysconfig sconfig, const char *val);
 
 /*************************************************************/
-/*          routines to read system information              */
+/*      routines to store & read system information          */
 /*************************************************************/
-extern int et_system_getlocality(et_sys_id id, int *locality);
-extern int et_system_setdebug(et_sys_id id, int debug);
+extern int et_system_setgroup(et_sys_id id, int  group);
+extern int et_system_getgroup(et_sys_id id, int *group);
+extern int et_system_setdebug(et_sys_id id, int  debug);
 extern int et_system_getdebug(et_sys_id id, int *debug);
+extern int et_system_getlocality(et_sys_id id, int *locality);
 extern int et_system_getnumevents(et_sys_id id, int *numevents);
 extern int et_system_geteventsize(et_sys_id id, size_t *eventsize);
 extern int et_system_gettempsmax(et_sys_id id, int *tempsmax);

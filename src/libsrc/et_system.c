@@ -70,11 +70,11 @@ static void  et_fix_system(et_id *id);
 
 int et_system_start (et_sys_id* id, et_sysconfig sconfig)
 {
-  size_t          size, size_old_used, size_events, size_data,
-		  size_system, size_stations, size_histo;
-  int             i, status, status_old, num_try, try_max,
-		  creating=0;
-  unsigned int    hbeat;
+  size_t       size, size_old_used, size_events, size_data,
+               size_system, size_stations, size_histo;
+  int          i, status, status_old, num_try, try_max,
+               creating=0, groupsDiffer=0;
+  unsigned int hbeat;
 #ifdef sun
   int		  con, con_add;
 #endif
@@ -231,13 +231,26 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       return ET_ERROR;
     }
       
-    /* if trying to create ET system of different size, shape, ... */
-    if ((size                   != size_old_used)                 ||
+    /* if trying to create ET system of different size, shape, smell ... */
+    if (config->groupCount != etid->sys->config.groupCount) {
+      groupsDiffer++;
+    }
+    else {
+      for (i=0; i < config->groupCount; i++) {
+        if (config->groups[i] != etid->sys->config.groups[i]) {
+          groupsDiffer++;
+          break;
+        }
+      }
+    }
+    
+    if ( groupsDiffer                                             ||
+        (size                   != size_old_used)                 ||
         (config->nstations      != etid->sys->config.nstations)   ||
         (config->nevents        != etid->sys->config.nevents)     ||
         (config->event_size     != etid->sys->config.event_size)  ||
-	(config->nprocesses      < etid->sys->config.nprocesses)  ||
-	(config->nattachments    < etid->sys->config.nattachments)||
+        (config->nprocesses      < etid->sys->config.nprocesses)  ||
+        (config->nattachments    < etid->sys->config.nattachments)||
         (ET_STATION_SELECT_INTS != etid->sys->nselects))            {
 	
       /* The existing ET system is not what we want! First find out 
@@ -246,21 +259,21 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       int have_client=0;
       for (i=0; i < etid->sys->config.nprocesses ; i++) {
         if (etid->sys->proc[i].status == ET_PROC_OPEN) {
-	  hbeat = etid->sys->proc[i].heartbeat;
-	  nanosleep(&beat,NULL);
-	  if (hbeat != etid->sys->proc[i].heartbeat) {
-	    /* this process is alive */
-	    have_client++;
-	    break;
-	  }
-	}
+          hbeat = etid->sys->proc[i].heartbeat;
+          nanosleep(&beat,NULL);
+          if (hbeat != etid->sys->proc[i].heartbeat) {
+            /* this process is alive */
+            have_client++;
+            break;
+          }
+        }
       }
       
       if (have_client) {
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_system_start, existing ET system has a different configuration\n");
           et_logmsg("ERROR", "                 and still has active clients.\n");
-       }
+        }
       }
       else {
         if (etid->debug >= ET_DEBUG_ERROR) {
@@ -324,7 +337,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
           if (etid->debug >= ET_DEBUG_SEVERE) {
             et_logmsg("SEVERE", "et_system_start, error filling grandcentral station\n") ;
           }
- 	  pthread_attr_destroy(&attr);
+          pthread_attr_destroy(&attr);
           munmap(etid->pmap, etid->memsize);
           et_id_destroy(*id);
           return ET_ERROR;
@@ -1724,898 +1737,898 @@ static void *et_add_stations(void *arg)
  ***********************************************/
 static void *et_conductor(void *arg)
 {
-  et_id      *id  = (et_id *) arg;
-  et_sys_id  etid = (et_sys_id) arg;
-  et_system  *sys = id->sys;
-  int        event_depth = sys->config.nevents;
-  int        i, j, status, me=0, num_temp=0, numwritten, none=1;
-  int	     firstimethruloop, writeall;
-  int        events_total, events_left, events_toput;
-  int        *numEvents, *inListCount, *place, *event_put;
-  et_event   **allevents, **putevents, **temps;
-  et_station *ps, *pmystation, *pstat=NULL;
-  et_station *startStation, *firstActive, *firstParallel;
-  et_list    *pl, *pmylist;  
-  void       *sym;
-  const int  forever = 1;
-  int        parallelIsActive, rrobin_equalcue, numActiveStations;
-  int        num, extra, startLooking, lastEventIndex=0, eventsAlreadyPut;
-  int        index, count, skip, numOfEvents, min;
-  int        eventsPerStation, nextHigherCue, eventsDoledOut, stationsWithSameCue;
-	   
-  /* station mutex has already been locked by et_station_create */
-  
-  /* find the station in act of being created */   
-  ps = id->grandcentral;
-  for (i=0 ; i < sys->config.nstations ; i++){
-    if (ps->data.status == ET_STATION_CREATING) {
-        none = 0;
-        break;
-    }
-    ps++;
-    me++;
-  }
-  
-  if (none) {
-    if (id->debug >= ET_DEBUG_WARN) {
-      et_logmsg("WARN", "et_conductor, all stations have their conductors already\n");
-    }
-    pthread_exit(NULL);
-  }
-  
-  /* found station, label as conductor (this thread) attached */
-  pmystation = ps;
-  if (id->debug >= ET_DEBUG_INFO) {
-    et_logmsg("INFO", "et_conductor %d, found station %p\n", me, ps);
-  }
-  /* my station's event list_out */
-  pmylist = &pmystation->list_out;
-  
-  /* if using default event selection routine */
-  if (ps->config.select_mode == ET_STATION_SELECT_MATCH) {
-    ps->data.func = et_condition;
-  }
-  /* if using user-defined event selection routine, load it */
-  else if (ps->config.select_mode == ET_STATION_SELECT_USER) {
-    ps->data.lib_handle = dlopen(ps->config.lib, RTLD_NOW);
-    if (ps->data.lib_handle == NULL) {
-      /* tell et_station_create that we are done */
-      pthread_cond_signal(&sys->statdone);
-      if (id->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_conductor %d, %s\n", me, dlerror());
-      }
-      pthread_exit(NULL);
-    }
-    if (id->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_conductor %d, loaded shared lib %s\n", me, ps->config.lib);
-    }
-    sym = dlsym(ps->data.lib_handle, ps->config.fname);
-    if (sym == NULL) {
-      dlclose(ps->data.lib_handle);
-      /* tell et_station_create that we are done */
-      pthread_cond_signal(&sys->statdone);
-      if (id->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_conductor %d, %s\n", me, dlerror()) ;
-      }
-      pthread_exit(NULL);
-    }
-    if (id->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_conductor %d, loaded function %s\n", me, ps->config.fname);
-    }
-    ps->data.func = (ET_SELECT_FUNCPTR) sym;
-  }
-  
-  /* calloc arrays since we don't know how big they are at compile time */
-  
-  /* all events initially read in from the station's output list */
-  if ( (allevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
-   /* tell et_station_create that we are done */
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
-  
-  /* events to be "put" into the next station's input list */
-  if ( (putevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
-  
-  /* temporary (large, specially allocated) events */
-  if ( (temps = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
-  
-  /* events which have already been put into a previous station */
-  if ( (event_put = (int *) calloc(event_depth, sizeof(int))) == NULL) {
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
+    et_id      *id  = (et_id *) arg;
+    et_sys_id  etid = (et_sys_id) arg;
+    et_system  *sys = id->sys;
+    int        event_depth = sys->config.nevents;
+    int        i, j, status, me=0, num_temp=0, numwritten, none=1;
+    int	     firstimethruloop, writeall;
+    int        events_total, events_left, events_toput;
+    int        *numEvents, *inListCount, *place, *event_put;
+    et_event   **allevents, **putevents, **temps;
+    et_station *ps, *pmystation, *pstat=NULL;
+    et_station *startStation, *firstActive, *firstParallel;
+    et_list    *pl, *pmylist;  
+    void       *sym;
+    const int  forever = 1;
+    int        parallelIsActive, rrobin_equalcue, numActiveStations;
+    int        num, extra, startLooking, lastEventIndex=0, eventsAlreadyPut;
+    int        index, count, skip, numOfEvents, min;
+    int        eventsPerStation, nextHigherCue, eventsDoledOut, stationsWithSameCue;
 
-  /* For parallel stations, an array containing the numbers of events to be
-   * placed in each of these stations.
-   */
-  if ( (numEvents = (int *) calloc(sys->config.nstations, sizeof(int))) == NULL) {
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
+    /* station mutex has already been locked by et_station_create */
 
-  /* For parallel stations, an array containing the numbers of events currently
-   * in each of these stations' input lists.
-   */
-  if ( (inListCount = (int *) calloc(sys->config.nstations, sizeof(int))) == NULL) {
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
-
-  /* For parallel stations, an array containing the original place of an active
-   * station in the parallel linked list before they were ordered by the amount
-   * of events in their input lists.
-   */
-  if ( (place = (int *) calloc(sys->config.nstations, sizeof(int))) == NULL) {
-    pthread_cond_signal(&sys->statdone);
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
-    }
-    pthread_exit(NULL);
-  }
-
-  /* tell et_station_create that we have successfully started */
-  if (ps == id->grandcentral) {
-    ps->data.status = ET_STATION_ACTIVE;
-  } else {
-    ps->data.status = ET_STATION_IDLE;
-  }
-  pthread_cond_signal(&sys->statdone);
-  
-  
-  while (forever) {
-
-    /* wait on condition var for these events */
-    et_llist_lock(pmylist);
-    while (pmylist->cnt < 1) {
-      status = pthread_cond_wait(&pmylist->cread, &pmylist->mutex);
-      if (status != 0) {
-        err_abort(status, "Wait list_out cond var");
-      }
-      /* kill self if station removed */  
-      if (pmystation->conductor == ET_THREAD_KILL) {
-	et_llist_unlock(pmylist);
-	if (pmystation->config.select_mode == ET_STATION_SELECT_USER) {
-          dlclose(pmystation->data.lib_handle);
+    /* find the station in act of being created */   
+    ps = id->grandcentral;
+    for (i=0 ; i < sys->config.nstations ; i++){
+        if (ps->data.status == ET_STATION_CREATING) {
+            none = 0;
+            break;
         }
-	free(allevents); free(putevents); free(temps); free(event_put);
-	free(numEvents); free(inListCount); free(place);
-	pthread_exit(NULL);
-      }
+        ps++;
+        me++;
     }
-    
-    /* grab all events in station's list_out */
-    if ((events_total = et_llist_read(pmylist, allevents)) < 0) {
-      et_llist_unlock(pmylist);
-      goto error;
-    }
-    et_llist_unlock(pmylist);
-    events_left = events_total;
 
-    /* reinit items to track events being put */
-    for (i=0; i < events_total ; i++) {
-      event_put[i] = 0;
+    if (none) {
+        if (id->debug >= ET_DEBUG_WARN) {
+            et_logmsg("WARN", "et_conductor, all stations have their conductors already\n");
+        }
+        pthread_exit(NULL);
     }
-    firstimethruloop = 1;
-    writeall = 0;
-    
-    /* grabbing mutex allows no change to linked list of created stations */
-    et_transfer_lock(pmystation);
-    
-    /* Send events downstream by going to the next active station
-     * in the main linked list & putting events its list. */
-    
-    /* If this is a parallel station, find the first parallel station
-     * in this group. The next station in the main linked list after that
-     * will our "next" station.
+
+    /* found station, label as conductor (this thread) attached */
+    pmystation = ps;
+    if (id->debug >= ET_DEBUG_INFO) {
+        et_logmsg("INFO", "et_conductor %d, found station %p\n", me, ps);
+    }
+    /* my station's event list_out */
+    pmylist = &pmystation->list_out;
+
+    /* if using default event selection routine */
+    if (ps->config.select_mode == ET_STATION_SELECT_MATCH) {
+        ps->data.func = et_condition;
+    }
+    /* if using user-defined event selection routine, load it */
+    else if (ps->config.select_mode == ET_STATION_SELECT_USER) {
+        ps->data.lib_handle = dlopen(ps->config.lib, RTLD_NOW);
+        if (ps->data.lib_handle == NULL) {
+            /* tell et_station_create that we are done */
+            pthread_cond_signal(&sys->statdone);
+            if (id->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_conductor %d, %s\n", me, dlerror());
+            }
+            pthread_exit(NULL);
+        }
+        if (id->debug >= ET_DEBUG_INFO) {
+            et_logmsg("INFO", "et_conductor %d, loaded shared lib %s\n", me, ps->config.lib);
+        }
+        sym = dlsym(ps->data.lib_handle, ps->config.fname);
+        if (sym == NULL) {
+            dlclose(ps->data.lib_handle);
+            /* tell et_station_create that we are done */
+            pthread_cond_signal(&sys->statdone);
+            if (id->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_conductor %d, %s\n", me, dlerror()) ;
+            }
+            pthread_exit(NULL);
+        }
+        if (id->debug >= ET_DEBUG_INFO) {
+            et_logmsg("INFO", "et_conductor %d, loaded function %s\n", me, ps->config.fname);
+        }
+        ps->data.func = (ET_SELECT_FUNCPTR) sym;
+    }
+
+    /* calloc arrays since we don't know how big they are at compile time */
+
+    /* all events initially read in from the station's output list */
+    if ( (allevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
+        /* tell et_station_create that we are done */
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
+    }
+
+    /* events to be "put" into the next station's input list */
+    if ( (putevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
+    }
+
+    /* temporary (large, specially allocated) events */
+    if ( (temps = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
+    }
+
+    /* events which have already been put into a previous station */
+    if ( (event_put = (int *) calloc(event_depth, sizeof(int))) == NULL) {
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
+    }
+
+    /* For parallel stations, an array containing the numbers of events to be
+     * placed in each of these stations.
      */
-    if (pmystation->config.flow_mode == ET_STATION_PARALLEL) {
-      firstParallel = pmystation;
-      while (firstParallel->prevparallel > -1) {
-        firstParallel = id->grandcentral + firstParallel->prevparallel;
-      }
-      /* Now we're back to the first parallel station. The one we want is
-       * the next one in the main list from the first parallel.
-       */
-      if (firstParallel->next < 0) {
-	ps = id->grandcentral;
-      }
-      else {
-	ps = id->grandcentral + firstParallel->next;
-      }
+    if ( (numEvents = (int *) calloc(sys->config.nstations, sizeof(int))) == NULL) {
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
     }
-    else {
-      if (pmystation->next < 0) {
-	ps = id->grandcentral;
-      }
-      else {
-	ps = id->grandcentral + pmystation->next;
-      }
+
+    /* For parallel stations, an array containing the numbers of events currently
+     * in each of these stations' input lists.
+     */
+    if ( (inListCount = (int *) calloc(sys->config.nstations, sizeof(int))) == NULL) {
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
     }
-    /* get its input list */
-    pl = &ps->list_in;    
-    
-    /* while there are events still left to distribute ... */
-    while (events_left > 0) {
-      /* Is there at least one active parallel station? */
-      parallelIsActive = 0;
-      /* Total number of active parallel stations. */
-      numActiveStations = 0;
-      /* Direct to different event dispersing algorithms. */
-      rrobin_equalcue = 0;
-      /* Station to receive first round-robin event. */
-      startStation = NULL;
-      /* First active station in parallel linked list. */
-      firstActive  = NULL;
-      
-      /* If this is a parallel station ... */
-      if (ps->config.flow_mode == ET_STATION_PARALLEL) {
-	/* Are any of the parallel stations active or can we skip the bunch? */
-	pstat = ps;
-	while (1) {
-	  if (pstat->data.status == ET_STATION_ACTIVE) {
-	    parallelIsActive = 1;
-	    firstActive = pstat;
-	    break;
-	  }
-	  /* Find next station in the parallel linked list. */
-	  if (pstat->nextparallel < 0) {
-	    break;
-	  }
-	  pstat = id->grandcentral + pstat->nextparallel;
-	}
-	
-	/* Which algorithm are we using? */
-	if (parallelIsActive &&
-	    ((ps->config.select_mode == ET_STATION_SELECT_RROBIN) ||
-	     (ps->config.select_mode == ET_STATION_SELECT_EQUALCUE))) {
-	  rrobin_equalcue = 1;
-	}
-      }
-      
-      if (!rrobin_equalcue &&
-          (parallelIsActive || (ps->data.status == ET_STATION_ACTIVE))) {
-	  
-	  if (ps->config.flow_mode == ET_STATION_PARALLEL) {
-            /* Save pointer to first parallel station (even if inactive). */
-	    pstat = ps;
-	    /* Skip to first active parallel station. */
-	    ps = firstActive;
-            pl = &ps->list_in;
-	  }
-	  
-	  /* Loop through all the active parallel stations if necessary. */
-	  do {
-            /* init here */
-            events_toput = 0;
-	    
-            /* OPTIMIZATION:
-             * If this is the first time thru the while loop, no events have yet
-             * been divided up between the stations downstream. If the next station
-             * is GrandCentral or a blocking station with prescale=1, then save
-             * time by dumping everything directly into it.
+
+    /* For parallel stations, an array containing the original place of an active
+     * station in the parallel linked list before they were ordered by the amount
+     * of events in their input lists.
+     */
+    if ( (place = (int *) calloc(sys->config.nstations, sizeof(int))) == NULL) {
+        pthread_cond_signal(&sys->statdone);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
+        }
+        pthread_exit(NULL);
+    }
+
+    /* tell et_station_create that we have successfully started */
+    if (ps == id->grandcentral) {
+        ps->data.status = ET_STATION_ACTIVE;
+    } else {
+        ps->data.status = ET_STATION_IDLE;
+    }
+    pthread_cond_signal(&sys->statdone);
+
+
+    while (forever) {
+
+        /* wait on condition var for these events */
+        et_llist_lock(pmylist);
+        while (pmylist->cnt < 1) {
+            status = pthread_cond_wait(&pmylist->cread, &pmylist->mutex);
+            if (status != 0) {
+                err_abort(status, "Wait list_out cond var");
+            }
+            /* kill self if station removed */  
+            if (pmystation->conductor == ET_THREAD_KILL) {
+                et_llist_unlock(pmylist);
+                if (pmystation->config.select_mode == ET_STATION_SELECT_USER) {
+                    dlclose(pmystation->data.lib_handle);
+                }
+                free(allevents); free(putevents); free(temps); free(event_put);
+                free(numEvents); free(inListCount); free(place);
+                pthread_exit(NULL);
+            }
+        }
+
+        /* grab all events in station's list_out */
+        if ((events_total = et_llist_read(pmylist, allevents)) < 0) {
+            et_llist_unlock(pmylist);
+            goto error;
+        }
+        et_llist_unlock(pmylist);
+        events_left = events_total;
+
+        /* reinit items to track events being put */
+        for (i=0; i < events_total ; i++) {
+            event_put[i] = 0;
+        }
+        firstimethruloop = 1;
+        writeall = 0;
+
+        /* grabbing mutex allows no change to linked list of created stations */
+        et_transfer_lock(pmystation);
+
+        /* Send events downstream by going to the next active station
+         * in the main linked list & putting events its list. */
+
+        /* If this is a parallel station, find the first parallel station
+         * in this group. The next station in the main linked list after that
+         * will our "next" station.
+         */
+        if (pmystation->config.flow_mode == ET_STATION_PARALLEL) {
+            firstParallel = pmystation;
+            while (firstParallel->prevparallel > -1) {
+                firstParallel = id->grandcentral + firstParallel->prevparallel;
+            }
+            /* Now we're back to the first parallel station. The one we want is
+             * the next one in the main list from the first parallel.
              */
-
-            if (ps == id->grandcentral) {	  
-              num_temp = 0;
-              /* if first time thru while loop, dump everything into GC */
-	      if (firstimethruloop) {
-		events_toput = events_total;
-        	for (i=0; i < events_total ; i++) {
-        	  /* find temp events for elimination */
-        	  if (allevents[i]->temp == ET_EVENT_TEMP) {
-	            temps[num_temp++] = allevents[i];
-		  }
-        	}
-	      }
-	      else {
-        	for (i=0; i < events_total ; i++) {
-        	  /* do next event if already put in another station */
-        	  if (event_put[i]) {
-                    continue;
-		  }
-        	  /* find temp events for elimination */
-        	  if (allevents[i]->temp == ET_EVENT_TEMP) {
-	            temps[num_temp++] = allevents[i];
-		  }
-		  putevents[events_toput++] = allevents[i];
-        	}
-	      }
+            if (firstParallel->next < 0) {
+                ps = id->grandcentral;
             }
-
-            /* all events, blocking */
-            else if ((ps->config.select_mode == ET_STATION_SELECT_ALL) &&
-	             (ps->config.block_mode  == ET_STATION_BLOCKING  ))  {
-
-              /* if first time thru while loop, dump everything into station */
-              if ((firstimethruloop) && (ps->config.prescale == 1))  {
-		writeall = 1;
-		events_toput = events_total;
-        	et_llist_lock(pl);
-		pl->events_try = pl->events_try + events_total;
-		/* pl->events_try += events_total; */
-	      }
-	      else {
-        	et_llist_lock(pl);
-        	for (i=0; i < events_total ; i++) {
-        	  if (event_put[i]) {
-        	    continue;
-		  }
-        	  /* apply prescale */ 
-		  if (pl->events_try++ % ps->config.prescale == 0) {
-		    putevents[events_toput++] = allevents[i];
-		    event_put[i] = 1;
-		  }
-        	}
-		if (events_toput == 0) {
-		  et_llist_unlock(pl);
-		}
-	      }
+            else {
+                ps = id->grandcentral + firstParallel->next;
             }
-
-            /* all events, nonblocking */
-            /* note: pl->cnt IS mutex protected here !! */
-            else if ((ps->config.select_mode == ET_STATION_SELECT_ALL)  &&
-	             (ps->config.block_mode  == ET_STATION_NONBLOCKING))  {
-              et_llist_lock(pl);
-              if (pl->cnt < ps->config.cue) {
-        	j = ps->config.cue - pl->cnt;
-        	for (i=0; i < events_total ; i++) {
-        	  if (event_put[i]) {
-                    continue;
-		  }
-		  putevents[events_toput++] = allevents[i];
-		  event_put[i] = 1;
-        	  if (--j == 0) {
-		    break;
-		  }
-        	}
-              }
-	      if (events_toput == 0) {
-		et_llist_unlock(pl);
-	      }
-            }
-
-            /*  condition (user or match), blocking */
-            else if (ps->config.block_mode == ET_STATION_BLOCKING) {
-              et_llist_lock(pl);
-              for (i=0; i < events_total ; i++) {
-        	if (event_put[i]) {
-        	  continue;
-		}
-		if ((*ps->data.func)(etid, ps->num, allevents[i])) {
-		  if (pl->events_try++ % ps->config.prescale == 0) {
-	            putevents[events_toput++] = allevents[i];
-	            event_put[i] = 1;
-		  }
-		}
-	      }
-	      if (events_toput == 0) {
-		et_llist_unlock(pl);
-	      }
-            }
-
-	    /* condition (user or match) + nonblocking */
-            else if (ps->config.block_mode == ET_STATION_NONBLOCKING) {
-              et_llist_lock(pl);
-              if (pl->cnt < ps->config.cue) {
-        	j = ps->config.cue - pl->cnt;
-        	for(i=0; i < events_total ; i++) {
-        	  if (event_put[i]) {
-                    continue;
-		  }
-		  if ((*ps->data.func)(etid, ps->num, allevents[i])) {
-	            putevents[events_toput++] = allevents[i];
-	            event_put[i] = 1;
-		    if (--j == 0) {
-		      break;
-		    }
-		  }
-        	}
-              }
-	      if (events_toput == 0) {
-		et_llist_unlock(pl);
-	      }
-	    }
-
- 	    /* If items go in this station ... This condition is necessary
-	     * as "et_llist_write" does not take 0 as a good argument. It's
-	     * also a waste of time to do the mutex manipulation if no
-	     * events are changing hands.
-	     */
-            if (events_toput > 0) {
-
-	      if (ps == id->grandcentral) {
-        	/* if tmp events exist, remove */
-        	if (temps[0] != NULL) {
-        	  et_system_lock(sys);
-        	  for (i=0; i < num_temp ; i++) {
-                    /*
-		     * temp events are not mapped in ET system space
-		     * but their files need to be removed
-		     */
-		    unlink(temps[i]->filename);
-                    sys->ntemps--;
-    /*printf("conductor %d: unlink tmp event\n", me);*/
-        	  }
-		  et_system_unlock(sys);
-		}
-        	/* lock mutex of gc station's list_in */
-        	et_llist_lock(pl);
-		if (firstimethruloop) {
-        	  status = et_llist_write_gc(id, allevents, events_total);
-		}
-		else { 
-        	  status = et_llist_write_gc(id, putevents, events_toput);
-        	}
-		et_llist_unlock(pl);
-		if (status == ET_ERROR) {
-		  goto error;
-		}
-        	events_left = 0;	
-	      }
-
-	      else {
-		/* pl is already locked */
- 		if (writeall) {
-        	  numwritten = et_llist_write(id, pl, allevents, events_total);
-		  et_llist_unlock(pl);
-        	  events_left = 0;
-		  writeall = 0;
-        	}
-		else {
-		  numwritten = et_llist_write(id, pl, putevents, events_toput);
- 		  et_llist_unlock(pl);
-        	  events_left -= events_toput;
-        	}
-        	if (numwritten == ET_ERROR) {
-        	  goto error;
-        	}
-		else if (numwritten < events_toput) {
-		  /* this one should never happen */
-        	  if (id->debug >= ET_DEBUG_SEVERE) {
-                    et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, ps->name);
-        	  }
-        	  goto error;
-		}
-              }
-
-              /* signal reader that new events are here */
-              status = pthread_cond_broadcast(&pl->cread);
-              if(status != 0) {
-        	err_abort(status, "events here");
-	      }
-
-            } /* if items go in this station */
-	  
-            /* Find the next active parallel station. */
-	    if (parallelIsActive) {
-	      do {	
-		if (ps->nextparallel > -1) {
-		  ps = id->grandcentral + ps->nextparallel;
-        	  pl = &ps->list_in;
-		  firstimethruloop=0;
-		}
-		else {
-		  goto outOfLoop;
-		}
-	      } while (ps->data.status != ET_STATION_ACTIVE);
-	    }
-	    /* loop over all parallel stations if necessary. */
-	  } while (parallelIsActive && (events_left > 0));
-	  
-	  outOfLoop:
-	  
-	  /* Restore ps back to head of parallel linked list (which is also
-	   * part of the main linked list.
-	   */
-	  if (ps->config.flow_mode == ET_STATION_PARALLEL) {
-	    ps = pstat;
-	  }
-      } /* if (!rrobin_equalcue && station(s) active) */
-      
-      /* Implement the round-robin & equal-cue algorithms for dispensing
-       * events to a single group of parallel stations.
-       */
-      else if (rrobin_equalcue && parallelIsActive) {
-	
-        if (ps->config.select_mode == ET_STATION_SELECT_RROBIN) {
-	  
-	  /* Flag to start looking for station that receives first round-robin event. */
-	  startLooking = 0;
-	  pstat = ps;
-	  
-	  while (forever) {
-	    /* for each active station ... */
-	    if (pstat->data.status == ET_STATION_ACTIVE) {
-	      if (startLooking) {
-		/* This is the first active station after
-		 * the last station to receive an event.
-		 */
-		startStation = pstat;
-		startLooking = 0;
-	      }
-	      numActiveStations++;
-	    }
-
-	    /* Find last station to receive a round-robin event and start looking
-	     * for the next active station to receive the first one.
-	     */
-	    if (pstat->waslast == 1) {
-		pstat->waslast = 0;
-		startLooking = 1;
-	    }
-
-	    /* find next station in the parallel linked list */
-	    if (pstat->nextparallel > -1) {
-	      pstat = id->grandcentral + pstat->nextparallel;
-	    }
-	    /* else if we're at the end of the list ... */
-	    else {
-	      /* If we still haven't found a place to start the round-robin
-	       * event dealing, make it the first active station.
-	       */
-	      if (startStation == NULL) {
-		startStation = firstActive;
-	      }
-	      break;
-	    }
-	  }
-	  
-	  /* Find the number of events going into each station. */
-	  num = events_left / numActiveStations;
-	  /* Find the number of events left over (not enough for another round). */
-	  extra = events_left % numActiveStations;
-	  eventsAlreadyPut = count = 0;
-
-	  /* Rearrange "allevents" so all those destined for a particular
-	   * station are grouped together in the new array.
-	   */
-	  for (i=0; i < numActiveStations; i++) {
-	    if (i < extra) {
-	      numEvents[i] = num + 1;
-	      if (i == (extra - 1)) {
-	        lastEventIndex = i;
-	      }
-	    }
-	    else {
-	      numEvents[i] = num;
-	    }
-	    
-	    if (extra == 0) {
-	      lastEventIndex = numActiveStations - 1;
-	    }
-	    
-	    numOfEvents = numEvents[i];
-	    
-	    /* If all events go into these parallel stations ... */
-	    if (firstimethruloop) {
-	      index = i;
-	      for (j=0; j < numOfEvents; j++) {
-		putevents[count++] = allevents[index];
-		index += numActiveStations;
-              }
-	    }
-	    else {
-	      skip = 0;
-              for (j=i; j < events_total; j++) {
-        	/* Skip over events already put into other stations. */
-		if (event_put[j]) {
-		  continue;
-		}
-		/* Skip over events in round-robin algorithm. */
-		if (skip-- > 0) {
-		  continue;
-		}
-
-		putevents[count++] = allevents[j];
-		skip = numActiveStations - 1;
-		numOfEvents--;
-		if (numOfEvents == 0) {
-	          break;
-		}
-              }
-	    }
-	  }
-
-	  /* Place the first event with the station after the one which
-	   * received the last event in the previous round.
-	   */
-	  pstat = startStation;
-	  count = 0;
-
-	  while (forever) {
-	    /* For each active parallel station ... */
-	    if (pstat->data.status == ET_STATION_ACTIVE) {
-              /* Mark station that got the last event. */
-	      if (count == lastEventIndex) {
-		pstat->waslast = 1;
-	      }
-	      
-	      /* Put "events_toput" number of events in the next active station. */
-	      events_toput = numEvents[count++];
-	      
-	      if (events_toput > 0) {
-		pl = &pstat->list_in;    
-        	et_llist_lock(pl);
-        	pl->events_try = pl->events_try + events_toput;
-	        numwritten = et_llist_write(id, pl, &putevents[eventsAlreadyPut], events_toput);
- 		et_llist_unlock(pl);
-        	events_left -= events_toput;
-
-        	if (numwritten == ET_ERROR) {
-        	  goto error;
-        	}
-		else if (numwritten < events_toput) {
-		  /* This should never happen. */
-        	  if (id->debug >= ET_DEBUG_SEVERE) {
-                    et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, pstat->name);
-        	  }
-        	  goto error;
-		}
-
-        	/* Signal reader that new events are here. */
-        	status = pthread_cond_broadcast(&pl->cread);
-        	if(status != 0) {
-        	  err_abort(status, "events here");
-		}
-
-		eventsAlreadyPut += events_toput;
-	      } /* if (events_toput > 0) */
-	    } /* if station is active */
-	    
-	    /* Find next active station. */
-	    if (count >= numActiveStations) {
-	      break;
-	    }
-	    else if (pstat->nextparallel > -1) {
-	      pstat = id->grandcentral + pstat->nextparallel;
-	    }
-	    else {
-	      /* Go back to the first active parallel station. */
-	      pstat = firstActive;
-	    }
-	  } /* while (forever) */
-	} /* if round-robin */
-	
-	/* else if equal-cue algorithm. */
+        }
         else {
-	  eventsDoledOut = 0;
-	  eventsAlreadyPut = 0;
-	  stationsWithSameCue = 0;
-	  
-	  /* Array that keeps track of original station order. */
-          for (i=0; i < sys->config.nstations; i++){
-	    place[i] = i+1;
-	  }
-	 
-	  pstat = firstActive;
-	  while (forever) {
-	    /* For each active station ... */
-	    if (pstat->data.status == ET_STATION_ACTIVE) {
-	      /* Find total # of events in stations' input lists (cues).
-	       * Store this information as it will change and we don't
-	       * really want to grab all the input mutexes to make
-	       * sure these values don't change.
-	       */
-	      inListCount[numActiveStations++] = pstat->list_in.cnt;
-	    }
+            if (pmystation->next < 0) {
+                ps = id->grandcentral;
+            }
+            else {
+                ps = id->grandcentral + pmystation->next;
+            }
+        }
+        /* get its input list */
+        pl = &ps->list_in;    
 
-	    /* find next station in the parallel linked list */
-	    if (pstat->nextparallel > -1) {
-	      pstat = id->grandcentral + pstat->nextparallel;
-	    }
-	    else {
-	      break;
-	    }
-	  }
-	  
-	  /* Sort the input lists (cues) according to number of events. The "place" 
-	   * array remembers the place in the presorted array of input lists.
-	   * Since arrays to be sorted are assumed to have indexes from 1 to n,
-	   * the -1 trick allows us to use arrays indexed from 0 to n-1.
-	   */
-	  shellSort(numActiveStations, inListCount-1, place-1);
+        /* while there are events still left to distribute ... */
+        while (events_left > 0) {
+            /* Is there at least one active parallel station? */
+            parallelIsActive = 0;
+            /* Total number of active parallel stations. */
+            numActiveStations = 0;
+            /* Direct to different event dispersing algorithms. */
+            rrobin_equalcue = 0;
+            /* Station to receive first round-robin event. */
+            startStation = NULL;
+            /* First active station in parallel linked list. */
+            firstActive  = NULL;
 
-	  /* To determine which stations get how many events:
-	   * Take the lowest cues, add enough to make them equal
-	   * to the next higher cue. Continue doing this until all
-	   * are equal. Evenly divide any remaining events.
-	   */
-	  nextHigherCue = 0;
-	  min = inListCount[0];
-	  for (i=0; i < numActiveStations; i++) {
-	    numEvents[i] = 0;
-	  }
-	  
-	  while(eventsDoledOut < events_left) {
-	    /* Find how many cues have the lowest # of events in them. */
-	    stationsWithSameCue = 0;
-	    for (i=0; i < numActiveStations; i++) {
-	      /* Does events in cue + events we've just given it = min? */
-	      if (min == inListCount[i] + numEvents[place[i]-1]) {
-	        stationsWithSameCue++;
-	      }
-	      else {
-	        nextHigherCue = inListCount[i];
-		break;
-	      }
-	    }
-	     
-	    /* If all stations have same # of events, or if there are not enough
-	     * events to fill each lowest cue to level of the next higher cue,
-	     * we spread available events between them all ... 
-	     */
-	    if ((stationsWithSameCue == numActiveStations) ||
-	        ((events_left - eventsDoledOut) < ((nextHigherCue - min)*stationsWithSameCue))) {
-	      events_toput = events_left - eventsDoledOut;
-	      eventsPerStation = events_toput / stationsWithSameCue;
-	      extra = events_toput % stationsWithSameCue;
-	      count = 0;
-	      for (i=0; i < stationsWithSameCue; i++) {
-		if (count++ < extra) {
-		  numEvents[place[i]-1] += eventsPerStation + 1;
-		}
-		else {
-		  numEvents[place[i]-1] += eventsPerStation;
-		}
-	      }
-	      break;
-	    }
-	    /* Else, fill the lowest cues to the level of the next higher cue
-	     * and repeat the cycle.
-	     */
-	    else {
-	      eventsPerStation = nextHigherCue - min;
-	      for (i=0; i < stationsWithSameCue; i++) {
-		numEvents[place[i]-1] += eventsPerStation;
-	      }
-	      min = nextHigherCue;
-	    }
-	    eventsDoledOut += eventsPerStation*stationsWithSameCue;
-	  }
-	  	  
-	  pstat = firstActive;
-	  count = 0;
-	  	  
-	  while (forever) {
-	    /* For each active parallel station ... */
-	    if (pstat->data.status == ET_STATION_ACTIVE) {
+            /* If this is a parallel station ... */
+            if (ps->config.flow_mode == ET_STATION_PARALLEL) {
+                /* Are any of the parallel stations active or can we skip the bunch? */
+                pstat = ps;
+                while (1) {
+                    if (pstat->data.status == ET_STATION_ACTIVE) {
+                        parallelIsActive = 1;
+                        firstActive = pstat;
+                        break;
+                    }
+                    /* Find next station in the parallel linked list. */
+                    if (pstat->nextparallel < 0) {
+                        break;
+                    }
+                    pstat = id->grandcentral + pstat->nextparallel;
+                }
 
-	      if ((events_toput = numEvents[count++]) < 1) {
-		/* Find next station in the parallel linked list. */
-		if (pstat->nextparallel > -1) {
-		  pstat = id->grandcentral + pstat->nextparallel;
-		  continue;
-		}
-		else {
-		  break;
-		}
-	      }
-	      
-              /* Put "events_toput" number of events in the next active station. */
-	      if (firstimethruloop) {
-		pl = &pstat->list_in;    
-        	et_llist_lock(pl);
-		pl->events_try = pl->events_try + events_toput;
-		numwritten = et_llist_write(id, pl, &allevents[eventsAlreadyPut], events_toput);
- 		et_llist_unlock(pl);
-              }
-	      else {
-        	index = 0;
-		for (i=0; i < events_total; i++) {
-        	  if (event_put[i]) {
-        	    continue;
-		  }
-		  putevents[index++] = allevents[i];
-		  event_put[i] = 1;
-		  if (index >= events_toput) {
-		    break;
-		  }
-        	}
-		pl = &pstat->list_in;    
-        	et_llist_lock(pl);
-		pl->events_try = pl->events_try + events_toput;
-		numwritten = et_llist_write(id, pl, putevents, events_toput);
- 		et_llist_unlock(pl);
-	      }
-	      	      
-              if (numwritten == ET_ERROR) {
-        	goto error;
-              }
-	      else if (numwritten < events_toput) {
-		/* This should never happen. */
-        	if (id->debug >= ET_DEBUG_SEVERE) {
-                  et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, pstat->name);
-        	}
-        	goto error;
-	      }
+                /* Which algorithm are we using? */
+                if (parallelIsActive &&
+                        ((ps->config.select_mode == ET_STATION_SELECT_RROBIN) ||
+                                (ps->config.select_mode == ET_STATION_SELECT_EQUALCUE))) {
+                    rrobin_equalcue = 1;
+                }
+            }
 
-              /* Signal reader that new events are here. */
-              status = pthread_cond_broadcast(&pl->cread);
-              if(status != 0) {
-        	err_abort(status, "events here");
-	      }
-	      
-              events_left -= events_toput;
-	      eventsAlreadyPut += events_toput;
-	    }
-	    
-	    /* Find next station in the parallel linked list. */
-	    if (pstat->nextparallel > -1) {
-	      pstat = id->grandcentral + pstat->nextparallel;
-	    }
-	    else {
-	      break;
-	    }
-	  } /* while(forever) */
-	  
-	  
-	} /* else if equal-cue algorithm */
-      } /* if (rrobin_equalcue && parallelIsActive) */
+            if (!rrobin_equalcue &&
+                    (parallelIsActive || (ps->data.status == ET_STATION_ACTIVE))) {
+
+                if (ps->config.flow_mode == ET_STATION_PARALLEL) {
+                    /* Save pointer to first parallel station (even if inactive). */
+                    pstat = ps;
+                    /* Skip to first active parallel station. */
+                    ps = firstActive;
+                    pl = &ps->list_in;
+                }
+
+                /* Loop through all the active parallel stations if necessary. */
+                do {
+                    /* init here */
+                    events_toput = 0;
+
+                    /* OPTIMIZATION:
+                     * If this is the first time thru the while loop, no events have yet
+                     * been divided up between the stations downstream. If the next station
+                     * is GrandCentral or a blocking station with prescale=1, then save
+                     * time by dumping everything directly into it.
+                     */
+
+                    if (ps == id->grandcentral) {
+                        num_temp = 0;
+                        /* if first time thru while loop, dump everything into GC */
+                        if (firstimethruloop) {
+                            events_toput = events_total;
+                            for (i=0; i < events_total ; i++) {
+                                /* find temp events for elimination */
+                                if (allevents[i]->temp == ET_EVENT_TEMP) {
+                                    temps[num_temp++] = allevents[i];
+                                }
+                            }
+                        }
+                        else {
+                            for (i=0; i < events_total ; i++) {
+                                /* do next event if already put in another station */
+                                if (event_put[i]) {
+                                    continue;
+                                }
+                                /* find temp events for elimination */
+                                if (allevents[i]->temp == ET_EVENT_TEMP) {
+                                    temps[num_temp++] = allevents[i];
+                                }
+                                putevents[events_toput++] = allevents[i];
+                            }
+                        }
+                    }
+
+                    /* all events, blocking */
+                    else if ((ps->config.select_mode == ET_STATION_SELECT_ALL) &&
+                            (ps->config.block_mode  == ET_STATION_BLOCKING  ))  {
+
+                        /* if first time thru while loop, dump everything into station */
+                        if ((firstimethruloop) && (ps->config.prescale == 1))  {
+                            writeall = 1;
+                            events_toput = events_total;
+                            et_llist_lock(pl);
+                            pl->events_try = pl->events_try + events_total;
+                            /* pl->events_try += events_total; */
+                        }
+                        else {
+                            et_llist_lock(pl);
+                            for (i=0; i < events_total ; i++) {
+                                if (event_put[i]) {
+                                    continue;
+                                }
+                                /* apply prescale */ 
+                                if (pl->events_try++ % ps->config.prescale == 0) {
+                                    putevents[events_toput++] = allevents[i];
+                                    event_put[i] = 1;
+                                }
+                            }
+                            if (events_toput == 0) {
+                                et_llist_unlock(pl);
+                            }
+                        }
+                    }
+
+                    /* all events, nonblocking */
+                    /* note: pl->cnt IS mutex protected here !! */
+                    else if ((ps->config.select_mode == ET_STATION_SELECT_ALL)  &&
+                            (ps->config.block_mode  == ET_STATION_NONBLOCKING))  {
+                        et_llist_lock(pl);
+                        if (pl->cnt < ps->config.cue) {
+                            j = ps->config.cue - pl->cnt;
+                            for (i=0; i < events_total ; i++) {
+                                if (event_put[i]) {
+                                    continue;
+                                }
+                                putevents[events_toput++] = allevents[i];
+                                event_put[i] = 1;
+                                if (--j == 0) {
+                                    break;
+                                }
+                            }
+                        }
+                        if (events_toput == 0) {
+                            et_llist_unlock(pl);
+                        }
+                    }
+
+                    /*  condition (user or match), blocking */
+                    else if (ps->config.block_mode == ET_STATION_BLOCKING) {
+                        et_llist_lock(pl);
+                        for (i=0; i < events_total ; i++) {
+                            if (event_put[i]) {
+                                continue;
+                            }
+                            if ((*ps->data.func)(etid, ps->num, allevents[i])) {
+                                if (pl->events_try++ % ps->config.prescale == 0) {
+                                    putevents[events_toput++] = allevents[i];
+                                    event_put[i] = 1;
+                                }
+                            }
+                        }
+                        if (events_toput == 0) {
+                            et_llist_unlock(pl);
+                        }
+                    }
+
+                    /* condition (user or match) + nonblocking */
+                    else if (ps->config.block_mode == ET_STATION_NONBLOCKING) {
+                        et_llist_lock(pl);
+                        if (pl->cnt < ps->config.cue) {
+                            j = ps->config.cue - pl->cnt;
+                            for(i=0; i < events_total ; i++) {
+                                if (event_put[i]) {
+                                    continue;
+                                }
+                                if ((*ps->data.func)(etid, ps->num, allevents[i])) {
+                                    putevents[events_toput++] = allevents[i];
+                                    event_put[i] = 1;
+                                    if (--j == 0) {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (events_toput == 0) {
+                            et_llist_unlock(pl);
+                        }
+                    }
+
+                    /* If items go in this station ... This condition is necessary
+                     * as "et_llist_write" does not take 0 as a good argument. It's
+                     * also a waste of time to do the mutex manipulation if no
+                     * events are changing hands.
+                     */
+                    if (events_toput > 0) {
+
+                        if (ps == id->grandcentral) {
+                            /* if tmp events exist, remove */
+                            if (temps[0] != NULL) {
+                                et_system_lock(sys);
+                                for (i=0; i < num_temp ; i++) {
+                                    /*
+                                     * temp events are not mapped in ET system space
+                                     * but their files need to be removed
+                                     */
+                                    unlink(temps[i]->filename);
+                                    sys->ntemps--;
+                                    /*printf("conductor %d: unlink tmp event\n", me);*/
+                                }
+                                et_system_unlock(sys);
+                            }
+                            /* lock mutex of gc station's list_in */
+                            et_llist_lock(pl);
+                            if (firstimethruloop) {
+                                status = et_llist_write_gc(id, allevents, events_total);
+                            }
+                            else { 
+                                status = et_llist_write_gc(id, putevents, events_toput);
+                            }
+                            et_llist_unlock(pl);
+                            if (status == ET_ERROR) {
+                                goto error;
+                            }
+                            events_left = 0;
+                        }
+
+                        else {
+                            /* pl is already locked */
+                            if (writeall) {
+                                numwritten = et_llist_write(id, pl, allevents, events_total);
+                                et_llist_unlock(pl);
+                                events_left = 0;
+                                writeall = 0;
+                            }
+                            else {
+                                numwritten = et_llist_write(id, pl, putevents, events_toput);
+                                et_llist_unlock(pl);
+                                events_left -= events_toput;
+                            }
+                            if (numwritten == ET_ERROR) {
+                                goto error;
+                            }
+                            else if (numwritten < events_toput) {
+                                /* this one should never happen */
+                                if (id->debug >= ET_DEBUG_SEVERE) {
+                                    et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, ps->name);
+                                }
+                                goto error;
+                            }
+                        }
+
+                        /* signal reader that new events are here */
+                        status = pthread_cond_broadcast(&pl->cread);
+                        if(status != 0) {
+                            err_abort(status, "events here");
+                        }
+
+                    } /* if items go in this station */
+
+                    /* Find the next active parallel station. */
+                    if (parallelIsActive) {
+                        do {
+                            if (ps->nextparallel > -1) {
+                                ps = id->grandcentral + ps->nextparallel;
+                                pl = &ps->list_in;
+                                firstimethruloop=0;
+                            }
+                            else {
+                                goto outOfLoop;
+                            }
+                        } while (ps->data.status != ET_STATION_ACTIVE);
+                    }
+                    /* loop over all parallel stations if necessary. */
+                } while (parallelIsActive && (events_left > 0));
+
+                outOfLoop:
+
+                /* Restore ps back to head of parallel linked list (which is also
+                 * part of the main linked list.
+                 */
+                if (ps->config.flow_mode == ET_STATION_PARALLEL) {
+                    ps = pstat;
+                }
+            } /* if (!rrobin_equalcue && station(s) active) */
+
+            /* Implement the round-robin & equal-cue algorithms for dispensing
+             * events to a single group of parallel stations.
+             */
+            else if (rrobin_equalcue && parallelIsActive) {
+
+                if (ps->config.select_mode == ET_STATION_SELECT_RROBIN) {
+
+                    /* Flag to start looking for station that receives first round-robin event. */
+                    startLooking = 0;
+                    pstat = ps;
+
+                    while (forever) {
+                        /* for each active station ... */
+                        if (pstat->data.status == ET_STATION_ACTIVE) {
+                            if (startLooking) {
+                                /* This is the first active station after
+                                 * the last station to receive an event.
+                                 */
+                                startStation = pstat;
+                                startLooking = 0;
+                            }
+                            numActiveStations++;
+                        }
+
+                        /* Find last station to receive a round-robin event and start looking
+                         * for the next active station to receive the first one.
+                         */
+                        if (pstat->waslast == 1) {
+                            pstat->waslast = 0;
+                            startLooking = 1;
+                        }
+
+                        /* find next station in the parallel linked list */
+                        if (pstat->nextparallel > -1) {
+                            pstat = id->grandcentral + pstat->nextparallel;
+                        }
+                        /* else if we're at the end of the list ... */
+                        else {
+                            /* If we still haven't found a place to start the round-robin
+                             * event dealing, make it the first active station.
+                             */
+                            if (startStation == NULL) {
+                                startStation = firstActive;
+                            }
+                            break;
+                        }
+                    }
+
+                    /* Find the number of events going into each station. */
+                    num = events_left / numActiveStations;
+                    /* Find the number of events left over (not enough for another round). */
+                    extra = events_left % numActiveStations;
+                    eventsAlreadyPut = count = 0;
+
+                    /* Rearrange "allevents" so all those destined for a particular
+                     * station are grouped together in the new array.
+                     */
+                    for (i=0; i < numActiveStations; i++) {
+                        if (i < extra) {
+                            numEvents[i] = num + 1;
+                            if (i == (extra - 1)) {
+                                lastEventIndex = i;
+                            }
+                        }
+                        else {
+                            numEvents[i] = num;
+                        }
+
+                        if (extra == 0) {
+                            lastEventIndex = numActiveStations - 1;
+                        }
+
+                        numOfEvents = numEvents[i];
+
+                        /* If all events go into these parallel stations ... */
+                        if (firstimethruloop) {
+                            index = i;
+                            for (j=0; j < numOfEvents; j++) {
+                                putevents[count++] = allevents[index];
+                                index += numActiveStations;
+                            }
+                        }
+                        else {
+                            skip = 0;
+                            for (j=i; j < events_total; j++) {
+                                /* Skip over events already put into other stations. */
+                                if (event_put[j]) {
+                                    continue;
+                                }
+                                /* Skip over events in round-robin algorithm. */
+                                if (skip-- > 0) {
+                                    continue;
+                                }
+
+                                putevents[count++] = allevents[j];
+                                skip = numActiveStations - 1;
+                                numOfEvents--;
+                                if (numOfEvents == 0) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    /* Place the first event with the station after the one which
+                     * received the last event in the previous round.
+                     */
+                    pstat = startStation;
+                    count = 0;
+
+                    while (forever) {
+                        /* For each active parallel station ... */
+                        if (pstat->data.status == ET_STATION_ACTIVE) {
+                            /* Mark station that got the last event. */
+                            if (count == lastEventIndex) {
+                                pstat->waslast = 1;
+                            }
+
+                            /* Put "events_toput" number of events in the next active station. */
+                            events_toput = numEvents[count++];
+
+                            if (events_toput > 0) {
+                                pl = &pstat->list_in;    
+                                et_llist_lock(pl);
+                                pl->events_try = pl->events_try + events_toput;
+                                numwritten = et_llist_write(id, pl, &putevents[eventsAlreadyPut], events_toput);
+                                et_llist_unlock(pl);
+                                events_left -= events_toput;
+
+                                if (numwritten == ET_ERROR) {
+                                    goto error;
+                                }
+                                else if (numwritten < events_toput) {
+                                    /* This should never happen. */
+                                    if (id->debug >= ET_DEBUG_SEVERE) {
+                                        et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, pstat->name);
+                                    }
+                                    goto error;
+                                }
+
+                                /* Signal reader that new events are here. */
+                                status = pthread_cond_broadcast(&pl->cread);
+                                if(status != 0) {
+                                    err_abort(status, "events here");
+                                }
+
+                                eventsAlreadyPut += events_toput;
+                            } /* if (events_toput > 0) */
+                        } /* if station is active */
+
+                        /* Find next active station. */
+                        if (count >= numActiveStations) {
+                            break;
+                        }
+                        else if (pstat->nextparallel > -1) {
+                            pstat = id->grandcentral + pstat->nextparallel;
+                        }
+                        else {
+                            /* Go back to the first active parallel station. */
+                            pstat = firstActive;
+                        }
+                    } /* while (forever) */
+                } /* if round-robin */
+
+                /* else if equal-cue algorithm. */
+                else {
+                    eventsDoledOut = 0;
+                    eventsAlreadyPut = 0;
+                    stationsWithSameCue = 0;
+
+                    /* Array that keeps track of original station order. */
+                    for (i=0; i < sys->config.nstations; i++){
+                        place[i] = i+1;
+                    }
+
+                    pstat = firstActive;
+                    while (forever) {
+                        /* For each active station ... */
+                        if (pstat->data.status == ET_STATION_ACTIVE) {
+                            /* Find total # of events in stations' input lists (cues).
+                             * Store this information as it will change and we don't
+                             * really want to grab all the input mutexes to make
+                             * sure these values don't change.
+                             */
+                            inListCount[numActiveStations++] = pstat->list_in.cnt;
+                        }
+
+                        /* find next station in the parallel linked list */
+                        if (pstat->nextparallel > -1) {
+                            pstat = id->grandcentral + pstat->nextparallel;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+
+                    /* Sort the input lists (cues) according to number of events. The "place" 
+                     * array remembers the place in the presorted array of input lists.
+                     * Since arrays to be sorted are assumed to have indexes from 1 to n,
+                     * the -1 trick allows us to use arrays indexed from 0 to n-1.
+                     */
+                    shellSort(numActiveStations, inListCount-1, place-1);
+
+                    /* To determine which stations get how many events:
+                     * Take the lowest cues, add enough to make them equal
+                     * to the next higher cue. Continue doing this until all
+                     * are equal. Evenly divide any remaining events.
+                     */
+                    nextHigherCue = 0;
+                    min = inListCount[0];
+                    for (i=0; i < numActiveStations; i++) {
+                        numEvents[i] = 0;
+                    }
+
+                    while(eventsDoledOut < events_left) {
+                        /* Find how many cues have the lowest # of events in them. */
+                        stationsWithSameCue = 0;
+                        for (i=0; i < numActiveStations; i++) {
+                            /* Does events in cue + events we've just given it = min? */
+                            if (min == inListCount[i] + numEvents[place[i]-1]) {
+                                stationsWithSameCue++;
+                            }
+                            else {
+                                nextHigherCue = inListCount[i];
+                                break;
+                            }
+                        }
+
+                        /* If all stations have same # of events, or if there are not enough
+                         * events to fill each lowest cue to level of the next higher cue,
+                         * we spread available events between them all ... 
+                         */
+                        if ((stationsWithSameCue == numActiveStations) ||
+                                ((events_left - eventsDoledOut) < ((nextHigherCue - min)*stationsWithSameCue))) {
+                            events_toput = events_left - eventsDoledOut;
+                            eventsPerStation = events_toput / stationsWithSameCue;
+                            extra = events_toput % stationsWithSameCue;
+                            count = 0;
+                            for (i=0; i < stationsWithSameCue; i++) {
+                                if (count++ < extra) {
+                                    numEvents[place[i]-1] += eventsPerStation + 1;
+                                }
+                                else {
+                                    numEvents[place[i]-1] += eventsPerStation;
+                                }
+                            }
+                            break;
+                        }
+                        /* Else, fill the lowest cues to the level of the next higher cue
+                         * and repeat the cycle.
+                         */
+                        else {
+                            eventsPerStation = nextHigherCue - min;
+                            for (i=0; i < stationsWithSameCue; i++) {
+                                numEvents[place[i]-1] += eventsPerStation;
+                            }
+                            min = nextHigherCue;
+                        }
+                        eventsDoledOut += eventsPerStation*stationsWithSameCue;
+                    }
+
+                    pstat = firstActive;
+                    count = 0;
+
+                    while (forever) {
+                        /* For each active parallel station ... */
+                        if (pstat->data.status == ET_STATION_ACTIVE) {
+
+                            if ((events_toput = numEvents[count++]) < 1) {
+                                /* Find next station in the parallel linked list. */
+                                if (pstat->nextparallel > -1) {
+                                    pstat = id->grandcentral + pstat->nextparallel;
+                                    continue;
+                                }
+                                else {
+                                    break;
+                                }
+                            }
+
+                            /* Put "events_toput" number of events in the next active station. */
+                            if (firstimethruloop) {
+                                pl = &pstat->list_in;    
+                                et_llist_lock(pl);
+                                pl->events_try = pl->events_try + events_toput;
+                                numwritten = et_llist_write(id, pl, &allevents[eventsAlreadyPut], events_toput);
+                                et_llist_unlock(pl);
+                            }
+                            else {
+                                index = 0;
+                                for (i=0; i < events_total; i++) {
+                                    if (event_put[i]) {
+                                        continue;
+                                    }
+                                    putevents[index++] = allevents[i];
+                                    event_put[i] = 1;
+                                    if (index >= events_toput) {
+                                        break;
+                                    }
+                                }
+                                pl = &pstat->list_in;    
+                                et_llist_lock(pl);
+                                pl->events_try = pl->events_try + events_toput;
+                                numwritten = et_llist_write(id, pl, putevents, events_toput);
+                                et_llist_unlock(pl);
+                            }
+
+                            if (numwritten == ET_ERROR) {
+                                goto error;
+                            }
+                            else if (numwritten < events_toput) {
+                                /* This should never happen. */
+                                if (id->debug >= ET_DEBUG_SEVERE) {
+                                    et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, pstat->name);
+                                }
+                                goto error;
+                            }
+
+                            /* Signal reader that new events are here. */
+                            status = pthread_cond_broadcast(&pl->cread);
+                            if(status != 0) {
+                                err_abort(status, "events here");
+                            }
+
+                            events_left -= events_toput;
+                            eventsAlreadyPut += events_toput;
+                        }
+
+                        /* Find next station in the parallel linked list. */
+                        if (pstat->nextparallel > -1) {
+                            pstat = id->grandcentral + pstat->nextparallel;
+                        }
+                        else {
+                            break;
+                        }
+                    } /* while(forever) */
 
 
-      /* Find the next serial station in the linked list. */
-      if (ps == id->grandcentral) {
-        break;
-      }
-      if (ps->next < 0) {
-	ps = id->grandcentral;
-      }
-      else {
-	ps = id->grandcentral + ps->next;
-      }
-      
-      pl = &ps->list_in;
-      
-      firstimethruloop=0;
-      
-    } /* while(events_left > 0) */
-    
-    /* can now allow changes to station list */
+                } /* else if equal-cue algorithm */
+            } /* if (rrobin_equalcue && parallelIsActive) */
+
+
+            /* Find the next serial station in the linked list. */
+            if (ps == id->grandcentral) {
+                break;
+            }
+            if (ps->next < 0) {
+                ps = id->grandcentral;
+            }
+            else {
+                ps = id->grandcentral + ps->next;
+            }
+
+            pl = &ps->list_in;
+
+            firstimethruloop=0;
+
+        } /* while(events_left > 0) */
+
+        /* can now allow changes to station list */
+        et_transfer_unlock(pmystation);
+
+        /* no events left to put, start from beginning */
+        ps = pmystation;
+
+    } /* while(1) */
+
+    error:
     et_transfer_unlock(pmystation);
-    
-    /* no events left to put, start from beginning */
-    ps = pmystation;
-    
-  } /* while(1) */
-  
-  error:
-  et_transfer_unlock(pmystation);
-  if (id->debug >= ET_DEBUG_SEVERE) {
-    et_logmsg("SEVERE", "et_conductor %d, EXIT THREAD\n", me);
-  }
-  
-  free(allevents); free(putevents); free(temps); free(event_put);
-  free(numEvents); free(inListCount); free(place);
-  
-  pthread_exit(NULL);
+    if (id->debug >= ET_DEBUG_SEVERE) {
+        et_logmsg("SEVERE", "et_conductor %d, EXIT THREAD\n", me);
+    }
 
-  return (NULL);
+    free(allevents); free(putevents); free(temps); free(event_put);
+    free(numEvents); free(inListCount); free(place);
+
+    pthread_exit(NULL);
+
+    return (NULL);
 }
 
 
@@ -2644,8 +2657,8 @@ static void shellSort(int n, int a[], int b[]) {
       while (a[j-inc] > v) {
         a[j] = a[j-inc];
         b[j] = b[j-inc];
-	j -= inc;
-	if (j <= inc) break;
+        j -= inc;
+        if (j <= inc) break;
       }
       a[j] = v;
       b[j] = w;
@@ -3081,13 +3094,13 @@ static void *et_conductorSerial(void *arg)
 
 static int et_grandcentral_station_create(et_id *id)
 {
-  int            i, status;
   et_statconfig  sconfig;
   et_event       *pe = id->events;
   pthread_t      thd_id;
   pthread_attr_t attr;
   et_stat_id     stat_id;
-  
+  int            i, status, index=0, count=0;
+ 
   /* set conductor thd to detach */  
   status = pthread_attr_init(&attr);
   if(status != 0) {
@@ -3117,6 +3130,12 @@ static int et_grandcentral_station_create(et_id *id)
 
   /* Fill grand_central station input list with all events */
   for (i=0 ; i < id->sys->config.nevents ; i++) {
+    /* assign group numbers here */
+    if (!count)
+      count = id->sys->config.groups[index++];
+    pe->group = index;
+    count--;
+      
     if (et_llist_write_gc(id, &pe, 1) != ET_OK) {
       if (id->debug >= ET_DEBUG_SEVERE) {
         et_logmsg("SEVERE", "et_grandcentral_station_create, error writing to input list\n") ;
@@ -3125,6 +3144,7 @@ static int et_grandcentral_station_create(et_id *id)
     }
     pe++;
   }
+   
   /* Do not include this initial filling of GrandCentral with events in
    * the general statistics keeping - undo et_llist_write_gc's stats
    */
@@ -3184,6 +3204,20 @@ static int et_system_config_check(et_id *id, et_sys_config *config)
       et_logmsg("ERROR", "et_system_config_check, bad value for event size\n") ;
     }
     return ET_ERROR;
+  }
+  
+  /* Check to see if the number of events in groups equal the total number of events. */
+  {
+    int i, count=0;
+    for (i=0; i < config->groupCount; i++) {
+      count += config->groups[i];
+    }
+    if (count != config->nevents) {
+      if (id->debug >= ET_DEBUG_ERROR) {
+        et_logmsg("ERROR", "et_system_config_check, events in groups != total event number\n") ;
+      }
+      return ET_ERROR;
+    }
   }
   
   if (config->ntemps < 1) {

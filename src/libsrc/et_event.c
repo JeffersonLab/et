@@ -84,6 +84,12 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
   et_id     *etid = (et_id *) id;
   et_system *sys = etid->sys;
   
+  /* check for default value of group != 0 */
+  if (etid->group) {
+    return et_event_new_group(id, att, pe, mode, deltatime,
+                              size, etid->group);
+  }
+
   if ((att < 0) || (size < 0) || (pe == NULL)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_event_new, bad argument(s)\n");
@@ -245,6 +251,12 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
   et_id     *etid = (et_id *) id;
   et_system *sys = etid->sys;
   
+  /* check for default value of group != 0 */
+  if (etid->group) {
+      return et_events_new_group(id, att, pe, mode, deltatime,
+                                 size, num, etid->group, nread);
+  }
+
   /* set this to 0 in case we return an error */
   if (nread != NULL) {
     *nread = 0;
@@ -269,7 +281,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
     }
     return ET_ERROR;
   }
-  
+    
   if (etid->locality == ET_REMOTE) {
     return etr_events_new(id, att, pe, mode, deltatime, size, num, nread);
   }
@@ -414,6 +426,204 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
     *nread = numread;
   }
   return ET_OK;
+}
+
+/******************************************************/
+/*    attachment requesting event of certain size     */
+int et_event_new_group(et_sys_id id, et_att_id att, et_event **pe,
+         int mode, struct timespec *deltatime, size_t size, int group)
+{
+    int nread;
+    return et_events_new_group(id, att, pe, mode, deltatime, size, 1, group, &nread);
+}
+
+/******************************************************/
+/*    attachment requesting events of certain size    */
+int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
+        int mode, struct timespec *deltatime,
+        size_t size, int num, int group, int *nread)
+{
+    int i, num_try=0, try_max, status, numread, wait;
+    struct timespec waitforme, abs_time;
+    et_id     *etid = (et_id *) id;
+    et_system *sys = etid->sys;
+
+    /* set this to 0 in case we return an error */
+    if (nread != NULL) {
+        *nread = 0;
+    }
+
+    if (num == 0) {
+        return ET_OK;
+    }
+
+    if ((att < 0) || (size < 0) || (pe == NULL) || (num < 0) || (group < 1)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_events_new_group, bad argument(s)\n");
+        }
+        return ET_ERROR;
+    }
+
+    /* make sure mode is wait value of ET_SLEEP, ET_TIMED, or ET_ASYNC */
+    wait = mode & ET_WAIT_MASK;
+    if ((wait != ET_SLEEP) && (wait != ET_TIMED) && (wait != ET_ASYNC)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_events_new_group, improper value for mode\n");
+        }
+        return ET_ERROR;
+    }
+
+    if (etid->locality == ET_REMOTE) {
+        return etr_events_new_group(id, att, pe, mode, deltatime, size, num, group, nread);
+    }
+    else if (etid->locality == ET_LOCAL_NOSHARE) {
+        return etn_events_new_group(id, att, pe, wait, deltatime, size, num, group, nread);
+    }
+    
+    /* check to see if value of group is meaningful - do we want this check ? */
+    if (group > etid->sys->config.groupCount) {
+        return ET_ERROR;       
+    }
+    
+    if (!et_alive(id)) {
+        return ET_ERROR_DEAD;
+    }
+
+    /* if asking for temp events, don't ask for more than available */
+    if (sys->config.event_size < size) {
+        if (sys->config.ntemps < num) {
+            num = sys->config.ntemps;
+        }
+    }
+
+    if (sys->attach[att].status != ET_ATT_ACTIVE) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_events_new_group, attachment #%d is not active\n", att);
+        }
+        return ET_ERROR;
+    }
+
+    if (wait != ET_TIMED) {
+        /* gets next Grand central input list event */
+        if ((status = et_station_nread_group(etid, ET_GRANDCENTRAL, pe, wait, att,
+                NULL, num, group, &numread)) != ET_OK) {
+            if ((status == ET_ERROR) && (etid->debug >= ET_DEBUG_ERROR)) {
+                et_logmsg("ERROR", "et_events_new_group, cannot read event\n");
+            }
+            /* If status == ET_ERROR_WAKEUP, it may have been woken up by the
+             * thread monitoring the ET system heartbeat discovering that the
+             * ET system was dead. In that case return ET_ERROR_DEAD.
+             */
+            if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
+                return ET_ERROR_DEAD;
+            }
+            return status;
+        }
+    }
+    else if (deltatime != NULL) {
+        /* translate a delta time into an absolute time */
+        int nsec_total;
+
+#if defined linux || defined __APPLE__
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        nsec_total = deltatime->tv_nsec + 1000*now.tv_usec;
+#else
+        struct timespec now;
+        clock_gettime(CLOCK_REALTIME, &now);
+        nsec_total = deltatime->tv_nsec + now.tv_nsec;
+#endif    
+
+        if (nsec_total >= 1000000000) {
+            abs_time.tv_nsec = nsec_total - 1000000000;
+            abs_time.tv_sec  = deltatime->tv_sec + now.tv_sec + 1;
+        }
+        else {
+            abs_time.tv_nsec = nsec_total;
+            abs_time.tv_sec  = deltatime->tv_sec + now.tv_sec;
+        }
+
+        /* gets next Grand central input list event */
+        if ((status = et_station_nread_group(etid, ET_GRANDCENTRAL, pe, wait, att,
+                &abs_time, num, group, &numread)) != ET_OK) {
+            if ((status == ET_ERROR) && (etid->debug >= ET_DEBUG_ERROR)) {
+                et_logmsg("ERROR", "et_events_new_group, cannot read event\n");
+            }
+            if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
+                return ET_ERROR_DEAD;
+            }
+            return status;
+        }
+    }
+    else {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_events_new_group, specify a time for ET_TIMED mode\n");
+        }
+        return ET_ERROR;
+    }
+
+    /* make a temporary buffer for extra large event */
+    if (size > sys->config.event_size) {
+        /* try for 30 seconds, if necessary, to get a temp event */
+        waitforme.tv_sec  = 0;
+        if (sys->hz < 2) {
+            waitforme.tv_nsec = 10000000; /* 10 millisec */
+        }
+        else {
+            waitforme.tv_nsec = 1000000000/sys->hz;
+        }
+        try_max = (sys->hz)*30;
+
+        for (i=0; i < numread ; i++) {
+            try_again:
+            if ((status = et_event_make(etid, pe[i], size)) != ET_OK) {
+                if (status == ET_ERROR_TOOMANY) {
+                    if (etid->debug >= ET_DEBUG_WARN) {
+                        et_logmsg("WARN", "et_events_new_group, too many temp events\n");
+                    }
+
+                    /* wait until more temp events available, then try again */
+                    while (sys->ntemps >= sys->config.ntemps && num_try < try_max) {
+                        num_try++;
+                        nanosleep(&waitforme, NULL);
+                    }
+
+                    if (etid->debug >= ET_DEBUG_WARN) {
+                        et_logmsg("WARN", "et_events_new_group, num_try = %d\n", num_try);
+                    }
+
+                    if (num_try >= try_max) {
+                        if (etid->debug >= ET_DEBUG_ERROR) {
+                            et_logmsg("ERROR", "et_events_new_group, too many trys to get temp event, status = %d\n", status);
+                        }
+                        return status;
+                    }
+                    num_try=0;
+                    goto try_again;
+                }
+                else {
+                    return status;
+                }
+            }
+        } /* for each event */
+    }
+    else {
+        for (i=0; i < numread ; i++) {
+            /* init & set data pointer to own data space */
+            et_init_event_(pe[i]);
+            pe[i]->pdata   = ET_PDATA2USR(pe[i]->data, etid->offset);
+            pe[i]->length  = size;
+            pe[i]->memsize = sys->config.event_size;
+        }
+    }
+
+    /* keep track of # of new events made by this attachment */
+    sys->attach[att].events_make += numread;
+
+    if (nread != NULL) {
+        *nread = numread;
+    }
+    return ET_OK;
 }
 
 
@@ -1010,6 +1220,14 @@ int et_events_dump(et_sys_id id, et_att_id att, et_event *pe[], int num)
 /******************************
  *  ACCESS TO EVENT STRUCTURE
  ******************************/
+
+/******************************************************/
+int et_event_getgroup(et_event *pe, int *grp)
+{ 
+  if (grp == NULL) return ET_ERROR;
+  *grp = pe->group;
+  return ET_OK;
+}
 
 /******************************************************/
 int et_event_setpriority(et_event *pe, int pri)

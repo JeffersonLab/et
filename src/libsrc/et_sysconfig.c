@@ -53,6 +53,9 @@ int et_system_config_init(et_sysconfig* sconfig)
   sc->serverport       = 0;
   sc->mcastaddrs.count = 0;
  *sc->filename         = '\0';
+  sc->groupCount       = 1;
+  memset((void *)sc->groups, 0, ET_EVENT_GROUPS_MAX*sizeof(int));
+  sc->groups[0]        = sc->nevents;
   
   /* Find our local subnets' broadcast addresses */
   if (et_getBroadcastAddrs(NULL, &sc->bcastaddrs) == ET_ERROR) {
@@ -95,6 +98,12 @@ int et_system_config_setevents(et_sysconfig sconfig, int val)
   }
   
   sc->nevents = val;
+  
+  /* if only 1 group (usual case), put all events into that group */
+  if (sc->groupCount == 1) {
+      sc->groups[0] = val;
+  }
+  
   /* number of temp events can't be more than the number of events */
   if (sc->ntemps > val) sc->ntemps = val;
   return ET_OK;
@@ -286,6 +295,42 @@ int et_system_config_getserverport(et_sysconfig sconfig, int *val)
   return ET_OK;
 }
 
+/*****************************************************/
+int et_system_config_setgroups(et_sysconfig sconfig, int groups[], int size)
+{
+  et_sys_config *sc = (et_sys_config *) sconfig;
+  int i;
+  
+  if (sc->init != ET_STRUCT_OK) {
+    return ET_ERROR;
+  }
+   
+  if (size == 1) {
+      for (i=0; i < ET_EVENT_GROUPS_MAX; i++) {
+          sc->groups[i] = 0;
+      }
+      sc->groupCount = 1;
+      return ET_OK;
+  }
+  
+  if (groups == NULL || size > ET_EVENT_GROUPS_MAX || size < 1) {
+    return ET_ERROR;
+  }
+  
+  for (i=0; i < size; i++) {
+      if (groups[i] < 1) return ET_ERROR;
+      sc->groups[i] = groups[i];
+  }
+  
+  for (i=size; i < ET_EVENT_GROUPS_MAX; i++) {
+      sc->groups[i] = 0;
+  }
+
+  sc->groupCount = size;
+  return ET_OK;
+}
+
+
 /*****************************************************
  * This routine together with et_system_config_removemulticast
  * replaces et_system_config_setaddress.
@@ -427,15 +472,38 @@ int et_system_config_getfile(et_sysconfig sconfig, char *val)
 /* from an existing system.                           */
 /******************************************************/
 
-int et_system_getlocality(et_sys_id id, int *locality)
+int et_system_getgroup(et_sys_id id, int *group)
 {
   et_id *etid = (et_id *) id;
   
-  if (locality != NULL) {
-     *locality = etid->locality;
+  if (group != NULL) {
+     *group = etid->group;
      return ET_OK;
   }
   return ET_ERROR;
+} 
+
+/******************************************************/
+int et_system_setgroup(et_sys_id id, int group)
+{
+  et_id *etid = (et_id *) id;
+  int err, groupCount;
+  
+  if (etid->locality != ET_LOCAL) {
+    err = etr_system_getgroup(id, &groupCount);
+    if (err != ET_OK)
+        return err;
+  }
+  else {
+    groupCount = etid->sys->config.groupCount;
+  }
+
+  if ((group < 0) || (group > groupCount))  {
+     return ET_ERROR;
+  }
+  
+  etid->group = group;
+  return ET_OK;
 } 
 
 /******************************************************/
@@ -459,6 +527,19 @@ int et_system_getdebug(et_sys_id id, int *debug)
   
   if (debug != NULL) {
      *debug = etid->debug;
+     return ET_OK;
+  }
+  return ET_ERROR;
+} 
+
+/******************************************************/
+
+int et_system_getlocality(et_sys_id id, int *locality)
+{
+  et_id *etid = (et_id *) id;
+  
+  if (locality != NULL) {
+     *locality = etid->locality;
      return ET_OK;
   }
   return ET_ERROR;

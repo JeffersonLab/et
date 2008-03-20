@@ -529,23 +529,27 @@ struct et_attach {
 };
 
 /*
- * et_sys_config  : Contains all info necessary to configure
- *		  : an ET system.
+ * et_sys_config : Contains all info necessary to configure
+ *               : an ET system.
  *----------------------------------------------------------
- * event_size	  : event size in bytes
- * init		  : =ET_STRUCT_OK if structure properly initialized
- * nevents	  : total # of events
- * ntemps	  : max # of temporary events allowed (<= nevents)
- * nstations	  : max # of stations allowed
- * nprocesses	  : max # of processes allowed to open ET system
- * nattachments	  : max # of attachments to stations allowed
- * filename	  : name of the ET system file
- * port		  : broad/multicast port # for udp message
- * serverport	  : port # for ET system's tcp server thread
- * netinfo        : holds all IP info
- * bcastaddrs	  : holds all local subnet broadcast addrs (dotted-decimal)
- * ifaddrs	  : list of all local network interfaces' addrs (dotted-dec)
- * mcastaddrs	  : holds all multicast addresses to listen on (dotted-dec)
+ * event_size   : event size in bytes
+ * init         : =ET_STRUCT_OK if structure properly initialized
+ * nevents      : total # of events
+ * ntemps       : max # of temporary events allowed (<= nevents)
+ * nstations    : max # of stations allowed
+ * nprocesses   : max # of processes allowed to open ET system
+ * nattachments : max # of attachments to stations allowed
+ * groupCount   : # of event groups
+ * groups       : array in which index is the group number and value is the
+ *              : number of events in that group. There are "groupCount"
+ *              : number of valid groups.
+ * filename     : name of the ET system file
+ * port         : broad/multicast port # for udp message
+ * serverport   : port # for ET system's tcp server thread
+ * netinfo      : holds all IP info
+ * bcastaddrs   : holds all local subnet broadcast addrs (dotted-decimal)
+ * ifaddrs      : list of all local network interfaces' addrs (dotted-dec)
+ * mcastaddrs   : holds all multicast addresses to listen on (dotted-dec)
  */
  
 typedef struct  et_sys_config_t {
@@ -556,6 +560,8 @@ typedef struct  et_sys_config_t {
   int	          nstations;
   int	          nprocesses;
   int	          nattachments;
+  int             groupCount;
+  int             groups[ET_EVENT_GROUPS_MAX];
   char	          filename[ET_FILENAME_LENGTH];
   /* for remote use */
   int             port;
@@ -734,7 +740,8 @@ typedef struct et_open_config_t {
  *		: being grabbed during cleanup and temp events from being unlinked during
  *		: normal usage.
  * debug	: level of desired printed output
- * nevents	: total number of events in ET system
+ * nevents  : total number of events in ET system
+ * group    : default event group for calls to et_event(s)_new
  * version	: version # of this ET software release
  * nselects	: current # of selection ints per station (or control ints
  *		: per event)
@@ -776,7 +783,8 @@ typedef struct  et_id_t {
   int			race;
   int			cleanup;
   int			debug;
-  int			nevents;
+  int           nevents;
+  int           group;
   int			version;
   int			nselects;
   int			share;
@@ -836,6 +844,7 @@ typedef struct  et_mem_t {
 #define  ET_NET_EVS_NEW_L	5	/* et_events_new */
 #define  ET_NET_EV_DUMP_L	6	/* et_event_dump */
 #define  ET_NET_EVS_DUMP_L	7	/* et_events_dump */
+#define  ET_NET_EVS_NEW_GRP_L 8 /* et_events_new_group */
 
 /* for fully remote systems */
 #define  ET_NET_EV_GET		20	/* et_event_get */
@@ -846,6 +855,7 @@ typedef struct  et_mem_t {
 #define  ET_NET_EVS_NEW		25	/* et_events_new */
 #define  ET_NET_EV_DUMP		26	/* et_event_dump */
 #define  ET_NET_EVS_DUMP	27	/* et_events_dump */
+#define  ET_NET_EVS_NEW_GRP 28  /* et_events_new_group */
 
 #define  ET_NET_ALIVE		40	/* et_alive */
 #define  ET_NET_WAIT		41	/* et_wait_for_alive */
@@ -900,7 +910,8 @@ typedef struct  et_mem_t {
 #define  ET_NET_SYS_ATT		156	/* et_system_getattachments */
 #define  ET_NET_SYS_ATTMAX	157	/* et_system_getattsmax */
 #define  ET_NET_SYS_HBEAT	158	/* et_system_getheartbeat */
-#define  ET_NET_SYS_PID		159	/* et_system_getpid */
+#define  ET_NET_SYS_PID     159 /* et_system_getpid */
+#define  ET_NET_SYS_GRP     160 /* et_system_getgroup */
 
 #define  ET_NET_SYS_DATA	170	/* send ET system data */
 #define  ET_NET_SYS_HIST	171	/* send ET histogram data */
@@ -1022,6 +1033,8 @@ extern int  et_station_read(et_id *id,  et_stat_id stat_id, et_event **pe,
 			    int _mode, et_att_id att, struct timespec *time);
 extern int  et_station_nread(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
 			     et_att_id att, struct timespec *time, int num, int *nread);
+extern int  et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
+                 et_att_id att, struct timespec *time, int num, int group, int *nread);
 extern int  et_station_dump(et_id *id, et_event *pe);
 extern int  et_station_ndump(et_id *id, et_event *pe[], int num);
 
@@ -1045,9 +1058,12 @@ extern int   et_temp_remove(const char *name, void *pmem, size_t size);
 
 /* remote routines */
 extern int  etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
-		int wait, struct timespec *deltatime, size_t size);
+		int mode, struct timespec *deltatime, size_t size);
 extern int  etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
-		int wait, struct timespec *deltatime, size_t size, int num, int *nread);
+		int mode, struct timespec *deltatime, size_t size, int num, int *nread);
+extern int  etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
+                   int mode, struct timespec *deltatime,
+                   size_t size, int num, int group, int *nread);
 extern int  etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
 		int wait, struct timespec *deltatime);
 extern int  etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
@@ -1113,6 +1129,7 @@ extern int  etr_system_getattachments (et_sys_id id, int *atts);
 extern int  etr_system_getattsmax (et_sys_id id, int *attsmax);
 extern int  etr_system_getheartbeat (et_sys_id id, int *heartbeat);
 extern int  etr_system_getpid (et_sys_id id, int *pid);
+extern int  etr_system_getgroup (et_sys_id id, int *group);
 /* end remote routines */
 
 /* attachment rountines */
@@ -1136,6 +1153,9 @@ extern int  etn_event_new(et_sys_id id, et_att_id att, et_event **ev,
                  int mode, struct timespec *deltatime, size_t size);
 extern int  etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
                  int mode, struct timespec *deltatime, size_t size, int num, int *nread);
+extern int  etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
+                 int mode, struct timespec *deltatime,
+                 size_t size, int num, int group, int *nread);
 extern int  etn_event_get(et_sys_id id, et_att_id att, et_event **ev,
                  int mode, struct timespec *deltatime);
 extern int  etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
