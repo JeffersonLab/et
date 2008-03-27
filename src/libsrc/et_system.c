@@ -76,7 +76,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
                creating=0, groupsDiffer=0;
   unsigned int hbeat;
 #ifdef sun
-  int		  con, con_add;
+  int          con, con_add;
 #endif
   pthread_attr_t  attr;
   pthread_t       thd_id;
@@ -86,7 +86,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   et_id          *etid;
   et_event       *pe;
   et_station     *ps;
-  et_netthread	 threadarg;
+  et_netthread   threadarg;
   sigset_t       sigblock, oldset;
 
   /* set some useful timeout periods */
@@ -116,7 +116,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       /* exceeded # of threads allowed so try fixed number */
       if (thr_setconcurrency(20) != 0) {
         /* exceeded # of threads allowed so let system choose */
-	thr_setconcurrency(0);
+        thr_setconcurrency(0);
       }
     }
   }
@@ -161,17 +161,17 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   /*
    * The mapped memory consists of 5 regions:
    *    The first item in the mapped mem is its size, but
-   *	that is automatically taken care of in et_mem_create.
+   *        that is automatically taken care of in et_mem_create.
    *    Other than that:
-   *	The first holds the et_system structure with all system info.
-   *	The second contains the et_station structures with all the
-   *		station info.
-   *	The third contains all the et_event structures which are
-   *		essentially the event headers.
-   *	The fourth contains a histogram of the number of events
-   *		available in GrandCentral station's input list
-   *		when producers ask for new events
-   *	The last holds all data associated with the events.
+   *        The first holds the et_system structure with all system info.
+   *        The second contains the et_station structures with all the
+   *                station info.
+   *        The third contains all the et_event structures which are
+   *                essentially the event headers.
+   *        The fourth contains a histogram of the number of events
+   *                available in GrandCentral station's input list
+   *                when producers ask for new events
+   *        The last holds all data associated with the events.
    */
   size_system   = sizeof(et_system);
   size_stations = sizeof(et_station) * config->nstations;
@@ -202,7 +202,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
     /* find size of mapped memory */
     if (et_mem_size(config->filename, &etid->memsize, NULL) != ET_OK) {
       if (etid->debug >= ET_DEBUG_ERROR) {
-	et_logmsg("ERROR", "et_system_start: cannot find size of ET system file\n");
+        et_logmsg("ERROR", "et_system_start: cannot find size of ET system file\n");
       }
       pthread_attr_destroy(&attr);
       et_id_destroy(*id);
@@ -252,7 +252,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
         (config->nprocesses      < etid->sys->config.nprocesses)  ||
         (config->nattachments    < etid->sys->config.nattachments)||
         (ET_STATION_SELECT_INTS != etid->sys->nselects))            {
-	
+        
       /* The existing ET system is not what we want! First find out 
        * whether there are active clients on this system.
        */
@@ -365,26 +365,26 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
         if (status != 0) {
           err_abort(status, "Create et_conductor thd");
         }
-	/* wait until conductor thread has started */
-	num_try = 0;
+        /* wait until conductor thread has started */
+        num_try = 0;
         while ((ps->data.status != ET_STATION_IDLE)   &&
-	       (ps->data.status != ET_STATION_ACTIVE) &&
-	       (num_try++ < try_max)) {
+               (ps->data.status != ET_STATION_ACTIVE) &&
+               (num_try++ < try_max)) {
           nanosleep(&waitforme, NULL);
         }
         if (num_try > try_max) {
           if (etid->debug >= ET_DEBUG_SEVERE) {
             et_logmsg("SEVERE", "et_system_start, CANNOT start conductor\n");
           }
-	  pthread_attr_destroy(&attr);
+          pthread_attr_destroy(&attr);
           munmap(etid->pmap, etid->memsize);
           et_id_destroy(*id);
           return ET_ERROR;
         }
-	
-	/* restore original value of station's status */
+        
+        /* restore original value of station's status */
         ps->data.status = status_old;
-	
+        
         if ((ps->num == etid->sys->stat_tail) || (ps->next < 0)) {
           break;
         }
@@ -411,7 +411,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
     /* find size of mapped memory */
     if (et_mem_size(config->filename, &etid->memsize, NULL) != ET_OK) {
       if (etid->debug >= ET_DEBUG_ERROR) {
-	et_logmsg("ERROR", "et_system_start: cannot find size of ET system file\n");
+        et_logmsg("ERROR", "et_system_start: cannot find size of ET system file\n");
       }
       pthread_attr_destroy(&attr);
       unlink(config->filename);
@@ -766,9 +766,9 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
 #endif
 
 #ifdef sun
-  sys->con_add	    = 0;
+  sys->con_add      = 0;
 #endif
-  sys->pmap	    = NULL;
+  sys->pmap         = NULL;
   sys->heartbeat    = 0;
   sys->mainpid      = getpid();
   sys->nstations    = 0;
@@ -776,8 +776,8 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   sys->nprocesses   = 0;
   sys->nattachments = 0;
   
-  sys->port	    = 0;
- *sys->host	    = '\0';
+  sys->port         = 0;
+ *sys->host         = '\0';
   if (et_defaulthost(sys->host, ET_MAXHOSTNAMELEN) != ET_OK) {
     if (id->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_init_mem_sys: cannot find hostname\n");
@@ -891,7 +891,7 @@ static void et_init_mem_event(et_id *id)
   char      *pmem = id->data;
   
   memset((void *) pmem , 0,
-	 (size_t) (sys->config.nevents * sys->config.event_size));
+         (size_t) (sys->config.nevents * sys->config.event_size));
 
   /* init all event structures (headers) & set pointer to data */
   for (i=0; i < sys->config.nevents ; i++) {
@@ -979,105 +979,105 @@ static void *et_sys_heartmonitor(void *arg)
       else {
         /* tell all routines called that we're cleaning up */
         id->cleanup = 1;
-	
+        
         if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_sys_heartmonitor, kill bad process (%d,%d)\n", i, sys->proc[i].pid);
         }
-	/* kill process dead */
+        /* kill process dead */
         kill(sys->proc[i].pid, SIGKILL);
-	
+        
         /* repair system, station, & transfer mutexes */
         et_fix_mutexes(id);
-	
+        
         /* grab station mutex for upcoming repairs */
         et_station_lock(sys);
-	
-	/* Grab transfer mutexes so no events get transfered and GC's input
-	 * list is free from all activity.
-	 */
+        
+        /* Grab transfer mutexes so no events get transfered and GC's input
+         * list is free from all activity.
+         */
         et_transfer_lock_all(id);
-	
+        
         /* repair linked list of active/idle stations */
         et_fix_linkedlist(id);
-	
+        
         /* Repair stations' inconsistancies from crashes in
-	 * et_station_create and et_station_remove.
-	 */
-	et_fix_stations(id);
-	
+         * et_station_create and et_station_remove.
+         */
+        et_fix_stations(id);
+        
         /* Repair attachments' inconsistancies from crashes in
-	 * et_station_attach (incomplete attachments)
-	 */
+         * et_station_attach (incomplete attachments)
+         */
         et_system_lock(sys);
-	et_fix_attachments(id);
-	
+        et_fix_attachments(id);
+        
         /* If this process was doing an et_event(s)_dump, or possibly
-	 * an et_event(s)_new, then it may have died with GC's input
-	 * mutexes grabbed and its list messed up. In the case of the
-	 * "dump", no attachment to GC is necessary so we need to look
-	 * at this apart from any attachments this process had. However,
-	 * we need to know if GC's input list was messed up by the "dump"
-	 * or the "new" so it can be fixed accordingly.
-	 */
-	et_repair_gc(id);
-	
-	/* Deal with existing attachments of crashed process.
-	 * This should take care of most crashes in the routine
-	 * et_station_detach.
-	 */
-	for (j=0; j < sys->config.nattachments; j++) {
-	  /* sys->proc[].att[] is the last value to be set (to -1)
-	   * during et_station_detach, so it should be a good
-	   * measure of the number of attachments a process still has.
-	   * The routine et_fix_attachments has already eliminated
-	   * any incomplete attachments from crashes in 
-	   * et_station_attach.
-	   */
-	  if (sys->proc[i].att[j] == -1) {
-	    continue;
-	  }
-	  stat = sys->attach[j].stat;
-	  ps = id->grandcentral + stat;
+         * an et_event(s)_new, then it may have died with GC's input
+         * mutexes grabbed and its list messed up. In the case of the
+         * "dump", no attachment to GC is necessary so we need to look
+         * at this apart from any attachments this process had. However,
+         * we need to know if GC's input list was messed up by the "dump"
+         * or the "new" so it can be fixed accordingly.
+         */
+        et_repair_gc(id);
+        
+        /* Deal with existing attachments of crashed process.
+         * This should take care of most crashes in the routine
+         * et_station_detach.
+         */
+        for (j=0; j < sys->config.nattachments; j++) {
+          /* sys->proc[].att[] is the last value to be set (to -1)
+           * during et_station_detach, so it should be a good
+           * measure of the number of attachments a process still has.
+           * The routine et_fix_attachments has already eliminated
+           * any incomplete attachments from crashes in 
+           * et_station_attach.
+           */
+          if (sys->proc[i].att[j] == -1) {
+            continue;
+          }
+          stat = sys->attach[j].stat;
+          ps = id->grandcentral + stat;
           if (id->debug >= ET_DEBUG_INFO) {
             et_logmsg("INFO", "et_sys_heartmonitor, detach attachment %d from stat %d\n", j, stat);
           }
-	  /* mutex problems are most likely in read/write lists */
-	  status = et_repair_station(id, stat);
+          /* mutex problems are most likely in read/write lists */
+          status = et_repair_station(id, stat);
           if ((status != ET_OK) && (id->debug >= ET_DEBUG_SEVERE)) {
             et_logmsg("SEVERE", "et_sys_heartmonitor, CANNOT repair station\n");
           }
-	  /* Get rid of process' attachment (this frees their events). This
-	   * routine must be called with id->cleanup == 1 since we are cleaning
-	   * up after a user process' crash. Note that et_station_detach calls
-	   * et_restore_events which can lock GrandCentral's input list if that's
-	   * where it supposed to send all the recovered events. It can also lock
-	   * the input and output list mutexes of its own station during
-	   * event recovery. In addition, et_flush_events is called which calls
-	   * et_station_nread and et_station_nwrite thereby grabbing the input
-	   * and output list mutexes of its own station.
-	   */
+          /* Get rid of process' attachment (this frees their events). This
+           * routine must be called with id->cleanup == 1 since we are cleaning
+           * up after a user process' crash. Note that et_station_detach calls
+           * et_restore_events which can lock GrandCentral's input list if that's
+           * where it supposed to send all the recovered events. It can also lock
+           * the input and output list mutexes of its own station during
+           * event recovery. In addition, et_flush_events is called which calls
+           * et_station_nread and et_station_nwrite thereby grabbing the input
+           * and output list mutexes of its own station.
+           */
           et_station_detach((et_sys_id) id, j);
-	}
-	
- 	/* clean up process info */
+        }
+        
+         /* clean up process info */
         if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_sys_heartmonitor, cleanup process %d\n", i);
         }
         et_init_process(sys, i);
         id->sys->nprocesses--;
-	
-	/* fix et process number */
+        
+        /* fix et process number */
         et_fix_nprocs(id);
-	/* fix <x>.nattachments numbers */
+        /* fix <x>.nattachments numbers */
         et_fix_natts(id);
-	
+        
         et_transfer_unlock_all(id);
         et_system_unlock(sys);
         et_station_unlock(sys);
 
         oldheartbt[i] = 0;
-	
-	/* we're done cleaning up */
+        
+        /* we're done cleaning up */
         id->cleanup = 0;
       }
     }
@@ -1256,10 +1256,10 @@ static void et_fix_linkedlist(et_id *id)
       pstat = pnext;
       while (pstat->nextparallel > -1) {
         nextparallel = id->grandcentral + pstat->nextparallel;
-	nextparallel->prevparallel = pstat->num;
-	nextparallel->prev = -1;
-	nextparallel->next = -1;
-	pstat = nextparallel;
+        nextparallel->prevparallel = pstat->num;
+        nextparallel->prev = -1;
+        nextparallel->next = -1;
+        pstat = nextparallel;
       }
     }
     else {
@@ -1315,24 +1315,24 @@ static void et_fix_stations(et_id *id)
       pstat  = id->grandcentral;
       
       while (pstat->next > -1) {
-	pnext = id->grandcentral + pstat->next;
-	if (pnext->num == ps->num) {
-	  inlist = 1;
-	  goto foundIt;
-	}
-	
-	if (pnext->config.flow_mode == ET_STATION_PARALLEL) {
-	  pstat2 = pnext;
-	  while (pstat2->nextparallel > -1) {
+        pnext = id->grandcentral + pstat->next;
+        if (pnext->num == ps->num) {
+          inlist = 1;
+          goto foundIt;
+        }
+        
+        if (pnext->config.flow_mode == ET_STATION_PARALLEL) {
+          pstat2 = pnext;
+          while (pstat2->nextparallel > -1) {
             nextparallel = id->grandcentral + pstat2->nextparallel;
-	    if (nextparallel->num == ps->num) {
-	      inlist = 1;
-	      goto foundIt;
-	    }
-	    pstat2 = nextparallel;
-	  }
-	}
-	pstat = pnext;
+            if (nextparallel->num == ps->num) {
+              inlist = 1;
+              goto foundIt;
+            }
+            pstat2 = nextparallel;
+          }
+        }
+        pstat = pnext;
       }
       
       foundIt:
@@ -1388,22 +1388,22 @@ static void et_fix_attachments(et_id *id)
       ps = id->grandcentral;
       for (j=0; j < sys->config.nstations; j++) {
         if ((ps->data.att[i] == i) && (ps->data.status == ET_STATION_ACTIVE)) {
-	  /* got registered with station j */
-	  stat = j;
-	  break;
-	}
-	ps++;
+          /* got registered with station j */
+          stat = j;
+          break;
+        }
+        ps++;
       }
       /* if no station knows of attachment i, wipe it out */
       if (stat == -1) {
         /* wipe out all process' knowledge of it */
-	for (j=0; j < sys->config.nprocesses; j++) {
-	  sys->proc[j].att[i] = -1;
- 	}
-	/* wipe out system knowledge of it */
+        for (j=0; j < sys->config.nprocesses; j++) {
+          sys->proc[j].att[i] = -1;
+         }
+        /* wipe out system knowledge of it */
         et_init_attachment(sys, i);
-	sys->nattachments--;
-	
+        sys->nattachments--;
+        
         if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "set_fix_attachments, remove attachment %d\n", i);
         }
@@ -1559,20 +1559,20 @@ static void et_fix_system(et_id *id)
     while (pstat->next > -1) {
       pnext = id->grandcentral + pstat->next;
       if (pnext->num == ps->num) {
-	inlist = 1;
-	goto foundIt;
+        inlist = 1;
+        goto foundIt;
       }
 
       if (pnext->config.flow_mode == ET_STATION_PARALLEL) {
-	pstat2 = pnext;
-	while (pstat2->nextparallel > -1) {
+        pstat2 = pnext;
+        while (pstat2->nextparallel > -1) {
           nextparallel = id->grandcentral + pstat2->nextparallel;
-	  if (nextparallel->num == ps->num) {
-	    inlist = 1;
-	    goto foundIt;
-	  }
-	  pstat2 = nextparallel;
-	}
+          if (nextparallel->num == ps->num) {
+            inlist = 1;
+            goto foundIt;
+          }
+          pstat2 = nextparallel;
+        }
       }
       pstat = pnext;
     }
@@ -1638,21 +1638,21 @@ static void et_fix_system(et_id *id)
        */
        
       for (j=0; j < sys->config.nattachments; j++) {
-	if (sys->proc[i].att[j] == -1) {
-	  continue;
-	}
-	stat = sys->attach[j].stat;
-	ps = id->grandcentral + stat;
+        if (sys->proc[i].att[j] == -1) {
+          continue;
+        }
+        stat = sys->attach[j].stat;
+        ps = id->grandcentral + stat;
         if ((ps->data.nattachments == 1) && (stat != ET_GRANDCENTRAL)) {
           ps->data.status = ET_STATION_IDLE;
-	  ps->data.nattachments--;
+          ps->data.nattachments--;
           ps->data.att[j] = -1;
           sys->attach[j].num = -1;
           sys->attach[j].status = ET_ATT_UNUSED;
           sys->nattachments--;
-	}
+        }
       }
-	
+        
       et_init_process(sys, i);
       continue;
     }
@@ -1715,7 +1715,7 @@ static void *et_add_stations(void *arg)
     
     if (id->debug >= ET_DEBUG_INFO) {
       et_logmsg("INFO", "et_add_stations, nstations = %d, stats_max = %d\n",
-		sys->nstations,sys->config.nstations);
+                sys->nstations,sys->config.nstations);
     }
     
     /* Now that another station is added, add a "conductor"
@@ -1742,7 +1742,7 @@ static void *et_conductor(void *arg)
     et_system  *sys = id->sys;
     int        event_depth = sys->config.nevents;
     int        i, j, status, me=0, num_temp=0, numwritten, none=1;
-    int	     firstimethruloop, writeall;
+    int        firstimethruloop, writeall;
     int        events_total, events_left, events_toput;
     int        *numEvents, *inListCount, *place, *event_put;
     et_event   **allevents, **putevents, **temps;
@@ -2688,14 +2688,14 @@ static void *et_conductorSerial(void *arg)
   et_system  *sys = id->sys;
   int        event_depth = sys->config.nevents;
   int        i, j, status, me=0, num_temp=0, numwritten, none=1;
-  int	     firstimethruloop, writeall;
+  int        firstimethruloop, writeall;
   int        events_total, events_left, events_toput, *event_put;
   et_event   **allevents, **putevents, **temps;
   et_station *ps, *pmystation;
   et_list    *pl, *pmylist;  
   void       *sym;
   const int   forever = 1;
-	   
+           
   /* station mutex has already been locked by et_station_create */
   
   /* find the station in act of being created */   
@@ -2810,12 +2810,12 @@ static void *et_conductorSerial(void *arg)
       }
       /* kill self if station removed */  
       if (pmystation->conductor == ET_THREAD_KILL) {
-	et_llist_unlock(pmylist);
-	if (pmystation->config.select_mode == ET_STATION_SELECT_USER) {
+        et_llist_unlock(pmylist);
+        if (pmystation->config.select_mode == ET_STATION_SELECT_USER) {
           dlclose(pmystation->data.lib_handle);
         }
-	free(allevents); free(putevents); free(temps); free(event_put);
-	pthread_exit(NULL);
+        free(allevents); free(putevents); free(temps); free(event_put);
+        pthread_exit(NULL);
       }
     }
     
@@ -2862,84 +2862,84 @@ static void *et_conductorSerial(void *arg)
          * time by dumping everything directly into it.
          */
       
-        if (ps == id->grandcentral) {	  
+        if (ps == id->grandcentral) {
           num_temp = 0;
           /* if first time thru while loop, dump everything into GC */
-	  if (firstimethruloop) {
-	    events_toput = events_total;
+          if (firstimethruloop) {
+            events_toput = events_total;
             for (i=0; i < events_total ; i++) {
               /* find temp events for elimination */
               if (allevents[i]->temp == ET_EVENT_TEMP) {
-	        temps[num_temp++] = allevents[i];
-	      }
+                temps[num_temp++] = allevents[i];
+              }
             }
-	  }
-	  else {
+          }
+          else {
             for (i=0; i < events_total ; i++) {
               /* do next event if already put in another station */
               if (event_put[i]) {
                 continue;
-	      }
+              }
               /* find temp events for elimination */
               if (allevents[i]->temp == ET_EVENT_TEMP) {
-	        temps[num_temp++] = allevents[i];
-	      }
-	      putevents[events_toput++] = allevents[i];
+                temps[num_temp++] = allevents[i];
+              }
+              putevents[events_toput++] = allevents[i];
             }
-	  }
+          }
         }
           
         /* all events, blocking */
         else if ((ps->config.select_mode == ET_STATION_SELECT_ALL) &&
-	         (ps->config.block_mode  == ET_STATION_BLOCKING  ))  {
+                 (ps->config.block_mode  == ET_STATION_BLOCKING  ))  {
        
           /* if first time thru while loop, dump everything into station */
           if ((firstimethruloop) && (ps->config.prescale == 1))  {
-	    writeall = 1;
-	    events_toput = events_total;
+            writeall = 1;
+            events_toput = events_total;
             et_llist_lock(pl);
-	    pl->events_try = pl->events_try + events_total;
-	    /* pl->events_try += events_total; */
-	  }
-	  else {
+            pl->events_try = pl->events_try + events_total;
+            /* pl->events_try += events_total; */
+          }
+          else {
             et_llist_lock(pl);
             for (i=0; i < events_total ; i++) {
               if (event_put[i]) {
-        	continue;
-	      }
+                continue;
+              }
               /* apply prescale */ 
-	      if ((pl->events_try++ % ps->config.prescale) == 0) {
-		putevents[events_toput++] = allevents[i];
-		event_put[i] = 1;
-	      }
+              if ((pl->events_try++ % ps->config.prescale) == 0) {
+                putevents[events_toput++] = allevents[i];
+                event_put[i] = 1;
+              }
             }
-	    if (events_toput == 0) {
-	      et_llist_unlock(pl);
-	    }
-	  }
+            if (events_toput == 0) {
+              et_llist_unlock(pl);
+            }
+          }
         }
         
         /* all events, nonblocking */
         /* note: pl->cnt IS mutex protected here !! */
         else if ((ps->config.select_mode == ET_STATION_SELECT_ALL)  &&
-	         (ps->config.block_mode  == ET_STATION_NONBLOCKING))  {
+                 (ps->config.block_mode  == ET_STATION_NONBLOCKING))  {
           et_llist_lock(pl);
           if (pl->cnt < ps->config.cue) {
             j = ps->config.cue - pl->cnt;
             for (i=0; i < events_total ; i++) {
               if (event_put[i]) {
                 continue;
-	      }
-	      putevents[events_toput++] = allevents[i];
-	      event_put[i] = 1;
+              }
+              putevents[events_toput++] = allevents[i];
+              event_put[i] = 1;
               if (--j == 0) {
-		break;
-	      }
+                break;
+              }
             }
           }
-	  if (events_toput == 0) {
-	    et_llist_unlock(pl);
-	  }
+          if (events_toput == 0) {
+            et_llist_unlock(pl);
+          }
         }
         
         /*  condition (user or match), blocking */
@@ -2948,20 +2948,20 @@ static void *et_conductorSerial(void *arg)
           for (i=0; i < events_total ; i++) {
             if (event_put[i]) {
               continue;
-	    }
-	    if ((*ps->data.func)(etid, ps->num, allevents[i])) {
-	      if ((pl->events_try++ % ps->config.prescale) == 0) {
-	        putevents[events_toput++] = allevents[i];
-	        event_put[i] = 1;
-	      }
-	    }
-	  }
-	  if (events_toput == 0) {
-	    et_llist_unlock(pl);
-	  }
+            }
+            if ((*ps->data.func)(etid, ps->num, allevents[i])) {
+              if ((pl->events_try++ % ps->config.prescale) == 0) {
+                putevents[events_toput++] = allevents[i];
+                event_put[i] = 1;
+              }
+            }
+          }
+          if (events_toput == 0) {
+            et_llist_unlock(pl);
+          }
         }
         
-	/* condition (user or match) + nonblocking */
+        /* condition (user or match) + nonblocking */
         else if (ps->config.block_mode == ET_STATION_NONBLOCKING) {
           et_llist_lock(pl);
           if (pl->cnt < ps->config.cue) {
@@ -2969,85 +2969,85 @@ static void *et_conductorSerial(void *arg)
             for(i=0; i < events_total ; i++) {
               if (event_put[i]) {
                 continue;
-	      }
-	      if ((*ps->data.func)(etid, ps->num, allevents[i])) {
-	        putevents[events_toput++] = allevents[i];
-	        event_put[i] = 1;
-		if (--j == 0) {
-		  break;
-		}
-	      }
+              }
+              if ((*ps->data.func)(etid, ps->num, allevents[i])) {
+                putevents[events_toput++] = allevents[i];
+                event_put[i] = 1;
+                if (--j == 0) {
+                  break;
+                }
+              }
             }
           }
-	  if (events_toput == 0) {
-	    et_llist_unlock(pl);
-	  }
-	}
+          if (events_toput == 0) {
+            et_llist_unlock(pl);
+          }
+        }
 
- 	/* if items go in this station ... */
+         /* if items go in this station ... */
         if (events_toput) {
-	  
-	  if (ps == id->grandcentral) {
+          
+          if (ps == id->grandcentral) {
             /* if tmp events exist, remove */
             if (temps[0] != NULL) {
               et_system_lock(sys);
               for (i=0; i < num_temp ; i++) {
                 /*
-		 * temp events are not mapped in ET system space
-		 * but their files need to be removed
-		 */
-		unlink(temps[i]->filename);
+                 * temp events are not mapped in ET system space
+                 * but their files need to be removed
+                 */
+                unlink(temps[i]->filename);
                 sys->ntemps--;
 /*printf("conductor %d: unlink tmp event\n", me);*/
               }
-	      et_system_unlock(sys);
-	    }
+              et_system_unlock(sys);
+            }
             /* lock mutex of gc station's list_in */
             et_llist_lock(pl);
-	    if (firstimethruloop) {
+            if (firstimethruloop) {
               status = et_llist_write_gc(id, allevents, events_total);
-	    }
-	    else { 
+            }
+            else { 
               status = et_llist_write_gc(id, putevents, events_toput);
             }
-	    et_llist_unlock(pl);
-	    if (status == ET_ERROR) {
-	      goto error;
-	    }
-            events_left = 0;	
-	  }
-	  
-	  else {
-	    /* pl is already locked */
- 	    if (writeall) {
-              numwritten = et_llist_write(id, pl, allevents, events_total);
-	      et_llist_unlock(pl);
-              events_left = 0;
-	      writeall = 0;
+            et_llist_unlock(pl);
+            if (status == ET_ERROR) {
+              goto error;
             }
-	    else {
-	      numwritten = et_llist_write(id, pl, putevents, events_toput);
- 	      et_llist_unlock(pl);
+            events_left = 0;
+          }
+          
+          else {
+            /* pl is already locked */
+             if (writeall) {
+              numwritten = et_llist_write(id, pl, allevents, events_total);
+              et_llist_unlock(pl);
+              events_left = 0;
+              writeall = 0;
+            }
+            else {
+              numwritten = et_llist_write(id, pl, putevents, events_toput);
+               et_llist_unlock(pl);
               events_left -= events_toput;
             }
             if (numwritten == ET_ERROR) {
               goto error;
             }
-	    else if (numwritten < events_toput) {
-	      /* this one should never happen */
+            else if (numwritten < events_toput) {
+              /* this one should never happen */
               if (id->debug >= ET_DEBUG_SEVERE) {
                 et_logmsg("SEVERE", "et_conductor %d, cannot write all events to %s input\n", me, ps->name);
               }
               goto error;
-	    }
+            }
           }
-	  
+          
           /* signal reader that new events are here */
           status = pthread_cond_broadcast(&pl->cread);
           if(status != 0) {
             err_abort(status, "events here");
-	  }
-	   	  
+          }
+                     
         } /* if items go in this station */
       } /* if station active */
       
@@ -3055,10 +3055,10 @@ static void *et_conductorSerial(void *arg)
         break;
       }
       if (ps->next < 0) {
-	ps = id->grandcentral;
+        ps = id->grandcentral;
       }
       else {
-	ps = id->grandcentral + ps->next;
+        ps = id->grandcentral + ps->next;
       }
       pl = &ps->list_in;
       
