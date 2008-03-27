@@ -1033,7 +1033,8 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num)
     /* If not event owner, can't write.  */
     if (pe[i]->owner != att) {
       if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_events_put, not event owner so can't put back\n");
+        et_logmsg("ERROR", "et_events_put, attachment (%d) not event owner (%d) so can't put back\n",
+                  att, pe[i]->owner);
       }
       return ET_ERROR;
     }
