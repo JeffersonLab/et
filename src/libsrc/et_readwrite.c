@@ -14,7 +14,7 @@
  *
  * Description:
  *      Routines to read & write events in shared memory, deal with mutexes,
- *	and repair messed up event lists in shared memory.
+ *        and repair messed up event lists in shared memory.
  *
  *----------------------------------------------------------------------------*/
   
@@ -522,7 +522,7 @@ static int et_repair_inputlist(et_id *id, et_stat_id stat_id)
 
   do {
     count++;
-    pe->owner = -1;
+    pe->owner = ET_SYS;
     if (pe == pe_last_USR) {
       break;
     }
@@ -600,7 +600,7 @@ static int et_repair_gcinputlist(et_id *id)
    * the process. Make sure owner is set, the list's count is right.
    */
   for (i=0; i < cnt+num ; i++) {
-    pe->owner = -1;
+    pe->owner = ET_SYS;
     count++;
     if (pe == pe_last_USR) {
       error = ET_OK;
@@ -702,7 +702,7 @@ int et_station_write(et_id *id, et_stat_id stat_id, et_event *pe)
     pl->lasthigh++;
   }
   
-  pe->owner = -1;
+  pe->owner = ET_SYS;
   pl->cnt++;
 /* printf("stw, pe=%p, pl=%p, cnt=%d\n", pe, pl, pl->cnt);*/
   ps->fix.out.start--;
@@ -751,9 +751,9 @@ int et_station_read(et_id *id, et_stat_id stat_id, et_event **pe, int mode, et_a
       if (sys->attach[att].quit == ET_ATT_QUIT) {
         if (id->debug >= ET_DEBUG_WARN) {
           et_logmsg("WARN", "et_station_read, quitting\n");
-	}
+        }
         et_llist_unlock(pl);
-	sys->attach[att].quit = ET_ATT_CONTINUE;
+        sys->attach[att].quit = ET_ATT_CONTINUE;
         return ET_ERROR_WAKEUP;
       }
     }
@@ -773,17 +773,17 @@ int et_station_read(et_id *id, et_stat_id stat_id, et_event **pe, int mode, et_a
       }
       else if (status != 0) {
         /* Most likely a bad value for the time.
-	 * Don't abort, simply return an error.
-	 */
+         * Don't abort, simply return an error.
+         */
         if (id->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_station_read, pthread_cond_timedwait error\n");
-	}
-	return ET_ERROR;
+        }
+        return ET_ERROR;
       }
       if (sys->attach[att].quit == ET_ATT_QUIT) {
         if (id->debug >= ET_DEBUG_WARN) {
           et_logmsg("WARN", "et_station_read, quitting\n");
-	}
+        }
         et_llist_unlock(pl);
         sys->attach[att].quit = ET_ATT_CONTINUE;
         return ET_ERROR_WAKEUP;
@@ -878,7 +878,7 @@ int et_station_nwrite(et_id *id, et_stat_id stat_id, et_event *pe[], int num)
     pl->firstevent = pe_ET;
     pl->lastevent  = pe_ET;
 /*printf("et_station_nwrite: pe[0] = %p, pe[0]_ET = %p\n", pe[0], pe_ET);*/
-    pe[0]->owner   = -1;
+    pe[0]->owner   = ET_SYS;
     if (pe[0]->priority == ET_HIGH) {
       /* pl->lasthigh was set to 0 by conductor read */
       pe_lasthigh  = pe[0];
@@ -927,7 +927,7 @@ int et_station_nwrite(et_id *id, et_stat_id stat_id, et_event *pe[], int num)
       pe_lasthigh = pe[i];
       pl->lasthigh++;
     }
-    pe[i]->owner = -1;
+    pe[i]->owner = ET_SYS;
     pl->cnt++;
   }
     
@@ -980,7 +980,7 @@ int et_station_nwriteNoPri(et_id *id, et_stat_id stat_id, et_event *pe[], int nu
     pl->firstevent = pe_ET;
     pl->lastevent  = pe_ET;
 /*printf("et_station_nwrite: pe[0] = %p, pe[0]_ET = %p\n", pe[0], pe_ET);*/
-    pe[0]->owner   = -1;
+    pe[0]->owner   = ET_SYS;
     pl->cnt++;
     num_in++;
   }
@@ -995,7 +995,7 @@ int et_station_nwriteNoPri(et_id *id, et_stat_id stat_id, et_event *pe[], int nu
     pl->lastevent = pe_ET;
     pe_last_USR = pe[i];
 /*printf("et_station_nwrite: pe[i] = %p, pe[i]_ET = %p\n", pe[i], pe_ET);*/
-    pe[i]->owner = -1;
+    pe[i]->owner = ET_SYS;
     pl->cnt++;
   }
     
@@ -1159,15 +1159,15 @@ int et_station_nread(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
  * @return ET_ERROR_BUSY    for async, inputlist is busy
  * @return ET_ERROR_WAKEUP  for wakeup and return
  */
-int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
+int et_station_nread_groupOrig(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
                            et_att_id att, struct timespec *time, int num, int group,
                            int *nread)
 {
-    et_event  *pev, *prev=NULL;
+    et_event  *pev, *prev;
     et_system *sys = id->sys;
     et_station *ps = id->stats + stat_id;
     et_list    *pl = &ps->list_in;
-    int i, status, oldCount, index=0, numEventsChanged, firstTimeThru=1;
+    int i, status, oldCount, index, numEventsChanged, firstTimeThru=1;
 
     *nread = 0;
 
@@ -1189,7 +1189,7 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
             while (pl->cnt < 1 || !numEventsChanged) {
                 sys->attach[att].blocked = ET_ATT_BLOCKED;
 /*printf(" A firstTimeThru = %d, numEventsChanged = %d, pl->cnt = %d, oldCount = %d\n",
-                firstTimeThru, numEventsChanged, pl->cnt, oldCount);*/
+                firstTimeThru, numEventsChanged, pl->cnt, oldCount); */
                 status = pthread_cond_wait(&pl->cread, &pl->mutex);
                 numEventsChanged = firstTimeThru ? 1 : ((oldCount - pl->cnt) == 0 ? 0 : 1);
 /*printf(" B firstTimeThru = %d, numEventsChanged = %d, pl->cnt = %d, oldCount = %d\n",
@@ -1276,52 +1276,249 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
         if (num > pl->cnt) {
             num = pl->cnt;
         }
-        // 
-        // printf("Existing list:\n");
-        // pev  = ET_PEVENT2USR(pl->firstevent, id->offset);
-        // next = ET_PEVENT2USR(pev->next, id->offset);
-        // printf("pe[0] = %p, next = %p\n", pev, next);
-        // for(i=1; i < pl->cnt ; i++) {
-        //     pev = next;
-        //     next = ET_PEVENT2USR(pev->next, id->offset);
-        //     printf("pe[%d] = %p, next = %p\n", i, pev, next);
-        // }     
+/*         
+        printf("_grp existing list (%d), grab %d:\n", pl->cnt, group);
+        if (pl->cnt != 0) {
+            pev  = ET_PEVENT2USR(pl->firstevent, id->offset);
+            next = ET_PEVENT2USR(pev->next, id->offset);
+            printf("pe[0] = %p(%d), next = %p\n", pev, pev->group, next);
+            for(i=1; i < pl->cnt ; i++) {
+                pev = next;
+                next = ET_PEVENT2USR(pev->next, id->offset);
+                printf("pe[%d] = %p(%d), next = %p\n", i, pev, pev->group, next);
+            }
+        }
+        else {
+            printf ("none\n");
+        }
+*/       
+        /* info for fixing broken input list */
+        ps->fix.in.num   = num;
+        ps->fix.in.cnt   = pl->cnt;
+        ps->fix.in.call  = ET_FIX_READ;
+        ps->fix.in.first = pl->firstevent;
+        
+        index = 0;
+        prev  = NULL;
+        pev   = ET_PEVENT2USR(pl->firstevent, id->offset);
+        
+        for (i=0; i < pl->cnt; i++) {
+/*printf("Start i=%d, ",i);*/
+            if (pev->group != group) {
+                prev = pev;
+/*printf("group of ev(%d) doesn't match (%d), pev = %p, ", pev->group, group, pev);*/
+                pev = ET_PEVENT2USR(pev->next, id->offset);
+/*printf("next ev = %p, continue\n", pev);*/
+                continue;
+            }
+/*printf("group of ev(%d) matches (%d), pev = %p, ", pev->group, group, pev);*/
+            pe[index++] = pev;
+            pev->owner  = att;
+            if (prev == NULL) {
+                pl->firstevent = pev->next;
+/*printf("first ev = %p, ", ET_PEVENT2USR(pev->next, id->offset));*/
+            }
+            else {
+                prev->next = pev->next;
+/*printf("prev->next = %p, ", ET_PEVENT2USR(pev->next, id->offset));*/
+            }
+            /* if we grabbed the last event in the list, reset last item pointer */
+            if (pl->lastevent == ET_PEVENT2ET(pev, id->offset)) {
+/*printf("last event = %p, ", prev);*/
+                pl->lastevent = ET_PEVENT2ET(prev, id->offset);
+            }
+/*printf("index = %d, num = %d, ", index, num);*/
+            if (index >= num) {
+                if (index == pl->cnt) {
+                    pl->firstevent = NULL;
+                    pl->lastevent  = NULL;
+                }
+                break;
+            }
+            pev = ET_PEVENT2USR(pev->next, id->offset);       
+/*printf("next ev = %p, to next i\n", pev);*/
+        }
+
+        pl->cnt -= index;
+        ps->fix.in.first = NULL;
+        oldCount = pl->cnt;
+/*
+        printf("_grp final list (%d):\n", pl->cnt);
+        if (pl->cnt != 0) {
+            pev  = ET_PEVENT2USR(pl->firstevent, id->offset);
+            next = ET_PEVENT2USR(pev->next, id->offset);
+            printf("pe[0] = %p(%d), next = %p\n", pev, pev->group, next);
+            for(i=1; i < pl->cnt ; i++) {
+                pev = next;
+                next = ET_PEVENT2USR(pev->next, id->offset);
+                printf("pe[%d] = %p(%d), next = %p\n", i, pev, pev->group, next);
+            }
+        }
+        else {
+            printf ("none\n");
+        }
+*/              
+        et_llist_unlock(pl);
+/*if (index == 0 && mode != ET_ASYNC) {
+    printf("Try again, pl->cnt = %d, oldCount = %d\n", pl->cnt, oldCount);
+}*/
+        firstTimeThru = 0;
+
+        /* If we got nothing and we're ET_SLEEP or ET_TIMED, then try again */
+    } while (index == 0 && mode != ET_ASYNC);
+
+    *nread = index;
+    return ET_OK;
+}
+
+/**
+ * This routine reads a number of entries from a station's input list.
+ * It only reads events belonging to the given group number.
+ * 
+ * @return ET_OK            for success
+ * @return ET_ERROR         for error
+ * @return ET_ERROR_TIMEOUT for timeout
+ * @return ET_ERROR_EMPTY   for no events in list
+ * @return ET_ERROR_BUSY    for async, inputlist is busy
+ * @return ET_ERROR_WAKEUP  for wakeup and return
+ */
+int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
+                           et_att_id att, struct timespec *time, int num, int group,
+                           int *nread)
+{
+    et_event  *pev, *prev;
+    et_system *sys = id->sys;
+    et_station *ps = id->stats + stat_id;
+    et_list    *pl = &ps->list_in;
+    int i, status, oldCount, index, firstTimeThru=1;
+
+    *nread = 0;
+
+    if (num < 1) {
+        return ET_OK;
+    }
+
+    do {
+        if (mode == ET_SLEEP) {
+            et_llist_lock(pl);
+            /* if getting new event(s), histogram # of events in input list */
+            if (stat_id == ET_GRANDCENTRAL && firstTimeThru) {
+                *(id->histogram + pl->cnt) += 1 ;
+            }
+            while (pl->cnt < 1) {
+                sys->attach[att].blocked = ET_ATT_BLOCKED;
+                status = pthread_cond_wait(&pl->cread, &pl->mutex);
+                sys->attach[att].blocked = ET_ATT_UNBLOCKED;
+                if (status != 0) {
+                    err_abort(status, "Failed llist read wait");
+                }
+                if (sys->attach[att].quit == ET_ATT_QUIT) {
+                    if (id->debug >= ET_DEBUG_WARN) {
+                        et_logmsg("WARN", "et_station_nread, quitting\n");
+                    }
+                    et_llist_unlock(pl);
+                    sys->attach[att].quit = ET_ATT_CONTINUE;
+                    return ET_ERROR_WAKEUP;
+                }
+            }
+        }
+        else if (mode == ET_TIMED) {
+            et_llist_lock(pl);
+            if (stat_id == ET_GRANDCENTRAL && firstTimeThru) {
+                *(id->histogram + pl->cnt) += 1 ;
+            }
+            while (pl->cnt < 1) {
+                sys->attach[att].blocked = ET_ATT_BLOCKED;
+                status = pthread_cond_timedwait(&pl->cread, &pl->mutex, time);
+                sys->attach[att].blocked = ET_ATT_UNBLOCKED;
+                if (status == ETIMEDOUT) {
+                    et_llist_unlock(pl);
+                    return ET_ERROR_TIMEOUT;
+                }
+                else if (status != 0) {
+                    /* Most likely a bad value for the time.
+                     * Don't abort, simply return an error.
+                     */
+                    if (id->debug >= ET_DEBUG_ERROR) {
+                        et_logmsg("ERROR", "et_station_nread, pthread_cond_timedwait error\n");
+                    }
+                    return ET_ERROR;
+                }
+                if (sys->attach[att].quit == ET_ATT_QUIT) {
+                    if (id->debug >= ET_DEBUG_WARN) {
+                        et_logmsg("WARN", "et_station_nread, quitting\n");
+                    }
+                    et_llist_unlock(pl);
+                    sys->attach[att].quit = ET_ATT_CONTINUE;
+                    return ET_ERROR_WAKEUP;
+                }
+            }
+        }
+        else if (mode == ET_ASYNC) {
+            status = pthread_mutex_trylock(&pl->mutex);
+            if (status == EBUSY) {
+                return ET_ERROR_BUSY;
+            }
+            else if (status !=0) {
+                err_abort(status, "Failed llist trylock");
+            }
+            if (sys->attach[att].quit == ET_ATT_QUIT) {
+                if (id->debug >= ET_DEBUG_WARN) {
+                    et_logmsg("WARN", "et_station_nread, quitting\n");
+                }
+                et_llist_unlock(pl);
+                sys->attach[att].quit = ET_ATT_CONTINUE;
+                return ET_ERROR_WAKEUP;
+            }
+            if (stat_id == ET_GRANDCENTRAL) {
+                *(id->histogram + pl->cnt) += 1 ;
+            }
+            if (pl->cnt < 1) {
+                et_llist_unlock(pl);
+                return ET_ERROR_EMPTY;
+            }
+        }
+        else {
+            if (id->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_station_nread, bad mode argument\n");
+            }
+            return ET_ERROR;
+        }
+
+        if (num > pl->cnt) {
+            num = pl->cnt;
+        }
+
         /* info for fixing broken input list */
         ps->fix.in.num   = num;
         ps->fix.in.cnt   = pl->cnt;
         ps->fix.in.call  = ET_FIX_READ;
         ps->fix.in.first = pl->firstevent;
 
-        pev = ET_PEVENT2USR(pl->firstevent, id->offset);
+        index = 0;
+        prev  = NULL;
+        pev   = ET_PEVENT2USR(pl->firstevent, id->offset);
+
         for (i=0; i < pl->cnt; i++) {
-            //printf("Start i=%d, ",i);
             if (pev->group != group) {
                 prev = pev;
-                //printf("group of ev(%d) doesn't match (%d), pev = %p, ", pev->group, group, pev);
                 pev = ET_PEVENT2USR(pev->next, id->offset);
-                //printf("next ev = %p, continue\n", pev);
                 continue;
             }
-            //printf("group of ev(%d) matches (%d), pev = %p, ", pev->group, group, pev);
             pe[index++] = pev;
             pev->owner  = att;
             if (prev == NULL) {
                 pl->firstevent = pev->next;
-                //printf("first ev = %p, ", ET_PEVENT2USR(pev->next, id->offset));
             }
             else {
                 prev->next = pev->next;
-                //printf("prev->next = %p, ", ET_PEVENT2USR(pev->next, id->offset));
             }
             /* if we grabbed the last event in the list, reset last item pointer */
             if (pl->lastevent == ET_PEVENT2ET(pev, id->offset)) {
-                //printf("last event = %p, ", prev);
                 pl->lastevent = ET_PEVENT2ET(prev, id->offset);
             }
-            //printf("index = %d, num = %d, ", index, num);
             if (index >= num) break;
             pev = ET_PEVENT2USR(pev->next, id->offset);       
-            //printf("next ev = %p, to next i\n", pev);
         }
 
         pl->cnt -= index;
@@ -1329,9 +1526,6 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
         oldCount = pl->cnt;
 
         et_llist_unlock(pl);
-/*if (index == 0 && mode != ET_ASYNC) {
-    printf("Try again, pl->cnt = %d, oldCount = %d\n", pl->cnt, oldCount);
-}*/
         firstTimeThru = 0;
 
         /* If we got nothing and we're ET_SLEEP or ET_TIMED, then try again */
@@ -1396,7 +1590,7 @@ int et_station_dump(et_id *id, et_event *pe)
   }
   pl->lastevent = pe_ET;
   
-  pe->owner = -1;
+  pe->owner = ET_SYS;
   pl->cnt++;
   pl->events_in = pl->events_in + 1;
   ps->fix.in.start--;
@@ -1442,13 +1636,13 @@ int et_station_ndump(et_id *id, et_event *pe[], int num)
   ps->fix.in.num  = num;
   ps->fix.in.call = ET_FIX_DUMP;
   ps->fix.in.start++;
-  
+          
   if (pl->cnt == 0) {
     /* ptr to event represented in ET's process space */
     pe_ET = ET_PEVENT2ET(pe[0], id->offset);
     pl->firstevent = pe_ET;
     pl->lastevent  = pe_ET;
-    pe[0]->owner   = -1;
+    pe[0]->owner   = ET_SYS;
     pl->cnt++;
     num_in++;
   }
@@ -1459,11 +1653,10 @@ int et_station_ndump(et_id *id, et_event *pe[], int num)
     pe_last->next = pe_ET;
     pl->lastevent = pe_ET;
     pe_last = pe[i];
-    pe[i]->owner = -1;
+    pe[i]->owner = ET_SYS;
     pl->cnt++;
   }
-    
-  pl->events_in = pl->events_in + num;
+            
   ps->fix.in.start--;
   et_llist_unlock(pl);
 
@@ -1495,11 +1688,11 @@ int et_llist_read(et_list *pl, et_event **pe)
   }
       
   pe[0] = pl->firstevent;
-/*printf("et_llist_read: pe[0] = %p\n", pe[0]);*/
+/*printf("et_llist_read: pe[0] = %p, ->next = %p\n", pe[0], pe[0]->next);*/
   
   for (i=1; i < cnt ; i++) {
     pe[i] = pe[i-1]->next;
-/*printf("et_llist_read: pe[%d] = %p, ->next = %p\n", i, pe[i], pe[i]->next);*/
+/*printf("et_llist_read: pe[%d] = %p, ->next = %p\n", i, pe[i], pe[i]->next); */
   } 
   pl->firstevent = NULL;
   pl->cnt = 0;
@@ -1744,18 +1937,18 @@ static int et_restore_in(et_id *id, et_station *ps, et_event **pe,
     
     if (pfirstlow == NULL) {
         /* tack 'em on the end since no lows already in list */
-	plast->next   = ET_PEVENT2ET(pe[0], id->offset);
+        plast->next   = ET_PEVENT2ET(pe[0], id->offset);
         pl->lastevent = ET_PEVENT2ET(pe[num-1], id->offset);
     }
     else {
         /* put 'em before existing lows but after highs */
-	if (plasthigh != NULL) {
-	  /* if highs already exist in list */
-	  plasthigh->next = ET_PEVENT2ET(pe[0], id->offset);
-	}
-	else {
+        if (plasthigh != NULL) {
+          /* if highs already exist in list */
+          plasthigh->next = ET_PEVENT2ET(pe[0], id->offset);
+        }
+        else {
           pl->firstevent = ET_PEVENT2ET(pe[0], id->offset);
-	}
+        }
         pe[num-1]->next = ET_PEVENT2ET(pfirstlow, id->offset);
     }
    
@@ -1792,18 +1985,18 @@ static int et_restore_in(et_id *id, et_station *ps, et_event **pe,
       }
       if (pfirstlow == NULL) {
         /* tack 'em on the end since no lows already in list */
-	plast->next   = ET_PEVENT2ET(pe[num_high], id->offset);
+        plast->next   = ET_PEVENT2ET(pe[num_high], id->offset);
         pl->lastevent = ET_PEVENT2ET(pe[num-1], id->offset);
       }
       else {
         /* put 'em before existing lows but after highs */
-	if (plasthigh != NULL) {
-	  /* if highs already exist in list */
-	  plasthigh->next = ET_PEVENT2ET(pe[num_high], id->offset);
-	}
-	else {
-	  pe[num_high-1]->next = ET_PEVENT2ET(pe[num_high], id->offset);
-	}
+        if (plasthigh != NULL) {
+          /* if highs already exist in list */
+          plasthigh->next = ET_PEVENT2ET(pe[num_high], id->offset);
+        }
+        else {
+          pe[num_high-1]->next = ET_PEVENT2ET(pe[num_high], id->offset);
+        }
         pe[num-1]->next = ET_PEVENT2ET(pfirstlow, id->offset);
       }
     }
@@ -1904,10 +2097,10 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
  */
 {
   et_station *ps = id->stats + stat_id;
-  int	i, j, status=ET_OK,
-	num_events, num_temps, num_written, num_new,
-	mode = ps->config.restore_mode,
-	nevents_max = id->sys->config.nevents;
+  int   i, j, status=ET_OK,
+        num_events, num_temps, num_written, num_new,
+        mode = ps->config.restore_mode,
+        nevents_max = id->sys->config.nevents;
   et_event  *pe = id->events;
   et_event  **pevent, **ordered, **new;
   
@@ -1940,11 +2133,11 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
         new[num_new++] = pe;
       }
       else {
-	pevent[num_events++] = pe;
-	pe->owner = -1;
+        pevent[num_events++] = pe;
+        pe->owner = ET_SYS;
       }
       if (pe->temp == ET_EVENT_TEMP) {
-	num_temps++;
+        num_temps++;
       }
     }
     pe++;
@@ -1970,13 +2163,13 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
   /* for convenience, order events so high priority are first in array */
   for (i=0, j=0 ; i < num_events ; i++) {
     if (pevent[i]->priority == ET_HIGH) {
-	ordered[j++] = pevent[i];
+      ordered[j++] = pevent[i];
     }
   }
   /* now put in all the low priority events */
   for (i=0; i < num_events ; i++) {
     if (pevent[i]->priority != ET_HIGH) {
-	ordered[j++] = pevent[i];
+      ordered[j++] = pevent[i];
     }
   }
   
@@ -2006,13 +2199,13 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
        * we return these events back to GrandCentral station.
        */
       if (new[i]->temp == ET_EVENT_TEMP) {
-	if (id->cleanup == 1) {
-	  unlink(new[i]->filename);
-	}
-	else {
-	  et_temp_remove(new[i]->filename, new[i]->pdata, (size_t) new[i]->memsize);
-	}
-	id->sys->ntemps--;
+        if (id->cleanup == 1) {
+          unlink(new[i]->filename);
+        }
+        else {
+          et_temp_remove(new[i]->filename, new[i]->pdata, (size_t) new[i]->memsize);
+        }
+        id->sys->ntemps--;
       }
     }
     status = et_station_ndump(id, new, num_new);
@@ -2028,21 +2221,21 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
       for (i=0; i < num_events ; i++) {
         if (ordered[i]->temp == ET_EVENT_TEMP) {
           if (id->cleanup == 1) {
-	    unlink(ordered[i]->filename);
-	  }
-	  else {
-	    et_temp_remove(ordered[i]->filename, ordered[i]->pdata, (size_t) ordered[i]->memsize);
+            unlink(ordered[i]->filename);
           }
-	  id->sys->ntemps--;
+          else {
+            et_temp_remove(ordered[i]->filename, ordered[i]->pdata, (size_t) ordered[i]->memsize);
+          }
+          id->sys->ntemps--;
           if (id->debug >= ET_DEBUG_INFO) {
             et_logmsg("INFO", "et_restore_events, deleting tmp event %s\n",
-	              ordered[i]->filename);
+                      ordered[i]->filename);
           }
-	}
+        }
       }
       status = et_station_ndump(id, ordered, num_events);   
       if (id->debug >= ET_DEBUG_INFO) {
-	et_logmsg("INFO", "et_restore_events, restored %d events to GrandCentral\n",
+        et_logmsg("INFO", "et_restore_events, restored %d events to GrandCentral\n",
                   num_events);
       }
     }
@@ -2058,15 +2251,15 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
              (mode == ET_STATION_RESTORE_IN && ps->data.nattachments == 0)) {
       /* unmap mem of temp events if I'm the user that mapped it */
       if (id->cleanup != 1) {
-	for (i=0; i < num_events ; i++) {
+        for (i=0; i < num_events ; i++) {
           if (ordered[i]->temp == ET_EVENT_TEMP) {
-	    munmap(ordered[i]->pdata, (size_t) ordered[i]->memsize);
+            munmap(ordered[i]->pdata, (size_t) ordered[i]->memsize);
             if (id->debug >= ET_DEBUG_INFO) {
               et_logmsg("INFO", "et_restore_events, unmap tmp event %s\n",
-	        	ordered[i]->filename);
-	    }
-	  }
-	}
+                        ordered[i]->filename);
+            }
+          }
+        }
       }
       /* Mark these events as possibly having corrupt data since 
        * the user that crashed with these events may have been in
@@ -2082,7 +2275,7 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
       
       status = et_station_nwrite(id, stat_id, ordered, num_events);
       if (id->debug >= ET_DEBUG_INFO) {
-	et_logmsg("INFO", "et_restore_events, restored %d events to %s's output list\n",
+        et_logmsg("INFO", "et_restore_events, restored %d events to %s's output list\n",
                   num_events, ps->name);
       }
     }
@@ -2091,15 +2284,15 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
     else if (mode == ET_STATION_RESTORE_IN) {
       /* unmap mem of temp events if I'm the user that mapped it */
       if (id->cleanup != 1) {
-	for (i=0; i < num_events ; i++) {
+        for (i=0; i < num_events ; i++) {
           if (ordered[i]->temp == ET_EVENT_TEMP) {
-	    munmap(ordered[i]->pdata, (size_t) ordered[i]->memsize);
+            munmap(ordered[i]->pdata, (size_t) ordered[i]->memsize);
             if (id->debug >= ET_DEBUG_INFO) {
               et_logmsg("INFO", "et_restore_events, unmap tmp event %s\n",
-	        	ordered[i]->filename);
-	    }
-	  }
-	}
+                        ordered[i]->filename);
+            }
+          }
+        }
       }
       /* Mark these events as possibly having corrupt data since 
        * the user that crashed with these events may have been in
@@ -2121,16 +2314,16 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
        */
       status = et_restore_in(id, ps, ordered, num_events, &num_written);
       if (id->debug >= ET_DEBUG_INFO) {
-	et_logmsg("INFO", "et_restore_events, restored %d events to %s's input list\n",
+        et_logmsg("INFO", "et_restore_events, restored %d events to %s's input list\n",
                   num_written, ps->name);
       }
 
       if (num_written < num_events) {
-	/* station won't accept all events, put rest into output list */
-	if (id->debug >= ET_DEBUG_WARN) {
+        /* station won't accept all events, put rest into output list */
+        if (id->debug >= ET_DEBUG_WARN) {
           et_logmsg("WARN", "et_restore_events, input list won't accept all recovered events\n");
-	}
-	status = et_station_nwrite(id, stat_id, &ordered[num_written], num_events-num_written);
+        }
+        status = et_station_nwrite(id, stat_id, &ordered[num_written], num_events-num_written);
       }
     }
     
