@@ -489,8 +489,16 @@ int et_system_setgroup(et_sys_id id, int group)
   et_id *etid = (et_id *) id;
   int err, groupCount;
   
+  if (group == 0) {
+      etid->group = 0;
+      return ET_OK;      
+  }
+  else if (group < 0)  {
+     return ET_ERROR;
+  }
+  
   if (etid->locality != ET_LOCAL) {
-    err = etr_system_getgroup(id, &groupCount);
+    err = etr_system_getgroupcount(id, &groupCount);
     if (err != ET_OK)
         return err;
   }
@@ -498,7 +506,7 @@ int et_system_setgroup(et_sys_id id, int group)
     groupCount = etid->sys->config.groupCount;
   }
 
-  if ((group < 0) || (group > groupCount))  {
+  if (group > groupCount)  {
      return ET_ERROR;
   }
   
