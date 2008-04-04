@@ -359,6 +359,7 @@ public final class Constants {
   static final int    netEvsNewL       = 5;
   static final int    netEvDumpL       = 6;
   static final int    netEvsDumpL      = 7;
+  static final int    netEvsNewGrpL    = 8;
 
   static final int    netEvGet         = 20;
   static final int    netEvsGet        = 21;
@@ -368,6 +369,7 @@ public final class Constants {
   static final int    netEvsNew        = 25;
   static final int    netEvDump        = 26;
   static final int    netEvsDump       = 27;
+  static final int    netEvsNewGrp     = 28;
 
   static final int    netAlive         = 40;
   static final int    netWait          = 41;
@@ -423,6 +425,7 @@ public final class Constants {
   static final int    netSysAttMax     = 157;
   static final int    netSysHBeat      = 158;
   static final int    netSysPid        = 159;
+  static final int    netSysGrp        = 160;
 
   static final int    netSysData       = 170;
   static final int    netSysHist       = 171;
