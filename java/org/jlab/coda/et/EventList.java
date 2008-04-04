@@ -127,7 +127,7 @@ class EventList {
 //System.out.println("  putAll in as is as list EventList empty, " + newEvents.size());
           events.addAll(newEvents);
       }
-      else if (((Event) newEvents.get(0)).priority == Constants.low) {
+      else if ((newEvents.get(0)).priority == Constants.low) {
           // adds new events to the end
 //System.out.println("  putAll in as is as incoming are all low pri, " + newEvents.size());
           events.addAll(newEvents);
@@ -166,7 +166,7 @@ class EventList {
       return;
   }
 
-    /**
+  /**
    * For user to put all events into station's output list. High & low
    * priorities may be mixed up in the newEvents list. May also be used to
    * restore events to the input list when user connection is broken.
@@ -255,7 +255,8 @@ class EventList {
           throws EtEmptyException, EtWakeUpException, EtTimeoutException {
 
       locked = true;
-      int count = events.size();
+      int  nanos, count = events.size();
+      long begin, microDelay, milliSec, elapsedTime = 0;
 
       // Sleep mode is never used since it is implemented in the TcpServer
       // thread by repeated calls in timed mode.
@@ -264,6 +265,7 @@ class EventList {
               while (count < 1) {
                   waitingCount++;
                   att.waiting = true;
+//System.out.println("  get" + att.id + ": sleep");
                   try {
                       wait();
                   }
@@ -287,36 +289,41 @@ class EventList {
               }
           }
           else if (mode == Constants.timed) {
-              long milliSec = microSec / 1000;
-              int nanos = 1000 * (microSec - (int) (milliSec * 1000));
-
-              waitingCount++;
-              att.waiting = true;
-//System.out.println("  get" + att.id + ": wait " + milliSec + " ms and " +
-//               nanos  + " nsec");
-              try {
-                  wait(milliSec, nanos);
-              }
-              catch (InterruptedException ex) {
-              }
-
-              // if we've been told to wakeup & exit ...
-              if (att.wakeUp || wakeAll) {
-                  att.wakeUp = false;
-                  att.waiting = false;
-                  // last man to wake resets variable
-                  if (--waitingCount < 1) {
-                      wakeAll = false;
+              while (count < 1) {
+                  microDelay = microSec - 1000*elapsedTime;
+                  milliSec   = microDelay/1000L;
+                  if (milliSec < 0) {
+                      throw new EtTimeoutException("timed out");
                   }
-                  throw new EtWakeUpException("attachment " + att.id + " woken up");
-              }
+                  nanos = 1000 * (int)(microDelay - 1000*milliSec);
 
-              att.waiting = false;
-              waitingCount--;
-              count = events.size();
+                  waitingCount++;
+                  att.waiting = true;
+//System.out.println("  get" + att.id + ": wait " + milliSec + " ms and " +
+//                   nanos + " nsec, elapsed time = " + elapsedTime);
+                  begin = System.currentTimeMillis();
+                  try {
+                      wait(milliSec, nanos);
+                  }
+                  catch (InterruptedException ex) {
+                  }
+                  elapsedTime += System.currentTimeMillis() - begin;
+
+                  // if we've been told to wakeup & exit ...
+                  if (att.wakeUp || wakeAll) {
+                      att.wakeUp = false;
+                      att.waiting = false;
+                      // last man to wake resets variable
+                      if (--waitingCount < 1) {
+                          wakeAll = false;
+                      }
+                      throw new EtWakeUpException("attachment " + att.id + " woken up");
+                  }
+
+                  att.waiting = false;
+                  waitingCount--;
+                  count = events.size();
 //System.out.println("  get" + att.id + ": woke up and counts = " + count);
-              if (count < 1) {
-                  throw new EtTimeoutException("timed out");
               }
           }
           else if (mode == Constants.async) {
@@ -339,4 +346,133 @@ class EventList {
       return eventsToGo;
   }
 
+
+    /**
+     * For an attachment (in TcpServer thread) to get an array of events.
+     * @param att attachment
+     * @param mode wait mode
+     * @param microSec time in microseconds to wait if timed wait mode
+     * @param quantity number of events desired
+     * @param group group number of events desired
+     *
+     * @exception org.jlab.coda.et.EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @exception org.jlab.coda.et.EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @exception org.jlab.coda.et.EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     */
+    synchronized List<Event> get(AttachmentLocal att, int mode, int microSec, int quantity, int group)
+            throws EtEmptyException, EtWakeUpException, EtTimeoutException {
+
+        locked = true;
+        int nanos, count = events.size(), groupCount = 0;
+        Event[] eventsToGo;
+        Event ev;
+        boolean scanList = true;
+        long begin, microDelay, milliSec, elapsedTime = 0;
+        LinkedList<Event> groupList = new LinkedList<Event>();
+
+        // Sleep mode is never used since it is implemented in the TcpServer
+        // thread by repeated calls in timed mode.
+        do {
+            if (mode == Constants.sleep) {
+                while (count < 1 || !scanList) {
+                    waitingCount++;
+                    att.waiting = true;
+//System.out.println("  get" + att.id + ": sleep");
+                    try {
+                        wait();
+                    }
+                    catch (InterruptedException ex) {
+                    }
+
+                    // if we've been told to wakeup & exit ...
+                    if (att.wakeUp || wakeAll) {
+                        att.wakeUp = false;
+                        att.waiting = false;
+                        // last man to wake resets variable
+                        if (--waitingCount < 1) {
+                            wakeAll = false;
+                        }
+                        throw new EtWakeUpException("attachment " + att.id + " woken up");
+                    }
+
+                    att.waiting = false;
+                    waitingCount--;
+                    count = events.size();
+                    scanList = true;
+                }
+            }
+            else if (mode == Constants.timed) {
+                while (count < 1 || !scanList) {
+                    microDelay = microSec - 1000*elapsedTime;
+                    milliSec   = microDelay/1000L;
+                    if (milliSec < 0) {
+                        throw new EtTimeoutException("timed out");
+                    }
+                    nanos = 1000 * (int)(microDelay - 1000*milliSec);
+//                    if (nanos > 999999) {
+//                        System.out.println("nanos = " + nanos + ", millisec = " +
+//                           milliSec + ", elapsed = " + elapsedTime + ", microSec = " + microSec + ", scanList = " + scanList);
+//                  }
+
+                    waitingCount++;
+                    att.waiting = true;
+//System.out.println("  get" + att.id + ": wait " + milliSec + " ms and " +
+//                   nanos + " nsec, elapsed time = " + elapsedTime);
+                    begin = System.currentTimeMillis();
+                    try {
+                        wait(milliSec, nanos);
+                    }
+                    catch (InterruptedException ex) {
+                    }
+                    elapsedTime += System.currentTimeMillis() - begin;
+
+                    // if we've been told to wakeup & exit ...
+                    if (att.wakeUp || wakeAll) {
+                        att.wakeUp = false;
+                        att.waiting = false;
+                        // last man to wake resets variable
+                        if (--waitingCount < 1) {
+                            wakeAll = false;
+                        }
+                        throw new EtWakeUpException("attachment " + att.id + " woken up");
+                    }
+
+                    att.waiting = false;
+                    waitingCount--;
+                    count = events.size();
+//System.out.println("  get" + att.id + ": woke up and counts = " + count);
+                    scanList = true;
+                }
+            }
+            else if (mode == Constants.async) {
+                throw new EtEmptyException("no events in list");
+            }
+
+            if (quantity > count) {
+                quantity = count;
+            }
+//System.out.println("  get"+ att.id + ": quantity = " + quantity);
+
+            for (ListIterator liter = events.listIterator(); liter.hasNext(); ) {
+                ev = (Event)liter.next();
+                if (ev.group == group) {
+                    groupList.add(ev);
+                    if (++groupCount >= quantity)  break;
+                }
+            }
+
+            scanList = false;
+
+          // If we got nothing and we're Constants.sleep or Constants.timed, then try again
+        } while (groupCount == 0 && mode != Constants.async);
+
+        // remove from this list
+        events.removeAll(groupList);
+        eventsOut += groupList.size();
+        locked = false;
+        return groupList;
+    }
 }

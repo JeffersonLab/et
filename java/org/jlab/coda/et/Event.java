@@ -40,6 +40,8 @@ public class Event {
    *  its value is {@link Constants#eventNew} otherwise
    *  {@link Constants#eventUsed}. */
   int     age;
+  /** Group to which this event belongs. Used for multiple producers. */
+  int     group;
   /** Event priority which is either high {@link Constants#high} or low
    *  {@link Constants#low}.
    */
