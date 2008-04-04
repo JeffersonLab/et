@@ -1429,12 +1429,12 @@ int etr_system_getpid (et_sys_id id, int *pid)
 }
 
 /*****************************************************/
-int etr_system_getgroup (et_sys_id id, int *group)
+int etr_system_getgroupcount (et_sys_id id, int *groupCnt)
 {
     int err;
     et_id *etid = (et_id *) id;
 
-    err = etr_system_getstuff(etid, ET_NET_SYS_GRP, group, "etr_system_getgroup");
+    err = etr_system_getstuff(etid, ET_NET_SYS_GRP, groupCnt, "etr_system_getgroupcount");
     return err;
 }
 
