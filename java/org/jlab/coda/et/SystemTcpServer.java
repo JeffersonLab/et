@@ -920,6 +920,126 @@ class ClientThread extends Thread {
                       break;
 
 
+                      case Constants.netEvsNewGrp: {
+                          in.readFully(params, 0, 32);
+                          int err = ok;
+                          int  attId = Event.bytesToInt(params,  0);
+                          int  mode  = Event.bytesToInt(params,  4);
+                          long size  = Event.bytesToLong(params, 8);
+                          int  count = Event.bytesToInt(params, 16);
+                          int  group = Event.bytesToInt(params, 20);
+                          int  sec   = Event.bytesToInt(params, 24);
+                          int  nsec  = Event.bytesToInt(params, 28);
+
+                          AttachmentLocal att = attachments.get(new Integer(attId));
+                          List<Event> evList=null;
+
+                          if (bit64 && count*size > Integer.MAX_VALUE/5) {
+                              out.writeInt(Constants.errorTooBig);
+                              break;
+                          }
+
+                          try {
+                              if (mode == Constants.timed) {
+                                  int uSec = sec * 1000000 + nsec / 1000;
+                                  evList = sys.newEvents(att, mode, uSec, count, (int)size, group);
+                              }
+                              else if (mode == Constants.sleep) {
+                                  // There's a problem if we have a remote client that is waiting
+                                  // for another event by sleeping and the events stop flowing. In
+                                  // that case, the client can be killed and the ET system does NOT
+                                  // know about it. Since this thread will be stuck in "getEvents",
+                                  // it will not immediately detect the break in the socket - at least
+                                  // not until events start flowing again. To circumvent this, implement
+                                  // "sleep" by repeats of "timed" every few seconds to allow
+                                  // detection of broken socket between calls to "getEvents".
+
+                                  // Store the fact we're trying to sleep - necessary when
+                                  // told to wake up.
+                                  att.sleepMode = true;
+
+                                  tryToGetEvents:
+                                  while (true) {
+                                      // try a 4 second wait for events
+                                      try {
+                                          if (att.wakeUp) {
+                                              att.wakeUp = false;
+                                              throw new EtWakeUpException("attachment " + att.id + " woken up");
+                                          }
+                                          evList = sys.newEvents(att, Constants.timed, 4000000, count, (int)size, group);
+                                          // no longer in sleep mode
+                                          att.sleepMode = false;
+                                          // may have been told to wake up between last 2 statements.
+                                          att.wakeUp = false;
+                                          break;
+                                      }
+                                      // if timeout, check socket to see if still open
+                                      catch (EtTimeoutException tx) {
+                                          while (true) {
+                                              try {
+                                                  // 1/2 second max delay on read
+                                                  in.readInt();
+                                                  // should never be able to get here
+                                                  att.sleepMode = false;
+                                                  throw new EtException("communication protocol error");
+                                              }
+                                              // if there's an interrupted ex, socket is OK
+                                              catch (InterruptedIOException ex) {
+                                                  continue tryToGetEvents;
+                                              }
+                                              // if there's an io ex, socket is closed
+                                              catch (IOException ex) {
+                                                  throw ex;
+                                              }
+                                          }
+                                      }
+                                  }
+
+                              }
+                              else {
+                                  evList = sys.newEvents(att, mode, 0, count, (int)size, group);
+                              }
+
+                          }
+                          catch (EtException ex) {
+                              err = Constants.error;
+                          }
+                          catch (EtBusyException ex) {
+                              err = Constants.errorBusy;
+                          }
+                          catch (EtEmptyException ex) {
+                              err = Constants.errorEmpty;
+                          }
+                          catch (EtWakeUpException ex) {
+                              err = Constants.errorWakeUp;
+                              att.sleepMode = false;
+                          }
+                          catch (EtTimeoutException ex) {
+                              err = Constants.errorTimeout;
+                          }
+
+                          if (err != ok) {
+                              out.writeInt(err);
+                              out.flush();
+                              break;
+                          }
+
+                          // handle buffering by hand
+                          int index = -4;
+                          byte[] buf = new byte[4 + 8 * evList.size()];
+
+                          // first send number of events
+                          Event.intToBytes(evList.size(), buf, 0);
+                          for (Event ev : evList) {
+                              ev.modify = modify;
+                              Event.longToBytes(ev.id, buf, index += 8);
+                          }
+                          out.write(buf);
+                          out.flush();
+                      }
+                      break;
+
+
                       default:
                           break;
                   } // switch(command)
@@ -1454,7 +1574,7 @@ class ClientThread extends Thread {
               }
 
               // the following commands get values associated with the system
-              else if (command <= Constants.netSysPid) {
+              else if (command <= Constants.netSysGrp) {
                   int val;
 
                   if (command == Constants.netSysTmp)
@@ -1483,6 +1603,9 @@ class ClientThread extends Thread {
                       val = 0; // no heartbeat since no shared mem
                   else if (command == Constants.netSysPid) {
                       val = -1; // no pids in Java
+                  }
+                  else if (command == Constants.netSysGrp) {
+                      val = sys.config.groups.length; // number of groups
                   }
                   else {
                       if (config.debug >= Constants.debugError) {

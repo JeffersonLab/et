@@ -101,6 +101,13 @@ public class SystemCreate {
    *     if the file already exists or cannot be created
    */
   public SystemCreate (String _name, SystemConfig _config) throws EtException {
+        // check config for consistency
+        if (!_config.selfConsistent()) {
+            if (config.debug >= Constants.debugInfo) {
+                System.out.println("Number of events in groups does not equal total number of events");
+            }
+            throw new EtException("Number of events in groups does not equal total number of events");
+        }
         name = _name;
         config = new SystemConfig(_config);
         attachments = new HashMap<Integer, AttachmentLocal>(Constants.attachmentsMax + 1, 1);
@@ -186,10 +193,19 @@ public class SystemCreate {
 
     // fill GC with standard sized events
     Event ev;
+    int index = 0, count = 0;
     ArrayList<Event> eventList = new ArrayList<Event>(config.numEvents);
+
     for (long i=0; i < config.numEvents; i++) {
       ev = new Event(config.eventSize);
       ev.id = i;
+        
+      // assign group numbers
+      if (count < 1)
+          count = config.groups[index++];
+      ev.group = index;
+      count--;
+
       eventList.add(ev);
       // add to hashTable for future easy access
       events.put(new Long(ev.id), ev);
@@ -865,8 +881,7 @@ public class SystemCreate {
    *     if the attachment has been commanded to wakeup,
    *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
    */
-  Event[] newEvents(AttachmentLocal att, int mode, int microSec, int count,
-                    int size)
+  Event[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
                     throws EtEmptyException, EtBusyException,
                            EtTimeoutException, EtWakeUpException {
 
@@ -899,6 +914,75 @@ public class SystemCreate {
 //System.out.println("newEvents: att.eventsMake = "+ att.eventsMake);
     return evs;
   }
+
+
+
+
+    /**
+     * Get new or unused events from an ET system.
+     *
+     * @param att       attachment object
+     * @param mode      if there are no events available, this parameter specifies
+     *                  whether to wait for some by sleeping, by waiting for a set
+     *                  time, or by returning immediately (asynchronous)
+     * @param microSec  the number of microseconds to wait if a timed wait is
+     *                  specified
+     * @param count     the number of events desired
+     * @param size      the size of events in bytes
+     * @param group     the group number of events
+     *
+     * @return a list of events
+     *
+     * @exception org.jlab.coda.et.EtException
+     *     if the group number is not meaningful
+     * @exception org.jlab.coda.et.EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @exception org.jlab.coda.et.EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @exception org.jlab.coda.et.EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @exception org.jlab.coda.et.EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     */
+    List<Event> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
+                      throws EtException, EtEmptyException, EtBusyException,
+                             EtTimeoutException, EtWakeUpException {
+
+      // if mutex to get method already grabbed & async mode ...
+      if ((gcStation.inputList.locked) && (mode == Constants.async)) {
+        throw new EtBusyException("input list is busy");
+      }
+//System.out.println("newEvents: try getting " + count + " events of group # " + group);
+      // check to see if value of group is meaningful
+      if (group > config.groups.length) {
+          throw new EtException("group number is too high");
+      }
+
+      // get events from GrandCentral Station's output list
+      List<Event> evs = gcStation.inputList.get(att, mode, microSec, count, group);
+//System.out.println("newEvents: got events (# = " + evs.size() + ")");
+
+      // for each event ...
+      for (Event ev : evs) {
+        // initialize fields
+        ev.init();
+        // registered as owned by this attachment
+        ev.owner = att.id;
+        // if size is too small make it larger
+        if (ev.memSize < size) {
+          ev.data = new byte[size];
+          ev.memSize = size;
+        }
+//System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize + ", group = " + ev.group);
+      }
+
+      // keep track of # of events made by this attachment
+      att.eventsMake += evs.size();
+//System.out.println("newEvents: att.eventsMake = "+ att.eventsMake);
+      return evs;
+    }
 
 
 

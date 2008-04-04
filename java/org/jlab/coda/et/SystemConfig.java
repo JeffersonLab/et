@@ -31,6 +31,9 @@ public class SystemConfig {
   /** Size of the "normal" event in bytes. This is the memory allocated to each
    *  event upon starting up the ET system. */
   int      eventSize;
+  /** Number of events in each group. Used with mulitple producers who want to
+   * guarantee available events for each producer. */
+  int[]    groups;
   /** Maximum number of station. */
   int      stationsMax;
   /** Maximum number of attachments. */
@@ -78,6 +81,9 @@ public class SystemConfig {
     serverPort      = Constants.serverPort;
     multicastPort   = Constants.multicastPort;
     multicastAddrs  = new HashSet<InetAddress>(10);
+    // by default there is one group with all events in it
+    groups          = new int[1];
+    groups[0]       = numEvents;
   }
 
   /** Creates a new SystemConfig object from an existing one. */
@@ -91,6 +97,7 @@ public class SystemConfig {
     serverPort      = config.serverPort;
     multicastPort   = config.multicastPort;
     multicastAddrs  = new HashSet<InetAddress>(config.multicastAddrs);
+    groups          = config.groups.clone();
   }
 
   // public gets
@@ -101,6 +108,9 @@ public class SystemConfig {
   /** Gets the size of the normal events in bytes.
    *  @return size of normal events in bytes */
   public int getEventSize()      {return eventSize;}
+  /** Gets the array of how many events in each group.
+   *  @return array of how many events in each group */
+  public int[] getGroups()      {return (int []) groups.clone();}
   /** Gets the maximum number of stations.
    *  @return maximum number of stations */
   public int getStationsMax()    {return stationsMax;}
@@ -199,6 +209,26 @@ public class SystemConfig {
     eventSize = size;
   }
 
+  /** Sets the number of events in each group. Used with mulitple producers who want to
+   * guarantee available events for each producer.
+   *
+   *  @param groups array defining number of events in each group
+   *  @exception org.jlab.coda.et.EtException
+   *     if the groups array has length < 1 or values are not positive ints
+   */
+  public void setGroups(int[] groups) throws EtException {
+      if (groups.length < 1) {
+          throw new EtException("events must have at least one group");
+      }
+      for (int num : groups) {
+          if (num < 1) {
+              throw new EtException("each event group must contain at least one event");              
+          }
+      }
+
+      this.groups = groups.clone();
+  }
+
   /** Sets the maximum number of stations.
    *  @param num maximum number of stations
    *  @exception org.jlab.coda.et.EtException
@@ -278,6 +308,21 @@ public class SystemConfig {
     multicastPort = port;
   }
 
-
+    /**
+     * Checks configuration settings for consistency.
+     * @return true if consistent, else false
+     */
+    boolean selfConsistent() {
+        // Check to see if the number of events in groups equal the total number of events
+        int count = 0;
+        for (int i : groups) {
+            count += i;
+        }
+        if (count != numEvents) {
+            System.out.println("events in groups != total event number");
+            return false;
+        }
+        return true;
+    }
 }
 
