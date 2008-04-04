@@ -1129,7 +1129,7 @@ extern int  etr_system_getattachments (et_sys_id id, int *atts);
 extern int  etr_system_getattsmax (et_sys_id id, int *attsmax);
 extern int  etr_system_getheartbeat (et_sys_id id, int *heartbeat);
 extern int  etr_system_getpid (et_sys_id id, int *pid);
-extern int  etr_system_getgroup (et_sys_id id, int *group);
+extern int  etr_system_getgroupcount (et_sys_id id, int *groupCnt);
 /* end remote routines */
 
 /* attachment rountines */
