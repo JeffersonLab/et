@@ -1148,228 +1148,6 @@ int et_station_nread(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
   return ET_OK;
 }
 
-/**
- * This routine reads a number of entries from a station's input list.
- * It only reads events belonging to the given group number.
- * 
- * @return ET_OK            for success
- * @return ET_ERROR         for error
- * @return ET_ERROR_TIMEOUT for timeout
- * @return ET_ERROR_EMPTY   for no events in list
- * @return ET_ERROR_BUSY    for async, inputlist is busy
- * @return ET_ERROR_WAKEUP  for wakeup and return
- */
-int et_station_nread_groupOrig(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
-                           et_att_id att, struct timespec *time, int num, int group,
-                           int *nread)
-{
-    et_event  *pev, *prev;
-    et_system *sys = id->sys;
-    et_station *ps = id->stats + stat_id;
-    et_list    *pl = &ps->list_in;
-    int i, status, oldCount, index, numEventsChanged, firstTimeThru=1;
-
-    *nread = 0;
-
-    if (num < 1) {
-        return ET_OK;
-    }
-
-    do {
-        if (mode == ET_SLEEP) {
-            et_llist_lock(pl);
-            /* if getting new event(s), histogram # of events in input list */
-            if (stat_id == ET_GRANDCENTRAL && firstTimeThru) {
-                *(id->histogram + pl->cnt) += 1 ;
-            }
-            /* has the number of events in the input list changed ? */
-            numEventsChanged = firstTimeThru ? 1 : ((oldCount - pl->cnt) == 0 ? 0 : 1);
-/*printf(" 1 firstTimeThru = %d, numEventsChanged = %d, pl->cnt = %d, oldCount = %d\n",
-       firstTimeThru, numEventsChanged, pl->cnt, oldCount);*/
-            while (pl->cnt < 1 || !numEventsChanged) {
-                sys->attach[att].blocked = ET_ATT_BLOCKED;
-/*printf(" A firstTimeThru = %d, numEventsChanged = %d, pl->cnt = %d, oldCount = %d\n",
-                firstTimeThru, numEventsChanged, pl->cnt, oldCount); */
-                status = pthread_cond_wait(&pl->cread, &pl->mutex);
-                numEventsChanged = firstTimeThru ? 1 : ((oldCount - pl->cnt) == 0 ? 0 : 1);
-/*printf(" B firstTimeThru = %d, numEventsChanged = %d, pl->cnt = %d, oldCount = %d\n",
-        firstTimeThru, numEventsChanged, pl->cnt, oldCount);*/
-                sys->attach[att].blocked = ET_ATT_UNBLOCKED;
-                if (status != 0) {
-                    err_abort(status, "Failed llist read wait");
-                }
-                if (sys->attach[att].quit == ET_ATT_QUIT) {
-                    if (id->debug >= ET_DEBUG_WARN) {
-                        et_logmsg("WARN", "et_station_nread, quitting\n");
-                    }
-                    et_llist_unlock(pl);
-                    sys->attach[att].quit = ET_ATT_CONTINUE;
-                    return ET_ERROR_WAKEUP;
-                }
-            }
-        }
-        else if (mode == ET_TIMED) {
-            et_llist_lock(pl);
-            if (stat_id == ET_GRANDCENTRAL && firstTimeThru) {
-                *(id->histogram + pl->cnt) += 1 ;
-            }
-            numEventsChanged = firstTimeThru ? 1 : ((oldCount - pl->cnt) == 0 ? 0 : 1);
-            while (pl->cnt < 1 || !numEventsChanged) {
-                sys->attach[att].blocked = ET_ATT_BLOCKED;
-                status = pthread_cond_timedwait(&pl->cread, &pl->mutex, time);
-                numEventsChanged = firstTimeThru ? 1 : ((oldCount - pl->cnt) == 0 ? 0 : 1);
-                sys->attach[att].blocked = ET_ATT_UNBLOCKED;
-                if (status == ETIMEDOUT) {
-                    et_llist_unlock(pl);
-                    return ET_ERROR_TIMEOUT;
-                }
-                else if (status != 0) {
-                    /* Most likely a bad value for the time.
-                     * Don't abort, simply return an error.
-                     */
-                    if (id->debug >= ET_DEBUG_ERROR) {
-                        et_logmsg("ERROR", "et_station_nread, pthread_cond_timedwait error\n");
-                    }
-                    return ET_ERROR;
-                }
-                if (sys->attach[att].quit == ET_ATT_QUIT) {
-                    if (id->debug >= ET_DEBUG_WARN) {
-                        et_logmsg("WARN", "et_station_nread, quitting\n");
-                    }
-                    et_llist_unlock(pl);
-                    sys->attach[att].quit = ET_ATT_CONTINUE;
-                    return ET_ERROR_WAKEUP;
-                }
-            }
-        }
-        else if (mode == ET_ASYNC) {
-            status = pthread_mutex_trylock(&pl->mutex);
-            if (status == EBUSY) {
-                return ET_ERROR_BUSY;
-            }
-            else if (status !=0) {
-                err_abort(status, "Failed llist trylock");
-            }
-            if (sys->attach[att].quit == ET_ATT_QUIT) {
-                if (id->debug >= ET_DEBUG_WARN) {
-                    et_logmsg("WARN", "et_station_nread, quitting\n");
-                }
-                et_llist_unlock(pl);
-                sys->attach[att].quit = ET_ATT_CONTINUE;
-                return ET_ERROR_WAKEUP;
-            }
-            if (stat_id == ET_GRANDCENTRAL) {
-                *(id->histogram + pl->cnt) += 1 ;
-            }
-            if (pl->cnt < 1) {
-                et_llist_unlock(pl);
-                return ET_ERROR_EMPTY;
-            }
-        }
-        else {
-            if (id->debug >= ET_DEBUG_ERROR) {
-                et_logmsg("ERROR", "et_station_nread, bad mode argument\n");
-            }
-            return ET_ERROR;
-        }
-
-        if (num > pl->cnt) {
-            num = pl->cnt;
-        }
-/*         
-        printf("_grp existing list (%d), grab %d:\n", pl->cnt, group);
-        if (pl->cnt != 0) {
-            pev  = ET_PEVENT2USR(pl->firstevent, id->offset);
-            next = ET_PEVENT2USR(pev->next, id->offset);
-            printf("pe[0] = %p(%d), next = %p\n", pev, pev->group, next);
-            for(i=1; i < pl->cnt ; i++) {
-                pev = next;
-                next = ET_PEVENT2USR(pev->next, id->offset);
-                printf("pe[%d] = %p(%d), next = %p\n", i, pev, pev->group, next);
-            }
-        }
-        else {
-            printf ("none\n");
-        }
-*/       
-        /* info for fixing broken input list */
-        ps->fix.in.num   = num;
-        ps->fix.in.cnt   = pl->cnt;
-        ps->fix.in.call  = ET_FIX_READ;
-        ps->fix.in.first = pl->firstevent;
-        
-        index = 0;
-        prev  = NULL;
-        pev   = ET_PEVENT2USR(pl->firstevent, id->offset);
-        
-        for (i=0; i < pl->cnt; i++) {
-/*printf("Start i=%d, ",i);*/
-            if (pev->group != group) {
-                prev = pev;
-/*printf("group of ev(%d) doesn't match (%d), pev = %p, ", pev->group, group, pev);*/
-                pev = ET_PEVENT2USR(pev->next, id->offset);
-/*printf("next ev = %p, continue\n", pev);*/
-                continue;
-            }
-/*printf("group of ev(%d) matches (%d), pev = %p, ", pev->group, group, pev);*/
-            pe[index++] = pev;
-            pev->owner  = att;
-            if (prev == NULL) {
-                pl->firstevent = pev->next;
-/*printf("first ev = %p, ", ET_PEVENT2USR(pev->next, id->offset));*/
-            }
-            else {
-                prev->next = pev->next;
-/*printf("prev->next = %p, ", ET_PEVENT2USR(pev->next, id->offset));*/
-            }
-            /* if we grabbed the last event in the list, reset last item pointer */
-            if (pl->lastevent == ET_PEVENT2ET(pev, id->offset)) {
-/*printf("last event = %p, ", prev);*/
-                pl->lastevent = ET_PEVENT2ET(prev, id->offset);
-            }
-/*printf("index = %d, num = %d, ", index, num);*/
-            if (index >= num) {
-                if (index == pl->cnt) {
-                    pl->firstevent = NULL;
-                    pl->lastevent  = NULL;
-                }
-                break;
-            }
-            pev = ET_PEVENT2USR(pev->next, id->offset);       
-/*printf("next ev = %p, to next i\n", pev);*/
-        }
-
-        pl->cnt -= index;
-        ps->fix.in.first = NULL;
-        oldCount = pl->cnt;
-/*
-        printf("_grp final list (%d):\n", pl->cnt);
-        if (pl->cnt != 0) {
-            pev  = ET_PEVENT2USR(pl->firstevent, id->offset);
-            next = ET_PEVENT2USR(pev->next, id->offset);
-            printf("pe[0] = %p(%d), next = %p\n", pev, pev->group, next);
-            for(i=1; i < pl->cnt ; i++) {
-                pev = next;
-                next = ET_PEVENT2USR(pev->next, id->offset);
-                printf("pe[%d] = %p(%d), next = %p\n", i, pev, pev->group, next);
-            }
-        }
-        else {
-            printf ("none\n");
-        }
-*/              
-        et_llist_unlock(pl);
-/*if (index == 0 && mode != ET_ASYNC) {
-    printf("Try again, pl->cnt = %d, oldCount = %d\n", pl->cnt, oldCount);
-}*/
-        firstTimeThru = 0;
-
-        /* If we got nothing and we're ET_SLEEP or ET_TIMED, then try again */
-    } while (index == 0 && mode != ET_ASYNC);
-
-    *nread = index;
-    return ET_OK;
-}
 
 /**
  * This routine reads a number of entries from a station's input list.
@@ -1390,7 +1168,7 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
     et_system *sys = id->sys;
     et_station *ps = id->stats + stat_id;
     et_list    *pl = &ps->list_in;
-    int i, status, oldCount, index, firstTimeThru=1;
+    int i, status, oldCount, index, scanList=1;
 
     *nread = 0;
 
@@ -1402,10 +1180,10 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
         if (mode == ET_SLEEP) {
             et_llist_lock(pl);
             /* if getting new event(s), histogram # of events in input list */
-            if (stat_id == ET_GRANDCENTRAL && firstTimeThru) {
+            if (stat_id == ET_GRANDCENTRAL && scanList) {
                 *(id->histogram + pl->cnt) += 1 ;
             }
-            while (pl->cnt < 1) {
+            while (pl->cnt < 1 || !scanList) {
                 sys->attach[att].blocked = ET_ATT_BLOCKED;
                 status = pthread_cond_wait(&pl->cread, &pl->mutex);
                 sys->attach[att].blocked = ET_ATT_UNBLOCKED;
@@ -1420,14 +1198,15 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
                     sys->attach[att].quit = ET_ATT_CONTINUE;
                     return ET_ERROR_WAKEUP;
                 }
+                scanList = 1;
             }
         }
         else if (mode == ET_TIMED) {
             et_llist_lock(pl);
-            if (stat_id == ET_GRANDCENTRAL && firstTimeThru) {
+            if (stat_id == ET_GRANDCENTRAL && scanList) {
                 *(id->histogram + pl->cnt) += 1 ;
             }
-            while (pl->cnt < 1) {
+            while (pl->cnt < 1 || !scanList) {
                 sys->attach[att].blocked = ET_ATT_BLOCKED;
                 status = pthread_cond_timedwait(&pl->cread, &pl->mutex, time);
                 sys->attach[att].blocked = ET_ATT_UNBLOCKED;
@@ -1452,6 +1231,7 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
                     sys->attach[att].quit = ET_ATT_CONTINUE;
                     return ET_ERROR_WAKEUP;
                 }
+                scanList = 1;
             }
         }
         else if (mode == ET_ASYNC) {
@@ -1526,7 +1306,7 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
         oldCount = pl->cnt;
 
         et_llist_unlock(pl);
-        firstTimeThru = 0;
+        scanList = 0;
 
         /* If we got nothing and we're ET_SLEEP or ET_TIMED, then try again */
     } while (index == 0 && mode != ET_ASYNC);
