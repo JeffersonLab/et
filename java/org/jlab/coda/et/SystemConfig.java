@@ -195,6 +195,7 @@ public class SystemConfig {
       throw new EtException("must have 1 or more events");
     }
     numEvents = num;
+    if (groups.length ==1) groups[0] = num;
   }
 
   /** Sets the event size in bytes.
