@@ -222,7 +222,7 @@ class ClientThread extends Thread {
       int command;
       Event[] evs = null;
       HashMap<Integer, AttachmentLocal> attachments =
-              new HashMap<Integer, AttachmentLocal>(sys.config.attachmentsMax + 1, 1);
+              new HashMap<Integer, AttachmentLocal>(sys.config.attachmentsMax + 1);
       // buffer for sending events to users
       byte[] buffer = new byte[65535];
       // buffer for reading command parameters (6 ints worth)
@@ -885,7 +885,7 @@ class ClientThread extends Thread {
                           long id    = in.readLong();
 
                           AttachmentLocal att = attachments.get(new Integer(attId));
-                          Event ev = (Event) sys.events.get(new Long(id));
+                          Event ev = sys.events.get(id);
                           Event[] evArray = new Event[1];
                           evArray[0] = ev;
                           sys.dumpEvents(att, evArray);
@@ -1176,7 +1176,7 @@ class ClientThread extends Thread {
                           sys.detach(att);
 
                           // keep track of all detachments locally
-                          attachments.remove(new Integer(att.id));
+                          attachments.remove(att.id);
                           out.writeInt(ok);
                           out.flush();
                       }
@@ -1667,6 +1667,7 @@ class ClientThread extends Thread {
       // will not be asking for or processing any more events.
 
       for (Entry<Integer, AttachmentLocal> entry : attachments.entrySet()) {
+          //System.out.println("Detaching from attachment key = " + entry.getKey());
           sys.detach(entry.getValue());
       }
 
