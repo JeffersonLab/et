@@ -16,7 +16,6 @@ package org.jlab.coda.et;
 
 import java.lang.*;
 import java.util.*;
-import java.util.Map.*;
 import java.io.*;
 import java.net.*;
 
@@ -342,7 +341,13 @@ public class SystemUse {
 	     (config.restoreMode == Constants.stationRestoreIn)  ||
 	     (config.prescale    != 1))) {
       
-      throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, nonBlocking, prescale=1, & not restoreIn\n");
+      throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, nonBlocking, prescale=1, & not restoreIn");
+    }
+
+    // If redistributing restored events, must be a parallel station
+    if ((config.restoreMode == Constants.stationRestoreRedist) &&
+        (config.flowMode    != Constants.stationParallel)) {
+        throw new EtException("if restoreMode = restoreRedist, station must be parallel");
     }
 
     if (config.cue > sys.numEvents) {
@@ -1525,6 +1530,32 @@ public class SystemUse {
 
 
 
+    /**
+     * Put events into an ET system.
+     *
+     * @param att    attachment object
+     * @param evs    array of event objects
+     * @param offset offset into array
+     * @param length number of array elements to put
+     *
+     * @exception java.io.IOException
+     *     if problems with network comunications
+     * @exception org.jlab.coda.et.EtException
+     *     if events are not owned by this attachment or the attachment object
+     *     is invalid; if offset and/or length arg is not valid
+     */
+    public void putEvents(Attachment att, Event[] evs, int offset, int length)
+                        throws IOException, EtException {
+
+        if (offset < 0 || length < 0 || offset + length > evs.length) {
+            throw new EtException("Bad offset or length argument(s)");
+        }
+        List<Event> l = Arrays.asList(evs);
+        putEvents(att, l.subList(offset, offset+length-1));
+    }
+
+
+
   /**
    * Put events into an ET system.
    *
@@ -1617,6 +1648,31 @@ public class SystemUse {
                         throws IOException, EtException {
         List<Event> l = Arrays.asList(evs);
         dumpEvents(att, l);
+    }
+
+
+    /**
+     * Dispose of unwanted events in an ET system. The events are recycled and not
+     * made available to any other user.
+     *
+     * @param att    attachment object
+     * @param evs    array of event objects
+     * @param offset offset into array
+     * @param length number of array elements to put
+     *
+     * @exception java.io.IOException
+     *     if problems with network comunications
+     * @exception org.jlab.coda.et.EtException
+     *     if events are not owned by this attachment or the attachment object
+     *     is invalid; if offset and/or length arg is not valid
+     */
+    public void dumpEvents(Attachment att, Event[] evs, int offset, int length)
+                        throws IOException, EtException {
+        if (offset < 0 || length < 0 || offset + length > evs.length) {
+            throw new EtException("Bad offset or length argument(s)");
+        }
+        List<Event> l = Arrays.asList(evs);
+        dumpEvents(att, l.subList(offset, offset+length-1));
     }
 
 
