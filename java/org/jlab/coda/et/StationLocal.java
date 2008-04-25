@@ -644,7 +644,6 @@ private void shellSort(int n, int[] a, int[] b) {
                                     getListSize = getList.size();
                                     if (currentStat.config.prescale == 1) {
                                         writeAll = true;
-                                        inList.eventsTry += getListSize;
                                     }
                                     else {
                                         prescale = currentStat.config.prescale;
@@ -652,8 +651,8 @@ private void shellSort(int n, int[] a, int[] b) {
                                         subList = getList.subList(0, (int) ((listTry + getListSize) / prescale - listTry / prescale));
                                         putList.addAll(subList);
                                         subList.clear();
-                                        inList.eventsTry += getListSize;
                                     }
+                                    inList.eventsTry += getListSize;
                                 }
 
                                 // all events, nonblocking
