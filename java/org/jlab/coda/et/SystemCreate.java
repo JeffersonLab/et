@@ -16,7 +16,6 @@ package org.jlab.coda.et;
 
 import java.lang.*;
 import java.util.*;
-import java.util.Map.*;
 import java.io.*;
 import java.net.*;
 
@@ -208,7 +207,7 @@ public class SystemCreate {
 
       eventList.add(ev);
       // add to hashTable for future easy access
-      events.put(new Long(ev.id), ev);
+      events.put(ev.id, ev);
     }
 
     gcStation.inputList.putInLow(eventList);
@@ -486,7 +485,7 @@ public class SystemCreate {
   int getStationPosition(int statId) throws EtException {
       // GrandCentral is always first
       if (statId == 0) return 0;
-      int position = 1;
+      int position = 0;
 
       synchronized (stationLock) {
           for (StationLocal stat : stations) {
@@ -674,7 +673,7 @@ public class SystemCreate {
    */
   AttachmentLocal attach(int statId) throws EtException, EtTooManyException {
 
-      AttachmentLocal att = null;
+      AttachmentLocal att;
       synchronized (stationLock) {
           StationLocal station = stationIdToObject(statId);
 
@@ -701,7 +700,7 @@ public class SystemCreate {
                   search:
                   for (int i = 0; i < attachments.size() + 1; i++) {
                       for (Integer j : attachments.keySet()) {
-                          if (j.intValue() == i) continue search;
+                          if (j == i) continue search;
                       }
                       // only get down here if "i" is not a used id number
                       att.id = i;
@@ -710,7 +709,7 @@ public class SystemCreate {
               }
               //att.status = Constants.attActive;
 //System.out.println("attach att #" + att.id + " will put into system's map");
-              attachments.put(new Integer(att.id), att);
+              attachments.put(att.id, att);
           }
 
           // keep att stats in station too?
@@ -731,20 +730,40 @@ public class SystemCreate {
    * @param att   attachment object
    */
   void detach(AttachmentLocal att) {
+//System.out.println("detach: IN");
         synchronized (stationLock) {
             // if last attachment & not GrandCentral - mark station idle
             if ((att.station.attachments.size() == 1) && (att.station.id != 0)) {
-//System.out.println("detach att #" + att.id + " and make idle");
+//System.out.println("detach: att #" + att.id + " and make idle");
                 // att.station.status = Constants.stationIdle;
                 // change station status - first grabbing stopTransfer mutexes
                 gcStation.changeStationStatus(att.station, Constants.stationIdle);
                 // give other threads a chance to finish putting events in
                 Thread.yield();
                 // flush any remaining events
-                try {
-                    putEvents(att, getEvents(att, Constants.async, 0, config.numEvents));
+                if (att.station.config.getRestoreMode() == Constants.stationRestoreRedist) {
+                    // send to output list of previous station
+                    try {
+                        int pos = getStationPosition(att.station.id);
+                        if (--pos < 0) return;
+                        StationLocal prevStat = stations.get(pos);
+                        try {
+                            moveEvents(prevStat.outputList, Arrays.asList(getEvents(att, Constants.async, 0, config.numEvents)));
+                        }
+                        catch (Exception e) {
+                        }
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                        return;
+                    }
                 }
-                catch (Exception ex) {
+                else {
+                    // send to output list
+                    try {
+                        putEvents(att, getEvents(att, Constants.async, 0, config.numEvents));
+                    }
+                    catch (Exception ex) { }
                 }
             }
 //System.out.println("detach att #" + att.id + " remove from station map");
@@ -800,12 +819,12 @@ public class SystemCreate {
       }
 
       if (newEvs.size() > 0) {
-//System.out.println("dump " + newEvs.size() + "new events");
+//System.out.println("dump " + newEvs.size() + " new events");
           dumpEvents(att, newEvs);
       }
 
       if (usedEvs.size() > 0) {
-//System.out.println("restore " + usedEvs.size() + "used events");
+//System.out.println("restore " + usedEvs.size() + " used events");
           // if normal events are to be returned to GrandCentral
           if ((att.station.config.restoreMode == Constants.stationRestoreGC) ||
                   (att.station.id == 0)) {
@@ -829,24 +848,42 @@ public class SystemCreate {
               // Statistics don't get messed up here.
               if (att.station.config.blockMode == Constants.stationBlocking) {
 //System.out.println("restore used events to input list of blocking station");
-                  att.station.inputList.put(usedEvs);
+                  moveEvents(att.station.inputList, usedEvs);
               }
               // Else if nonblocking there may not be enough room.
               // Equivalent to putting events back into the station's inputList
               // is to put them into the previous station' outputList and letting
               // its conductor thread do the work - which is easy to program.
-              // This has the unfortunate side effect of slightly messing
-              // up the statistics as some events are now counted twice.
-              // So on second thought we won't do this.
+              // This has the unfortunate side effect of probably messing
+              // up the statistics as some events may be counted twice.
               else {
-                  // find previous station
-                  int index = stations.indexOf(att.station) - 1;
-                  if (index < 0) return;
-                  StationLocal stat = (StationLocal) stations.get(index);
-
+                  try {
+                      // Find previous station
+                      int pos = getStationPosition(att.station.id);
+                      if (--pos < 0) return;
+                      StationLocal prevStat = stations.get(pos);
+                      moveEvents(prevStat.outputList, usedEvs);
+                  }
+                  catch (EtException e) { return; }
 //System.out.println("restore used events to input list of nonblocking station");
-//	    stat.outputList.put(usedEvs);
               }
+          }
+          else if (att.station.config.restoreMode == Constants.stationRestoreRedist) {
+              // Put events into the previous station's outputList and let its
+              // conductor thread do the work - redistributing them to the members
+              // of the parallel station group.
+              // This has the unfortunate side effect of probably messing
+              // up the statistics as some events may be counted twice.
+              try {
+//System.out.println("TRY to restore used events to output list of previous station");
+                  int pos = getStationPosition(att.station.id);
+                  if (--pos < 0) return;
+                  StationLocal prevStat = stations.get(pos);
+//System.out.println("Found previous station -> " + prevStat.name + ", putting " + usedEvs.size() + " number of events");
+                  moveEvents(prevStat.outputList, usedEvs);
+              }
+              catch (Exception e) { return; }
+//System.out.println("DID restore used events to output list of previous station");
           }
       }
       return;
@@ -885,10 +922,6 @@ public class SystemCreate {
                     throws EtEmptyException, EtBusyException,
                            EtTimeoutException, EtWakeUpException {
 
-    // if mutex to get method already grabbed & async mode ...
-    if ((gcStation.inputList.locked) && (mode == Constants.async)) {
-      throw new EtBusyException("input list is busy");
-    }
 //System.out.println("newEvents: get " + count + " events");
 
     // get events from GrandCentral Station's output list
@@ -950,10 +983,6 @@ public class SystemCreate {
                       throws EtException, EtEmptyException, EtBusyException,
                              EtTimeoutException, EtWakeUpException {
 
-      // if mutex to get method already grabbed & async mode ...
-      if ((gcStation.inputList.locked) && (mode == Constants.async)) {
-        throw new EtBusyException("input list is busy");
-      }
 //System.out.println("newEvents: try getting " + count + " events of group # " + group);
       // check to see if value of group is meaningful
       if (group > config.groups.length) {
@@ -1015,11 +1044,6 @@ public class SystemCreate {
                       throws EtEmptyException, EtBusyException,
                              EtTimeoutException, EtWakeUpException {
 
-    // if mutex to get method already grabbed & async mode ...
-    if ((att.station.inputList.locked) && (mode == Constants.async)) {
-      throw new EtBusyException("input list is busy");
-    }
-
     Event[] evs = att.station.inputList.get(att, mode, microSec, count);
 
     // each event is registered as owned by this attachment
@@ -1036,26 +1060,50 @@ public class SystemCreate {
 
 
   /**
-   * Put events into an ET system.
+   * Place events into a station's input or output list.
+   * Used when moving events stranded at a station due to
+   * the last attachment having crashed. Does not change statistics.
    *
-   * @param att          attachment object
-   * @param eventArray   array of event objects
+   * @param list        station's input or output list into which events are placed
+   * @param eventList   list of event objects
    *
    */
-  void putEvents(AttachmentLocal att, Event[] eventArray) {
+  private void moveEvents(EventList list, List<Event> eventList) {
     // mark events as used and as owned by system
-    for (Event ev : eventArray) {
-//System.out.println("putEvents: set age & owner of event " + i);
+    for (Event ev : eventList) {
       ev.age   = Constants.eventUsed;
       ev.owner = Constants.system;
     }
 
-    att.station.outputList.put(eventArray);
-    // keep track of # of events put by this attachment
-    att.eventsPut += eventArray.length;
+    list.putReverse(eventList);
 
     return;
   }
+
+
+
+
+    /**
+     * Put events into an ET system.
+     *
+     * @param att          attachment object
+     * @param eventArray   array of event objects
+     *
+     */
+    void putEvents(AttachmentLocal att, Event[] eventArray) {
+      // mark events as used and as owned by system
+      for (Event ev : eventArray) {
+//System.out.println("putEvents: set age & owner of event " + i);
+        ev.age   = Constants.eventUsed;
+        ev.owner = Constants.system;
+      }
+
+      att.station.outputList.put(eventArray);
+      // keep track of # of events put by this attachment
+      att.eventsPut += eventArray.length;
+
+      return;
+    }
 
 
 
@@ -1274,7 +1322,7 @@ public class SystemCreate {
     totalStringLen += len;
 
     // total data size
-    int byteSize = (int)(4*totalInts + totalStringLen);
+    int byteSize = 4*totalInts + totalStringLen;
 
     // write strings into array
     off += 4;
