@@ -58,18 +58,18 @@ static void station_remove(et_id *etid, et_stat_id stat_id)
     if (ps->prev > -1) {
       /* If it's the only parallel station, remove it as you would any other */
       if (ps->nextparallel < 0) {
-	/* previous station in linked list */
-	previous = etid->grandcentral + ps->prev;
-	/* if we're the tail ... */
-	if (sys->stat_tail == stat_id) {
-	  sys->stat_tail = previous->num;
-	}
-	/* else adjust the next station in the list */
-	else {
-	  next = etid->grandcentral + ps->next;
-	  next->prev = previous->num;
-	}
-	previous->next = ps->next;
+        /* previous station in linked list */
+        previous = etid->grandcentral + ps->prev;
+        /* if we're the tail ... */
+        if (sys->stat_tail == stat_id) {
+          sys->stat_tail = previous->num;
+        }
+        /* else adjust the next station in the list */
+        else {
+          next = etid->grandcentral + ps->next;
+          next->prev = previous->num;
+        }
+        previous->next = ps->next;
       }
       
       /* Else if there's more than 1 parallel station in this group,
@@ -79,19 +79,19 @@ static void station_remove(et_id *etid, et_stat_id stat_id)
       else {
         previous     = etid->grandcentral + ps->prev;
         nextparallel = etid->grandcentral + ps->nextparallel;
-	nextparallel->prev = ps->prev;
-	nextparallel->next = ps->next;
-	nextparallel->prevparallel = -1;
-	/* if the station being removed is the tail ... */
-	if (sys->stat_tail == stat_id) {
-	  sys->stat_tail = nextparallel->num;
-	}
-	/* else adjust the next station in the list */
-	else {
-	  next = etid->grandcentral + ps->next;
-	  next->prev = ps->nextparallel;
-	}
-	previous->next = ps->nextparallel;
+        nextparallel->prev = ps->prev;
+        nextparallel->next = ps->next;
+        nextparallel->prevparallel = -1;
+        /* if the station being removed is the tail ... */
+        if (sys->stat_tail == stat_id) {
+          sys->stat_tail = nextparallel->num;
+        }
+        /* else adjust the next station in the list */
+        else {
+          next = etid->grandcentral + ps->next;
+          next->prev = ps->nextparallel;
+        }
+        previous->next = ps->nextparallel;
       }
     }
     
@@ -101,7 +101,7 @@ static void station_remove(et_id *etid, et_stat_id stat_id)
       /* If we're NOT the end of the parallel list, take care of the next guy */
       if (ps->nextparallel > -1) {
         next = etid->grandcentral + ps->nextparallel;
-	next->prevparallel = previous->num;
+        next->prevparallel = previous->num;
       }
       previous->nextparallel = ps->nextparallel;
       /* If we're the last round-robin station to receive an event,
@@ -164,7 +164,7 @@ static int station_insert(et_id *etid, et_station *ps,
         previous = etid->grandcentral;
       }
       else {
-	previous = etid->grandcentral + next;
+        previous = etid->grandcentral + next;
       }
       next = previous->next;
       if (next > -1) {
@@ -174,68 +174,68 @@ static int station_insert(et_id *etid, et_station *ps,
   
       /* if we reached the end of the linked list, put station on the end */
       if (next < 0) {
-	ps->prev = previous->num;
-	sys->stat_tail = ps->num;
-	previous->next = ps->num;
-	break;
+        ps->prev = previous->num;
+        sys->stat_tail = ps->num;
+        previous->next = ps->num;
+        break;
       }
       
       /* else if this is the position to insert the new station ... */
       else if (counter++ == position) {
         
-	/* If the station in "position" and this station are both parallel ... */
-	if ((ps->config.flow_mode    == ET_STATION_PARALLEL) &&
+        /* If the station in "position" and this station are both parallel ... */
+        if ((ps->config.flow_mode    == ET_STATION_PARALLEL) &&
             (pnext->config.flow_mode == ET_STATION_PARALLEL) &&
-	    (parallelposition != ET_NEWHEAD))  {
+            (parallelposition != ET_NEWHEAD))  {
           
-	  /* If these 2 stations have imcompatible definitions or we're trying to place
-	   * a parallel station in the first (already taken) spot of its group ... */
-	  if (et_station_compare_parallel(etid, &pnext->config, &ps->config) == 0) {
-	    if (etid->debug >= ET_DEBUG_ERROR) {
-	      et_logmsg("ERROR", "station_insert, trying to add incompatible parallel station\n");
-	    }
-	    return ET_ERROR;
-	  }
-	  else if (parallelposition == 0) {
-	    if (etid->debug >= ET_DEBUG_ERROR) {
-	      et_logmsg("ERROR", "station_insert, trying to add parallel station to head of existing parallel group\n");
-	    }
-	    return ET_ERROR;
-	  }
-
-	  /* Add this parallel station in the "parallelposition" slot in the
-	   * parallel linked list or to the end if parallelposition = ET_END.
-	   */
-	  counter = 1;
-	  while (1) {
-	    if (counter == 1) {
-	      parallelStation = pnext;
-	    }
-	    else {
-	      parallelStation = etid->grandcentral + nextparallel;
+          /* If these 2 stations have incompatible definitions or we're trying to place
+           * a parallel station in the first (already taken) spot of its group ... */
+          if (et_station_compare_parallel(etid, &pnext->config, &ps->config) == 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+              et_logmsg("ERROR", "station_insert, trying to add incompatible parallel station\n");
             }
-	    nextparallel = parallelStation->nextparallel;
-	    
-	    if ((counter++ == parallelposition) || (nextparallel < 0)) {
-	      ps->nextparallel = nextparallel;
-	      ps->prevparallel = parallelStation->num;
-	      if (nextparallel > -1) {
-		pstat = etid->grandcentral + nextparallel;
-		pstat->prevparallel = ps->num;
-	      }
- 	      parallelStation->nextparallel = ps->num;
+            return ET_ERROR;
+          }
+          else if (parallelposition == 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+              et_logmsg("ERROR", "station_insert, trying to add parallel station to head of existing parallel group\n");
+            }
+            return ET_ERROR;
+          }
+
+          /* Add this parallel station in the "parallelposition" slot in the
+           * parallel linked list or to the end if parallelposition = ET_END.
+           */
+          counter = 1;
+          while (1) {
+            if (counter == 1) {
+              parallelStation = pnext;
+            }
+            else {
+              parallelStation = etid->grandcentral + nextparallel;
+            }
+            nextparallel = parallelStation->nextparallel;
+            
+            if ((counter++ == parallelposition) || (nextparallel < 0)) {
+              ps->nextparallel = nextparallel;
+              ps->prevparallel = parallelStation->num;
+              if (nextparallel > -1) {
+                pstat = etid->grandcentral + nextparallel;
+                pstat->prevparallel = ps->num;
+              }
+               parallelStation->nextparallel = ps->num;
               return ET_OK;
-	    }
-	  }
-	}
-	else {
-	  ps->next = next;
-	  ps->prev = previous->num;
-	  pnext->prev = ps->num;
-	  previous->next = ps->num;
-	  break;
-	}
-	
+            }
+          }
+        }
+        else {
+          ps->next = next;
+          ps->prev = previous->num;
+          pnext->prev = ps->num;
+          previous->next = ps->num;
+          break;
+        }
+        
       } /* if right place to insert station */
     } /* while(true) */
   } /* else if more than 1 existing station */
@@ -292,24 +292,24 @@ static int station_find(et_id *etid, et_station *ps,
     if (pnext->config.flow_mode == ET_STATION_PARALLEL)  {
       currentParallelPosition = 1;
       while (1) {
-	if (currentParallelPosition == 1) {
-	  parallelStation = pnext;
-	}
-	else {
-	  parallelStation = etid->grandcentral + nextparallel;
+        if (currentParallelPosition == 1) {
+          parallelStation = pnext;
         }
-	
-	if ((nextparallel = parallelStation->nextparallel) < 0) {
-	  break;
-	}
-	pnext = etid->grandcentral + nextparallel;
-	
-	if (pnext == ps) {
+        else {
+          parallelStation = etid->grandcentral + nextparallel;
+        }
+        
+        if ((nextparallel = parallelStation->nextparallel) < 0) {
+          break;
+        }
+        pnext = etid->grandcentral + nextparallel;
+        
+        if (pnext == ps) {
           *position = currentPosition;
           *parallelposition = currentParallelPosition;
-	  return ET_OK;
-	}
-	currentParallelPosition++;
+          return ET_OK;
+        }
+        currentParallelPosition++;
       }
     }
 
@@ -450,22 +450,22 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
           (ps->config.prescale     == sc->prescale) &&
           (ps->config.cue          == sc->cue)) {
 
-	int equal=1;
-	for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
-	  equal = equal && (ps->config.select[i] == sc->select[i]); 
-	}
-	if (ps->config.select_mode == ET_STATION_SELECT_USER) {
-	  equal = 0;
-	}
-	
-	if (equal == 1) {
-	  /* station definitions are the same, so return ET_OK */
+        int equal=1;
+        for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
+          equal = equal && (ps->config.select[i] == sc->select[i]); 
+        }
+        if (ps->config.select_mode == ET_STATION_SELECT_USER) {
+          equal = 0;
+        }
+        
+        if (equal == 1) {
+          /* station definitions are the same, so return ET_OK */
           et_station_unlock(sys);
           if (p_auto_station) {
             et_station_config_destroy(p_auto_station);
           }
-	  return ET_OK;
-	}
+          return ET_OK;
+        }
       }
     }
     et_station_unlock(sys);

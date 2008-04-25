@@ -41,6 +41,8 @@ static int et_llist_put(et_id *id, et_list *pl, et_event **pe, int num);
 static int et_repair_outputlist(et_id *id, et_stat_id stat_id);
 static int et_repair_inputlist(et_id *id, et_stat_id stat_id);
 static int et_repair_gcinputlist(et_id *id);
+static int et_restore(et_id *id, et_list *pl, et_event **pe,
+                      int num, int *numwritten);
 static int et_restore_in(et_id *id, et_station *ps, et_event **pe,
                          int num, int *numwritten);
 
@@ -1670,7 +1672,6 @@ static int et_restore_in(et_id *id, et_station *ps, et_event **pe,
     return ET_ERROR;
   }
   
-
   if (num > (nevents_max - pl->cnt)) {
     num = nevents_max - pl->cnt;
   }
@@ -1804,6 +1805,168 @@ static int et_restore_in(et_id *id, et_station *ps, et_event **pe,
 }
 
 /*****************************************************
+ * This routine is only (meant to be) used in et_restore_events.
+ * Et_restore_events generates a list of "lost" events that need
+ * to be recovered. This routine does put high priority events first,
+ * but does not guarantee that events are in their original order.
+ * This routine is used for restoring events back a station's
+ * input or output list.
+ *****************************************************/
+static int et_restore(et_id *id, et_list *pl, et_event **pe,
+                      int num, int *numwritten)
+{
+  et_event *plasthigh=NULL, *pfirst, *plast, *pfirstlow=NULL;
+  int i, j=0, status, num_high=1, high_cnt=0;
+  int nevents_max = id->sys->config.nevents;
+  
+  et_llist_lock(pl);
+  
+  if (pl->cnt >= nevents_max) {
+    et_llist_unlock(pl);
+    if (id->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "et_llist_restore_in, list already full\n");
+    }
+    return ET_ERROR;
+  }
+  
+  if (num > (nevents_max - pl->cnt)) {
+    num = nevents_max - pl->cnt;
+  }
+  
+  /* find last high & first low priority events already in list */
+  if (pl->cnt != 0) {
+    plasthigh = NULL;
+    pfirstlow = ET_PEVENT2USR(pl->firstevent, id->offset);
+    for(i=0; i < pl->cnt ;i++) {
+      if (pfirstlow->priority == ET_HIGH) {
+        plasthigh = pfirstlow;
+        pfirstlow = ET_PEVENT2USR(pfirstlow->next, id->offset);
+        /* count # of ET_HIGH pri events already in list */
+        high_cnt++; 
+        continue;
+      }
+      else {
+        break;
+      }
+    }
+    if (high_cnt == pl->cnt) {
+      pfirstlow = NULL;
+    }
+  }
+  
+  /* change the owner to the system */
+  for (i=0; i < num ; i++) {
+    pe[i]->owner = ET_SYS;
+  }  
+    
+  /* no events currently in list - put them in "as is" */
+  if (pl->cnt == 0) {
+    for (i=1; i < num ; i++) {
+      pe[i-1]->next = ET_PEVENT2ET(pe[i], id->offset);
+    }
+    pl->firstevent = ET_PEVENT2ET(pe[0], id->offset);
+    pl->lastevent  = ET_PEVENT2ET(pe[num-1], id->offset);
+  }
+  
+  /* if only ET_LOW pri events to be added ... */
+  else if (pe[0]->priority == ET_LOW) {
+    plast  = ET_PEVENT2USR(pl->lastevent, id->offset);
+    pfirst = pl->firstevent;
+
+    /* string lows together */
+    for (i=1; i < num ; i++) {
+      pe[i-1]->next = ET_PEVENT2ET(pe[i], id->offset);
+    }
+    
+    if (pfirstlow == NULL) {
+        /* tack 'em on the end since no lows already in list */
+        plast->next   = ET_PEVENT2ET(pe[0], id->offset);
+        pl->lastevent = ET_PEVENT2ET(pe[num-1], id->offset);
+    }
+    else {
+        /* put 'em before existing lows but after highs */
+        if (plasthigh != NULL) {
+          /* if highs already exist in list */
+          plasthigh->next = ET_PEVENT2ET(pe[0], id->offset);
+        }
+        else {
+          pl->firstevent = ET_PEVENT2ET(pe[0], id->offset);
+        }
+        pe[num-1]->next = ET_PEVENT2ET(pfirstlow, id->offset);
+    }
+   
+  }
+  
+  /* if any ET_HIGH pri events (pl->cnt != 0) ... */
+  else {
+    /*
+     * we want to put hi pri items before all existing items and
+     * low pri items after hi pri but before other low pri items.
+     */
+     
+    /* put high pri item before all others */
+    plast  = ET_PEVENT2USR(pl->lastevent, id->offset);
+    pfirst = pl->firstevent;
+    pe[0]->next = pl->firstevent;
+    pl->firstevent = ET_PEVENT2ET(pe[0], id->offset);
+
+    /* add rest of high pri items */
+    for (i=1; i < num ; i++) {
+      if (pe[i]->priority != ET_HIGH) {
+        break;
+      }
+      pe[i-1]->next = ET_PEVENT2ET(pe[i], id->offset);
+      pe[i]->next   = pfirst;
+      num_high++;
+    }
+   
+    /* rest are low pri, add after high */
+    if (num_high < num) {
+      /* string lows together */
+      for (j=num_high+1; j < num ; j++) {
+        pe[j-1]->next = ET_PEVENT2ET(pe[j], id->offset);
+      }
+      if (pfirstlow == NULL) {
+        /* tack 'em on the end since no lows already in list */
+        plast->next   = ET_PEVENT2ET(pe[num_high], id->offset);
+        pl->lastevent = ET_PEVENT2ET(pe[num-1], id->offset);
+      }
+      else {
+        /* put 'em before existing lows but after highs */
+        if (plasthigh != NULL) {
+          /* if highs already exist in list */
+          plasthigh->next = ET_PEVENT2ET(pe[num_high], id->offset);
+        }
+        else {
+          pe[num_high-1]->next = ET_PEVENT2ET(pe[num_high], id->offset);
+        }
+        pe[num-1]->next = ET_PEVENT2ET(pfirstlow, id->offset);
+      }
+    }
+  }
+  
+  /* Don't count these additions as its their second time
+   * being put into this station's list - 1/12/2001 Timmer
+   */  
+  /* pl->events_in = pl->events_in + num;*/
+  pl->cnt += num;
+  
+  et_llist_unlock(pl);
+  
+  /* signal reader(s) that events are here */
+  status = pthread_cond_broadcast(&pl->cread);
+  if (status != 0) {
+    err_abort(status, "et_llist_restore_in");
+  }
+  
+  if (numwritten != NULL) {
+    *numwritten = num;
+  }
+  
+  return ET_OK;
+}
+
+/*****************************************************
  * Move events from station's list_in to list_out. This
  * routine is only called when no processes are attached
  * to the station being flushed.
@@ -1818,6 +1981,7 @@ static int et_restore_in(et_id *id, et_station *ps, et_event **pe,
 void et_flush_events(et_id *id, et_att_id att, et_stat_id stat_id)
 {
   int numread, status, nevents_max = id->sys->config.nevents;
+  et_station *ps = id->stats + stat_id;
   et_event **pe;
 
   if (stat_id == ET_GRANDCENTRAL) {
@@ -1832,35 +1996,78 @@ void et_flush_events(et_id *id, et_att_id att, et_stat_id stat_id)
     return;
   }
   
-  /* Use value of attachment (att) that is in the process of detaching.
+  /* Read in the events from the input list of this station.
+   * Use value of attachment (att) that is in the process of detaching.
    * Thus, if a crash occurs in the middle of this routine, the events
    * will later be recovered by the ET system's call to et_restore_events.
    */
   status = et_station_nread(id, stat_id, pe, ET_ASYNC, att, NULL, nevents_max, &numread);
   if (status < 0) {
-    if ((status != ET_ERROR_EMPTY) && (id->debug >= ET_DEBUG_ERROR)) {
-      et_logmsg("ERROR", "et_flush_events, cannot read events from input list\n");
-    }
-    free(pe);
-    return;
+      if ((status != ET_ERROR_EMPTY) && (id->debug >= ET_DEBUG_ERROR)) {
+          et_logmsg("ERROR", "et_flush_events, cannot read events from input list\n");
+      }
+      free(pe);
+      return;
   }
   else {
-    if (id->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_flush_events, read %d events\n", numread);
-    }
+      if (id->debug >= ET_DEBUG_INFO) {
+          et_logmsg("INFO", "et_flush_events, read %d events\n", numread);
+      }
   }
-    
-  status = et_station_nwrite(id, stat_id, pe, numread);
-  if (status < 0) {
-    if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_flush_events, cannot write events to output list\n");
-    }
+
+  /* If we're dealing with parallel stations redistributing events while restoring,
+   * move them from the station's input list to the previous station's output list,
+   * else move events from the station's input list to its output list.
+   */
+  if (ps->config.restore_mode == ET_STATION_RESTORE_REDIST) {
+      et_station *firstParallel, *prev;
+      et_list *pl;
+
+      /* Find the previous station by finding the first parallel station
+       * in this group. The station before that in the main linked list
+       * will our "prev" station.
+       */
+      firstParallel = ps;
+      while (firstParallel->prevparallel > -1) {
+          firstParallel = id->grandcentral + firstParallel->prevparallel;
+      }
+      prev = id->grandcentral + firstParallel->prev;
+
+      /* get its output list */
+      pl = &prev->list_out;
+
+      /* Just write events into the previous station's output list.
+       * Statistics of this station may get messed up a bit if
+       * events end up coming thru a second time. Oh well.
+       * 4/21/2008 - Timmer
+       */
+      status = et_restore(id, pl, pe, numread, NULL);
+      if (status < 0) {
+          if (id->debug >= ET_DEBUG_ERROR) {
+              et_logmsg("ERROR", "et_flush_events, cannot write events to output list\n");
+          }
+      }
+      else {
+          if (id->debug >= ET_DEBUG_INFO) {
+              et_logmsg("INFO", "et_flush_events, wrote %d events to %s's output list\n",
+                      numread, prev->name);
+          }
+      }
   }
   else {
-    if (id->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_flush_events, wrote %d events\n", numread);
-    }
+      status = et_station_nwrite(id, stat_id, pe, numread);
+      if (status < 0) {
+          if (id->debug >= ET_DEBUG_ERROR) {
+              et_logmsg("ERROR", "et_flush_events, cannot write events to output list\n");
+          }
+      }
+      else {
+          if (id->debug >= ET_DEBUG_INFO) {
+              et_logmsg("INFO", "et_flush_events, wrote %d events\n", numread);
+          }
+      }
   }
+
   
   free(pe);
   return;
@@ -2092,7 +2299,7 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
        * station was blocking and if so only do the et_station_nwrite.
        * 1/12/2001 - Timmer
        */
-      status = et_restore_in(id, ps, ordered, num_events, &num_written);
+      status = et_restore(id, &(ps->list_in), ordered, num_events, &num_written);
       if (id->debug >= ET_DEBUG_INFO) {
         et_logmsg("INFO", "et_restore_events, restored %d events to %s's input list\n",
                   num_written, ps->name);
@@ -2107,6 +2314,53 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
       }
     }
     
+    /* If events are to be redistributed between a set of parallel stations ... */
+    else if (mode == ET_STATION_RESTORE_REDIST) {
+      
+        et_station *firstParallel, *prev;
+        et_list *pl;
+
+        /* unmap mem of temp events if I'm the user that mapped it */
+        if (id->cleanup != 1) {
+            for (i=0; i < num_events ; i++) {
+                if (ordered[i]->temp == ET_EVENT_TEMP) {
+                    munmap(ordered[i]->pdata, (size_t) ordered[i]->memsize);
+                    if (id->debug >= ET_DEBUG_INFO) {
+                        et_logmsg("INFO", "et_restore_events, unmap tmp event %s\n",
+                                ordered[i]->filename);
+                    }
+                }
+            }
+        }
+        for (i=0; i < num_events ; i++) {
+            ordered[i]->datastatus = ET_DATA_POSSIBLY_CORRUPT;
+        }
+
+        /* Find the previous station by finding the first parallel station
+         * in this group. The station before that in the main linked list
+         * will our "prev" station.
+         */
+        firstParallel = ps;
+        while (firstParallel->prevparallel > -1) {
+            firstParallel = id->grandcentral + firstParallel->prevparallel;
+        }
+        prev = id->grandcentral + firstParallel->prev;
+
+        /* get its output list */
+        pl = &prev->list_out;
+
+        /* Just write events into the previous station's output list.
+         * Statistics of this station may get messed up a bit if
+         * events end up coming thru a second time. Oh well.
+         * 4/21/2008 - Timmer
+         */
+        status = et_restore(id, pl, ordered, num_events, NULL);
+        if (id->debug >= ET_DEBUG_INFO) {
+            et_logmsg("INFO", "et_restore_events, restored %d events to %s's output list\n",
+                    num_written, prev->name);
+        }
+    }
+
     else {
       status = ET_ERROR;
     }

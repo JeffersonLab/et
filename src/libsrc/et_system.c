@@ -1930,9 +1930,11 @@ static void *et_conductor(void *arg)
         events_left = events_total;
 
         /* reinit items to track events being put */
+        /*
         for (i=0; i < events_total ; i++) {
             event_put[i] = 0;
-        }
+        }*/
+        memset((void *)event_put, 0, events_total*sizeof(int));
         firstimethruloop = 1;
         writeall = 0;
 

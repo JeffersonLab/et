@@ -6,7 +6,7 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
  *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
@@ -14,8 +14,8 @@
  *
  * Description:
  *      Routines for TCP and UDP "servers". Threads that listen on UDP sockets
- *	for users trying to find ET systems. Threads for establishing TCP
- *	communications with remote users.
+ *        for users trying to find ET systems. Threads for establishing TCP
+ *        communications with remote users.
  *
  *----------------------------------------------------------------------------*/
 
@@ -39,12 +39,12 @@
 
 /* Info passed to each thread serving a network ET client connection */
 typedef struct et_threadinfo_t {
-  int    connfd;	/* socket connection's fd */
-  int    endian;	/* endian of server */
-  int    endian_client;	/* endian of client */
-  int    iov_max;	/* max iov structs for writev */
+  int    connfd;        /* socket connection's fd */
+  int    endian;        /* endian of server */
+  int    endian_client; /* endian of client */
+  int    iov_max;       /* max iov structs for writev */
   int    bit64;         /* is client 64 bit? (1-y, 0-n) */
-  et_id  *id;		/* for passing info on system running server */
+  et_id  *id;           /* for passing info on system running server */
 } et_threadinfo;
 
 /* prototypes */
@@ -62,7 +62,7 @@ static void  et_command_loop(et_threadinfo *info);
  ************************************************************/
 void *et_cast_thread(void *arg)
 {
-  et_netthread	  *threadarg = (et_netthread *) arg;
+  et_netthread    *threadarg = (et_netthread *) arg;
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
   int             i=0;
@@ -152,7 +152,7 @@ void *et_cast_thread(void *arg)
 /************************************************************/
 static void *et_listen_thread(void *arg)
 {
-  et_netthread	     *threadarg  = (et_netthread *) arg;
+  et_netthread       *threadarg  = (et_netthread *) arg;
   et_sys_config      *config     = threadarg->config;
   et_id              *etid       = threadarg->id;
   int                cast        = threadarg->cast;
@@ -165,7 +165,7 @@ static void *et_listen_thread(void *arg)
   uint32_t           netint;
   size_t             bufsize;
   char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+4];
-  char	             filename[ET_FILENAME_LENGTH];
+  char               filename[ET_FILENAME_LENGTH];
   socklen_t          slen;
   struct sockaddr_in cliaddr;
 #ifdef sun
@@ -246,7 +246,7 @@ static void *et_listen_thread(void *arg)
         strcmp(pinfo[i].broadcast, listenaddr) != 0)  {
 /*printf("et_listen_thread: broadcast addr %s of IP addr #%d, does NOT match our listening addr %s, so skip it\n",
         pinfo[i].broadcast, i, listenaddr);*/
-      continue;
+        continue;
     }
 
     if (debug)
@@ -256,19 +256,19 @@ static void *et_listen_thread(void *arg)
     nameCount += 1 + pinfo[i].aliasCount;
     if (debug)
       printf("et_listen_thread: number of names = %d\n", nameCount);
-    bufsize += 2*sizeof(int) + strlen(pinfo[i].canon) + 1;
-    for (j=0; j < pinfo[i].aliasCount; j++) {
-      bufsize += 2*sizeof(int) + strlen(pinfo[i].aliases[j]) + 1;
+      bufsize += 2*sizeof(int) + strlen(pinfo[i].canon) + 1;
+      for (j=0; j < pinfo[i].aliasCount; j++) {
+        bufsize += 2*sizeof(int) + strlen(pinfo[i].aliases[j]) + 1;
+      }
     }
-  }
     
-  /* allocate packet's buffer */
-  if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
-    if (etid->debug >= ET_DEBUG_SEVERE) {
-      et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
+    /* allocate packet's buffer */
+    if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
+      if (etid->debug >= ET_DEBUG_SEVERE) {
+        et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
+      }
+      exit(1);
     }
-    exit(1);
-  }
    
   /* ******************** */
   /* put data into buffer */
@@ -367,7 +367,7 @@ static void *et_listen_thread(void *arg)
 
     /* read incoming data */
     nbytes = recvfrom(sockfd, (void *) inbuf, ET_FILENAME_LENGTH+4,
-    			   0, (SA *) &cliaddr, &slen);
+                               0, (SA *) &cliaddr, &slen);
     if (nbytes < 0) {
       if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_listen_thread: error in recvfrom\n");
@@ -418,13 +418,13 @@ static void *et_listen_thread(void *arg)
  **************************************************************/
 void *et_netserver(void *arg)
 {
-  et_netthread	  *threadarg = (et_netthread *) arg;
+  et_netthread    *threadarg = (et_netthread *) arg;
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
   int             listenfd=0, endian, iov_max, debug=0;
   int             i, port=0, trylimit=2000;
   struct sockaddr_in cliaddr;
-  socklen_t	  addrlen, len;
+  socklen_t       addrlen, len;
   pthread_t       tid;
   pthread_attr_t  attr;
   /* pointer to information to be passed to threads */
@@ -445,7 +445,7 @@ void *et_netserver(void *arg)
     iov_max = ET_IOV_MAX;
   }
 #else
-	iov_max = ET_IOV_MAX;
+        iov_max = ET_IOV_MAX;
 #endif
   /* get thread attribute ready */
   pthread_attr_init(&attr);
@@ -458,7 +458,7 @@ void *et_netserver(void *arg)
     listenfd = et_tcp_listen((unsigned short)config->serverport);
     if (listenfd < 0) {
       if (etid->debug >= ET_DEBUG_SEVERE) {
-	et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
+        et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
       }
       exit(1);
     }
@@ -469,14 +469,14 @@ void *et_netserver(void *arg)
     for (i=0; i < trylimit; i++) {
       listenfd = et_tcp_listen((unsigned short) (ET_SERVER_PORT+i));
       if (listenfd < 0) {
-	if (etid->debug >= ET_DEBUG_INFO) {
-	  et_logmsg("INFO", "et_netserver: tried but could not listen on port %d\n", ET_SERVER_PORT+i);
-	}
-	continue;
+        if (etid->debug >= ET_DEBUG_INFO) {
+          et_logmsg("INFO", "et_netserver: tried but could not listen on port %d\n", ET_SERVER_PORT+i);
+        }
+        continue;
       }
       else {
-	port = ET_SERVER_PORT+i;
-	break;
+        port = ET_SERVER_PORT+i;
+        break;
       }
     }
   }
@@ -639,9 +639,9 @@ static void *et_client_thread(void *arg)
     if (err == ET_ERROR) {
       err = htonl(err);
       if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
-	if (etid->debug >= ET_DEBUG_ERROR) {
-	  et_logmsg("ERROR", "et_client_thread: write failure\n");
-	}
+        if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_client_thread: write failure\n");
+        }
       }
     }
     close(connfd);
@@ -748,9 +748,9 @@ static void et_command_loop(et_threadinfo *info)
         case  ET_NET_EV_GET_L:
         {
           et_att_id  att;
-	  int wait, incoming[4], transfer[3];
-	  struct timespec deltatime;
-	  et_event *event;
+          int wait, incoming[4], transfer[3];
+          struct timespec deltatime;
+          et_event *event;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -759,82 +759,82 @@ static void et_command_loop(et_threadinfo *info)
           att  = incoming[0];
           wait = incoming[1];
 
-	  if (wait == ET_TIMED) {
+          if (wait == ET_TIMED) {
             deltatime.tv_sec  = incoming[2];
             deltatime.tv_nsec = incoming[3];
             err = et_event_get(id, att, &event, wait, &deltatime);
-	  }
-	  else if (wait == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for another event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_event_get,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_event_get.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
+          }
+          else if (wait == ET_SLEEP) {
+            /* There's a problem if we have a remote client that is waiting
+             * for another event by sleeping and the events stop flowing. In
+             * that case, the client can be killed and the ET system does NOT
+             * know about it. Since this thread will be stuck in et_event_get,
+             * it will not immediately detect the break in the socket - at least
+             * not until event start flowing again. To circumvent this, implement
+             * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+             * detection of broken socket between calls to et_event_get.
+             */
+            struct timeval timeout;
+            fd_set myset;
             etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+            FD_ZERO(&myset);
+            err = ET_ERROR_TIMEOUT;
 
             /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
+            deltatime.tv_sec  = 3;
             deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
+            while (err == ET_ERROR_TIMEOUT) {
+              /* Linux modifies timeout, so reset each round */
+              timeout.tv_sec  = 0;
+              timeout.tv_usec = 0;
+              FD_SET(connfd, &myset);
 
               /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                   etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_event_get(id, att, &event, ET_TIMED, &deltatime);
+                  err = ET_ERROR_WAKEUP;
+                  break;
+              }
+              
+              err = et_event_get(id, att, &event, ET_TIMED, &deltatime);
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              /* Async call to select to see if this socket is still open.
+               * Ready to read only if socket error in this case.
+               */
+              if (err == ET_ERROR_TIMEOUT) {
+                if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                  goto end;
+                }
+              }
+              else {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                 etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	      
-	    }
-	  }
-	  else {
-	    err = et_event_get(id, att, &event, wait, NULL);
-	  }
+              }
+              
+            }
+          }
+          else {
+            err = et_event_get(id, att, &event, wait, NULL);
+          }
 
-	  transfer[0] = err;
-	  transfer[1] = ET_HIGHINT((uintptr_t) event);
-	  transfer[2] = ET_LOWINT((uintptr_t) event);
+          transfer[0] = err;
+          transfer[1] = ET_HIGHINT((uintptr_t) event);
+          transfer[2] = ET_LOWINT((uintptr_t) event);
 
-	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EVS_GET_L:
         {
           et_att_id  att;
-	  int wait, num, nevents, incoming[5];
+          int wait, num, nevents, incoming[5];
           struct iovec iov[2];
-	  struct timespec deltatime;
+          struct timespec deltatime;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -843,94 +843,94 @@ static void et_command_loop(et_threadinfo *info)
           wait = incoming[1];
           num  = incoming[2];
 
-	  if (wait == ET_TIMED) {
+          if (wait == ET_TIMED) {
             deltatime.tv_sec  = incoming[3];
             deltatime.tv_nsec = incoming[4];
-	    err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
-	  }
-	  else if (wait == ET_SLEEP) {
-	    /* There's a problem if we have a Linux client that is waiting
-	     * for another event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_events_get,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_events_get.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
+            err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
+          }
+          else if (wait == ET_SLEEP) {
+            /* There's a problem if we have a Linux client that is waiting
+             * for another event by sleeping and the events stop flowing. In
+             * that case, the client can be killed and the ET system does NOT
+             * know about it. Since this thread will be stuck in et_events_get,
+             * it will not immediately detect the break in the socket - at least
+             * not until event start flowing again. To circumvent this, implement
+             * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+             * detection of broken socket between calls to et_events_get.
+             */
+            struct timeval timeout;
+            fd_set myset;
             etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+            FD_ZERO(&myset);
+            err = ET_ERROR_TIMEOUT;
 
             /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
+            deltatime.tv_sec  = 3;
             deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
+            while (err == ET_ERROR_TIMEOUT) {
+              /* Linux modifies timeout, so reset each round */
+              timeout.tv_sec  = 0;
+              timeout.tv_usec = 0;
+              FD_SET(connfd, &myset);
 
               /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                   etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_events_get(id, att, events, ET_TIMED, &deltatime, num, &nevents);
+                  err = ET_ERROR_WAKEUP;
+                  break;
+              }
+              
+              err = et_events_get(id, att, events, ET_TIMED, &deltatime, num, &nevents);
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              /* Async call to select to see if this socket is still open.
+               * Ready to read only if socket error in this case.
+               */
+              if (err == ET_ERROR_TIMEOUT) {
+                if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                  goto end;
+                }
+              }
+              else {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                 etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_events_get(id, att, events, wait, NULL, num, &nevents);
-	  }
+              }
+            }
+          }
+          else {
+            err = et_events_get(id, att, events, wait, NULL, num, &nevents);
+          }
 
-	  if (err < 0) {
-	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (err < 0) {
+            if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
-	    break;
-	  }
+            break;
+          }
 
-	  iov[0].iov_base = (void *) &nevents;
-	  iov[0].iov_len  = sizeof(nevents);
-	  iov[1].iov_base = (void *) events;
-	  iov[1].iov_len  = nevents*sizeof(et_event *);
+          iov[0].iov_base = (void *) &nevents;
+          iov[0].iov_len  = sizeof(nevents);
+          iov[1].iov_base = (void *) events;
+          iov[1].iov_len  = nevents*sizeof(et_event *);
 
-	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
+          if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
             goto end;
-	  }
-	}
-	break;
+          }
+        }
+        break;
 
         case  ET_NET_EV_PUT_L:
         {
-	  int incoming[3];
-	  et_event    *pe;
+          int incoming[3];
+          et_event    *pe;
           et_att_id   att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
+          }
 
-	  att = incoming[0];
+          att = incoming[0];
   /* Pointers (may be 64 bits) are in ET system space and must be translated.
    * The following ifdef avoids compiler warnings.
    */
@@ -940,46 +940,46 @@ static void et_command_loop(et_threadinfo *info)
           pe  = (et_event *) incoming[2];
 #endif
           
-	  err = et_event_put(id, att, pe);
+          err = et_event_put(id, att, pe);
 
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EVS_PUT_L:
-	{
-	  int       nevents, incoming[2];
+        {
+          int       nevents, incoming[2];
           size_t    len;
           et_att_id att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
-	  att     = incoming[0];
-	  nevents = incoming[1];
-	  len = nevents*sizeof(et_event *);
+          }
+          att     = incoming[0];
+          nevents = incoming[1];
+          len = nevents*sizeof(et_event *);
 
-	  if (et_tcp_read(connfd, (void *) events, len) != len) {
+          if (et_tcp_read(connfd, (void *) events, len) != len) {
             goto end;
-	  }
+          }
 
-	  err = et_events_put(id, att, events, nevents);
+          err = et_events_put(id, att, events, nevents);
 
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EV_NEW_L:
         {
           et_att_id  att;
-	  int mode, incoming[6], transfer[3];
+          int mode, incoming[6], transfer[3];
           size_t size;
-	  struct timespec deltatime;
-	  et_event *event;
+          struct timespec deltatime;
+          et_event *event;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -987,76 +987,76 @@ static void et_command_loop(et_threadinfo *info)
 
           att  = incoming[0];
           mode = incoming[1];
-	  size = ET_64BIT_UINT(incoming[2], incoming[3]);
+          size = ET_64BIT_UINT(incoming[2], incoming[3]);
 
-	  if (mode == ET_TIMED) {
+          if (mode == ET_TIMED) {
             deltatime.tv_sec  = incoming[4];
             deltatime.tv_nsec = incoming[5];
             err = et_event_new(id, att, &event, mode, &deltatime, size);
-	  }
-	  else if (mode == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for a new event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_event_new,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_event_new.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
+          }
+          else if (mode == ET_SLEEP) {
+            /* There's a problem if we have a remote client that is waiting
+             * for a new event by sleeping and the events stop flowing. In
+             * that case, the client can be killed and the ET system does NOT
+             * know about it. Since this thread will be stuck in et_event_new,
+             * it will not immediately detect the break in the socket - at least
+             * not until event start flowing again. To circumvent this, implement
+             * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+             * detection of broken socket between calls to et_event_new.
+             */
+            struct timeval timeout;
+            fd_set myset;
             etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+            FD_ZERO(&myset);
+            err = ET_ERROR_TIMEOUT;
 
             /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
+            deltatime.tv_sec  = 3;
             deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
+            while (err == ET_ERROR_TIMEOUT) {
+              /* Linux modifies timeout, so reset each round */
+              timeout.tv_sec  = 0;
+              timeout.tv_usec = 0;
+              FD_SET(connfd, &myset);
 
               /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                   etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_event_new(id, att, &event, ET_TIMED, &deltatime, size);
+                  err = ET_ERROR_WAKEUP;
+                  break;
+              }
+              
+              err = et_event_new(id, att, &event, ET_TIMED, &deltatime, size);
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              /* Async call to select to see if this socket is still open.
+               * Ready to read only if socket error in this case.
+               */
+              if (err == ET_ERROR_TIMEOUT) {
+                if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                  goto end;
+                }
+              }
+              else {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                 etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_event_new(id, att, &event, mode, NULL, size);
-	  }
+              }
+            }
+          }
+          else {
+            err = et_event_new(id, att, &event, mode, NULL, size);
+          }
 
-	  transfer[0] = err;
-	  transfer[1] = ET_HIGHINT((uintptr_t) event);
-	  transfer[2] = ET_LOWINT((uintptr_t) event);
+          transfer[0] = err;
+          transfer[1] = ET_HIGHINT((uintptr_t) event);
+          transfer[2] = ET_LOWINT((uintptr_t) event);
 
-	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EVS_NEW_L:
         {
@@ -1243,15 +1243,15 @@ static void et_command_loop(et_threadinfo *info)
 
         case  ET_NET_EV_DUMP_L:
         {
-	  int incoming[3];
-	  et_event    *pe;
+          int incoming[3];
+          et_event    *pe;
           et_att_id   att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
+          }
 
-	  att = incoming[0];
+          att = incoming[0];
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
            */
@@ -1261,46 +1261,46 @@ static void et_command_loop(et_threadinfo *info)
           pe  = (et_event *) incoming[2];
 #endif
 
-	  err = et_event_dump(id, att, pe);
+          err = et_event_dump(id, att, pe);
 
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EVS_DUMP_L:
-	{
-	  int       nevents, incoming[2];
+        {
+          int       nevents, incoming[2];
           size_t    len;
           et_att_id att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
-	  att     = incoming[0];
-	  nevents = incoming[1];
-	  len = nevents*sizeof(et_event *);
+          }
+          att     = incoming[0];
+          nevents = incoming[1];
+          len = nevents*sizeof(et_event *);
 
-	  if (et_tcp_read(connfd, (void *) events, len) != len) {
+          if (et_tcp_read(connfd, (void *) events, len) != len) {
             goto end;
-	  }
+          }
 
-	  err = et_events_dump(id, att, events, nevents);
+          err = et_events_dump(id, att, events, nevents);
 
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EV_GET:
         {
           et_att_id  att;
-	  int i, wait, modify, dumpEvents, incoming[5], header[10+ET_STATION_SELECT_INTS];
-	  struct timespec deltatime;
+          int i, wait, modify, dumpEvents, incoming[5], header[10+ET_STATION_SELECT_INTS];
+          struct timespec deltatime;
           struct iovec iov[2];
-	  et_event *event;
+          et_event *event;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -1309,148 +1309,148 @@ static void et_command_loop(et_threadinfo *info)
           wait   = ntohl(incoming[1]);
           modify = ntohl(incoming[2]);
           
-	  /* Do we put or dump events back into ET system? */
-	  dumpEvents = modify & ET_DUMP;
-	  /* Are we going to modify the event or its header remotely? */
+          /* Do we put or dump events back into ET system? */
+          dumpEvents = modify & ET_DUMP;
+          /* Are we going to modify the event or its header remotely? */
           modify &= (ET_MODIFY | ET_MODIFY_HEADER);
-	  
-	  if (wait == ET_TIMED) {
+          
+          if (wait == ET_TIMED) {
             deltatime.tv_sec  = ntohl(incoming[3]);
             deltatime.tv_nsec = ntohl(incoming[4]);
             err = et_event_get(id, att, &event, wait, &deltatime);
-	  }
-	  else if (wait == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for another event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_event_get,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until events start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_event_get.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
+          }
+          else if (wait == ET_SLEEP) {
+            /* There's a problem if we have a remote client that is waiting
+             * for another event by sleeping and the events stop flowing. In
+             * that case, the client can be killed and the ET system does NOT
+             * know about it. Since this thread will be stuck in et_event_get,
+             * it will not immediately detect the break in the socket - at least
+             * not until events start flowing again. To circumvent this, implement
+             * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+             * detection of broken socket between calls to et_event_get.
+             */
+            struct timeval timeout;
+            fd_set myset;
             etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+            FD_ZERO(&myset);
+            err = ET_ERROR_TIMEOUT;
 
             /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
+            deltatime.tv_sec  = 3;
             deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
+            while (err == ET_ERROR_TIMEOUT) {
+              /* Linux modifies timeout, so reset each round */
+              timeout.tv_sec  = 0;
+              timeout.tv_usec = 0;
+              FD_SET(connfd, &myset);
 
               /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                   etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_event_get(id, att, &event, ET_TIMED, &deltatime);
+                  err = ET_ERROR_WAKEUP;
+                  break;
+              }
+              
+              err = et_event_get(id, att, &event, ET_TIMED, &deltatime);
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              /* Async call to select to see if this socket is still open.
+               * Ready to read only if socket error in this case.
+               */
+              if (err == ET_ERROR_TIMEOUT) {
+                if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                  goto end;
+                }
+              }
+              else {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                 etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_event_get(id, att, &event, wait, NULL);
-	  }
+              }
+            }
+          }
+          else {
+            err = et_event_get(id, att, &event, wait, NULL);
+          }
           
-	  header[0] = htonl(err);
-	  if (err < ET_OK) {
-	    if (et_tcp_write(connfd, (void *) header, sizeof(header[0])) != sizeof(header[0])) {
+          header[0] = htonl(err);
+          if (err < ET_OK) {
+            if (et_tcp_write(connfd, (void *) header, sizeof(header[0])) != sizeof(header[0])) {
               goto end;
             }
-	    break;
-	  }
+            break;
+          }
           
           /* if we're 64 bit & client is 32 bit, don't send event that's too big */
 #ifdef _LP64
           if (!bit64 && event->length > UINT32_MAX/5) {
             
             /* we got an event but it's too big so put/dump it back */
-	    if (dumpEvents) {
-	      et_event_dump(id, att, event);
-	    }
-	    else {
-	      et_event_put(id, att, event);
-	    }
+            if (dumpEvents) {
+              et_event_dump(id, att, event);
+            }
+            else {
+              et_event_put(id, att, event);
+            }
             
-	    err = htonl(ET_ERROR_TOOBIG);
-	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+            err = htonl(ET_ERROR_TOOBIG);
+            if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
             
-	    break;
+            break;
           }
 #endif
           
-	  /* keep track of how this event is to be modified */
-	  event->modify = modify;
+          /* keep track of how this event is to be modified */
+          event->modify = modify;
 
           header[1] = htonl(ET_HIGHINT(event->length));
           header[2] = htonl(ET_LOWINT(event->length));
           header[3] = htonl(ET_HIGHINT(event->memsize));
           header[4] = htonl(ET_LOWINT(event->memsize));
-	  /* send the priority & datastatus together and save space */
-	  header[5] = htonl(event->priority |
-			    event->datastatus << ET_DATA_SHIFT);
+          /* send the priority & datastatus together and save space */
+          header[5] = htonl(event->priority |
+                            event->datastatus << ET_DATA_SHIFT);
           header[6] = htonl(ET_HIGHINT((uintptr_t)event));
           header[7] = htonl(ET_LOWINT((uintptr_t)event));
-	  header[8] = event->byteorder;
-	  header[9] = 0; /* not used */
-	  for (i=0; i < ET_STATION_SELECT_INTS; i++) {
-	    header[i+10] = htonl(event->control[i]);
-	  }
+          header[8] = event->byteorder;
+          header[9] = 0; /* not used */
+          for (i=0; i < ET_STATION_SELECT_INTS; i++) {
+            header[i+10] = htonl(event->control[i]);
+          }
 
-	  iov[0].iov_base = (void *) header;
-	  iov[0].iov_len  = sizeof(header);
-	  iov[1].iov_base = event->pdata;
-	  iov[1].iov_len  = event->length;
+          iov[0].iov_base = (void *) header;
+          iov[0].iov_len  = sizeof(header);
+          iov[1].iov_base = event->pdata;
+          iov[1].iov_len  = event->length;
 
-	  /* write data */
-	  if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
+          /* write data */
+          if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
             goto end;
-	  }
+          }
 
-	  if (modify == 0) {
-	    if (dumpEvents) {
-	      et_event_dump(id, att, event);
-	    }
-	    else {
-	      et_event_put(id, att, event);
-	    }
-	  }
-	}
-	break;
+          if (modify == 0) {
+            if (dumpEvents) {
+              et_event_dump(id, att, event);
+            }
+            else {
+              et_event_put(id, att, event);
+            }
+          }
+        }
+        break;
 
         case  ET_NET_EVS_GET:
         {
           et_att_id  att;
-	  int i, j, wait, num, modify, nevents, index, dumpEvents;
+          int i, j, wait, num, modify, nevents, index, dumpEvents;
           size_t size, headersize;
 #ifdef _LP64
           uint64_t lengthSum = 0ULL;
 #endif
-	  int incoming[6], outgoing[3];
-	  struct timespec deltatime;
+          int incoming[6], outgoing[3];
+          struct timespec deltatime;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -1459,77 +1459,77 @@ static void et_command_loop(et_threadinfo *info)
           wait   = ntohl(incoming[1]);
           modify = ntohl(incoming[2]);
           num    = ntohl(incoming[3]);
-	  /* Do we put or dump events back into ET system? */
-	  dumpEvents = modify & ET_DUMP;
-	  /* Are we going to modify the event or its header remotely? */
+          /* Do we put or dump events back into ET system? */
+          dumpEvents = modify & ET_DUMP;
+          /* Are we going to modify the event or its header remotely? */
           modify &= (ET_MODIFY | ET_MODIFY_HEADER);
 
-	  if (wait == ET_TIMED) {
+          if (wait == ET_TIMED) {
             deltatime.tv_sec  = ntohl(incoming[4]);
             deltatime.tv_nsec = ntohl(incoming[5]);
-	    err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
-	  }
-	  else if (wait == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for another event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_events_get,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until event start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_events_get.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
+            err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
+          }
+          else if (wait == ET_SLEEP) {
+            /* There's a problem if we have a remote client that is waiting
+             * for another event by sleeping and the events stop flowing. In
+             * that case, the client can be killed and the ET system does NOT
+             * know about it. Since this thread will be stuck in et_events_get,
+             * it will not immediately detect the break in the socket - at least
+             * not until event start flowing again. To circumvent this, implement
+             * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+             * detection of broken socket between calls to et_events_get.
+             */
+            struct timeval timeout;
+            fd_set myset;
             etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+            FD_ZERO(&myset);
+            err = ET_ERROR_TIMEOUT;
 
             /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
+            deltatime.tv_sec  = 3;
             deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
-	      
+            while (err == ET_ERROR_TIMEOUT) {
+              /* Linux modifies timeout, so reset each round */
+              timeout.tv_sec  = 0;
+              timeout.tv_usec = 0;
+              FD_SET(connfd, &myset);
+              
               /* before waiting 3 sec in "get", check here if we're to wake up */
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                   etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_events_get(id, att, events, ET_TIMED, &deltatime, num, &nevents);
+                  err = ET_ERROR_WAKEUP;
+                  break;
+              }
+              
+              err = et_events_get(id, att, events, ET_TIMED, &deltatime, num, &nevents);
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              /* Async call to select to see if this socket is still open.
+               * Ready to read only if socket error in this case.
+               */
+              if (err == ET_ERROR_TIMEOUT) {
+                if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                  goto end;
+                }
+              }
+              else {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                 etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_events_get(id, att, events, wait, NULL, num, &nevents);
-	  }
+              }
+            }
+          }
+          else {
+            err = et_events_get(id, att, events, wait, NULL, num, &nevents);
+          }
 
-	  if (err != ET_OK) {
-	    err = htonl(err);
-	    if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (err != ET_OK) {
+            err = htonl(err);
+            if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
-	    break;
-	  }
+            break;
+          }
 
          /* if we're 64 bit & client is 32 bit, don't send event that's too big */
 #ifdef _LP64
@@ -1538,17 +1538,17 @@ static void et_command_loop(et_threadinfo *info)
               lengthSum += events[i]->length;
               
               if (lengthSum > UINT32_MAX/5) {
-	        
+                
                  /* we got some events but they're too big so put/dump 'em back */
-	        if (dumpEvents) {
-	          et_events_dump(id, att, events, nevents);
-	        }
-	        else {
-	          et_events_put(id, att, events, nevents);
-	        }
+                if (dumpEvents) {
+                  et_events_dump(id, att, events, nevents);
+                }
+                else {
+                  et_events_put(id, att, events, nevents);
+                }
 
-	        err = htonl(ET_ERROR_TOOBIG);
-	        if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+                err = htonl(ET_ERROR_TOOBIG);
+                if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
                   goto end;
                 }
                 
@@ -1560,28 +1560,28 @@ static void et_command_loop(et_threadinfo *info)
 #endif
           
           headersize = sizeof(int)*(9+ET_STATION_SELECT_INTS);
-	  size = nevents*headersize;
+          size = nevents*headersize;
           for (j=0; j < nevents; j++) {
             size += events[j]->length;
           }
 
-	  outgoing[0] = htonl(nevents);
+          outgoing[0] = htonl(nevents);
           outgoing[1] = htonl(ET_HIGHINT(size));
           outgoing[2] = htonl(ET_LOWINT(size));
-	  iov[0].iov_base = (void *) outgoing;
-	  iov[0].iov_len  = sizeof(outgoing);
-	  index=0;
+          iov[0].iov_base = (void *) outgoing;
+          iov[0].iov_len  = sizeof(outgoing);
+          index=0;
 
-	  for (i=0; i < nevents; i++) {
-	    /* keep track of how this event is to be modified */
-	    events[i]->modify = modify;
+          for (i=0; i < nevents; i++) {
+            /* keep track of how this event is to be modified */
+            events[i]->modify = modify;
             header[index]   = htonl(ET_HIGHINT(events[i]->length));
             header[index+1] = htonl(ET_LOWINT(events[i]->length));
             
             header[index+2] = htonl(ET_HIGHINT(events[i]->memsize));
             header[index+3] = htonl(ET_LOWINT(events[i]->memsize));
-	    header[index+4] = htonl(events[i]->priority |
-				    events[i]->datastatus << ET_DATA_SHIFT);
+            header[index+4] = htonl(events[i]->priority |
+                                    events[i]->datastatus << ET_DATA_SHIFT);
 /*printf("Event %d: len = %llu, memsize = %llu\n", i, events[i]->length,  events[i]->memsize);*/
                                     
 /*printf("Get %p, high = %x, low = %x\n", events[i],
@@ -1589,44 +1589,44 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 */
             header[index+5] = htonl(ET_HIGHINT((uintptr_t)events[i]));
             header[index+6] = htonl(ET_LOWINT((uintptr_t)events[i]));
-	    header[index+7] = events[i]->byteorder;
-	    header[index+8] = 0; /* not used */
-	    for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-	      header[index+9+j] = htonl(events[i]->control[j]);
-	    }
-	    iov[2*i+1].iov_base = (void *) &header[index];
-	    iov[2*i+1].iov_len  = headersize;
-	    iov[2*i+2].iov_base = events[i]->pdata;
-	    iov[2*i+2].iov_len  = events[i]->length;
-	    index += (9+ET_STATION_SELECT_INTS);
-	  }
+            header[index+7] = events[i]->byteorder;
+            header[index+8] = 0; /* not used */
+            for (j=0; j < ET_STATION_SELECT_INTS; j++) {
+              header[index+9+j] = htonl(events[i]->control[j]);
+            }
+            iov[2*i+1].iov_base = (void *) &header[index];
+            iov[2*i+1].iov_len  = headersize;
+            iov[2*i+2].iov_base = events[i]->pdata;
+            iov[2*i+2].iov_len  = events[i]->length;
+            index += (9+ET_STATION_SELECT_INTS);
+          }
 
-	  if (et_tcp_writev(connfd, iov, 2*nevents+1, iov_max) == -1) {
+          if (et_tcp_writev(connfd, iov, 2*nevents+1, iov_max) == -1) {
             goto end;
-	  }
+          }
 
-	  if (modify == 0) {
-	    if (dumpEvents) {
-	      et_events_dump(id, att, events, nevents);
-	    }
-	    else {
-	      et_events_put(id, att, events, nevents);
-	    }
-	  }
-	}
-	break;
+          if (modify == 0) {
+            if (dumpEvents) {
+              et_events_dump(id, att, events, nevents);
+            }
+            else {
+              et_events_put(id, att, events, nevents);
+            }
+          }
+        }
+        break;
 
         case  ET_NET_EV_PUT:
         {
-	  int i, incoming[8+ET_STATION_SELECT_INTS];
-	  et_event    *pe;
+          int i, incoming[8+ET_STATION_SELECT_INTS];
+          et_event    *pe;
           et_att_id   att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
+          }
           
-	  att              = ntohl(incoming[0]);
+          att              = ntohl(incoming[0]);
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
            */
@@ -1636,51 +1636,51 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           pe  = (et_event *) ntohl(incoming[2]);
 #endif
           pe->length       = ET_64BIT_UINT(ntohl(incoming[3]),ntohl(incoming[4]));
-	  pe->priority     = ntohl(incoming[5]) & ET_PRIORITY_MASK;
-	  pe->datastatus   =(ntohl(incoming[5]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
-	  pe->byteorder    = incoming[6];
-	  for (i=0; i < ET_STATION_SELECT_INTS; i++) {
-	    pe->control[i] = ntohl(incoming[i+8]);
-	  }
+          pe->priority     = ntohl(incoming[5]) & ET_PRIORITY_MASK;
+          pe->datastatus   =(ntohl(incoming[5]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
+          pe->byteorder    = incoming[6];
+          for (i=0; i < ET_STATION_SELECT_INTS; i++) {
+            pe->control[i] = ntohl(incoming[i+8]);
+          }
           
-	  /* only read data if modifying everything */
-	  if (pe->modify == ET_MODIFY) {
-	    if (et_tcp_read(connfd, pe->pdata, (size_t)pe->length) != (size_t)pe->length) {
+          /* only read data if modifying everything */
+          if (pe->modify == ET_MODIFY) {
+            if (et_tcp_read(connfd, pe->pdata, (size_t)pe->length) != (size_t)pe->length) {
               goto end;
-	    }
+            }
           }
 
-	  err = et_event_put(id, att, pe);
+          err = et_event_put(id, att, pe);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EVS_PUT:
-	{
-	  int i, j, nevents;
-	  int incoming[4], header[7+ET_STATION_SELECT_INTS];
+        {
+          int i, j, nevents;
+          int incoming[4], header[7+ET_STATION_SELECT_INTS];
           uint64_t size;
           size_t len;
           et_att_id  att;
 
 /*printf("etr_events_put: read incoming array\n");*/
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
-	  att     = ntohl(incoming[0]);
-	  nevents = ntohl(incoming[1]);
+          }
+          att     = ntohl(incoming[0]);
+          nevents = ntohl(incoming[1]);
           size    = ET_64BIT_UINT(ntohl(incoming[2]),ntohl(incoming[3]));
 /*printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, size);*/
 
-	  for (i=0; i < nevents; i++) {
+          for (i=0; i < nevents; i++) {
 /*printf("etr_events_put: i = %d, read in header next, %d ints\n", i, 7+ET_STATION_SELECT_INTS);*/
-	    if (et_tcp_read(connfd, (void *) header, sizeof(header)) != sizeof(header)) {
+            if (et_tcp_read(connfd, (void *) header, sizeof(header)) != sizeof(header)) {
               goto end;
-	    }
+            }
 
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
@@ -1693,37 +1693,37 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 /*printf("etr_events_put: pointer = %p\n", events[i]);*/
             events[i]->length      = ET_64BIT_UINT(ntohl(header[2]),ntohl(header[3]));
             len                    = (size_t)events[i]->length;
-	    events[i]->priority    = ntohl(header[4]) & ET_PRIORITY_MASK;
-	    events[i]->datastatus  =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
-	    events[i]->byteorder   = header[5];
-	    for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-	      events[i]->control[j] = ntohl(header[j+7]);
-	    }
-	    /* only read data if modifying everything */
-	    if (events[i]->modify == ET_MODIFY) {
+            events[i]->priority    = ntohl(header[4]) & ET_PRIORITY_MASK;
+            events[i]->datastatus  =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
+            events[i]->byteorder   = header[5];
+            for (j=0; j < ET_STATION_SELECT_INTS; j++) {
+              events[i]->control[j] = ntohl(header[j+7]);
+            }
+            /* only read data if modifying everything */
+            if (events[i]->modify == ET_MODIFY) {
 /*printf("etr_events_put: read in data next\n");*/
-	      if (et_tcp_read(connfd, events[i]->pdata, len) != len) {
-        	goto end;
-	      }
-	    }
-	  }
+              if (et_tcp_read(connfd, events[i]->pdata, len) != len) {
+                goto end;
+              }
+            }
+          }
 /*printf("etr_events_put: put event for real\n");*/
-	  err = et_events_put(id, att, events, nevents);
+          err = et_events_put(id, att, events, nevents);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EV_NEW:
         {
           et_att_id att;
-	  int mode, incoming[6], transfer[3];
+          int mode, incoming[6], transfer[3];
           uint64_t size;
-	  struct timespec deltatime;
-	  et_event *pe = NULL;
+          struct timespec deltatime;
+          et_event *pe = NULL;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -1731,92 +1731,92 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           att  = ntohl(incoming[0]);
           mode = ntohl(incoming[1]);
-	  size = ET_64BIT_UINT(ntohl(incoming[2]), ntohl(incoming[3]));
+          size = ET_64BIT_UINT(ntohl(incoming[2]), ntohl(incoming[3]));
           
 #ifndef _LP64
           /* if we're 32 bit, an 64 bit app may ask for event which is too big */
           if (bit64 && size > UINT32_MAX/5) {
-	    transfer[0] = htonl(ET_ERROR_TOOBIG);
-	    transfer[1] = 0;
-	    transfer[2] = 0;
+            transfer[0] = htonl(ET_ERROR_TOOBIG);
+            transfer[1] = 0;
+            transfer[2] = 0;
 
-	    if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+            if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
               goto end;
             }
             break;
           }
 #endif
                   
-	  if (mode == ET_TIMED) {
+          if (mode == ET_TIMED) {
             deltatime.tv_sec  = ntohl(incoming[4]);
             deltatime.tv_nsec = ntohl(incoming[5]);
             err = et_event_new(id, att, &pe, mode, &deltatime, size);
-	  }
-	  else if (mode == ET_SLEEP) {
-	    /* There's a problem if we have a remote client that is waiting
-	     * for a new event by sleeping and the events stop flowing. In
-	     * that case, the client can be killed and the ET system does NOT
-	     * know about it. Since this thread will be stuck in et_event_new,
-	     * it will not immediately detect the break in the socket - at least
-	     * not until events start flowing again. To circumvent this, implement
-	     * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
-	     * detection of broken socket between calls to et_event_new.
-	     */
-	    struct timeval timeout;
-	    fd_set myset;
+          }
+          else if (mode == ET_SLEEP) {
+            /* There's a problem if we have a remote client that is waiting
+             * for a new event by sleeping and the events stop flowing. In
+             * that case, the client can be killed and the ET system does NOT
+             * know about it. Since this thread will be stuck in et_event_new,
+             * it will not immediately detect the break in the socket - at least
+             * not until events start flowing again. To circumvent this, implement
+             * ET_SLEEP by repeats of ET_TIMED every couple seconds to allow
+             * detection of broken socket between calls to et_event_new.
+             */
+            struct timeval timeout;
+            fd_set myset;
             etid->sys->attach[att].sleep = ET_ATT_SLEEP;
-	    FD_ZERO(&myset);
-	    err = ET_ERROR_TIMEOUT;
+            FD_ZERO(&myset);
+            err = ET_ERROR_TIMEOUT;
 
             /* 3 second timed wait */
-	    deltatime.tv_sec  = 3;
+            deltatime.tv_sec  = 3;
             deltatime.tv_nsec = 0;
 
-	    while (err == ET_ERROR_TIMEOUT) {
-	      /* Linux modifies timeout, so reset each round */
-	      timeout.tv_sec  = 0;
-	      timeout.tv_usec = 0;
-	      FD_SET(connfd, &myset);
+            while (err == ET_ERROR_TIMEOUT) {
+              /* Linux modifies timeout, so reset each round */
+              timeout.tv_sec  = 0;
+              timeout.tv_usec = 0;
+              FD_SET(connfd, &myset);
 
-	      if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
-	          etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                   etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-		  err = ET_ERROR_WAKEUP;
-		  break;
-	      }
-	      
-	      err = et_event_new(id, att, &pe, ET_TIMED, &deltatime, size);
+                  err = ET_ERROR_WAKEUP;
+                  break;
+              }
+              
+              err = et_event_new(id, att, &pe, ET_TIMED, &deltatime, size);
 
-	      /* Async call to select to see if this socket is still open.
-	       * Ready to read only if socket error in this case.
-	       */
-	      if (err == ET_ERROR_TIMEOUT) {
-		if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
-	          goto end;
-		}
-	      }
-	      else {
-	        etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+              /* Async call to select to see if this socket is still open.
+               * Ready to read only if socket error in this case.
+               */
+              if (err == ET_ERROR_TIMEOUT) {
+                if (select(connfd + 1, &myset, NULL, NULL, &timeout) > 0) {
+                  goto end;
+                }
+              }
+              else {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
                 etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
-	      }
-	    }
-	  }
-	  else {
-	    err = et_event_new(id, att, &pe, mode, NULL, size);
-	  }
-	  /* keep track of how this event is to be modified */
+              }
+            }
+          }
+          else {
+            err = et_event_new(id, att, &pe, mode, NULL, size);
+          }
+          /* keep track of how this event is to be modified */
           if (err == ET_OK) pe->modify = ET_MODIFY;
 
-	  transfer[0] = htonl(err);
-	  transfer[1] = htonl(ET_HIGHINT((uintptr_t) pe));
-	  transfer[2] = htonl(ET_LOWINT((uintptr_t) pe));
+          transfer[0] = htonl(err);
+          transfer[1] = htonl(ET_HIGHINT((uintptr_t) pe));
+          transfer[2] = htonl(ET_LOWINT((uintptr_t) pe));
 
-	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
-	}
+        }
 
-	break;
+        break;
 
         case  ET_NET_EVS_NEW:
         {
@@ -2076,15 +2076,15 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
        case  ET_NET_EV_DUMP:
         {
-	  int incoming[3];
-	  et_event    *pe;
+          int incoming[3];
+          et_event    *pe;
           et_att_id   att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
+          }
 
-	  att = ntohl(incoming[0]);
+          att = ntohl(incoming[0]);
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
            */
@@ -2094,46 +2094,46 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           pe  = (et_event *)ntohl(incoming[2]);
 #endif
 
-	  err = et_event_dump(id, att, pe);
+          err = et_event_dump(id, att, pe);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_EVS_DUMP:
-	{
-	  int i, nevents, incoming[2];
+        {
+          int i, nevents, incoming[2];
           et_att_id  att;
 
-	  if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+          if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
-	  }
-	  att     = ntohl(incoming[0]);
-	  nevents = ntohl(incoming[1]);
+          }
+          att     = ntohl(incoming[0]);
+          nevents = ntohl(incoming[1]);
 
-	  if (et_tcp_read(connfd, (void *) ints64, 2*nevents*sizeof(int)) != 2*nevents*sizeof(int)) {
+          if (et_tcp_read(connfd, (void *) ints64, 2*nevents*sizeof(int)) != 2*nevents*sizeof(int)) {
             goto end;
-	  }
+          }
 
-	  for (i=0; i < nevents; i++) {
+          for (i=0; i < nevents; i++) {
             events[i] = (et_event *) ((uintptr_t) ntoh64(ints64[i]));
-	  }
+          }
 
-	  err = et_events_dump(id, att, events, nevents);
+          err = et_events_dump(id, att, events, nevents);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_ALIVE:
         {
-	  /* we must be alive by definition as this is in the ET process */
+          /* we must be alive by definition as this is in the ET process */
           err = htonl(1);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
@@ -2143,38 +2143,38 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
         case  ET_NET_WAIT:
         {
-	  /* We must be alive by definition as this is in the ET process,
-	   * hence there is no need to call et_wait_for_alive(id)
-	   */
+          /* We must be alive by definition as this is in the ET process,
+           * hence there is no need to call et_wait_for_alive(id)
+           */
           err = htonl(ET_OK);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
+        }
         break;
 
         case  ET_NET_CLOSE:
         case  ET_NET_FCLOSE:
         {
-	  int errnet;
+          int errnet;
 
           errnet = htonl(ET_OK);
           et_tcp_write(connfd, (void *) &errnet, sizeof(errnet));
 
-	  /* detach all attachments */
-	  for (i=0; i <ET_ATTACHMENTS_MAX ; i++) {
-	    if (attaches[i] > -1) {
-	      et_station_detach(id, attaches[i]);
-	    }
-	  }
+          /* detach all attachments */
+          for (i=0; i <ET_ATTACHMENTS_MAX ; i++) {
+            if (attaches[i] > -1) {
+              et_station_detach(id, attaches[i]);
+            }
+          }
 
           if (etid->debug >= ET_DEBUG_INFO) {
               et_logmsg("INFO", "et_command_loop: remote client closing\n");
           }
 
-	  free(iov); free(header); free(histogram); free(events); free(ints64);
-	  return;
- 	}
+          free(iov); free(header); free(histogram); free(events); free(ints64);
+          return;
+         }
         break;
 
         case  ET_NET_WAKE_ATT:
@@ -2187,7 +2187,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           att = ntohl(att);
 
           et_wakeup_attachment(id, att);
-	}
+        }
         break;
 
         case  ET_NET_WAKE_ALL:
@@ -2200,16 +2200,16 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           stat_id = ntohl(stat_id);
 
           et_wakeup_all(id, stat_id);
-	}
+        }
         break;
 
         case  ET_NET_STAT_ATT:
         {
           et_stat_id  stat_id;
           et_att_id   att;
-	  int length, outgoing[2], transfer[3];
-	  char host[ET_MAXHOSTNAMELEN];
-	  pid_t pid;
+          int length, outgoing[2], transfer[3];
+          char host[ET_MAXHOSTNAMELEN];
+          pid_t pid;
 
           if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
@@ -2218,28 +2218,28 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           pid     = ntohl(transfer[1]);
           length  = ntohl(transfer[2]);
 
-	  if (length > 0) {
+          if (length > 0) {
             if (et_tcp_read(connfd, (void *) host, length) != length) {
               goto end;
             }
-	  }
+          }
 
           err = et_station_attach(id, stat_id, &att);
-	  /* keep track of all attachments */
-	  if (err == ET_OK) {
-	    attaches[att] = att;
-	    /*
-	     * Register, in shared memory, that this attachment
-	     * is to a process "pid" running on "host".
-	     */
-	    etid->sys->attach[att].pid = pid;
-	    if (length > 0) {
-	      strcpy(etid->sys->attach[att].host, host);
-	    }
-	  }
+          /* keep track of all attachments */
+          if (err == ET_OK) {
+            attaches[att] = att;
+            /*
+             * Register, in shared memory, that this attachment
+             * is to a process "pid" running on "host".
+             */
+            etid->sys->attach[att].pid = pid;
+            if (length > 0) {
+              strcpy(etid->sys->attach[att].host, host);
+            }
+          }
 
-	  outgoing[0] = htonl(err);
-	  outgoing[1] = htonl(att);
+          outgoing[0] = htonl(err);
+          outgoing[1] = htonl(att);
           if (et_tcp_write(connfd, (void *) outgoing, sizeof(outgoing)) != sizeof(outgoing)) {
             goto end;
           }
@@ -2251,83 +2251,83 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         {
           et_att_id  att;
 
-	  if (et_tcp_read(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
+          if (et_tcp_read(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
             goto end;
           }
           att = ntohl(att);
 
           err = et_station_detach(id, att);
-	  /* keep track of all detachments */
-	  if (err == ET_OK) {
-	    attaches[att] = -1;
-	  }
+          /* keep track of all detachments */
+          if (err == ET_OK) {
+            attaches[att] = -1;
+          }
 
           err = htonl(err);
-	  if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+          if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
 
-	}
-	break;
+        }
+        break;
 
 
         case  ET_NET_STAT_CRAT:
-	{
+        {
           et_stat_config sc;
           et_stat_id     stat_id;
-	  char stat_name[ET_STATNAME_LENGTH];
-	  int incoming[14+ET_STATION_SELECT_INTS], transfer[2];
+          char stat_name[ET_STATNAME_LENGTH];
+          int incoming[14+ET_STATION_SELECT_INTS], transfer[2];
           int i, position, pposition, lengthname, lengthfname, lengthlib, lengthclass;
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
-	  sc.init         = ntohl(incoming[0]);
-	  sc.flow_mode    = ntohl(incoming[1]);
-	  sc.user_mode    = ntohl(incoming[2]);
-	  sc.restore_mode = ntohl(incoming[3]);
-	  sc.block_mode   = ntohl(incoming[4]);
-	  sc.prescale     = ntohl(incoming[5]);
-	  sc.cue          = ntohl(incoming[6]);
-	  sc.select_mode  = ntohl(incoming[7]);
-	  for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
-	    sc.select[i]  = ntohl(incoming[8+i]);
-	  }
-	  lengthfname = ntohl(incoming[8 +ET_STATION_SELECT_INTS]);
-	  lengthlib   = ntohl(incoming[9 +ET_STATION_SELECT_INTS]);
-	  lengthclass = ntohl(incoming[10+ET_STATION_SELECT_INTS]);
-	  lengthname  = ntohl(incoming[11+ET_STATION_SELECT_INTS]);
-	  position    = ntohl(incoming[12+ET_STATION_SELECT_INTS]);
-	  pposition   = ntohl(incoming[13+ET_STATION_SELECT_INTS]);
+          sc.init         = ntohl(incoming[0]);
+          sc.flow_mode    = ntohl(incoming[1]);
+          sc.user_mode    = ntohl(incoming[2]);
+          sc.restore_mode = ntohl(incoming[3]);
+          sc.block_mode   = ntohl(incoming[4]);
+          sc.prescale     = ntohl(incoming[5]);
+          sc.cue          = ntohl(incoming[6]);
+          sc.select_mode  = ntohl(incoming[7]);
+          for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
+            sc.select[i]  = ntohl(incoming[8+i]);
+          }
+          lengthfname = ntohl(incoming[8 +ET_STATION_SELECT_INTS]);
+          lengthlib   = ntohl(incoming[9 +ET_STATION_SELECT_INTS]);
+          lengthclass = ntohl(incoming[10+ET_STATION_SELECT_INTS]);
+          lengthname  = ntohl(incoming[11+ET_STATION_SELECT_INTS]);
+          position    = ntohl(incoming[12+ET_STATION_SELECT_INTS]);
+          pposition   = ntohl(incoming[13+ET_STATION_SELECT_INTS]);
 
-	  if (et_tcp_read(connfd, (void *) sc.fname, lengthfname) != lengthfname) {
-	    goto end;
-	  }
-	  if (et_tcp_read(connfd, (void *) sc.lib, lengthlib) != lengthlib) {
-	    goto end;
-	  }
-	  if (et_tcp_read(connfd, (void *) sc.classs, lengthclass) != lengthclass) {
-	    goto end;
-	  }
+          if (et_tcp_read(connfd, (void *) sc.fname, lengthfname) != lengthfname) {
+            goto end;
+          }
+          if (et_tcp_read(connfd, (void *) sc.lib, lengthlib) != lengthlib) {
+            goto end;
+          }
+          if (et_tcp_read(connfd, (void *) sc.classs, lengthclass) != lengthclass) {
+            goto end;
+          }
           if (et_tcp_read(connfd, (void *) stat_name, lengthname) != lengthname) {
             goto end;
           }
 
           err = et_station_create_at(id, &stat_id, stat_name,
-	                            (et_statconfig) &sc, position, pposition);
+                                    (et_statconfig) &sc, position, pposition);
 
           transfer[0] = htonl(err);
           transfer[1] = htonl(stat_id);
           if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
 
         case  ET_NET_STAT_RM:
-	{
+        {
           et_stat_id stat_id;
 
           if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
@@ -2337,19 +2337,19 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
           err = et_station_remove(id, stat_id);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
            goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_STAT_SPOS:
-	{
+        {
           et_stat_id  stat_id;
           int  position, pposition, transfer[3];
 
-	  if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
           stat_id   = ntohl(transfer[0]);
@@ -2358,41 +2358,41 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
           err = et_station_setposition(id, stat_id, position, pposition);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_STAT_GPOS:
-	{
+        {
           et_stat_id  stat_id;
           int  position, pposition, transfer[3];
 
-	  if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+          if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
-	  }
-	  stat_id = ntohl(stat_id);
+          }
+          stat_id = ntohl(stat_id);
 
           err = et_station_getposition(id, stat_id, &position, &pposition);
 
-	  transfer[0] = htonl(err);
-	  transfer[1] = htonl(position);
-	  transfer[2] = htonl(pposition);
-	  if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          transfer[0] = htonl(err);
+          transfer[1] = htonl(position);
+          transfer[2] = htonl(pposition);
+          if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
-	  }
-	}
-	break;
+          }
+        }
+        break;
 
         case  ET_NET_STAT_ISAT:
-	{
+        {
           et_stat_id  stat_id;
           et_att_id   att;
-	  int  transfer[2];
+          int  transfer[2];
 
-	  if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (et_tcp_read(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
           stat_id = ntohl(transfer[0]);
@@ -2400,18 +2400,18 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
           err = et_station_isattached(id, stat_id, att);
 
-	  err = htonl(err);
+          err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
        case  ET_NET_STAT_EX:
-	{
+        {
           et_stat_id  stat_id;
-	  char stat_name[ET_STATNAME_LENGTH];
-	  int  length, transfer[2];
+          char stat_name[ET_STATNAME_LENGTH];
+          int  length, transfer[2];
 
           if (et_tcp_read(connfd, (void *) &length, sizeof(length)) != sizeof(length)) {
             goto end;
@@ -2423,110 +2423,110 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
           err = et_station_exists(id, &stat_id, stat_name);
 
-	  transfer[0] = htonl(err);
-	  transfer[1] = htonl(stat_id);
+          transfer[0] = htonl(err);
+          transfer[1] = htonl(stat_id);
           if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
         case  ET_NET_STAT_SSW:
-	{
+        {
           et_stat_id  stat_id;
-	  int i, incoming[1+ET_STATION_SELECT_INTS];
+          int i, incoming[1+ET_STATION_SELECT_INTS];
 
           if (et_tcp_read(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
-	  stat_id = ntohl(incoming[0]);
-	  for (i=0 ; i < ET_STATION_SELECT_INTS; i++) {
-	    incoming[i] = ntohl(incoming[1+i]);
-	  }
-	  
+          stat_id = ntohl(incoming[0]);
+          for (i=0 ; i < ET_STATION_SELECT_INTS; i++) {
+            incoming[i] = ntohl(incoming[1+i]);
+          }
+          
           err = et_station_setselectwords(id, stat_id, incoming);
 
           err = htonl(err);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	break;
+        }
+        break;
 
 
         case  ET_NET_STAT_GSW:
         {
           et_stat_id  stat_id;
-	  int i, sw[1+ET_STATION_SELECT_INTS];
+          int i, sw[1+ET_STATION_SELECT_INTS];
 
-	  if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
-            goto end;
-	  }
-          stat_id = ntohl(stat_id);
-
-	  err = et_station_getselectwords(id, stat_id, &sw[1]);
-
-	  sw[0] = htonl(err);
-	  for (i=1; i <= ET_STATION_SELECT_INTS; i++) {
-	    sw[i] = htonl(sw[i]);
-	  }
-	  if (et_tcp_write(connfd, (void *) sw, sizeof(sw)) != sizeof(sw)) {
+          if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
-	}
-	break;
+          stat_id = ntohl(stat_id);
+
+          err = et_station_getselectwords(id, stat_id, &sw[1]);
+
+          sw[0] = htonl(err);
+          for (i=1; i <= ET_STATION_SELECT_INTS; i++) {
+            sw[i] = htonl(sw[i]);
+          }
+          if (et_tcp_write(connfd, (void *) sw, sizeof(sw)) != sizeof(sw)) {
+            goto end;
+          }
+        }
+        break;
 
         case  ET_NET_STAT_LIB:
         case  ET_NET_STAT_FUNC:
         case  ET_NET_STAT_CLASS:
         {
           et_stat_id  stat_id;
-	  size_t len, size;
-	  int transfer[2];
+          size_t len, size;
+          int transfer[2];
           /* make sure buf is larger than class, lib or func name + 2 integers
-	   * (no matter how big ints may get)
-	   */
-	  char *name, buf[128+ET_FILENAME_LENGTH];
+           * (no matter how big ints may get)
+           */
+          char *name, buf[128+ET_FILENAME_LENGTH];
 
-	  if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
+          if (et_tcp_read(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
-	  }
+          }
           stat_id = ntohl(stat_id);
 
-	  name = buf + sizeof(transfer);
-	  if (command == ET_NET_STAT_LIB) {
-	    err = et_station_getlib(id, stat_id, name);
-	  }
-	  else if (command == ET_NET_STAT_FUNC) {
-	    err = et_station_getfunction(id, stat_id, name);
-	  }
-	  else  {
-	    err = et_station_getclass(id, stat_id, name);
-	  }
+          name = buf + sizeof(transfer);
+          if (command == ET_NET_STAT_LIB) {
+            err = et_station_getlib(id, stat_id, name);
+          }
+          else if (command == ET_NET_STAT_FUNC) {
+            err = et_station_getfunction(id, stat_id, name);
+          }
+          else  {
+            err = et_station_getclass(id, stat_id, name);
+          }
 
-	  if (err != ET_OK) {
-	    transfer[0] = htonl(err);
-	    transfer[1] = 0;
-	    if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+          if (err != ET_OK) {
+            transfer[0] = htonl(err);
+            transfer[1] = 0;
+            if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
               goto end;
             }
-	  }
-	  else {
-	    len = strlen(name) + 1;
-	    transfer[0] = htonl(err);
-	    transfer[1] = htonl(len);
-	    memcpy(buf, transfer, sizeof(transfer));
-	    size = sizeof(transfer) + len;
-	    if (et_tcp_write(connfd, (void *) buf, size) != size) {
+          }
+          else {
+            len = strlen(name) + 1;
+            transfer[0] = htonl(err);
+            transfer[1] = htonl(len);
+            memcpy(buf, transfer, sizeof(transfer));
+            size = sizeof(transfer) + len;
+            if (et_tcp_write(connfd, (void *) buf, size) != size) {
               goto end;
             }
-	  }
-	}
-	break;
+          }
+        }
+        break;
 
         default :
-	 ;
+         ;
       } /* switch(command) */
     }   /* if (command < ET_NET_STAT_GATTS) */
 
@@ -2545,34 +2545,34 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         case  ET_NET_STAT_GATTS:
           err = et_station_getattachments(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_STATUS:
+        case  ET_NET_STAT_STATUS:
           err = et_station_getstatus(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_INCNT:
+        case  ET_NET_STAT_INCNT:
           err = et_station_getinputcount(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_OUTCNT:
+        case  ET_NET_STAT_OUTCNT:
           err = et_station_getoutputcount(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_GBLOCK:
+        case  ET_NET_STAT_GBLOCK:
           err = et_station_getblock(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_GUSER:
+        case  ET_NET_STAT_GUSER:
           err = et_station_getuser(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_GRESTORE:
+        case  ET_NET_STAT_GRESTORE:
           err = et_station_getrestore(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_GPRE:
+        case  ET_NET_STAT_GPRE:
           err = et_station_getprescale(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_GCUE:
+        case  ET_NET_STAT_GCUE:
           err = et_station_getcue(id, stat_id, &val);
           break;
-	case  ET_NET_STAT_GSELECT:
+        case  ET_NET_STAT_GSELECT:
           err = et_station_getselect(id, stat_id, &val);
           break;
-	default:
+        default:
           if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_command_loop: bad command value\n");
           }
@@ -2729,87 +2729,87 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
     /* the following commands distribute data about this ET system over the network */
     else if (command <= ET_NET_SYS_HIST) {
       if (command == ET_NET_SYS_DATA) {
-	struct iovec iov[5];
-	int    outgoing[2], size;
+        struct iovec iov[5];
+        int    outgoing[2], size;
         
-	err = ET_OK;
-	
-	if (et_data_sys(etid, &iov[1]) != ET_OK) {
-	  err = ET_ERROR;
-	}
-	else if (et_data_stats(etid, &iov[2]) != ET_OK) {
-	  err = ET_ERROR;
-	  free(iov[1].iov_base);
-	}
-	else if (et_data_atts(etid, &iov[3]) != ET_OK) {
-	  err = ET_ERROR;
-	  free(iov[1].iov_base);
-	  free(iov[2].iov_base);
-	}
-	else if (et_data_procs(etid, &iov[4]) != ET_OK) {
-	  err = ET_ERROR;
-	  free(iov[1].iov_base);
-	  free(iov[2].iov_base);
-	  free(iov[3].iov_base);
-	}
+        err = ET_OK;
+        
+        if (et_data_sys(etid, &iov[1]) != ET_OK) {
+          err = ET_ERROR;
+        }
+        else if (et_data_stats(etid, &iov[2]) != ET_OK) {
+          err = ET_ERROR;
+          free(iov[1].iov_base);
+        }
+        else if (et_data_atts(etid, &iov[3]) != ET_OK) {
+          err = ET_ERROR;
+          free(iov[1].iov_base);
+          free(iov[2].iov_base);
+        }
+        else if (et_data_procs(etid, &iov[4]) != ET_OK) {
+          err = ET_ERROR;
+          free(iov[1].iov_base);
+          free(iov[2].iov_base);
+          free(iov[3].iov_base);
+        }
 
         if (err != ET_OK) {
-	  err = htonl(ET_ERROR);
+          err = htonl(ET_ERROR);
           if (et_tcp_write(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
-	}
-	else {
-	  /*
-	   * The first bit of data we send will be the error followed by the
-	   * total size - in bytes - of the data that is to follow. This
-	   * allows the receiver to read that first bit of data and then to
-	   * allocate a buffer of the size necessary to hold all the real data.
-	   */
-	  size = iov[1].iov_len + iov[2].iov_len + iov[3].iov_len + iov[4].iov_len;
-	  outgoing[0] = htonl(ET_OK);
-	  outgoing[1] = htonl(size);
-	  iov[0].iov_base = (void *) outgoing;
-	  iov[0].iov_len  = sizeof(outgoing);
+        }
+        else {
+          /*
+           * The first bit of data we send will be the error followed by the
+           * total size - in bytes - of the data that is to follow. This
+           * allows the receiver to read that first bit of data and then to
+           * allocate a buffer of the size necessary to hold all the real data.
+           */
+          size = iov[1].iov_len + iov[2].iov_len + iov[3].iov_len + iov[4].iov_len;
+          outgoing[0] = htonl(ET_OK);
+          outgoing[1] = htonl(size);
+          iov[0].iov_base = (void *) outgoing;
+          iov[0].iov_len  = sizeof(outgoing);
 
-	  if (et_tcp_writev(connfd, iov, 5, iov_max) == -1) {
-	    free(iov[1].iov_base);
-	    free(iov[2].iov_base);
-	    free(iov[3].iov_base);
-	    free(iov[4].iov_base);
+          if (et_tcp_writev(connfd, iov, 5, iov_max) == -1) {
+            free(iov[1].iov_base);
+            free(iov[2].iov_base);
+            free(iov[3].iov_base);
+            free(iov[4].iov_base);
             goto end;
-	  }
+          }
 
-	  /* free buffers allocated in "et_data_ ..." routines */
-	  free(iov[1].iov_base);
-	  free(iov[2].iov_base);
-	  free(iov[3].iov_base);
-	  free(iov[4].iov_base);
-	}
+          /* free buffers allocated in "et_data_ ..." routines */
+          free(iov[1].iov_base);
+          free(iov[2].iov_base);
+          free(iov[3].iov_base);
+          free(iov[4].iov_base);
+        }
       }
 
       /* send histogram data */
       else if (command == ET_NET_SYS_HIST) {
-	err = et_data_gethistogram(id, histogram+1, nevents_max+1);
-	/* sneak error code into histogram array for convenience in writing */
-	histogram[0] = err;
+        err = et_data_gethistogram(id, histogram+1, nevents_max+1);
+        /* sneak error code into histogram array for convenience in writing */
+        histogram[0] = err;
 
-	if (err != ET_OK) {
-	  histogram[0] = htonl(histogram[0]);
+        if (err != ET_OK) {
+          histogram[0] = htonl(histogram[0]);
           if (et_tcp_write(connfd, (void *) histogram, sizeof(int)) != sizeof(int)) {
             goto end;
           }
-	}
-	else {
+        }
+        else {
           /* swap data */
-	  for (i=0; i < nevents_max+2; i++) {
-	    histogram[i] = htonl(histogram[i]);
-	  }
+          for (i=0; i < nevents_max+2; i++) {
+            histogram[i] = htonl(histogram[i]);
+          }
           if (et_tcp_write(connfd, (void *) histogram, sizeof(int)*(nevents_max+2)) !=
-	      sizeof(int)*(nevents_max+2)) {
+              sizeof(int)*(nevents_max+2)) {
             goto end;
           }
-	}
+        }
       }
 
     }
@@ -2832,7 +2832,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
      */
     for (i=0; i <ET_ATTACHMENTS_MAX ; i++) {
       if (attaches[i] > -1) {
-	et_station_detach(id, attaches[i]);
+        et_station_detach(id, attaches[i]);
       }
     }
 

@@ -14,7 +14,7 @@
  *
  * Description:
  *      Routines for user to get, put, make, dump, & manipulate events
- *	in the ET system.
+ *      in the ET system.
  *
  *----------------------------------------------------------------------------*/
 
@@ -46,7 +46,7 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
     et_system_unlock(id->sys);
     if (id->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_event_make, too many (%d) temp events\n",
-			ntemps);
+                        ntemps);
     }
     return ET_ERROR_TOOMANY;
   }
@@ -77,7 +77,7 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
 /******************************************************/
 /*    attachment requesting event of certain size     */
 int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
-		 int mode, struct timespec *deltatime, size_t size)
+                 int mode, struct timespec *deltatime, size_t size)
 {
   int num_try=0, try_max, status, wait;
   struct timespec waitforme, abs_time;
@@ -135,7 +135,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
        * ET system was dead. In that case return ET_ERROR_DEAD.
        */
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -169,7 +169,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
         et_logmsg("ERROR", "et_event_new, cannot read event\n");
       }
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -199,26 +199,26 @@ try_again:
       if (status == ET_ERROR_TOOMANY) {
         if (etid->debug >= ET_DEBUG_WARN) {
           et_logmsg("WARN", "et_event_new, too many temp events\n");
-	}
+        }
 
         /* wait until more temp events available, then try again */
-	while (sys->ntemps >= sys->config.ntemps && num_try < try_max) {
+        while (sys->ntemps >= sys->config.ntemps && num_try < try_max) {
           num_try++;
-	  nanosleep(&waitforme, NULL);
-	}
-	
+          nanosleep(&waitforme, NULL);
+        }
+        
         if (etid->debug >= ET_DEBUG_WARN) {
           et_logmsg("WARN", "et_event_new, num_try = %d\n", num_try);
-	}
-	
-	if (num_try >= try_max) {
+        }
+        
+        if (num_try >= try_max) {
           if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_event_new, too many trys to get temp event, status = %d\n", status);
-	  }
-	  return status;
-	}
+          }
+          return status;
+        }
         num_try=0;
-	goto try_again;
+        goto try_again;
       }
       else {
         return status;
@@ -243,8 +243,8 @@ try_again:
 /******************************************************/
 /*    attachment requesting events of certain size    */
 int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
-		 int mode, struct timespec *deltatime,
-		 size_t size, int num, int *nread)
+                 int mode, struct timespec *deltatime,
+                 size_t size, int num, int *nread)
 {
   int i, num_try=0, try_max, status, numread, wait;
   struct timespec waitforme, abs_time;
@@ -318,7 +318,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
        * ET system was dead. In that case return ET_ERROR_DEAD.
        */
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -352,7 +352,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
         et_logmsg("ERROR", "et_events_new, cannot read event\n");
       }
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -379,33 +379,33 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
     for (i=0; i < numread ; i++) {
      try_again:
       if ((status = et_event_make(etid, pe[i], size)) != ET_OK) {
-	if (status == ET_ERROR_TOOMANY) {
+        if (status == ET_ERROR_TOOMANY) {
           if (etid->debug >= ET_DEBUG_WARN) {
             et_logmsg("WARN", "et_events_new, too many temp events\n");
-	  }
+          }
 
           /* wait until more temp events available, then try again */
-	  while (sys->ntemps >= sys->config.ntemps && num_try < try_max) {
+          while (sys->ntemps >= sys->config.ntemps && num_try < try_max) {
             num_try++;
-	    nanosleep(&waitforme, NULL);
-	  }
+            nanosleep(&waitforme, NULL);
+          }
 
           if (etid->debug >= ET_DEBUG_WARN) {
             et_logmsg("WARN", "et_events_new, num_try = %d\n", num_try);
-	  }
+          }
 
-	  if (num_try >= try_max) {
+          if (num_try >= try_max) {
             if (etid->debug >= ET_DEBUG_ERROR) {
               et_logmsg("ERROR", "et_events_new, too many trys to get temp event, status = %d\n", status);
-	    }
-	    return status;
-	  }
+            }
+            return status;
+          }
           num_try=0;
-	  goto try_again;
-	}
-	else {
+          goto try_again;
+        }
+        else {
           return status;
-	}
+        }
       }
     } /* for each event */
   }
@@ -631,7 +631,7 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
 /*          get event from station input list         */
 
 int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
-		 int mode, struct timespec *deltatime)
+                 int mode, struct timespec *deltatime)
 {
   int        status, wait;
   void       *pdata;
@@ -694,7 +694,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
        * ET system was dead. In that case return ET_ERROR_DEAD.
        */
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -728,7 +728,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
         et_logmsg("ERROR", "et_event_get, cannot read event\n");
       }
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -743,9 +743,9 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
   /* if NOT temp buffer, translate data pointer */
   if ((*pe)->temp != ET_EVENT_TEMP) {
     (*pe)->pdata = ET_PDATA2USR((*pe)->data, etid->offset);
-  }	
+  }        
   /* if temp buffer, map it into this process' mem */
-  else {	
+  else {        
     /* attach to temp event mem */
     if ((pdata = et_temp_attach((*pe)->filename, (*pe)->memsize)) == NULL) {
       if (etid->debug >= ET_DEBUG_ERROR) {
@@ -767,7 +767,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
 /*          get event from station input list         */
 
 int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
-		  int mode, struct timespec *deltatime, int num, int *nread)
+                  int mode, struct timespec *deltatime, int num, int *nread)
 {
   int         i, status, numread, wait;
   void       *pdata;
@@ -834,7 +834,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
         et_logmsg("ERROR", "et_events_get, cannot read events\n");
       }
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -868,7 +868,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
         et_logmsg("ERROR", "et_events_get, cannot read events\n");
       }
       if ((status == ET_ERROR_WAKEUP) && (!et_alive(id))) {
-	  return ET_ERROR_DEAD;
+          return ET_ERROR_DEAD;
       }
       return status;
     }
@@ -884,14 +884,14 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
     /* if NOT temp buffer, translate data pointer */
     if (pe[i]->temp != ET_EVENT_TEMP) {
       pe[i]->pdata = ET_PDATA2USR(pe[i]->data, etid->offset);
-    }	
+    }
     /* if temp buffer, map it into this process' mem */
     else {
       /* attach to temp event mem */
       if ((pdata = et_temp_attach(pe[i]->filename, pe[i]->memsize)) == NULL) {
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_events_get, cannot attach to temp event\n");
-	}
+        }
         return ET_ERROR;
       }
       pe[i]->pdata = pdata;
@@ -1007,7 +1007,7 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num)
     }
     return ET_ERROR;
   }
- 	  
+   
   for (i=0; i < num ; i++) {
     /* if length bigger than memory size, we got problems  */
     if (pe[i]->length > pe[i]->memsize) {
@@ -1047,7 +1047,7 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num)
       if (munmap(pe[i]->pdata, pe[i]->memsize) != 0) {
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_events_put, error in munmap\n");
-	}
+        }
         return ET_ERROR;
       }
     }

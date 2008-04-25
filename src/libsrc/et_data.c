@@ -14,7 +14,7 @@
  *
  * Description:
  *      Routines dealing with the encoding and decoding of ET system
- *	information used in their monitoring.
+ *information used in their monitoring.
  *
  *----------------------------------------------------------------------------*/
 
@@ -120,7 +120,7 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
 
   /* read histogram data */
   if (et_tcp_read(sockfd, (void *) hist, sizeof(int)*(etid->nevents+1)) !=
-		sizeof(int)*(etid->nevents+1)) {
+      sizeof(int)*(etid->nevents+1)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etr_data_gethistogram, read error\n");
     }
@@ -259,8 +259,8 @@ int et_data_stats(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
   int             i, j, natts, size, count, count1=0, count2=0, parallelHead=1;
-  int		  ints[25+ET_ATTACHMENTS_MAX+ET_STATION_SELECT_INTS];
-  int		  fnamelen, namelen, classlen, liblen;
+  int             ints[25+ET_ATTACHMENTS_MAX+ET_STATION_SELECT_INTS];
+  int             fnamelen, namelen, classlen, liblen;
   size_t          intsize, buffersize, actualsize=0;
   et_station     *ps, *pstat;
 
@@ -277,7 +277,7 @@ int et_data_stats(et_id *id, struct iovec *iov)
     if (ps->config.flow_mode == ET_STATION_PARALLEL) {
       pstat = ps;
       while (pstat->nextparallel > -1) {
-	pstat = id->grandcentral + pstat->nextparallel;
+        pstat = id->grandcentral + pstat->nextparallel;
         count1++;
       }
     }
@@ -383,8 +383,8 @@ int et_data_stats(et_id *id, struct iovec *iov)
       /* next station is not the head */
       parallelHead = 0;
       if (ps->nextparallel > -1) {
-	ps = id->grandcentral + ps->nextparallel;
-	continue;
+        ps = id->grandcentral + ps->nextparallel;
+        continue;
       }
       else {
         parallelHead = 1;
@@ -418,7 +418,7 @@ int et_data_atts(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
   int             i, j, count, count1=0, count2=0, events_owned;
-  int		  ints[17], hostlen, namelen;
+  int             ints[17], hostlen, namelen;
   size_t          intsize, bufsize, actualsize=0;
   et_station     *ps;
   et_event       *pe;
@@ -473,7 +473,7 @@ int et_data_atts(et_id *id, struct iovec *iov)
     events_owned = 0;
     for (j=0; j < id->sys->config.nevents; j++) {
       if (pe->owner == id->sys->attach[i].num) {
-	events_owned++;
+        events_owned++;
       }
       pe++;
     }
@@ -526,7 +526,7 @@ int et_data_procs(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
   int             i, j, count, count1=0, count2=0, natts;
-  int		  ints[4+ET_ATTACHMENTS_MAX];
+  int             ints[4+ET_ATTACHMENTS_MAX];
   size_t          intsize, bufsize, size;
 
   /*

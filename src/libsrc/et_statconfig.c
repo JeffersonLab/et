@@ -189,7 +189,8 @@ int et_station_config_setrestore(et_statconfig sconfig, int val)
   
   if ((val != ET_STATION_RESTORE_OUT) &&
       (val != ET_STATION_RESTORE_IN)  &&
-      (val != ET_STATION_RESTORE_GC))    {
+      (val != ET_STATION_RESTORE_GC)  &&
+      (val != ET_STATION_RESTORE_REDIST))    {
     return ET_ERROR;
   }
   
@@ -393,9 +394,10 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
   
   if ((sc->restore_mode != ET_STATION_RESTORE_OUT) &&
       (sc->restore_mode != ET_STATION_RESTORE_IN)  &&
-      (sc->restore_mode != ET_STATION_RESTORE_GC))   {
+      (sc->restore_mode != ET_STATION_RESTORE_GC)  &&
+      (sc->restore_mode != ET_STATION_RESTORE_REDIST))   {
     if (id->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_config_check, station restore_mode must be ET_STATION_RESTORE_OUT/IN/GC\n");
+      et_logmsg("ERROR", "et_station_config_check, station restore_mode must be ET_STATION_RESTORE_OUT/IN/GC/REDIST\n");
     }  
     return ET_ERROR;
   }
@@ -427,10 +429,10 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
         et_logmsg("ERROR", "et_station_config_check, SELECT_USER mode requires a shared lib and function\n");
       }
       return ET_ERROR;
-    }	
+    }
   }
   
-   /* Must be parallel, block, not prescale, and not restore to input list if rrobin or equal cue */
+  /* Must be parallel, block, not prescale, and not restore to input list if rrobin or equal cue */
   if (((sc->select_mode  == ET_STATION_SELECT_RROBIN) ||
        (sc->select_mode  == ET_STATION_SELECT_EQUALCUE)) &&
       ((sc->flow_mode    == ET_STATION_SERIAL) ||
@@ -439,6 +441,15 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
        (sc->prescale     != 1))) {
     if (id->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_config_check, if flow_mode = rrobin/equalcue, station must be parallel, blocking, prescale=1, & not restore-in\n");
+    }
+    return ET_ERROR;
+  }
+
+  /* If redistributing restored events, must be a parallel station */
+  if ((sc->restore_mode == ET_STATION_RESTORE_REDIST) &&
+      (sc->flow_mode    != ET_STATION_PARALLEL)) {
+    if (id->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "et_station_config_check, if restore_mode = restore-redist, station must be parallel\n");
     }
     return ET_ERROR;
   }
@@ -454,7 +465,7 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
   if (sc->block_mode == ET_STATION_BLOCKING) {
     if (sc->prescale < 1) {
       if (id->debug >= ET_DEBUG_ERROR) {
-	et_logmsg("ERROR", "et_station_config_check, station prescale must be > 0\n");
+        et_logmsg("ERROR", "et_station_config_check, station prescale must be > 0\n");
       }  
       return ET_ERROR;
     }
@@ -462,13 +473,13 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
   else {
     if (sc->cue < 1) {
       if (id->debug >= ET_DEBUG_ERROR) {
-	et_logmsg("ERROR", "et_station_config_check, station cue must be > 0\n");
+        et_logmsg("ERROR", "et_station_config_check, station cue must be > 0\n");
       }  
       return ET_ERROR;
     }
     else if (sc->cue > id->sys->config.nevents) {
       if (id->debug >= ET_DEBUG_ERROR) {
-	et_logmsg("ERROR", "et_station_config_check, station cue must be <= total number of events\n");
+        et_logmsg("ERROR", "et_station_config_check, station cue must be <= total number of events\n");
       }  
       return ET_ERROR;
     }

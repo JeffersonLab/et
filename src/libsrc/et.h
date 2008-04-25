@@ -142,7 +142,9 @@ extern "C" {
 /* how to restore events in dead user process */
 #define ET_STATION_RESTORE_OUT 0	/* to output list */
 #define ET_STATION_RESTORE_IN  1	/* to input  list */
-#define ET_STATION_RESTORE_GC  2	/* to gc station input list */
+#define ET_STATION_RESTORE_GC  2    /* to gc station input list */
+#define ET_STATION_RESTORE_REDIST 3 /* redistribute to input of all parallel stations,
+                                       along with all events left in station's input list */
 
 /* how events flow through a (group of) station(s) */
 #define ET_STATION_SERIAL        0  /* normal flow of all events through all stations */
