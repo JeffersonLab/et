@@ -368,8 +368,10 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
       printf("        restore(OUT), ");
     else if (data.statdata[i].restore_mode == ET_STATION_RESTORE_IN)
       printf("        restore(IN), ");
-    else
+    else if (data.statdata[i].restore_mode == ET_STATION_RESTORE_GC)
       printf("        restore(GC), ");
+    else
+      printf("        restore(REDIST), ");
 
     printf("prescale(%d), cue(%d), ", data.statdata[i].prescale, data.statdata[i].cue);
 
@@ -680,8 +682,10 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
       printf("        restore(OUT), ");
     else if (ps->config.restore_mode == ET_STATION_RESTORE_IN)
       printf("        restore(IN), ");
-    else
+    else if (ps->config.restore_mode == ET_STATION_RESTORE_GC)
       printf("        restore(GC), ");
+    else
+      printf("        restore(REDIST), ");
 
     printf("prescale(%d), cue(%d), ", ps->config.prescale, ps->config.cue);
 
