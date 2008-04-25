@@ -159,6 +159,14 @@ public final class Constants {
    *  putting them in GRAND_CENTRAL station (recycling them).
    *  @see StationConfig#setRestoreMode */
   public static final int    stationRestoreGC       = 2;
+  /** Events owned by a crashed user process attached to a parallel station
+   *  are restored to the ET system by redistributing them among that group
+   *  of parallel stations (recycling them). Also, if the station has no more
+   *  attachments, the events in its input list are also redistributed (unlike
+   *  in stationRestoreGC mode where these events are put in the station's output
+   *  list).
+   *  @see StationConfig#setRestoreMode */
+  public static final int    stationRestoreRedist   = 3;
   /** Events flow "normally" - that is serially - through a station.
    *  @see StationConfig#setFlowMode */
   public static final int    stationSerial          = 0;
