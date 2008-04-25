@@ -139,9 +139,9 @@ public class StationConfig implements Serializable {
 
     // if group is roundrobin or equal-cue, then config must be same
     if (((group.selectMode  == Constants.stationSelectRRobin) &&
-	 (config.selectMode != Constants.stationSelectRRobin)) ||
-	((group.selectMode  == Constants.stationSelectEqualCue) &&
-	 (config.selectMode != Constants.stationSelectEqualCue))) {
+         (config.selectMode != Constants.stationSelectRRobin)) ||
+        ((group.selectMode  == Constants.stationSelectEqualCue) &&
+         (config.selectMode != Constants.stationSelectEqualCue))) {
       return false;
     }
 
@@ -149,17 +149,17 @@ public class StationConfig implements Serializable {
     // BlockMode is forced to be blocking and prescale is forced to be 1
     // in the method SystemUse.configCheck.
     if (((group.selectMode == Constants.stationSelectRRobin) ||
-	 (group.selectMode == Constants.stationSelectEqualCue)) &&
-	((group.blockMode  != config.blockMode) ||
-	 (group.prescale   != config.prescale))) {
+         (group.selectMode == Constants.stationSelectEqualCue)) &&
+        ((group.blockMode  != config.blockMode) ||
+         (group.prescale   != config.prescale))) {
       return false;
     }
 
     // if group is NOT roundrobin or equal-cue, then config's cannot be either
     if (((group.selectMode  != Constants.stationSelectRRobin) &&
-	 (group.selectMode  != Constants.stationSelectEqualCue)) &&
-	((config.selectMode == Constants.stationSelectRRobin) ||
-	 (config.selectMode == Constants.stationSelectEqualCue))) {
+         (group.selectMode  != Constants.stationSelectEqualCue)) &&
+        ((config.selectMode == Constants.stationSelectRRobin) ||
+         (config.selectMode == Constants.stationSelectEqualCue))) {
       return false;
     }
 
@@ -264,8 +264,9 @@ public class StationConfig implements Serializable {
    */
   public void setRestoreMode(int mode) throws EtException {
     if ((mode != Constants.stationRestoreOut) &&
-	(mode != Constants.stationRestoreIn)  &&
-	(mode != Constants.stationRestoreGC))    {
+        (mode != Constants.stationRestoreIn)  &&
+        (mode != Constants.stationRestoreGC)  &&
+        (mode != Constants.stationRestoreRedist))    {
       throw new EtException("bad restore mode value");
     }
     restoreMode = mode;
