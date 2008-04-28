@@ -85,39 +85,18 @@ extern "C" {
 /* max # of network addresses/names per host we'll examine */
 #define ET_MAXADDRESSES 10
 
-/* In the following structures, 
- * count is the current number of addresses/names
- * addr  is the aray of addresses
- * name  is the array of names
- * tid   is the array of pthread id's used for cancelling threads
- *       started in et_cast_thread
- */
-/* struct to handle multiple multicast addresses */
-typedef struct et_mcastaddrs_t {
-  int       count;
-  char      addr[ET_MAXADDRESSES][ET_IPADDRSTRLEN];
-  pthread_t tid[ET_MAXADDRESSES];
-} et_mcastaddrs;
+/** Structure to handle dotted-decimal IP addresses in a linked list. */
+typedef struct et_iplist_t {
+  char                addr[ET_IPADDRSTRLEN]; /**< Single dotted-decimal address. */
+  struct et_iplist_t *next;                  /**< Next item in linked list. */
+} et_iplist;
 
-/* struct to handle multiple broadcast addresses in linked list */
-typedef struct et_bcastlist_t {
-  char                   addr[ET_IPADDRSTRLEN];
-  struct et_bcastlist_t *next;
-} et_bcastlist;
-
-/* struct to handle multiple broadcast addresses */
-typedef struct et_bcastaddrs_t {
-  int       count;
-  char      addr[ET_MAXADDRESSES][ET_IPADDRSTRLEN];
-  pthread_t tid[ET_MAXADDRESSES];
-} et_bcastaddrs;
-
-/* struct to handle multiple network interface addresses */
-typedef struct et_ifaddrs_t {
-  int       count;
-  char      addr[ET_MAXADDRESSES][ET_IPADDRSTRLEN];
-  pthread_t tid[ET_MAXADDRESSES];
-} et_ifaddrs;
+/** Structure to handle multiple dotted-decimal IP addresses. */
+typedef struct et_ipaddrs_t {
+  int       count;                                  /**< Number of valid addresses in this structure. */
+  char      addr[ET_MAXADDRESSES][ET_IPADDRSTRLEN]; /**< Array of addresses. */
+  pthread_t tid[ET_MAXADDRESSES];                   /**< Array of pthread thread ids. */
+} et_ddipaddrs;
 
 
 /**
@@ -126,13 +105,12 @@ typedef struct et_ifaddrs_t {
  * broadcast address, and a place to store a thread id.
  */
 typedef struct et_ipaddr_t {
-  int    aliasCount;                 /**< Number of aliases stored in this item. */
+  int    aliasCount;                 /**< Number of aliases stored in this structure. */
   char   **aliases;                  /**< Array of alias strings. */
   char   addr[ET_IPADDRSTRLEN];      /**< IP address in dotted-decimal form. */
   char   canon[ET_MAXHOSTNAMELEN];   /**< Canonical name of host associated with addr. */
   char   broadcast[ET_IPADDRSTRLEN]; /**< Broadcast address in dotted-decimal form. */
   struct sockaddr_in saddr;          /**< Binary form of IP address. */
-  pthread_t tid;                     /**< Pthread thread id. */
   struct et_ipaddr_t *next;          /**< Next item in linked list. */
 } et_ipaddr;
 
@@ -149,12 +127,16 @@ typedef struct et_ipinfo_t {
   char   broadcast[ET_IPADDRSTRLEN]; /**< Broadcast address in dotted-decimal form. */
   char   aliases[ET_MAXADDRESSES][ET_MAXHOSTNAMELEN]; /**< Array of alias strings. */
   struct sockaddr_in saddr;          /**< Binary form of IP address (net byte order). */
-  pthread_t tid;                     /**< Pthread thread id. */
 } et_ipinfo;
 
+/**
+ * This structure stores an array of et_ipinfo structures in order to represent
+ * all the network interface data of a computer.
+ */
 typedef struct et_netinfo_t {
-  int       count;
-  et_ipinfo ipinfo[ET_MAXADDRESSES];
+  int       count;                   /**< Number of valid array items. */
+  et_ipinfo ipinfo[ET_MAXADDRESSES]; /**< Array of structures each of which holds a
+                                          single IP address and its related data. */
 } et_netinfo;
 
 /****************************************
@@ -567,9 +549,9 @@ typedef struct  et_sys_config_t {
   int             port;
   int             serverport;
   et_netinfo      netinfo;
-  et_bcastaddrs   bcastaddrs;
-  et_ifaddrs      ifaddrs;
-  et_mcastaddrs   mcastaddrs;
+  et_ddipaddrs      bcastaddrs;
+  /*et_ifaddrs      ifaddrs;*/
+  et_ddipaddrs      mcastaddrs;
 } et_sys_config;
 
 /*
@@ -709,8 +691,8 @@ typedef struct et_open_config_t {
   struct timespec timeout;
   char            host[ET_MAXHOSTNAMELEN];
   et_ipaddr       *netinfo;
-  et_bcastlist    *bcastaddrs;
-  et_mcastaddrs   mcastaddrs;
+  et_iplist    *bcastaddrs;
+  et_ddipaddrs      mcastaddrs;
 } et_open_config;
 
 
