@@ -115,6 +115,9 @@ void *et_cast_thread(void *arg)
   newarg->cast = ET_BROADCAST;
   newarg->config = config;
   newarg->listenaddr = "255.255.255.255";
+  /* Store this info permanently as it is NOT in the original call to et_system_config_init.
+   * There is room for it, however, as that routine returns on error otherwise. */ 
+  strcpy(config->bcastaddrs.addr[config->bcastaddrs.count++], "255.255.255.255");
   strcpy(newarg->uname, unamehost);
 
   pthread_create(&config->bcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
