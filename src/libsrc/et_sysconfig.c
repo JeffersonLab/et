@@ -61,11 +61,14 @@ int et_system_config_init(et_sysconfig* sconfig)
   if (et_getBroadcastAddrs(NULL, &sc->bcastaddrs) == ET_ERROR) {
     sc->bcastaddrs.count = 0;
   }
+  /* check to see if we have room for the last broadcast addr (255.255.255.255) */
+  if (sc->bcastaddrs.count >= ET_MAXADDRESSES) {
+      return ET_ERROR_TOOMANY;     
+  }
 
   /* Find our local interfaces' addresses and names. */
   if (et_getNetInfo(NULL, &sc->netinfo) != ET_OK) {
     sc->netinfo.count = 0;
-printf("et_system_config_init: error in et_getNetInfo\n");
   }
    		  
   sc->init = ET_STRUCT_OK;
