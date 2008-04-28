@@ -150,10 +150,10 @@ extern int   et_getUname(char *host, int length);
 extern int   et_defaulthost(char *host, int length);
 extern int   et_defaultaddress(char *address, int length);
 extern int   et_isLinux(void);
-extern int   et_getBroadcastAddrs(et_bcastlist **addrs, et_bcastaddrs *bcaddrs);
+extern int   et_getBroadcastAddrs(et_iplist **addrs, et_ddipaddrs *bcaddrs);
 extern int   et_getNetInfo(et_ipaddr **ipaddrs, et_netinfo *info);
 extern void  et_freeIpAddrs(et_ipaddr *ipaddr);
-extern void  et_freeBroadcastAddrs(et_bcastlist *addr);
+extern void  et_freeBroadcastAddrs(et_iplist *addr);
 extern int   et_findserver2(const char *etname, char *ethost, int *port,
 			    int32_t *inetaddr, et_open_config *config, int trys,
 			    struct timeval *waittime);
