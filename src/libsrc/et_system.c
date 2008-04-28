@@ -649,23 +649,17 @@ int et_system_close(et_sys_id id)
       thr_setconcurrency(con);
     }
 #endif
-  
-  /* As of Redhat 6.2, the LinuxThreads library is still not integrated
-   * enough with the C library so that system calls that block (such as
-   * read, write, accept, etc) are pthread cancellation points. Thus many
-   * of the following threads which are probably stuck on such statements
-   * may not be cancelled in Linux. In tests these threads do seem to be
-   * canceled, however, the surviving threads seem to be "messed up".
-   */
-  
+    
   /* stop tcp server thread */
   et_sys_stopthread(etid->sys->tid_srv);
   
   /* stop broad/multicast listening threads */
-  for (i=0; i < config.ifaddrs.count; i++) {
-    et_sys_stopthread(config.ifaddrs.tid[i]);
+  for (i=0; i < config.bcastaddrs.count; i++) {
+printf("et_system_close: stop listening thd on bcast = %s\n", config.bcastaddrs.addr[i]);
+      et_sys_stopthread(config.bcastaddrs.tid[i]);
   }
   for (i=0; i < config.mcastaddrs.count; i++) {
+printf("et_system_close: stop listening thd on mcast = %s\n", config.mcastaddrs.addr[i]);
     et_sys_stopthread(config.mcastaddrs.tid[i]);
   }
 
