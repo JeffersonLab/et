@@ -1345,8 +1345,8 @@ if (debug)
  * @returns ET_ERROR if error
  * @returns ET_ERROR_NOMEM if no more memory
  */
-void et_freeBroadcastAddrs(et_bcastlist *addr) {
-  et_bcastlist *next;
+void et_freeBroadcastAddrs(et_iplist *addr) {
+  et_iplist *next;
   while (addr != NULL) {
     next = addr->next;
     free(addr);
@@ -1369,13 +1369,13 @@ void et_freeBroadcastAddrs(et_bcastlist *addr) {
  * @returns ET_ERROR if error
  * @returns ET_ERROR_NOMEM if no more memory
  */
-int et_getBroadcastAddrs(et_bcastlist **addrs, et_bcastaddrs *bcaddrs)
+int et_getBroadcastAddrs(et_iplist **addrs, et_ddipaddrs *bcaddrs)
 {
   char  *p;
   int    index, count=0, skip, debug=0;
   struct ifi_info *ifi, *ifihead;
   struct sockaddr *sa;
-  et_bcastlist    *baddr=NULL, *first=NULL, *prev=NULL, *paddr;
+  et_iplist    *baddr=NULL, *first=NULL, *prev=NULL, *paddr;
   
   
   /* look through IPv4 interfaces */
@@ -1411,7 +1411,7 @@ int et_getBroadcastAddrs(et_bcastlist **addrs, et_bcastaddrs *bcaddrs)
         if (skip) continue;
         
         /* allocate space for broadcast data */
-        baddr = (et_bcastlist *)calloc(1, sizeof(et_bcastlist));
+        baddr = (et_iplist *)calloc(1, sizeof(et_iplist));
         if (baddr == NULL) {
           et_freeBroadcastAddrs(first);
           et_free_ifi_info(ifihead);
@@ -1641,7 +1641,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, int32_t *inetadd
   int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0;
   const int    on=1, timeincr[]={0,1,2,3,4,5};
   uint32_t     addr;
-  et_bcastlist *baddr;
+  et_iplist *baddr;
    
   /* encoding & decoding packets */
   char  *pbuf, buffer[4096]; /* should be way more than enough */
@@ -1863,7 +1863,7 @@ if (debug)
         (config->cast == ET_BROADANDMULTICAST)) {
 
       /* for each listed broadcast address ... */
-      et_bcastlist *baddr = config->bcastaddrs;
+      et_iplist *baddr = config->bcastaddrs;
       while (baddr != NULL) {
           /* put address into net-ordered binary form */
           if (inet_aton(baddr->addr, &castaddr) == INET_ATON_ERR) {
