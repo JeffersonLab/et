@@ -63,7 +63,7 @@ int et_system_config_init(et_sysconfig* sconfig)
   }
   /* check to see if we have room for the last broadcast addr (255.255.255.255) */
   if (sc->bcastaddrs.count >= ET_MAXADDRESSES) {
-      return ET_ERROR_TOOMANY;     
+      return ET_ERROR_NOMEM;     
   }
 
   /* Find our local interfaces' addresses and names. */
