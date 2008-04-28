@@ -194,7 +194,7 @@ int et_data_sys(et_id *id, struct iovec *iov)
   ints[24] = htonl((int) id->sys->config.port);
 
   /* # of interfaces and multicast addresses */
-  ifcount  = id->sys->config.ifaddrs.count;
+  ifcount  = id->sys->config.netinfo.count;
   mcount   = id->sys->config.mcastaddrs.count;
   ints[25] = htonl(ifcount);
   ints[26] = htonl(mcount);
@@ -202,7 +202,7 @@ int et_data_sys(et_id *id, struct iovec *iov)
 
   /* length of interface address strings */
   for (i=0; i < ifcount; i++) {
-    len[i] = strlen(id->sys->config.ifaddrs.addr[i])+1;
+    len[i] = strlen(id->sys->config.netinfo.ipinfo[i].addr)+1;
     ints[totalints++] = htonl(len[i]);
     totalstringlen += len[i];
   }
@@ -234,7 +234,7 @@ int et_data_sys(et_id *id, struct iovec *iov)
 
   /* copy strings into buffer */
   for (i=0; i < ifcount; i++) {
-    memcpy((void *)pbuf, (void *) id->sys->config.ifaddrs.addr[i], len[i]);
+    memcpy((void *)pbuf, (void *) id->sys->config.netinfo.ipinfo[i].addr, len[i]);
     pbuf += len[i];
   }
   for (i=0; i < mcount; i++) {
