@@ -549,9 +549,8 @@ typedef struct  et_sys_config_t {
   int             port;
   int             serverport;
   et_netinfo      netinfo;
-  et_ddipaddrs      bcastaddrs;
-  /*et_ifaddrs      ifaddrs;*/
-  et_ddipaddrs      mcastaddrs;
+  et_ddipaddrs    bcastaddrs;
+  et_ddipaddrs    mcastaddrs;
 } et_sys_config;
 
 /*
