@@ -40,16 +40,16 @@ public class Consumer {
   
   private static void usage() {
     System.out.println("\nUsage: java Consumer -f <et name> -s <station> [-p <server port>] [-h <host>]\n\n" +
-	               "       -f  ET system's name\n" +
-	               "       -s  station name\n" +
-	               "       -p  port number for a udp broadcast\n" +
-	               "       -pos  position in station list (GC=0)\n" +
-	               "       -ppos position in group of parallel staton (-1=end, -2=head)\n" +
-	               "       -h  host the ET system resides on (defaults to anywhere)\n" +
-	               "       -a  # of attachments\n" +
-	               "       -nb make station non-blocking\n" +
-	               "        This consumer works by making a direct connection to the\n" +
-		       "        ET system's tcp server port.\n");
+                        "       -f  ET system's name\n" +
+                        "       -s  station name\n" +
+                        "       -p  port number for a udp broadcast\n" +
+                        "       -pos  position in station list (GC=0)\n" +
+                        "       -ppos position in group of parallel staton (-1=end, -2=head)\n" +
+                        "       -h  host the ET system resides on (defaults to anywhere)\n" +
+                        "       -a  # of attachments\n" +
+                        "       -nb make station non-blocking\n" +
+                        "        This consumer works by making a direct connection to the\n" +
+                        "        ET system's tcp server port.\n");
   }
   
 
@@ -138,12 +138,12 @@ public class Consumer {
           }
 
       if (etName == null) {
-	    usage();
-	    return;
+        usage();
+        return;
       }
       else if (statName == null) {
-	    usage();
-	    return;
+        usage();
+        return;
       }
       
       // make a direct connection to ET system's tcp server
@@ -156,11 +156,11 @@ public class Consumer {
       SystemUse sys = new SystemUse(config, Constants.debugInfo);
       // configuration of a new station
       StationConfig statConfig = new StationConfig();
-      statConfig.setFlowMode(Constants.stationParallel);
+      //statConfig.setFlowMode(Constants.stationParallel);
       if (blocking == 0) {
         statConfig.setBlockMode(Constants.stationNonBlocking);
       }
-      statConfig.setCue(100);
+      //statConfig.setCue(100);
       
       // create station at position 3 (2nd station past grandcentral)
 System.out.println("Try to create " + statName + ", at pos = " + position + 
@@ -174,9 +174,9 @@ System.out.println("Station attachment = " + att.getId());
       Attachment atts[] = null;
       if (numAttachments > 1) {
         atts = new Attachment[numAttachments-1];
-	for (int i=0; i < numAttachments-1; i++) {
-	  atts[i] = sys.attach(stat);
-	}
+         for (int i=0; i < numAttachments-1; i++) {
+           atts[i] = sys.attach(stat);
+         }
       }
       
       // array of events
@@ -192,28 +192,28 @@ System.out.println("Station attachment = " + att.getId());
       for(int i=0; i < 10; i++) {
         while (count < 300000L) {
           // get events from ET system
-	  mevs = sys.getEvents(att, Constants.sleep, 0, chunk);
-	  
+           mevs = sys.getEvents(att, Constants.sleep, 0, chunk);
+           //Thread.sleep(10000);
           // start keeping track of time here since getEvents
-	  // may sleep for a while
+           // may sleep for a while
           if (count == 0) t1 = System.currentTimeMillis();
-	  
-	  // example of reading & printing event data
-	  /*
-	  if (false) {
+
+           // example of reading & printing event data
+           /*
+           if (false) {
             for (int j=0; j < mevs.length; j++) {
               // get one integer's worth of data
-	      num = bytesToInt(mevs[j].getData(), 0);
+               num = bytesToInt(mevs[j].getData(), 0);
               System.out.println("data = " + num);
             }
-	  }
-	  */
-	  // put events back into ET system
+           }
+           */
+           // put events back into ET system
           sys.putEvents(att, mevs);
-	  count += mevs.length;
+           count += mevs.length;
         }
-	
-	// calculate the event rate
+
+         // calculate the event rate
         t2 = System.currentTimeMillis();
         double rate = 1000.0 * ((double)count) / ((double)(t2-t1));
         System.out.println("rate = " + rate + " Hz");
@@ -221,9 +221,9 @@ System.out.println("Station attachment = " + att.getId());
       }
       sys.detach(att);
       if (numAttachments > 1) {
-	for (int i=0; i < numAttachments-1; i++) {
-	  sys.detach(atts[i]);
-	}
+         for (int i=0; i < numAttachments-1; i++) {
+           sys.detach(atts[i]);
+         }
       }
       sys.removeStation(stat);
       sys.close();
