@@ -40,7 +40,9 @@ public class Producer {
     System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-h <host>]\n\n" +
 	               "       -f  ET system's name\n" +
 	               "       -p  port number for a udp broadcast\n" +
-	               "       -h  host the ET system resides on (defaults to anywhere)\n" +
+                   "       -h  host the ET system resides on (defaults to anywhere)\n" +
+                   "       -d  delay in millisec between getting and putting events\n" +
+                   "       -g  group number of events\n" +
 	               "        This consumer works by making a direct connection to the\n" +
 		       "        ET system's tcp server port.\n");
   }
@@ -51,6 +53,8 @@ public class Producer {
         String etName = null, host = null;
         //int port = Constants.serverPort;
         int port = Constants.broadcastPort;
+        int group = 0;
+        int delay = 0;
 
         try {
             for (int i = 0; i < args.length; i++) {
@@ -71,6 +75,36 @@ public class Producer {
                     }
                     catch (NumberFormatException ex) {
                         System.out.println("Did not specify a proper port number.");
+                        usage();
+                        return;
+                    }
+                }
+                else if (args[i].equalsIgnoreCase("-g")) {
+                    try {
+                        group = Integer.parseInt(args[++i]);
+                        if ((group < 0) || (group > 10)) {
+                            System.out.println("Group number must be between 0 and 10.");
+                            usage();
+                            return;
+                        }
+                    }
+                    catch (NumberFormatException ex) {
+                        System.out.println("Did not specify a proper group number.");
+                        usage();
+                        return;
+                    }
+                }
+                else if (args[i].equalsIgnoreCase("-d")) {
+                    try {
+                        delay = Integer.parseInt(args[++i]);
+                        if (delay < 1) {
+                            System.out.println("delay must be > 0.");
+                            usage();
+                            return;
+                        }
+                    }
+                    catch (NumberFormatException ex) {
+                        System.out.println("Did not specify a proper delay.");
                         usage();
                         return;
                     }
@@ -109,6 +143,8 @@ public class Producer {
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);
 
+            sys.setGroup(group);
+
             // get GRAND_CENTRAL station object
             Station gc = sys.stationNameToObject("GRAND_CENTRAL");
 
@@ -128,7 +164,10 @@ public class Producer {
             for (int i = 0; i < 10; i++) {
                 while (count < 300000L) {
                     // get array of new events
+                    //mevs = sys.newEvents(att, Constants.sleep, 0, chunk, 32, group);
                     mevs = sys.newEvents(att, Constants.sleep, 0, chunk, 32);
+
+                    if (delay > 0) Thread.sleep(delay);
 
                     // example of how to manipulate events
                     if (false) {
