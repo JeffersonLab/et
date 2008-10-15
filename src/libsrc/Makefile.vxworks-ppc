@@ -6,8 +6,8 @@ ifndef BMS_HOME
   $(error "Need to define BMS_HOME")
 endif
 
-OS = vxworks
-ARCH = ppc
+BMS_OS = vxworks
+BMS_ARCH = ppc
 
 #
 # Setting TOPLEVEL tells Makefile.common where to find Makefile.local
