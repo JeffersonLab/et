@@ -35,7 +35,7 @@ ROBJS = et_statconfig.o \
 
 RDOBJS = $(addsuffix $(DEBUG_SUFFIX).o,$(basename $(ROBJS)))
 
-OTHER_TARGETS += $(LIB_DIR)/libet_remote$(DEBUG_SUFFIX).so
+OTHER_TARGETS += $(LIB_DIR)/libet_remote$(DEBUG_SUFFIX).$(SHLIB_SUFFIX)
 
 RLINK_OBJS = $(addprefix $(OBJ_DIR)/,$(RDOBJS))
 
@@ -45,7 +45,7 @@ MAKE_STATIC_LIB = make_me_please
 
 # This new target must come AFTER the makefile include above or else it's the first target.
 # The other stuff must come BEFORE since the included makefiles have a target defined.
-$(LIB_DIR)/libet_remote$(DEBUG_SUFFIX).so: $(RDOBJS)
+$(LIB_DIR)/libet_remote$(DEBUG_SUFFIX).$(SHLIB_SUFFIX): $(RDOBJS)
 	$(LD) $(LD_SO_FLAGS) $(LD_DIRS) $(RLINK_OBJS) $(LD_LIBS) -o $@
 
 # Things for building libs
