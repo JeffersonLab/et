@@ -155,7 +155,7 @@ extern int   et_getNetInfo(et_ipaddr **ipaddrs, et_netinfo *info);
 extern void  et_freeIpAddrs(et_ipaddr *ipaddr);
 extern void  et_freeBroadcastAddrs(et_iplist *addr);
 extern int   et_findserver2(const char *etname, char *ethost, int *port,
-			    int32_t *inetaddr, et_open_config *config, int trys,
+			    uint32_t *inetaddr, et_open_config *config, int trys,
 			    struct timeval *waittime);
 
 extern int    et_udpreceive(unsigned short port, const char *address, int cast);

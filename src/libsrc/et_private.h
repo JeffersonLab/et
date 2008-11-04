@@ -1163,7 +1163,7 @@ extern int  et_unlook(et_sys_id id);
 extern void *et_cast_thread(void *arg);
 extern void *et_netserver(void *arg);
 extern int   et_findserver(const char *etname, char *ethost, int *port,
-                           int32_t *inetaddr, et_open_config *config);
+                           uint32_t *inetaddr, et_open_config *config);
 extern int   et_responds(const char *etname);
 extern int   et_sharedmutex(void);
 extern int   et_findlocality(const char *filename, et_openconfig openconfig);

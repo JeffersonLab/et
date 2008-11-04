@@ -63,6 +63,7 @@ static void  et_command_loop(et_threadinfo *info);
 void *et_cast_thread(void *arg)
 {
   et_netthread    *threadarg = (et_netthread *) arg;
+  et_netthread    *newarg;
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
   int             i=0;
@@ -81,7 +82,7 @@ void *et_cast_thread(void *arg)
   /* thread for each subnet broadcast IP address - listen for broadcasts */
   for (i=0; i < config->bcastaddrs.count; i++) {
     /* allocate struct for passing info to listening thread */
-    et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
+    newarg = (et_netthread *) malloc(sizeof(et_netthread));
     if (newarg == NULL) {
       if (etid->debug >= ET_DEBUG_SEVERE) {
         et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
@@ -103,7 +104,7 @@ void *et_cast_thread(void *arg)
    * Mac OS give an error when binding a socket to the 255.255.255.255 address.
    * If the error occurs, exit that listen thread and forget about it.
    */
-  et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
+  newarg = (et_netthread *) malloc(sizeof(et_netthread));
   if (newarg == NULL) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
@@ -129,7 +130,7 @@ void *et_cast_thread(void *arg)
   /* thread for each multicast address */
   for (i=0; i<config->mcastaddrs.count; i++) {
     /* each thread gets a slightly different arg passed to it */
-    et_netthread *newarg = (et_netthread *) malloc(sizeof(et_netthread));
+    newarg = (et_netthread *) malloc(sizeof(et_netthread));
     if (newarg == NULL) {
       if (etid->debug >= ET_DEBUG_SEVERE) {
         et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");

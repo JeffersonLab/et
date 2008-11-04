@@ -126,7 +126,6 @@ static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
 
     default:
       if (debug) fprintf(stderr, "sock_ntop_host: unknown AF_xxx: %d, len %d", sa->sa_family, salen);
-      return(NULL);
   }
   return (NULL);
 }
@@ -1633,7 +1632,7 @@ static void freeAnswers(response *answer) {
 }
 
 
-int et_findserver2(const char *etname, char *ethost, int *port, int32_t *inetaddr,
+int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetaddr,
                               et_open_config *config, int trys,
                               struct timeval *waittime)
 {
@@ -2506,7 +2505,7 @@ if (debug)
  * This routine is used with etr_open to find tcp host & port.
  *****************************************************/
 int et_findserver(const char *etname, char *ethost, int *port,
-                  int32_t *inetaddr, et_open_config *config)
+                  uint32_t *inetaddr, et_open_config *config)
 {
   struct timeval waittime;
   /* wait 0.1 seconds before calling select */
