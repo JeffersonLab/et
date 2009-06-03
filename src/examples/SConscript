@@ -28,7 +28,8 @@ for fileName in fileList:
 
 
 # example of how to compile a user-defined event selection routine
-myUserSelectionFiles = ['et_userfunction.c']
-env.AppendUnique(CPPPATH = ['.', '#src/libsrc'])
-myLib = env.SharedLibrary(target = 'mylib'+debugSuffix, source = myUserSelectionFiles)
-env.Alias("install", env.Install(target = libDir, source = myLib))
+#
+#myUserSelectionFiles = ['et_userfunction.c']
+#env.AppendUnique(CPPPATH = ['.', '#src/libsrc'])
+#myLib = env.SharedLibrary(target = 'mylib'+debugSuffix, source = myUserSelectionFiles)
+#env.Alias("install", env.Install(target = libDir, source = myLib))
