@@ -51,7 +51,7 @@ extern "C" {
 #endif
 
 /* Version Number of this ET software package release */
-#define ET_VERSION 10     /* treated as an int */
+#define ET_VERSION 11     /* treated as an int */
 #define ET_MINORVERSION 0 /* treated as an int */
 
 /* Language of ET software package - implementation 
@@ -530,7 +530,6 @@ struct et_attach {
  * serverport   : port # for ET system's tcp server thread
  * netinfo      : holds all IP info
  * bcastaddrs   : holds all local subnet broadcast addrs (dotted-decimal)
- * ifaddrs      : list of all local network interfaces' addrs (dotted-dec)
  * mcastaddrs   : holds all multicast addresses to listen on (dotted-dec)
  */
  
@@ -690,8 +689,8 @@ typedef struct et_open_config_t {
   struct timespec timeout;
   char            host[ET_MAXHOSTNAMELEN];
   et_ipaddr       *netinfo;
-  et_iplist    *bcastaddrs;
-  et_ddipaddrs      mcastaddrs;
+  et_iplist       *bcastaddrs;
+  et_ddipaddrs    mcastaddrs;
 } et_open_config;
 
 
