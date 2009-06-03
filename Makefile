@@ -13,6 +13,8 @@ ifeq ($(BMS_OS), vxworks)
   endif
 endif
 
+LOCAL_DIR = $(notdir $(shell pwd))
+
 # define TOPLEVEL for use in making doxygen docs
 TOPLEVEL = .
 
@@ -54,8 +56,8 @@ doc:
 	ant javadoc;
 
 tar:
-	-$(RM) tar/et-10.0.tar.gz;
-	tar -X tar/tarexclude -C .. -c -z -f tar/et-10.0.tar.gz et
+	-$(RM) tar/et-11.0.tar.gz;
+	tar -X tar/tarexclude -C .. -c -z -f tar/et-11.0.tar.gz $(LOCAL_DIR)
 
 # Use this pattern rule for all other targets
 %:
