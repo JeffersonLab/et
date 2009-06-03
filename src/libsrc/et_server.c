@@ -28,6 +28,7 @@
 #include <limits.h>
 #include <sys/time.h>
 #include <sys/select.h>
+#include <fcntl.h>
 
 #ifdef sun
 #include <thread.h>
@@ -165,10 +166,11 @@ static void *et_listen_thread(void *arg)
   et_ipinfo          *pinfo      = config->netinfo.ipinfo;
   int                ipAddrCount = config->netinfo.count;
 
-  int                i, j, k, version, sockfd, nbytes, length, len, nameCount=0, debug=0;
+  int                i, j, k, version, sockfd, nbytes, length, len;
+  int                magicInts[3], nameCount=0, debug=0;
   uint32_t           netint;
   size_t             bufsize;
-  char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+4];
+  char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+1+5*sizeof(int)];
   char               filename[ET_FILENAME_LENGTH];
   socklen_t          slen;
   struct sockaddr_in cliaddr;
@@ -197,6 +199,7 @@ static void *et_listen_thread(void *arg)
 #endif
 
   /* Prepare output buffer we send in answer to inquiries:
+   * (0)  ET magic numbers (3 ints)
    * (1)  ET version #
    * (2)  port of tcp server thread (not udp config->port)
    * (3)  ET_BROADCAST or ET_MULTICAST (int)
@@ -239,7 +242,7 @@ static void *et_listen_thread(void *arg)
     printf("\n\net_listen_thread: listening on addr = %s\n", listenaddr);
 
   /* find length of necessary buffer */
-  bufsize = 6*sizeof(int) + strlen(uname) + strlen(listenaddr) + 2 /* 2 NULLs */;
+  bufsize = sizeof(magicInts) + 6*sizeof(int) + strlen(uname) + strlen(listenaddr) + 2 /* 2 NULLs */;
   
   /* look through the list of all IP addresses (and related data) */
   for (i=0; i < ipAddrCount; i++) {
@@ -278,6 +281,13 @@ static void *et_listen_thread(void *arg)
   /* put data into buffer */
   /* ******************** */
   
+  /* 0) magic numbers */
+  magicInts[0] = htonl(ET_MAGIC_INT1);
+  magicInts[1] = htonl(ET_MAGIC_INT2);
+  magicInts[2] = htonl(ET_MAGIC_INT3);
+  memcpy(pbuf, magicInts, sizeof(magicInts));
+  pbuf += sizeof(magicInts);
+
   /* 1) ET version */
   k = htonl(etid->version);
   memcpy(pbuf, &k, sizeof(k));
@@ -381,28 +391,43 @@ static void *et_listen_thread(void *arg)
     }
 
     /* decode the data:
-     * (1) ET version #,
-     * (2) length of string,
-     * (3) ET file name
+     * (1) ET magic numbers (3 ints),
+     * (2) ET version #,
+     * (3) length of string,
+     * (4) ET file name
      */
-    memcpy(&version, inbuf, sizeof(version));
+    pbuf = inbuf;
+    
+    /* read & check magic numbers */
+    memcpy(magicInts, pbuf, sizeof(magicInts));
+    pbuf += sizeof(magicInts);
+    if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
+        ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
+        ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
+        /* wrong magic numbers, listen for next packet */
+        continue;
+    }
+
+    /* read & check version number */
+    memcpy(&version, pbuf, sizeof(version));
     version = ntohl(version);
-    /* check version number */
+    pbuf += sizeof(version);
     if (version !=  etid->version) {
       /* wrong version, listen for next packet */
       continue;
     }
-    memcpy(&length, inbuf+sizeof(version), sizeof(length));
+    
+    /* read & check to see if we have a reasonable ET name length. */
+    memcpy(&length, pbuf, sizeof(length));
     length = ntohl(length);
-    /* Check to see if we have a reasonable length. There may
-     * be problems here since ET version 3 did not send version
-     * number in the packet.
-     */
+    pbuf += sizeof(length);
     if ((length < 1) || (length > ET_FILENAME_LENGTH)) {
       /* not proper format, listen for next packet */
       continue;
     }
-    memcpy(filename, inbuf+sizeof(version)+sizeof(length), length);
+
+    /* read ET name */
+    memcpy(filename, pbuf, length);
 
     if (debug)
       printf("et_listen_thread: received packet on %s @ %s for %s\n", uname, listenaddr, filename);
@@ -426,7 +451,7 @@ void *et_netserver(void *arg)
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
   int             listenfd=0, endian, iov_max, debug=0;
-  int             i, port=0, trylimit=2000;
+  int             i, err, bytes, flags=0, magicInts[3], port=0, trylimit=2000;
   struct sockaddr_in cliaddr;
   socklen_t       addrlen, len;
   pthread_t       tid;
@@ -533,6 +558,65 @@ void *et_netserver(void *arg)
       continue;
     }
     
+    /* Read data from client. Set socket to nonblocking so someone probing
+     * it and not writing at least 3 ints worth of data will return an error
+     * and we can ignore that "client".
+     */
+    flags = fcntl(pinfo->connfd, F_GETFL, 0) | O_NONBLOCK;
+    
+    if ( (fcntl(pinfo->connfd, F_SETFL, flags)) < 0) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+        et_logmsg("ERROR", "et_netserver: error in fcntl 1\n");
+      }
+      close(pinfo->connfd);
+      free(pinfo);
+      continue;
+    }
+    
+    if ( (err = et_tcp_read(pinfo->connfd, magicInts, sizeof(magicInts))) != sizeof(magicInts)) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+        if (err == EWOULDBLOCK) {
+          /* not enough data to do read without blocking */
+          et_logmsg("ERROR", "et_netserver: ET server being probed by non-ET client\n");
+        }
+        else {
+          et_logmsg("ERROR", "et_netserver: read failure\n");
+        }
+      }
+      close(pinfo->connfd);
+      free(pinfo);
+      continue;
+    }
+
+    /* check magic numbers received */
+    if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
+        ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
+        ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
+
+      if (etid->debug >= ET_DEBUG_ERROR) {
+        et_logmsg("ERROR", "et_netserver: magic numbers do NOT match, close client\n");
+      }
+      close(pinfo->connfd);
+      free(pinfo);
+      continue;
+    }
+
+    /* make socket blocking again */
+    flags &= ~O_NONBLOCK;
+    fcntl(pinfo->connfd, F_SETFL, flags);
+    if (err == -1) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+        et_logmsg("ERROR", "et_netserver: error in fcntl 2\n");
+      }
+      close(pinfo->connfd);
+      free(pinfo);
+      continue;
+    }
+    
+    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("INFO", "et_netserver: magic numbers do match, accept ET client\n");
+    }
+
     if (debug)
       printf("TCP server got a connection so spawn thread\n");
 

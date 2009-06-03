@@ -48,7 +48,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   et_id *etid;
   struct timespec heartbeat;
   int fd, status, sockfd, length, bufsize, version, nselects;
-  int err=ET_OK, transfer[5], incoming[9];
+  int err=ET_OK, transfer[8], incoming[9];
   char *buf, *pbuf;
   char  buffer[20];
   
@@ -199,20 +199,26 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 #else
 	etid->iov_max = ET_IOV_MAX;
 #endif
-  /* endian stuff */
-  transfer[0] = htonl(etid->endian);
-  
+
+  /* magic numbers */
+  transfer[0]  = htonl(ET_MAGIC_INT1);
+  transfer[1]  = htonl(ET_MAGIC_INT2);
+  transfer[2]  = htonl(ET_MAGIC_INT3);
+    
+  /* endian */
+  transfer[3]  = htonl(etid->endian);
+
   /* length of ET system name */
   length = strlen(filename)+1;
-  transfer[1] = htonl(length);
+  transfer[4] = htonl(length);
 #ifdef _LP64
-  transfer[2] = 1;
+  transfer[5] = 1;
 #else
-  transfer[2] = 0;
+  transfer[5] = 0;
 #endif
   /* not used */
-  transfer[3] = 0;
-  transfer[4] = 0;
+  transfer[6] = 0;
+  transfer[7] = 0;
   
   /* make the network connection */
   sockfd = et_tcp_connect(etid->sys->host, (unsigned short)etid->sys->port);

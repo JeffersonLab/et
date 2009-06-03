@@ -1637,14 +1637,14 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                               struct timeval *waittime)
 {
   int          i, j, k, l, n, err, version, nameCount, castType, gotMatch=0, subnetCount=0;
-  int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0;
+  int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0, magicInts[3];
   const int    on=1, timeincr[]={0,1,2,3,4,5};
   uint32_t     addr;
   et_iplist *baddr;
    
   /* encoding & decoding packets */
   char  *pbuf, buffer[4096]; /* should be way more than enough */
-  char  outbuf[ET_FILENAME_LENGTH+16];
+  char  outbuf[ET_FILENAME_LENGTH+1+5*sizeof(int)];
   char  localhost[ET_MAXHOSTNAMELEN];
   char  localuname[ET_MAXHOSTNAMELEN];
   char  specifiedhost[ET_MAXHOSTNAMELEN];
@@ -2003,25 +2003,31 @@ if (debug)
   }
      
   /* Prepare output buffer that we send to servers:
-   * (1) ET version #,
-   * (2) ET file name length (includes null)
-   * (3) ET file name
-   *
-   * Sending version # first (starting with ET version 4) allows
-   * version 3 clients to send to version 4 ET systems which
-   * are expecting a filename to come first. Since there will
-   * be no match, they won't respond. That is what we want anyway,
-   * as they are different versions of ET.
+   * (1) ET magic numbers (3 ints),
+   * (2) ET version #,
+   * (3) ET file name length (includes null)
+   * (4) ET file name
    */
   pbuf = outbuf;
+
+  /* magic numbers */
+  magicInts[0] = htonl(ET_MAGIC_INT1);
+  magicInts[1] = htonl(ET_MAGIC_INT2);
+  magicInts[2] = htonl(ET_MAGIC_INT3);
+  memcpy(pbuf, magicInts, sizeof(magicInts));
+  pbuf += sizeof(magicInts);
+
+  /* ET major version number */
   version = htonl(ET_VERSION);
   memcpy(pbuf, &version, sizeof(version));
-  pbuf   += sizeof(version); 
+  pbuf   += sizeof(version);
+  
+  /* length of ET system name string */
   length  = strlen(etname)+1;
   len_net = htonl(length);
-  /* length of etname string */
   memcpy(pbuf, &len_net, sizeof(len_net));
-  pbuf += sizeof(len_net); 
+  pbuf += sizeof(len_net);
+  
   /* name of the ET system we want to open */
   memcpy(pbuf, etname, length);
   
@@ -2126,6 +2132,7 @@ anotherpacket:
 #endif
           
           /* decode packet from ET system:
+           * (0)  ET magic numbers (3 ints)
            * (1)  ET version #
            * (2)  port of tcp server thread (not udp config->port)
            * (3)  ET_BROADCAST or ET_MULTICAST (int)
@@ -2150,6 +2157,18 @@ anotherpacket:
           pbuf = buffer;
           
           do {
+            /* get ET magic #s */
+            memcpy(magicInts, pbuf, sizeof(magicInts));
+            pbuf += sizeof(magicInts);
+              
+            /* if the wrong magic numbers, reject it */
+            if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
+                ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
+                ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
+                free(answer);
+                break;
+            }
+         
             /* get ET system's major version # */
             memcpy(&version, pbuf, sizeof(version));
             version = ntohl(version);

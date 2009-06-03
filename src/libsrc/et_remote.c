@@ -54,7 +54,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     et_open_config *config = (et_open_config *) openconfig;
     int sockfd=-1, length, bufsize, version, nselects;
     int vxdelay;
-    int err=ET_OK, openerror=ET_OK, transfer[5], incoming[9];
+    int err=ET_OK, openerror=ET_OK, transfer[8], incoming[9];
     int port=0;
     uint32_t inetaddr = 0;
     et_id *etid;
@@ -63,10 +63,8 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     double          dstart, dnow, dtimeout;
     struct timespec sleeptime;
 #if defined linux || defined __APPLE__
-
     struct timeval  start, now;
 #else
-
     struct timespec start, now;
 #endif
 
@@ -77,16 +75,14 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
     /* keep track of starting time */
 #if defined linux || defined __APPLE__
-
     gettimeofday(&start, NULL);
     dstart = start.tv_sec + 1.e-6*(start.tv_usec);
 #else
-
     clock_gettime(CLOCK_REALTIME, &start);
     dstart = start.tv_sec + 1.e-9*(start.tv_nsec);
 #endif
 
-    /* 0.1sec per sleep (10Hz) */
+    /* 0.1 sec per sleep (10Hz) */
     sleeptime.tv_sec  = 0;
     sleeptime.tv_nsec = 100000000;
     vxdelay = 6;
@@ -140,18 +136,15 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
         gettimeofday(&now, NULL);
         dnow = now.tv_sec + 1.e-6*(now.tv_usec);
 #else
-
         clock_gettime(CLOCK_REALTIME, &now);
         dnow = now.tv_sec + 1.e-9*(now.tv_nsec);
 #endif
-
         if (dtimeout < dnow - dstart) {
             break;
         }
 #ifdef VXWORKS
         taskDelay(vxdelay);
 #else
-
         nanosleep(&sleeptime, NULL);
 #endif
     }
@@ -186,32 +179,33 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
 
     /* find client's iov_max value */
 #if defined VXWORKS || defined __APPLE__
-
     etid->iov_max = ET_IOV_MAX;
 #else
-
     if ( (etid->iov_max = sysconf(_SC_IOV_MAX)) == -1) {
         /* set it to POSIX minimum by default (it always bombs on Linux) */
         etid->iov_max = ET_IOV_MAX;
     }
 #endif
 
-    /* endian stuff */
-    transfer[0]  = htonl(etid->endian);
+    /* magic numbers */
+    transfer[0]  = htonl(ET_MAGIC_INT1);
+    transfer[1]  = htonl(ET_MAGIC_INT2);
+    transfer[2]  = htonl(ET_MAGIC_INT3);
+    
+    /* endian */
+    transfer[3]  = htonl(etid->endian);
 
     /* length of ET system name */
     length = strlen(et_filename)+1;
-    transfer[1] = htonl(length);
+    transfer[4] = htonl(length);
 #ifdef _LP64
-
-    transfer[2] = 1;
+    transfer[5] = 1;
 #else
-
-    transfer[2] = 0;
+    transfer[5] = 0;
 #endif
     /* not used */
-    transfer[3] = 0;
-    transfer[4] = 0;
+    transfer[6] = 0;
+    transfer[7] = 0;
 
     /* put everything in one buffer, extra room in "transfer" */
     bufsize = sizeof(transfer) + length;

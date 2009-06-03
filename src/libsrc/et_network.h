@@ -129,6 +129,13 @@ struct ifi_info {
 #define ntoh64(x) et_ntoh64(x)
 #endif
 
+/*
+ * Ints representing ascii for "ET is Grreat",
+ * used to filter out portscanning software.
+ */
+#define ET_MAGIC_INT1 0x45543269
+#define ET_MAGIC_INT2 0x73324772
+#define ET_MAGIC_INT3 0x72656174
 
 /* our prototypes */
 extern uint64_t et_ntoh64(uint64_t n);
