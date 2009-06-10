@@ -147,6 +147,7 @@ extern int   et_accept(int fd, struct sockaddr *sa, socklen_t *salenptr);
 extern ssize_t et_tcp_read(int fd, void *vptr, size_t n);
 extern ssize_t et_tcp_write(int fd, const void *vptr, size_t n);
 extern ssize_t et_tcp_writev(int fd, struct iovec iov[], int nbufs, int iov_max);
+extern int     et_tcp_read_3i_NB(int fd, int *i1, int *i2, int *i3);
 
 extern int   et_CODAswap(int *src, int *dest, int nints, int same_endian);
 extern int   et_byteorder(void);

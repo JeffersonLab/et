@@ -445,29 +445,90 @@ ssize_t et_tcp_write(int fd, const void *vptr, size_t n)
 /*****************************************************/
 ssize_t et_tcp_read(int fd, void *vptr, size_t n)
 {
-  size_t  nleft;
-  ssize_t nread;
-  char    *ptr;
+    size_t  nleft;
+    ssize_t nread;
+    char    *ptr;
 
-  ptr = (char *) vptr;
-  nleft = n;
+    ptr = (char *) vptr;
+    nleft = n;
   
-  while (nleft > 0) {
-    if ( (nread = read(fd, ptr, nleft)) < 0) {
-      if (errno == EINTR) {
-        nread = 0;        /* and call read() again */
-      }
-      else {
-        return(-1);
-      }
-    } else if (nread == 0) {
-      break;            /* EOF */
-    }
+    while (nleft > 0) {
+        if ( (nread = read(fd, ptr, nleft)) < 0) {
+          /*
+            if (errno == EINTR)            fprintf(stderr, "call interrupted\n");
+            else if (errno == EAGAIN)      fprintf(stderr, "non-blocking return, or socket timeout\n");
+            else if (errno == EWOULDBLOCK) fprintf(stderr, "nonblocking return\n");
+            else if (errno == EIO)         fprintf(stderr, "I/O error\n");
+            else if (errno == EISDIR)      fprintf(stderr, "fd refers to directory\n");
+            else if (errno == EBADF)       fprintf(stderr, "fd not valid or not open for reading\n");
+            else if (errno == EINVAL)      fprintf(stderr, "fd not suitable for reading\n");
+            else if (errno == EFAULT)      fprintf(stderr, "buffer is outside address space\n");
+            else {perror("cMsgTcpRead");}
+          */
+            if (errno == EINTR) {
+                nread = 0;        /* and call read() again */
+            }
+            else {
+                return(-1);
+            }
+        } else if (nread == 0) {
+            break;            /* EOF */
+        }
     
-    nleft -= nread;
-    ptr   += nread;
-  }
-  return((ssize_t) (n - nleft));        /* return >= 0 */
+        nleft -= nread;
+        ptr   += nread;
+    }
+    return((ssize_t) (n - nleft));        /* return >= 0 */
+}
+/*****************************************************/
+/**
+ * Read 3 ints from a nonblocking socket which are returned.
+ * If they cannot be read within .1 sec, forget about it
+ * since the client is probably not a valide one. Takes
+ * care of converting network to host byte order.
+ * Return of -1 is error, 0 is OK.
+ */
+int et_tcp_read_3i_NB(int fd, int *i1, int *i2, int *i3)
+{
+    const int numBytes = 12;
+    size_t  nleft = numBytes;
+    ssize_t nread;
+    char    buf[numBytes]; /* byte buffer */
+    int     bufIndex = 0, loops = 10;
+    struct timespec wait = {0, 10000000}; /* .01 sec */
+
+    
+    while (nleft > 0 && loops-- > 0) {
+
+        if ( (nread = read(fd, &buf[bufIndex], nleft)) < 0) {
+           
+            if (errno != EWOULDBLOCK) {
+                return -1;   /* error reading */
+            }
+            
+            /* try again after a .01 sec delay */
+            nanosleep(&wait,NULL);
+            continue;
+            
+        } else if (nread == 0) {
+            return -1;       /* EOF, but not done reading yet */
+        }
+    
+        nleft -= nread;
+        bufIndex += nread;
+    }
+
+    /* if we timed out ... */
+    if (nleft > 0) {
+        return -1;
+    }
+
+    /* This takes care of converting network byte order */
+    if (i1 != NULL) *i1 = ((buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8)  | buf[3]);
+    if (i2 != NULL) *i2 = ((buf[4]<<24) | (buf[5]<<16) | (buf[6]<<8)  | buf[7]);
+    if (i3 != NULL) *i3 = ((buf[8]<<24) | (buf[9]<<16) | (buf[10]<<8) | buf[11]);
+    
+    return 0;
 }
 
 /*****************************************************/
