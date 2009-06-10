@@ -407,6 +407,7 @@ static void *et_listen_thread(void *arg)
         /* wrong magic numbers, listen for next packet */
         continue;
     }
+/*printf("et_listen_thread: passed magic number test\n");*/
 
     /* read & check version number */
     memcpy(&version, pbuf, sizeof(version));
@@ -562,9 +563,10 @@ void *et_netserver(void *arg)
      * it and not writing at least 3 ints worth of data will return an error
      * and we can ignore that "client".
      */
-    flags = fcntl(pinfo->connfd, F_GETFL, 0) | O_NONBLOCK;
+    flags = fcntl(pinfo->connfd, F_GETFL, 0);
+    if (flags == -1) flags = 0;
     
-    if ( (fcntl(pinfo->connfd, F_SETFL, flags)) < 0) {
+    if ( (fcntl(pinfo->connfd, F_SETFL, flags | O_NONBLOCK)) < 0) {
       if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_netserver: error in fcntl 1\n");
       }
@@ -573,25 +575,24 @@ void *et_netserver(void *arg)
       continue;
     }
     
-    if ( (err = et_tcp_read(pinfo->connfd, magicInts, sizeof(magicInts))) != sizeof(magicInts)) {
+    /*printf("et_netserver: try to read magic numbers\n");*/
+    err = et_tcp_read_3i_NB(pinfo->connfd, &magicInts[0], &magicInts[1], &magicInts[2]);
+    if (err != 0) {
       if (etid->debug >= ET_DEBUG_ERROR) {
-        if (err == EWOULDBLOCK) {
-          /* not enough data to do read without blocking */
-          et_logmsg("ERROR", "et_netserver: ET server being probed by non-ET client\n");
-        }
-        else {
-          et_logmsg("ERROR", "et_netserver: read failure\n");
-        }
+          et_logmsg("ERROR", "et_netserver: ET server being probed by non-ET client or read failure\n");
       }
       close(pinfo->connfd);
       free(pinfo);
       continue;
     }
+    
+    /*printf("et_netserver: read magic numbers: 1 -> %0x, 2 -> %0x, 3 -> %0x\n",
+    magicInts[0],magicInts[1],magicInts[2]); */
 
     /* check magic numbers received */
-    if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
-        ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
-        ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
+    if (magicInts[0] != ET_MAGIC_INT1 ||
+        magicInts[1] != ET_MAGIC_INT2 ||
+        magicInts[2] != ET_MAGIC_INT3)  {
 
       if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_netserver: magic numbers do NOT match, close client\n");
@@ -600,6 +601,7 @@ void *et_netserver(void *arg)
       free(pinfo);
       continue;
     }
+    /*printf("et_netserver: passed magic number test\n");*/
 
     /* make socket blocking again */
     flags &= ~O_NONBLOCK;
