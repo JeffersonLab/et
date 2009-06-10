@@ -76,7 +76,7 @@ extern "C" {
  * We need it to be uniform across all platforms since we transfer
  * this info across the network. Define it to be 256 for everyone.
  */
-#define ET_MAXHOSTNAMELEN 257
+#define ET_MAXHOSTNAMELEN 256
 
 
 /* *****************************************************************
