@@ -26,6 +26,9 @@ public final class Constants {
   private Constants () {
   }
 
+  /** Ints representing ascii for "cMsg is cool", used to filter out portscanning software. */
+  public static final int[] magicNumbers = {0x45543269, 0x73324772, 0x72656174};
+
   // constants from et.h
 
   /** A convenient multicast address used for finding an ET system.
@@ -317,11 +320,27 @@ public final class Constants {
 
 
   // constants from private.h
+/**
+ * String length of dotted-decimal, ip address string
+ * Some systems - but not all - define INET_ADDRSTRLEN
+ * ("ddd.ddd.ddd.ddd\0" = 16)
+ */
+ static final int ipAddrStrLen = 16;
+
+/**
+ * MAXHOSTNAMELEN is defined to be 256 on Solaris and is the max length
+ * of the host name so we add one for the terminator. On Linux the
+ * situation is less clear but 257 appears to be the max (whether that
+ * includes termination is not clear).
+ * We need it to be uniform across all platforms since we transfer
+ * this info across the network. Define it to be 256 for everyone.
+ */
+  static final int maxHostNameLen = 256;
 
   /** Java ET systems are 32 bit since arrays can only be of size Integer.MAX_VALUE. */
   static final int    bit64               = 0;
   /** Major ET version number. */
-  static final int    version             = 10;
+  static final int    version             = 11;
   /** Minor ET version number. */
   static final int    minorVersion        = 0;
   /** Maximum number of attachments to an ET system. */

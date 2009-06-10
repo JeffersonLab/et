@@ -199,8 +199,13 @@ public class SystemOpen {
     responders.clear();
 
     // Put outgoing packet info into a byte array to send to ET systems
-    ByteArrayOutputStream  baos = new ByteArrayOutputStream(110);
+    ByteArrayOutputStream  baos = new ByteArrayOutputStream(122);
     DataOutputStream        dos = new DataOutputStream(baos);
+
+    // write magic #s
+    dos.writeInt(Constants.magicNumbers[0]);
+    dos.writeInt(Constants.magicNumbers[1]);
+    dos.writeInt(Constants.magicNumbers[2]);
     // write ET version
     dos.writeInt(Constants.version);
     // write string length of ET name
@@ -605,6 +610,7 @@ public class SystemOpen {
       ArrayList<String> hosts = new ArrayList<String>(20);
 
       // decode packet from ET system:
+      // (0)  ET magic numbers (3 ints)
       // (1)  ET version #
       // (2)  port of tcp server thread (not udp config->port)
       // (3)  Constants.broadcast .multicast or broadAndMulticast (int)
@@ -625,16 +631,45 @@ public class SystemOpen {
       //
       // All aliases are sent here.
 
+      // (0)  ET magic numbers (3 ints)
+      int magic1 = dis.readInt();
+      int magic2 = dis.readInt();
+      int magic3 = dis.readInt();
+      if (magic1 != Constants.magicNumbers[0] ||
+          magic2 != Constants.magicNumbers[1] ||
+          magic3 != Constants.magicNumbers[2])  {
+//System.out.println("replyMatch:  Magic numbers did NOT match");
+          return noMatch;
+      }
+
       // (1) ET version #
-      dis.readInt();         //IOEx
+      int version = dis.readInt();         //IOEx
+      if (version != Constants.version) {
+//System.out.println("replyMatch:  version did NOT match");
+          return noMatch;
+      }
+
       // (2) server port #
       int port = dis.readInt();
+      if ((port < 1) || (port > 65536)) {
+          return noMatch;
+      }
+
       // (3) response to what type of cast?
       int cast = dis.readInt();
+      if ((cast != Constants.broadcast) &&
+          (cast != Constants.multicast) &&
+          (cast != Constants.broadAndMulticast)) {
+          return noMatch;
+      }
 
       // (4) read length of IP address (dotted-decimal) of responding address
       //     or 0.0.0.0 if java
       int length = dis.readInt();
+      if ((length < 1) || (length > Constants.ipAddrStrLen)) {
+          return noMatch;
+      }
+
       // (5) read IP address
       buf = new byte[length];
       dis.readFully(buf, 0, length);
@@ -645,6 +680,10 @@ public class SystemOpen {
       // (6) Read length of "uname" or InetAddress.getLocalHost().getHostName() if java,
       //     used as identifier of this host no matter which interface used.
       length = dis.readInt();
+      if ((length < 1) || (length > Constants.maxHostNameLen)) {
+          return noMatch;
+      }
+
       // (7) read uname
       buf = new byte[length];
       dis.readFully(buf, 0, length);
@@ -654,6 +693,10 @@ public class SystemOpen {
 
       // (8) # of following names
       int numNames = dis.readInt();
+      if (numNames < 0) {
+          return noMatch;
+      }
+
       int addr;
 
       for (int i=0; i<numNames; i++) {
@@ -769,6 +812,11 @@ public class SystemOpen {
   private void open() throws IOException, EtException {
     DataInputStream  dis = new DataInputStream(sock.getInputStream());
     DataOutputStream dos = new DataOutputStream(sock.getOutputStream());
+
+    // write magic #s
+    dos.writeInt(Constants.magicNumbers[0]);
+    dos.writeInt(Constants.magicNumbers[1]);
+    dos.writeInt(Constants.magicNumbers[2]);
 
     // write our endian, length of ET filename, and ET filename
     dos.writeInt(Constants.endianBig);

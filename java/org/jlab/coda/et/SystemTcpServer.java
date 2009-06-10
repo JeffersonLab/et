@@ -19,6 +19,9 @@ import java.util.*;
 import java.util.Map.*;
 import java.io.*;
 import java.net.*;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.ByteBuffer;
 
 /**
  * This class implements a thread which listens for users trying to connect to
@@ -58,16 +61,26 @@ public class SystemTcpServer extends Thread {
 
       // open a listening socket
       try {
-          ServerSocket listeningSocket = new ServerSocket(port);  // IOEx
-          // 2 second accept timeout
-          listeningSocket.setSoTimeout(2000);
+
+          // Direct buffer for reading 3 magic ints with nonblocking IO
+          int BYTES_TO_READ = 12;
+          ByteBuffer buffer = ByteBuffer.allocateDirect(BYTES_TO_READ);
+
+          // Create channel and bind to port. If that isn't possible, exit.
+          ServerSocketChannel serverChannel = ServerSocketChannel.open();
+          serverChannel.socket().setReuseAddress(true);
+          serverChannel.socket().bind(new InetSocketAddress(port));
+          serverChannel.socket().setSoTimeout(2000);
 
           while (true) {
               // socket to client created
+              SocketChannel channel;
               Socket sock;
               while (true) {
                   try {
-                      sock = listeningSocket.accept();
+                      // accept the connection from the client
+                      channel = serverChannel.accept();
+                      sock = channel.socket();
                       break;
                   }
                   // server socket accept timeout
@@ -86,10 +99,62 @@ public class SystemTcpServer extends Thread {
               // set buffer size
               sock.setReceiveBufferSize(65535);
               sock.setSendBufferSize(65535);
+
+              // Check to see if this is a legitimate client or some imposter.
+              // Don't want to block on read here since it may not be a real client
+              // and may block forever - tying up the server.
+              int bytes, bytesRead=0, loops=0;
+              buffer.clear();
+              buffer.limit(BYTES_TO_READ);
+              channel.configureBlocking(false);
+
+              // read magic numbers
+              while (bytesRead < BYTES_TO_READ) {
+//System.out.println("  try reading rest of Buffer");
+//System.out.println("  Buffer capacity = " + buffer.capacity() + ", limit = " + buffer.limit()
+//                    + ", position = " + buffer.position() );
+                  bytes = channel.read(buffer);
+                  // for End-of-stream ...
+                  if (bytes == -1) {
+                      channel.close();
+                      continue;
+                  }
+                  bytesRead += bytes;
+//System.out.println("  bytes read = " + bytesRead);
+
+                  // if we've read everything, look to see if it's sent the magic #s
+                  if (bytesRead >= BYTES_TO_READ) {
+                      buffer.flip();
+                      int magic1 = buffer.getInt();
+                      int magic2 = buffer.getInt();
+                      int magic3 = buffer.getInt();
+                      if (magic1 != Constants.magicNumbers[0] ||
+                          magic2 != Constants.magicNumbers[1] ||
+                          magic3 != Constants.magicNumbers[2])  {
+//System.out.println("SystemTcpServer:  Magic numbers did NOT match");
+                          channel.close();
+                      }
+                  }
+                  else {
+                      // give client 10 loops (.1 sec) to send its stuff, else no deal
+                      if (++loops > 10) {
+//System.out.println("SystemTcpServer:  Client taking too long to send 3 ints, terminate connection");
+                          channel.close();
+                          continue;
+                      }
+                      try { Thread.sleep(10); }
+                      catch (InterruptedException e) { }
+                  }
+              }
+
+              // change back to blocking socket
+              channel.configureBlocking(true);
+
               // create thread to deal with client
-              ClientThread connection = new ClientThread(sys, sock);
+              ClientThread connection = new ClientThread(sys, channel.socket());
               connection.start();
           }
+
       }
       catch (SocketException ex) {
       }

@@ -170,6 +170,7 @@ class ListeningThread extends Thread {
       DatagramPacket rPacket = new DatagramPacket(rBuffer, 512);
 
       // Prepare output buffer we send in answer to inquiries:
+      // (0)  ET magic numbers (3 ints)
       // (1)  ET version #
       // (2)  port of tcp server thread (not udp config->port)
       // (3)  ET_BROADCAST or ET_MULTICAST (int)
@@ -200,13 +201,18 @@ class ListeningThread extends Thread {
           String hostName = addr.getHostName();
 
           // the send buffer needs to be of byte size ...
-          int bufferSize = 8*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
+          int bufferSize = 11*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
           for (InetAddress netAddress : sys.netAddresses) {
               bufferSize += 8 + netAddress.getHostName().length() + 1;
           }
 
           baos = new ByteArrayOutputStream(bufferSize);
           DataOutputStream dos = new DataOutputStream(baos);
+
+          // magic #s
+          dos.writeInt(Constants.magicNumbers[0]);
+          dos.writeInt(Constants.magicNumbers[1]);
+          dos.writeInt(Constants.magicNumbers[2]);
 
           dos.writeInt(Constants.version);
           dos.writeInt(config.serverPort);
@@ -284,12 +290,23 @@ class ListeningThread extends Thread {
               }
 
               // decode the data:
-              // (1) ET version #,
-              // (2) length of string,
-              // (3) ET file name
+              // (1) ET magic numbers (3 ints),
+              // (2) ET version #,
+              // (3) length of string,
+              // (4) ET file name
 
               ByteArrayInputStream bais = new ByteArrayInputStream(rPacket.getData());
               DataInputStream dis = new DataInputStream(bais);
+
+              int magic1 = dis.readInt();
+              int magic2 = dis.readInt();
+              int magic3 = dis.readInt();
+              if (magic1 != Constants.magicNumbers[0] ||
+                  magic2 != Constants.magicNumbers[1] ||
+                  magic3 != Constants.magicNumbers[2])  {
+//System.out.println("SystemUdpServer:  Magic numbers did NOT match");
+                  continue;
+              }
 
               int version = dis.readInt();
               int length = dis.readInt();
