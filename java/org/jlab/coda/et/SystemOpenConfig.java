@@ -208,8 +208,8 @@ public class SystemOpenConfig {
      * Constructor for broadcasting. First responder is chosen.
      *
      * @param etName ET system name
-     * @param destination  destination of broadcasts
      * @param uPort UDP port number to broadcast to
+     * @param destination  destination of broadcasts
      *
      * @exception org.jlab.coda.et.EtException
      *     if no broadcast addresses were specified
