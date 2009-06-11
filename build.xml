@@ -19,7 +19,7 @@
     </path>
 
     <!-- Version -->
-    <property name="et.version" value="9.0" />
+    <property name="et.version" value="11.0" />
     
     <!-- Debug -->
     <property name="javac.debug" value="off" />
