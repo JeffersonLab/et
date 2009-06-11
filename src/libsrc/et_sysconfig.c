@@ -204,8 +204,11 @@ int et_system_config_setprocs(et_sysconfig sconfig, int val)
   if (sc->init != ET_STRUCT_OK) {
     return ET_ERROR;
   }
-  if ((val < 1) || (val > ET_PROCESSES_MAX)) {
+  if (val < 1) {
     return ET_ERROR;
+  }
+  else if (val > ET_PROCESSES_MAX) {
+    val = ET_PROCESSES_MAX;
   }
   
   sc->nprocesses = val;
