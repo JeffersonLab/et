@@ -227,8 +227,8 @@ else:
     if not is64bits and not use32bits:
         use32bits = True
 
-if not use32bits:
-    osname = osname + '-64'
+if is64bits and use32bits:
+    osname = osname + '-32'
 
 print "OSNAME = ", osname
 
