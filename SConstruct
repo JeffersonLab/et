@@ -184,8 +184,15 @@ if useVxworks:
         print '\nVxworks compilation not allowed on ' + platform + '\n'
         raise SystemExit
                     
-    env.Append(CPPPATH = vxbase + '/target/h')
+    env.Replace(SHLIBSUFFIX = '.o')
+    # get rid of -shared and use -r
+    env.Replace(SHLINKFLAGS = '-r')
+    # redefine SHCFLAGS/SHCCFLAGS to get rid of -fPIC (in Linux)
+    env.Replace(SHCFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
+    env.Replace(SHCCFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
+    env.Append(CFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
     env.Append(CCFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
+    env.Append(CPPPATH = vxbase + '/target/h')
     env.Append(CPPDEFINES = ['CPU=PPC604', 'VXWORKS', '_GNU_TOOL', 'VXWORKSPPC', 'POSIX_MISTAKE'])
     env['CC']     = 'ccppc'
     env['CXX']    = 'g++ppc'
@@ -273,13 +280,8 @@ Help('install             install libs & headers\n')
 # use "examples" on command line to install executable examples
 Help('examples            install executable examples\n')
 
-# create needed install directories
-if not os.path.exists(incDir):
-    Execute(Mkdir(incDir))
-if not os.path.exists(libDir):
-    Execute(Mkdir(libDir))
-if not os.path.exists(binDir):
-    Execute(Mkdir(binDir))
+# not necessary to create install directories explicitly
+# (done automatically during install)
 
 #########################
 # Tar file
