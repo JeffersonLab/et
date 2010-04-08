@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -22,6 +22,15 @@ import java.lang.*;
  */
 
 public class EtReadException extends Exception {
-  EtReadException() {}
-  EtReadException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating a network read error of an ET system.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtReadException(String message) {
+        super(message);
+    }
+
 }

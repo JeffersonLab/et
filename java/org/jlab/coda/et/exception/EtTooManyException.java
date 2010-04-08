@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -23,7 +23,17 @@ import java.lang.*;
  */
 
 public class EtTooManyException extends Exception {
-  EtTooManyException() {}
-  EtTooManyException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating an error of an ET system when
+     * creating an item would result in too many such items existing.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtTooManyException(String message) {
+        super(message);
+    }
+
 }
 

@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -22,6 +22,15 @@ import java.lang.*;
  */
 
 public class EtTimeoutException extends Exception {
-  EtTimeoutException() {}
-  EtTimeoutException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating a timeout error of an ET system.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtTimeoutException(String message) {
+        super(message);
+    }
+
 }

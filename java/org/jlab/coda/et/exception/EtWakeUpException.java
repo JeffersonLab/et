@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -23,6 +23,16 @@ import java.lang.*;
  */
 
 public class EtWakeUpException extends Exception {
-  EtWakeUpException() {}
-  EtWakeUpException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating an error of an ET system
+     * when an attachment has been told to wake up from a blocking read.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtWakeUpException(String message) {
+        super(message);
+    }
+
 }

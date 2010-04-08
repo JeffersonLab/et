@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -23,6 +23,15 @@ import java.lang.*;
  */
 
 public class EtExistsException extends Exception {
-  EtExistsException() {}
-  EtExistsException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating when an item to be created already exists.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtExistsException(String message) {
+        super(message);
+    }
+
 }

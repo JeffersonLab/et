@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -23,6 +23,16 @@ import java.lang.*;
  */
 
 public class EtBusyException extends Exception {
-  EtBusyException() {}
-  EtBusyException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating when a user cannot access a
+     * station's input list because another thread or process is accessing it.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtBusyException(String message) {
+        super(message);
+    }
+
 }

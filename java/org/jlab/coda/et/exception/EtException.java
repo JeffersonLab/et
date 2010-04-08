@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.exception;
 import java.lang.*;
 
 /**
@@ -22,6 +22,15 @@ import java.lang.*;
  */
 
 public class EtException extends Exception {
-  public EtException() {}
-  public EtException(String s) {super(s);}
+
+    /**
+     * Create an exception indicating an error specific to the ET system.
+     * {@inheritDoc}<p/>
+     *
+     * @param message {@inheritDoc}<p/>
+     */
+    public EtException(String message) {
+        super(message);
+    }
+
 }
