@@ -16,6 +16,7 @@ package org.jlab.coda.et;
 
 import java.lang.*;
 import java.io.*;
+import org.jlab.coda.et.exception.*;
 
 /**
  * This class defines an ET system user's attachment to a station.
@@ -80,9 +81,9 @@ public class Attachment {
    * @see Constants
    * @return value of requested parameter
    *
-   * @exception java.io.IOException
+   * @exception IOException
    *     if there are network communication problems
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station no longer exists
    */
   private long getLongValue(int cmd) throws IOException, EtException {

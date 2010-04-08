@@ -18,6 +18,8 @@ import java.lang.*;
 import java.util.*;
 import java.io.*;
 import java.net.*;
+import org.jlab.coda.et.data.*;
+import org.jlab.coda.et.exception.*;
 
 
 /**
@@ -63,11 +65,11 @@ public class SystemUse {
    *     if problems with network comunications
    * @exception java.net.UnknownHostException
    *     if the host address(es) is(are) unknown
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the responding ET system has the wrong name, runs a different
    *     version of ET, or has a different value for
    *     {@link Constants#stationSelectInts}
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if there were more than one valid response when policy is set to
    *     {@link Constants#policyError} and we are looking either
    *     remotely or anywhere for the ET system.
@@ -103,11 +105,11 @@ public class SystemUse {
    *     if problems with network comunications
    * @exception java.net.UnknownHostException
    *     if the host address(es) is(are) unknown
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the responding ET system has the wrong name, runs a different
    *     version of ET, or has a different value for
    *     {@link Constants#stationSelectInts}
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if there were more than one valid response when policy is set to
    *     {@link Constants#policyError} and we are looking either
    *     remotely or anywhere for the ET system.
@@ -133,11 +135,11 @@ public class SystemUse {
    *     if problems with network comunications
    * @exception java.net.UnknownHostException
    *     if the host address(es) is(are) unknown
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the responding ET system has the wrong name, runs a different
    *     version of ET, or has a different value for
    *     {@link Constants#stationSelectInts}
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if there were more than one valid response when policy is set to
    *     {@link Constants#policyError} and we are looking either
    *     remotely or anywhere for the ET system.
@@ -182,11 +184,11 @@ public class SystemUse {
    *     if problems with network comunications
    * @exception java.net.UnknownHostException
    *     if the host address(es) is(are) unknown
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the responding ET system has the wrong name, runs a different
    *     version of ET, or has a different value for
    *     {@link Constants#stationSelectInts}
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if there were more than one valid response when policy is set to
    *     {@link Constants#policyError} and we are looking either
    *     remotely or anywhere for the ET system.
@@ -278,7 +280,7 @@ public class SystemUse {
    * @param att attachment to wake up
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the attachment object is invalid
    */
   synchronized public void wakeUpAttachment(Attachment att)
@@ -299,7 +301,7 @@ public class SystemUse {
    * @param station station whose attachments are to wake up
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station object is invalid
    */
   synchronized public void wakeUpAll(Station station)
@@ -322,37 +324,37 @@ public class SystemUse {
    *
    * @param config   station configuration
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station configuration is not self-consistent
    */
   private void configCheck(StationConfig config) throws EtException {    
 
     // USER mode means specifing a class 
-    if ((config.selectMode  == Constants.stationSelectUser) &&
-        (config.selectClass == null)) {
+    if ((config.getSelectMode()  == Constants.stationSelectUser) &&
+        (config.getSelectClass() == null)) {
       throw new EtException("station config needs a select class name");
     }
 
     // Must be parallel, block, not prescale, and not restore to input list if rrobin or equal cue
-    if (((config.selectMode  == Constants.stationSelectRRobin) ||
-	     (config.selectMode  == Constants.stationSelectEqualCue)) &&
-	    ((config.flowMode    == Constants.stationSerial) ||
-	     (config.blockMode   == Constants.stationNonBlocking) ||
-	     (config.restoreMode == Constants.stationRestoreIn)  ||
-	     (config.prescale    != 1))) {
+    if (((config.getSelectMode()  == Constants.stationSelectRRobin) ||
+	     (config.getSelectMode()  == Constants.stationSelectEqualCue)) &&
+	    ((config.getFlowMode()    == Constants.stationSerial) ||
+	     (config.getBlockMode()   == Constants.stationNonBlocking) ||
+	     (config.getRestoreMode() == Constants.stationRestoreIn)  ||
+	     (config.getPrescale()    != 1))) {
       
       throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, nonBlocking, prescale=1, & not restoreIn");
     }
 
     // If redistributing restored events, must be a parallel station
-    if ((config.restoreMode == Constants.stationRestoreRedist) &&
-        (config.flowMode    != Constants.stationParallel)) {
+    if ((config.getRestoreMode() == Constants.stationRestoreRedist) &&
+        (config.getFlowMode()    != Constants.stationParallel)) {
         throw new EtException("if restoreMode = restoreRedist, station must be parallel");
     }
 
-    if (config.cue > sys.numEvents) {
+    if (config.getCue() > sys.numEvents) {
       //throw new EtException("station configuraton cue size must be < max-#-of-events");
-        config.cue = sys.numEvents;
+        config.setCue(sys.numEvents);
     }
   }
 
@@ -370,14 +372,14 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the select method's class cannot be loaded, the position is less
    *     than 1 (GRAND_CENTRAL's spot), the name is GRAND_CENTRAL (already
    *     taken), the configuration's cue size is too big, or the configuration
    *     needs a select class name
-   * @exception org.jlab.coda.et.EtExistsException
+   * @exception EtExistsException
    *     if the station already exists but with a different configuration
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if the maximum number of stations has been created already
    */
   public Station createStation(StationConfig config, String name)
@@ -399,14 +401,14 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the select method's class cannot be loaded, the position is less
    *     than 1 (GRAND_CENTRAL's spot), the name is GRAND_CENTRAL (already
    *     taken), the configuration's cue size is too big, or the configuration
    *     needs a select class name
-   * @exception org.jlab.coda.et.EtExistsException
+   * @exception EtExistsException
    *     if the station already exists but with a different configuration
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if the maximum number of stations has been created already
    */
   public Station createStation(StationConfig config, String name, int position)
@@ -429,14 +431,14 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the select method's class cannot be loaded, the position is less
    *     than 1 (GRAND_CENTRAL's spot), the name is GRAND_CENTRAL (already
    *     taken), the configuration's cue size is too big, or the configuration
    *     needs a select class name
-   * @exception org.jlab.coda.et.EtExistsException
+   * @exception EtExistsException
    *     if the station already exists but with a different configuration
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if the maximum number of stations has been created already
    */
   synchronized public Station createStation(StationConfig config, String name,
@@ -469,32 +471,33 @@ public class SystemUse {
 
     // station configuration
     out.writeInt(Constants.structOk); // not used in Java
-    out.writeInt(config.flowMode);
-    out.writeInt(config.userMode);
-    out.writeInt(config.restoreMode);
-    out.writeInt(config.blockMode);
-    out.writeInt(config.prescale);
-    out.writeInt(config.cue);
-    out.writeInt(config.selectMode);
+    out.writeInt(config.getFlowMode());
+    out.writeInt(config.getUserMode());
+    out.writeInt(config.getRestoreMode());
+    out.writeInt(config.getBlockMode());
+    out.writeInt(config.getPrescale());
+    out.writeInt(config.getCue());
+    out.writeInt(config.getSelectMode());
+    int[] select = config.getSelect();
     for (int i=0; i < Constants.stationSelectInts; i++) {
-      out.writeInt(config.select[i]);
+      out.writeInt(select[i]);
     }
 
     int functionLength = 0; // no function
-    if (config.selectFunction != null) {
-      functionLength = config.selectFunction.length() + 1;
+    if (config.getSelectFunction() != null) {
+      functionLength = config.getSelectFunction().length() + 1;
     }
     out.writeInt(functionLength);
 
     int libraryLength = 0; // no lib
-    if (config.selectLibrary != null) {
-      libraryLength = config.selectLibrary.length() + 1;
+    if (config.getSelectLibrary() != null) {
+      libraryLength = config.getSelectLibrary().length() + 1;
     }
     out.writeInt(libraryLength);
 
     int classLength = 0; // no class
-    if (config.selectClass != null) {
-      classLength = config.selectClass.length() + 1;
+    if (config.getSelectClass() != null) {
+      classLength = config.getSelectClass().length() + 1;
     }
     out.writeInt(classLength);
 
@@ -507,15 +510,15 @@ public class SystemUse {
     // write string(s)
     try {
       if (functionLength > 0) {
-	    out.write(config.selectFunction.getBytes("ASCII"));
+	    out.write(config.getSelectFunction().getBytes("ASCII"));
 	    out.writeByte(0);
       }
       if (libraryLength > 0) {
-	    out.write(config.selectLibrary.getBytes("ASCII"));
+	    out.write(config.getSelectLibrary().getBytes("ASCII"));
 	    out.writeByte(0);
       }
       if (classLength > 0) {
-	    out.write(config.selectClass.getBytes("ASCII"));
+	    out.write(config.getSelectClass().getBytes("ASCII"));
 	    out.writeByte(0);
       }
       out.write(name.getBytes("ASCII"));
@@ -557,7 +560,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if attachments to the station still exist, the station is GRAND_CENTRAL
    *     (which must always exist), the station does not exist, or the
    *     station object is invalid
@@ -595,7 +598,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist, trying to move GRAND_CENTRAL, position
    *     is < 1 (GRAND_CENTRAL is always first), parallelPosition < 0, 
    *     station object is invalid,
@@ -649,7 +652,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist, or station object is invalid
    */
   synchronized public int getStationPosition(Station station)
@@ -687,7 +690,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist, or station object is invalid
    */
   synchronized public int getStationParallelPosition(Station station)
@@ -724,9 +727,9 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist, or station object is invalid
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if no more attachments are allowed to the station, or
    *     if no more attachments are allowed to ET system
    */
@@ -778,7 +781,7 @@ public class SystemUse {
    * @param att   attachment object
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the attachment object is invalid
    */
   synchronized public void detach(Attachment att)
@@ -812,7 +815,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist, station object is invalid, or attachment
    *     object is invalid
    */
@@ -874,7 +877,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
    */
   synchronized public Station stationNameToObject(String name)
@@ -919,18 +922,18 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if arguments have bad values or attachment object is invalid
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtBusyException
+   * @exception EtBusyException
    *     if the mode is asynchronous and the station's input list is being used
    *     (the mutex is locked)
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
-   *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+   *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
    */
    public List<Event> newEventsList(Attachment att, int mode, int microSec,
                                                int count, int size)
@@ -958,18 +961,18 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if arguments have bad values or attachment object is invalid
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtBusyException
+   * @exception EtBusyException
    *     if the mode is asynchronous and the station's input list is being used
    *     (the mutex is locked)
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
-   *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+   *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
    */
   synchronized public Event[] newEvents(Attachment att, int mode, int microSec,
                                         int count, int size)
@@ -1015,13 +1018,13 @@ public class SystemUse {
       nsec = (microSec - sec*1000000) * 1000;
     }
     byte[] buffer = new byte[32];
-    Event.intToBytes(Constants.netEvsNew, buffer, 0);
-    Event.intToBytes(att.id, buffer, 4);
-    Event.intToBytes(mode,   buffer, 8);
-    Event.longToBytes((long)size,   buffer, 12);
-    Event.intToBytes(count,  buffer, 20);
-    Event.intToBytes(sec,    buffer, 24);
-    Event.intToBytes(nsec,   buffer, 28);
+    Utils.intToBytes(Constants.netEvsNew, buffer, 0);
+    Utils.intToBytes(att.id, buffer, 4);
+    Utils.intToBytes(mode,   buffer, 8);
+    Utils.longToBytes((long)size,   buffer, 12);
+    Utils.intToBytes(count,  buffer, 20);
+    Utils.intToBytes(sec,    buffer, 24);
+    Utils.intToBytes(nsec,   buffer, 28);
     out.write(buffer);
     out.flush();
 
@@ -1066,7 +1069,7 @@ public class SystemUse {
     int numEvents = err;
 
     // list of events to return
-    Event[] evs = new Event[numEvents];
+    EventImpl[] evs = new EventImpl[numEvents];
     buffer = new byte[8*numEvents];
     in.readFully(buffer, 0, 8*numEvents);
 
@@ -1088,10 +1091,10 @@ public class SystemUse {
         }
 
     for (int j=0; j < numEvents; j++) {
-      evs[j] = new Event(size, (int)sizeLimit, isJava);
-      evs[j].id = Event.bytesToLong(buffer, index+=8);
-      evs[j].modify = modify;
-      evs[j].owner = att.id;
+      evs[j] = new EventImpl(size, (int)sizeLimit, isJava);
+      evs[j].setId(Utils.bytesToLong(buffer, index+=8));
+      evs[j].setModify(modify);
+      evs[j].setOwner(att.getId());
     }
 
     return evs;
@@ -1114,18 +1117,18 @@ public class SystemUse {
      *
      * @exception java.io.IOException
      *     if problems with network comunications
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if arguments have bad values or attachment object is invalid
-     * @exception org.jlab.coda.et.EtEmptyException
+     * @exception EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception org.jlab.coda.et.EtBusyException
+     * @exception EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception org.jlab.coda.et.EtTimeoutException
+     * @exception EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception org.jlab.coda.et.EtWakeUpException
+     * @exception EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     public List<Event> newEventsList(Attachment att, int mode, int microSec,
                                           int count, int size, int group)
@@ -1153,18 +1156,18 @@ public class SystemUse {
      *
      * @exception java.io.IOException
      *     if problems with network comunications
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if arguments have bad values or attachment object is invalid
-     * @exception org.jlab.coda.et.EtEmptyException
+     * @exception EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception org.jlab.coda.et.EtBusyException
+     * @exception EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception org.jlab.coda.et.EtTimeoutException
+     * @exception EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception org.jlab.coda.et.EtWakeUpException
+     * @exception EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     synchronized public Event[] newEvents(Attachment att, int mode, int microSec,
                                           int count, int size, int group)
@@ -1209,14 +1212,14 @@ public class SystemUse {
         nsec = (microSec - sec*1000000) * 1000;
       }
       byte[] buffer = new byte[36];
-      Event.intToBytes(Constants.netEvsNewGrp, buffer, 0);
-      Event.intToBytes(att.id, buffer, 4);
-      Event.intToBytes(mode,   buffer, 8);
-      Event.longToBytes((long)size,   buffer, 12);
-      Event.intToBytes(count,  buffer, 20);
-      Event.intToBytes(group,  buffer, 24);
-      Event.intToBytes(sec,    buffer, 28);
-      Event.intToBytes(nsec,   buffer, 32);
+      Utils.intToBytes(Constants.netEvsNewGrp, buffer, 0);
+      Utils.intToBytes(att.id, buffer, 4);
+      Utils.intToBytes(mode,   buffer, 8);
+      Utils.longToBytes((long)size,   buffer, 12);
+      Utils.intToBytes(count,  buffer, 20);
+      Utils.intToBytes(group,  buffer, 24);
+      Utils.intToBytes(sec,    buffer, 28);
+      Utils.intToBytes(nsec,   buffer, 32);
       out.write(buffer);
       out.flush();
 
@@ -1261,7 +1264,7 @@ public class SystemUse {
       int numEvents = err;
 
       // list of events to return
-      Event[] evs = new Event[numEvents];
+      EventImpl[] evs = new EventImpl[numEvents];
       buffer = new byte[8*numEvents];
       in.readFully(buffer, 0, 8*numEvents);
 
@@ -1283,10 +1286,10 @@ public class SystemUse {
           }
 
       for (int j=0; j < numEvents; j++) {
-        evs[j] = new Event(size, (int)sizeLimit, isJava);
-        evs[j].id = Event.bytesToLong(buffer, index+=8);
-        evs[j].modify = modify;
-        evs[j].owner = att.id;
+        evs[j] = new EventImpl(size, (int)sizeLimit, isJava);
+        evs[j].setId(Utils.bytesToLong(buffer, index+=8));
+        evs[j].setModify(modify);
+        evs[j].setOwner(att.getId());
       }
 
       return evs;
@@ -1308,19 +1311,19 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if arguments have bad values, the attachment's station is
    *     GRAND_CENTRAL, or the attachment object is invalid
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtBusyException
+   * @exception EtBusyException
    *     if the mode is asynchronous and the station's input list is being used
    *     (the mutex is locked)
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
-   *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+   *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
    */
   public List<Event> getEventsList(Attachment att, int mode, int microSec, int count)
                       throws IOException, EtException,
@@ -1347,19 +1350,19 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if arguments have bad values, the attachment's station is
    *     GRAND_CENTRAL, or the attachment object is invalid
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtBusyException
+   * @exception EtBusyException
    *     if the mode is asynchronous and the station's input list is being used
    *     (the mutex is locked)
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
-   *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+   *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
    */
   synchronized public Event[] getEvents(Attachment att, int mode, int microSec, int count)
                       throws IOException, EtException,
@@ -1409,13 +1412,13 @@ public class SystemUse {
       nsec = (microSec - sec*1000000) * 1000;
     }
     byte[] buffer = new byte[28];
-    Event.intToBytes(Constants.netEvsGet, buffer, 0);
-    Event.intToBytes(att.id, buffer, 4);
-    Event.intToBytes(wait,   buffer, 8);
-    Event.intToBytes(modify, buffer, 12);
-    Event.intToBytes(count,  buffer, 16);
-    Event.intToBytes(sec,    buffer, 20);
-    Event.intToBytes(nsec,   buffer, 24);
+    Utils.intToBytes(Constants.netEvsGet, buffer, 0);
+    Utils.intToBytes(att.id, buffer, 4);
+    Utils.intToBytes(wait,   buffer, 8);
+    Utils.intToBytes(modify, buffer, 12);
+    Utils.intToBytes(count,  buffer, 16);
+    Utils.intToBytes(sec,    buffer, 20);
+    Utils.intToBytes(nsec,   buffer, 24);
     out.write(buffer);
     out.flush();
 
@@ -1464,7 +1467,7 @@ public class SystemUse {
     final int priorityMask = Constants.priorityMask;
 
     int numEvents = err;
-    Event[] evs = new Event[numEvents];
+    EventImpl[] evs = new EventImpl[numEvents];
     int byteChunk = 4*(9+Constants.stationSelectInts);
     buffer = new byte[byteChunk];
     int index;
@@ -1475,8 +1478,8 @@ public class SystemUse {
     for (int j=0; j < numEvents; j++) {
       in.readFully(buffer, 0, byteChunk);
 
-      length  = Event.bytesToLong(buffer, 0);
-      memSize = Event.bytesToLong(buffer, 8);
+      length  = Utils.bytesToLong(buffer, 0);
+      memSize = Utils.bytesToLong(buffer, 8);
 
       // Note that the server will not send events too big for us,
       // we'll get an error above.
@@ -1488,21 +1491,23 @@ public class SystemUse {
               memSize = length;
           }
       }
-      evs[j] = new Event((int)memSize, (int)memSize, isJava);
-      evs[j].length = (int)length;
-      priAndStat = Event.bytesToInt(buffer, 12);
-      evs[j].priority = priAndStat & priorityMask;
-      evs[j].dataStatus = (priAndStat & dataMask) >> dataShift;
-      evs[j].id = Event.bytesToLong(buffer, 16);
-      evs[j].byteOrder = Event.bytesToInt(buffer, 24);
+      evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
+      evs[j].setLength((int)length);
+      priAndStat = Utils.bytesToInt(buffer, 12);
+      evs[j].setPriority(priAndStat & priorityMask);
+      evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
+      evs[j].setId(Utils.bytesToLong(buffer, 16));
+      evs[j].setByteOrder(Utils.bytesToInt(buffer, 24));
       index = 28;
+      int[] control = new int[selectInts];
       for (int i=0; i < selectInts; i++) {
-	    evs[j].control[i] = Event.bytesToInt(buffer, index+=4);
+	    control[i] = Utils.bytesToInt(buffer, index+=4);
       }
-      evs[j].modify = modify;
-      evs[j].owner = att.id;
+      evs[j].setControl(control);
+      evs[j].setModify(modify);
+      evs[j].setOwner(att.getId());
 
-      in.readFully(evs[j].data, 0, (int)length);
+      in.readFully(evs[j].getData(), 0, (int)length);
     }
 
     return evs;
@@ -1518,7 +1523,7 @@ public class SystemUse {
      *
      * @exception java.io.IOException
      *     if problems with network comunications
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
      */
@@ -1540,7 +1545,7 @@ public class SystemUse {
      *
      * @exception java.io.IOException
      *     if problems with network comunications
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
      */
@@ -1564,7 +1569,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if events are not owned by this attachment or the attachment object
    *     is invalid
    */
@@ -1584,16 +1589,16 @@ public class SystemUse {
     int headerSize = 4*(7+selectInts);
     for (Event ev : eventList) {
       // each event must be registered as owned by this attachment
-      if (ev.owner != att.id) {
+      if (ev.getOwner() != att.id) {
         throw new EtException("may not put event(s), not owner");
       }
       // if modifying header only or header & data ...
-      if (ev.modify > 0) {
+      if (ev.getModify() > 0) {
         numEvents++;
 	    bytes += headerSize;
 	    // if modifying data as well ...
-	    if (ev.modify == modify) {
-          bytes += ev.length;
+	    if (ev.getModify() == modify) {
+          bytes += ev.getLength();
 	    }
       }
     }
@@ -1605,19 +1610,20 @@ public class SystemUse {
 
     for (Event ev : eventList) {
       // send only if modifying an event (data or header) ...
-      if (ev.modify > 0) {
-	    out.writeLong(ev.id);
-	    out.writeLong((long)ev.length);
-	    out.writeInt(ev.priority | ev.dataStatus << dataShift);
-	    out.writeInt(ev.byteOrder);
+      if (ev.getModify() > 0) {
+	    out.writeLong(ev.getId());
+	    out.writeLong((long)ev.getLength());
+	    out.writeInt(ev.getPriority() | ev.getDataStatus() << dataShift);
+	    out.writeInt(ev.getByteOrder());
 	    out.writeInt(0); // not used
+        int[] control = ev.getControl();
 	    for (int i=0; i < selectInts; i++) {
-          out.writeInt(ev.control[i]);
+          out.writeInt(control[i]);
 	    }
 
 	    // send data only if modifying whole event
-	    if (ev.modify == modify) {
-          out.write(ev.data, 0, ev.length);
+	    if (ev.getModify() == modify) {
+          out.write(ev.getData(), 0, ev.getLength());
 	    }
       }
     }
@@ -1640,7 +1646,7 @@ public class SystemUse {
      *
      * @exception java.io.IOException
      *     if problems with network comunications
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
      */
@@ -1662,7 +1668,7 @@ public class SystemUse {
      *
      * @exception java.io.IOException
      *     if problems with network comunications
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
      */
@@ -1685,7 +1691,7 @@ public class SystemUse {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if events are not owned by this attachment or the attachment object
    *     is invalid
    */
@@ -1700,10 +1706,10 @@ public class SystemUse {
     int numEvents = 0;
     for (Event ev : eventList) {
       // each event must be registered as owned by this attachment
-      if (ev.owner != att.id) {
+      if (ev.getOwner() != att.id) {
         throw new EtException("may not put event(s), not owner");
       }
-      if (ev.modify > 0) numEvents++;
+      if (ev.getModify() > 0) numEvents++;
     }
 
     out.writeInt(Constants.netEvsDump);
@@ -1712,8 +1718,8 @@ public class SystemUse {
 
     for (Event ev : eventList) {
       // send only if modifying an event (data or header) ...
-      if (ev.modify > 0) {
-	    out.writeLong(ev.id);
+      if (ev.getModify() > 0) {
+	    out.writeLong(ev.getId());
       }
     }
     out.flush();
@@ -1932,7 +1938,7 @@ public class SystemUse {
    *  {@link Constants#debugSevere}, {@link Constants#debugError},
    *  {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
    *  @param val debug level
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if bad argument value
    */
   public void setDebug(int val) throws EtException {
@@ -2047,7 +2053,7 @@ public class SystemUse {
 
     in.readFully(data);
     for (int i=0; i < sys.numEvents+1; i++) {
-      hist[i] = Event.bytesToInt(data, i*4);
+      hist[i] = Utils.bytesToInt(data, i*4);
     }
     return hist;
   }

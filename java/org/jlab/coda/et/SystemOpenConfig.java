@@ -16,6 +16,7 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.util.*;
 import java.net.*;
+import org.jlab.coda.et.exception.*;
 
 /**
  * This class defines parameters used to open an ET system.
@@ -63,7 +64,7 @@ public class SystemOpenConfig {
   int  responsePolicy;
 
 
-
+   // TODO: get exceptions right
   /**
    * Most general constructor for creating a new SystemOpenConfig object.
    *
@@ -79,19 +80,19 @@ public class SystemOpenConfig {
    * @param policy Policy on what to do about multiple responding ET systems to
    *               a broadcast or multicast
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if method is not {@link Constants#broadcast},
    *     {@link Constants#multicast}, {@link Constants#direct}, or
    *     {@link Constants#broadAndMulticast}.
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if method is not direct and no broad/multicast addresses were
    *     specified, or if method is direct and no actual host name was
    *     specified.
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if port numbers are < 1024 or > 65535
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if ttl is < 0 or > 254
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if policy is not {@link Constants#policyFirst},
    *     {@link Constants#policyLocal}, or {@link Constants#policyError}
    */
@@ -191,9 +192,9 @@ public class SystemOpenConfig {
      * @param etName ET system name
      * @param destination  destination of broadcasts
      *
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if no broadcast addresses were specified
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if port number is < 1024 or > 65535
      */
     public SystemOpenConfig (String etName, String destination)
@@ -211,9 +212,9 @@ public class SystemOpenConfig {
      * @param uPort UDP port number to broadcast to
      * @param destination  destination of broadcasts
      *
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if no broadcast addresses were specified
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if port number is < 1024 or > 65535
      */
     public SystemOpenConfig (String etName, int uPort, String destination)
@@ -233,9 +234,9 @@ public class SystemOpenConfig {
    * @param mPort Port number to multicast to
    * @param ttlNum Time-to_live value for multicasting
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if no multicast addresses were specified
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if port number is < 1024 or > 65535, or ttl is < 0 or > 254
    */
   public SystemOpenConfig (String etName, String hostName,
@@ -257,9 +258,9 @@ public class SystemOpenConfig {
    * @param mPort Port number to multicast to
    * @param ttlNum Time-to_live value for multicasting
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if no multicast addresses were specified
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if port numbers are < 1024 or > 65535, or ttl is < 0 or > 254
    */
   public SystemOpenConfig (String etName, String hostName,
@@ -279,9 +280,9 @@ public class SystemOpenConfig {
    * @param hostName ET system host name
    * @param tPort TCP server port number of the ET system
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if no actual host name was specified.
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if port number is < 1024 or > 65535
    */
   public SystemOpenConfig (String etName, String hostName, int tPort)
@@ -363,7 +364,7 @@ public class SystemOpenConfig {
    *  Adds a multicast address to the set.
    *
    *  @param addr multicast address to be added
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the address is not a multicast address
    */
   public void addMulticastAddr(String addr) throws EtException {
@@ -384,7 +385,7 @@ public class SystemOpenConfig {
    *  Adds a collection of multicast addresses to the set.
    *
    *  @param addrs collection of multicast addresses to be added (as Strings)
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if one of the addresses is not a multicast address
    */
   public void setMulticastAddrs(Collection<String> addrs) throws EtException {
@@ -409,7 +410,7 @@ public class SystemOpenConfig {
    *  broadcasting and multicasting.
    *
    *  @param method means or method of contacting an ET system
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument has a bad value
    */
   public void setContactMethod(int method) throws EtException {
@@ -432,7 +433,7 @@ public class SystemOpenConfig {
    *  exception.
    *
    *  @param policy policy on what to do about multiple responding ET systems
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument has a bad value or if the policy says to choose a local
    *     ET system but the host is set to chose a remote system.
    */
@@ -454,7 +455,7 @@ public class SystemOpenConfig {
    *  Sets the UDP port number for broadcastiong and sending udp packets to known hosts.
    *
    *  @param port UDP port number for broadcasting and sending udp packets to known hosts
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the port number is < 1024 or > 65535
    */
   public void setUdpPort(int port) throws EtException {
@@ -468,7 +469,7 @@ public class SystemOpenConfig {
    *  Sets the TCP server port number of the ET system.
    *
    *  @param port TCP server port number of the ET system
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the port number is < 1024 or > 65535
    */
   public void setTcpPort(int port) throws EtException {
@@ -482,7 +483,7 @@ public class SystemOpenConfig {
    *  Sets the port number to multicast to.
    *
    *  @param port port number to multicast to
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the port number is < 1024 or > 65535
    */
   public void setMulticastPort(int port) throws EtException {
@@ -496,7 +497,7 @@ public class SystemOpenConfig {
    *  Sets the Time-to_live value for multicasting.
    *
    *  @param ttlNum time-to_live value for multicasting
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the port number is < 0 or > 254
    */
   public void setTTL(int ttlNum) throws EtException {

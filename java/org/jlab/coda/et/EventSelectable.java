@@ -14,8 +14,8 @@
 
 package org.jlab.coda.et;
 
-import java.lang.*;
-import java.util.*;
+import org.jlab.coda.et.system.StationLocal;
+import org.jlab.coda.et.system.SystemCreate;
 
 /**
  * This interface defines a method to use for custom event selection in a

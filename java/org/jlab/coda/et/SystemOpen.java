@@ -19,6 +19,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import org.jlab.coda.et.exception.*;
+
 /**
  * This class opens (finds and connects to) an ET system. The use of this class
  * is hidden from the user. There should be no reason to use it.
@@ -83,7 +85,7 @@ public class SystemOpen {
    *  {@link Constants#debugSevere}, {@link Constants#debugError},
    *  {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
    *  @param _debug debug level
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if bad argument value
    */
   public void setDebug(int _debug) throws EtException {
@@ -183,7 +185,7 @@ public class SystemOpen {
    *     if problems with network comunications
    * @exception java.net.UnknownHostException
    *     if the host address(es) is(are) unknown
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if there were more than one valid response when policy is set to
    *     {@link Constants#policyError} and we are looking either
    *     remotely or anywhere for the ET system.
@@ -805,7 +807,7 @@ public class SystemOpen {
    *
    * @exception java.io.IOException
    *     if problems with network comunications
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the responing ET system has the wrong name, runs a different version
    *     of ET, or has a different value for {@link Constants#stationSelectInts}
    */
@@ -875,11 +877,11 @@ public class SystemOpen {
    *     if problems with network comunications
    * @exception java.net.UnknownHostException
    *     if the host address(es) is(are) unknown
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the responding ET system has the wrong name, runs a different
    *     version of ET, or has a different value for
    *     {@link Constants#stationSelectInts}
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if there were more than one valid response when policy is set to
    *     {@link Constants#policyError} and we are looking either
    *     remotely or anywhere for the ET system.

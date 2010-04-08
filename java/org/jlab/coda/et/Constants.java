@@ -75,7 +75,7 @@ public final class Constants {
   public static final int    stationSelectInts   = 4;
   /** A limit on the length of the ET system (or file) name's length. This limit
    *  is due to the C implementation. */
-         static final int    fileNameLength      = 101;
+  public static final int    fileNameLength      = 101;
 
 
   /** A policy that chooses the first ET system to respond when broadcasting
@@ -193,9 +193,9 @@ public final class Constants {
   // talk to C language ET systems with structures
 
   /** C structure state value for talking to C language ET systems. */
-         static final int    structNew           = 0;
+  public static final int    structNew           = 0;
   /** C structure state value for talking to C language ET systems. */
-         static final int    structOk            = 1;
+  public static final int    structOk            = 1;
 	 
   /** Add station to end of linked list. */
   public static final int    end                 = -1;
@@ -211,13 +211,13 @@ public final class Constants {
    *  @see Event#setPriority */
   public static final int    high                = 1;
   /** Parse event priority information. */
-         static final int    priorityMask        = 0x1;
+  public static final int    priorityMask        = 0x1;
   /** Event has been obtained with getEvents, not newEvents. */
-         static final int    eventUsed           = 0;
+  public static final int    eventUsed           = 0;
   /** Event has been obtained with newEvents, not getEvents. */
-         static final int    eventNew            = 1;
+  public static final int    eventNew            = 1;
   /** System is event owner */
-         static final int    system              = -1;
+  public static final int    system              = -1;
 
   /** User sleeps when waiting for events to fill a station's empty input list. */
   public static final int    sleep               = 0;
@@ -234,7 +234,7 @@ public final class Constants {
   /** User wants events automatically dumped (not put) if data is not modified. */
   public static final int    dump                = 16;
   /** Parse event waiting information. */
-         static final int    waitMask            = 0x3;
+  public static final int    waitMask            = 0x3;
 
   //public static final int    openNoWait          = 0;
   //public static final int    openWait            = 1;
@@ -253,9 +253,9 @@ public final class Constants {
   /** An event's data may possibly be corrupted. */
   public static final int    dataPossiblyCorrupt = 2;
   /** Parse data status information. */
-         static final int    dataMask            = 0x30;
+  public static final int    dataMask            = 0x30;
   /** Parse data status information. */
-         static final int    dataShift           = 4;
+  public static final int    dataShift           = 4;
 
   /** An event's data is big endian. */
   public static final int    endianBig           = 0;
@@ -325,7 +325,7 @@ public final class Constants {
  * Some systems - but not all - define INET_ADDRSTRLEN
  * ("ddd.ddd.ddd.ddd\0" = 16)
  */
- static final int ipAddrStrLen = 16;
+ public static final int ipAddrStrLen = 16;
 
 /**
  * MAXHOSTNAMELEN is defined to be 256 on Solaris and is the max length
@@ -335,16 +335,16 @@ public final class Constants {
  * We need it to be uniform across all platforms since we transfer
  * this info across the network. Define it to be 256 for everyone.
  */
-  static final int maxHostNameLen = 256;
+  public static final int maxHostNameLen = 256;
 
   /** Java ET systems are 32 bit since arrays can only be of size Integer.MAX_VALUE. */
-  static final int    bit64               = 0;
+  public static final int    bit64               = 0;
   /** Major ET version number. */
-  static final int    version             = 11;
+  public static final int    version             = 11;
   /** Minor ET version number. */
-  static final int    minorVersion        = 0;
+  public static final int    minorVersion        = 0;
   /** Maximum number of attachments to an ET system. */
-  static final int    attachmentsMax      = 110;
+  public static final int    attachmentsMax      = 110;
   //static final int    ipAddrStrLen        = 16;
   //static final int    maxHostNameLen      = 256;
 
@@ -369,91 +369,91 @@ public final class Constants {
   //static final int    attUnused           = 0;
   //static final int    attActive           = 1;
   /** An attachment is not being told to wake up. */
-  static final int    attContinue         = 0;
+  public static final int    attContinue         = 0;
   /** An attachment is being told to wake up. */
-  static final int    attQuit             = 1;
+  public static final int    attQuit             = 1;
   /** An attachment is not blocked on a read statement. */
-  static final int    attUnblocked        = 0;
+  public static final int    attUnblocked        = 0;
   /** An attachment is blocked on a read statement. */
-  static final int    attBlocked          = 1;
+  public static final int    attBlocked          = 1;
 
   // codes sent over the network to identify ET system routines to call
-  static final int    netEvGetL        = 0;
-  static final int    netEvsGetL       = 1;
-  static final int    netEvPutL        = 2;
-  static final int    netEvsPutL       = 3;
-  static final int    netEvNewL        = 4;
-  static final int    netEvsNewL       = 5;
-  static final int    netEvDumpL       = 6;
-  static final int    netEvsDumpL      = 7;
-  static final int    netEvsNewGrpL    = 8;
+  public static final int    netEvGetL        = 0;
+  public static final int    netEvsGetL       = 1;
+  public static final int    netEvPutL        = 2;
+  public static final int    netEvsPutL       = 3;
+  public static final int    netEvNewL        = 4;
+  public static final int    netEvsNewL       = 5;
+  public static final int    netEvDumpL       = 6;
+  public static final int    netEvsDumpL      = 7;
+  public static final int    netEvsNewGrpL    = 8;
 
-  static final int    netEvGet         = 20;
-  static final int    netEvsGet        = 21;
-  static final int    netEvPut         = 22;
-  static final int    netEvsPut        = 23;
-  static final int    netEvNew         = 24;
-  static final int    netEvsNew        = 25;
-  static final int    netEvDump        = 26;
-  static final int    netEvsDump       = 27;
-  static final int    netEvsNewGrp     = 28;
+  public static final int    netEvGet         = 20;
+  public static final int    netEvsGet        = 21;
+  public static final int    netEvPut         = 22;
+  public static final int    netEvsPut        = 23;
+  public static final int    netEvNew         = 24;
+  public static final int    netEvsNew        = 25;
+  public static final int    netEvDump        = 26;
+  public static final int    netEvsDump       = 27;
+  public static final int    netEvsNewGrp     = 28;
 
-  static final int    netAlive         = 40;
-  static final int    netWait          = 41;
-  static final int    netClose         = 42;
-  static final int    netFClose        = 43;
-  static final int    netWakeAtt       = 44;
-  static final int    netWakeAll       = 45;
+  public static final int    netAlive         = 40;
+  public static final int    netWait          = 41;
+  public static final int    netClose         = 42;
+  public static final int    netFClose        = 43;
+  public static final int    netWakeAtt       = 44;
+  public static final int    netWakeAll       = 45;
 
-  static final int    netStatAtt       = 60;
-  static final int    netStatDet       = 61;
-  static final int    netStatCrAt      = 62;
-  static final int    netStatRm        = 63;
-  static final int    netStatSPos      = 64;
-  static final int    netStatGPos      = 65;
+  public static final int    netStatAtt       = 60;
+  public static final int    netStatDet       = 61;
+  public static final int    netStatCrAt      = 62;
+  public static final int    netStatRm        = 63;
+  public static final int    netStatSPos      = 64;
+  public static final int    netStatGPos      = 65;
 
-  static final int    netStatIsAt      = 80;
-  static final int    netStatEx        = 81;
-  static final int    netStatSSw       = 82;
-  static final int    netStatGSw       = 83;
-  static final int    netStatLib       = 84;
-  static final int    netStatFunc      = 85;
-  static final int    netStatClass     = 86;
+  public static final int    netStatIsAt      = 80;
+  public static final int    netStatEx        = 81;
+  public static final int    netStatSSw       = 82;
+  public static final int    netStatGSw       = 83;
+  public static final int    netStatLib       = 84;
+  public static final int    netStatFunc      = 85;
+  public static final int    netStatClass     = 86;
 
-  static final int    netStatGAtts     = 100;
-  static final int    netStatStatus    = 101;
-  static final int    netStatInCnt     = 102;
-  static final int    netStatOutCnt    = 103;
-  static final int    netStatGBlock    = 104;
-  static final int    netStatGUser     = 105;
-  static final int    netStatGRestore  = 106;
-  static final int    netStatGPre      = 107;
-  static final int    netStatGCue      = 108;
-  static final int    netStatGSelect   = 109;
+  public static final int    netStatGAtts     = 100;
+  public static final int    netStatStatus    = 101;
+  public static final int    netStatInCnt     = 102;
+  public static final int    netStatOutCnt    = 103;
+  public static final int    netStatGBlock    = 104;
+  public static final int    netStatGUser     = 105;
+  public static final int    netStatGRestore  = 106;
+  public static final int    netStatGPre      = 107;
+  public static final int    netStatGCue      = 108;
+  public static final int    netStatGSelect   = 109;
 
-  static final int    netStatSBlock    = 115;
-  static final int    netStatSUser     = 116;
-  static final int    netStatSRestore  = 117;
-  static final int    netStatSPre      = 118;
-  static final int    netStatSCue      = 119;
+  public static final int    netStatSBlock    = 115;
+  public static final int    netStatSUser     = 116;
+  public static final int    netStatSRestore  = 117;
+  public static final int    netStatSPre      = 118;
+  public static final int    netStatSCue      = 119;
 
-  static final int    netAttPut        = 130;
-  static final int    netAttGet        = 131;
-  static final int    netAttDump       = 132;
-  static final int    netAttMake       = 133;
+  public static final int    netAttPut        = 130;
+  public static final int    netAttGet        = 131;
+  public static final int    netAttDump       = 132;
+  public static final int    netAttMake       = 133;
 
-  static final int    netSysTmp        = 150;
-  static final int    netSysTmpMax     = 151;
-  static final int    netSysStat       = 152;
-  static final int    netSysStatMax    = 153;
-  static final int    netSysProc       = 154;
-  static final int    netSysProcMax    = 155;
-  static final int    netSysAtt        = 156;
-  static final int    netSysAttMax     = 157;
-  static final int    netSysHBeat      = 158;
-  static final int    netSysPid        = 159;
-  static final int    netSysGrp        = 160;
+  public static final int    netSysTmp        = 150;
+  public static final int    netSysTmpMax     = 151;
+  public static final int    netSysStat       = 152;
+  public static final int    netSysStatMax    = 153;
+  public static final int    netSysProc       = 154;
+  public static final int    netSysProcMax    = 155;
+  public static final int    netSysAtt        = 156;
+  public static final int    netSysAttMax     = 157;
+  public static final int    netSysHBeat      = 158;
+  public static final int    netSysPid        = 159;
+  public static final int    netSysGrp        = 160;
 
-  static final int    netSysData       = 170;
-  static final int    netSysHist       = 171;
+  public static final int    netSysData       = 170;
+  public static final int    netSysHist       = 171;
 }

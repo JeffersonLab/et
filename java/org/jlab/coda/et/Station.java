@@ -17,6 +17,7 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.util.*;
 import java.io.*;
+import org.jlab.coda.et.exception.*;
 
 /**
  * This class defines a station for the ET system user.
@@ -65,7 +66,7 @@ public class Station {
    * Gets the station's select array - used for filtering events.
    * @see StationConfig#select
    * @return array of select integers
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed or cannot be found
    */
   public int[] getSelectWords() throws IOException, EtException {
@@ -96,7 +97,7 @@ public class Station {
    * @param select array of select integers
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed or cannot be found,
    *     if wrong size array, or if the station is GRAND_CENTRAL
    */
@@ -135,7 +136,7 @@ public class Station {
    *     if there are problems with network communication
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station cannot be found
    */
   private String getStringValue(int command) throws IOException, EtException {
@@ -175,7 +176,7 @@ public class Station {
    * @return station's user-defined select function library
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public String getSelectLibrary() throws IOException, EtException {
@@ -190,7 +191,7 @@ public class Station {
    * @return station's user-defined select function
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public String getSelectFunction() throws IOException, EtException {
@@ -205,7 +206,7 @@ public class Station {
    * @return station's user-defined select method class
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public String getSelectClass() throws IOException, EtException {
@@ -219,7 +220,7 @@ public class Station {
    * @param cmd coded command to send to the TCP server thread.
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station cannot be found
    */
   private int getIntValue(int cmd) throws IOException, EtException {
@@ -246,7 +247,7 @@ public class Station {
    * @param val value to set.
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station cannot be found
    */
   private void setIntValue(int cmd, int val) throws IOException, EtException {
@@ -271,7 +272,7 @@ public class Station {
    * @return station's number of attachments
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getNumAttachments() throws IOException, EtException {
@@ -286,7 +287,7 @@ public class Station {
    * @return station's status
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getStatus() throws IOException, EtException {
@@ -299,7 +300,7 @@ public class Station {
    * @return number of events in the station's input list
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getInputCount() throws IOException, EtException {
@@ -312,7 +313,7 @@ public class Station {
    * @return number of events in the station's output list
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getOutputCount() throws IOException, EtException {
@@ -326,7 +327,7 @@ public class Station {
    * @return station's block mode
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getBlockMode() throws IOException, EtException {
@@ -340,7 +341,7 @@ public class Station {
    * @param mode  block mode value
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed, bad mode value, or
    *     the station is GRAND_CENTRAL
    */
@@ -363,7 +364,7 @@ public class Station {
    * @return station's user mode
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getUserMode() throws IOException, EtException {
@@ -377,7 +378,7 @@ public class Station {
    * @param mode  user mode value
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed, bad mode value, or
    *     the station is GRAND_CENTRAL
    */
@@ -399,7 +400,7 @@ public class Station {
    * @return station's restore mode
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getRestoreMode() throws IOException, EtException {
@@ -413,7 +414,7 @@ public class Station {
    * @param mode  restore mode value
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed, bad mode value, or
    *     the station is GRAND_CENTRAL
    */
@@ -437,7 +438,7 @@ public class Station {
    * @return station's select mode
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getSelectMode() throws IOException, EtException {
@@ -451,7 +452,7 @@ public class Station {
    * @return station's cue
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getCue() throws IOException, EtException {
@@ -465,7 +466,7 @@ public class Station {
    * @param cue  cue value
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed, bad cue value, or
    *     the station is GRAND_CENTRAL
    */
@@ -487,7 +488,7 @@ public class Station {
    * @return station's prescale
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed
    */
   public int getPrescale() throws IOException, EtException {
@@ -501,7 +502,7 @@ public class Station {
    * @param prescale  prescale value
    * @exception java.io.IOException
    *     if there are problems with network communication
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station has been removed, bad prescale value, or
    *     the station is GRAND_CENTRAL
    */

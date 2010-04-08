@@ -14,8 +14,8 @@
 
 package org.jlab.coda.et;
 
-import java.lang.*;
-import java.io.*;
+import org.jlab.coda.et.system.StationLocal;
+import org.jlab.coda.et.system.SystemCreate;
 
 
 /**
@@ -31,7 +31,7 @@ public class StationSelection implements EventSelectable {
   }
 
   public boolean select(SystemCreate sys, StationLocal st, Event ev) {
-    if (ev.id%2 == 0) {
+    if (ev.getId()%2 == 0) {
       //System.out.println("  Select Func: accept ev.id = " + ev.id);
       return true;
     }

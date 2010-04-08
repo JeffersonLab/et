@@ -17,6 +17,7 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.util.*;
 import java.io.Serializable;
+import org.jlab.coda.et.exception.*;
 
 /**
  * This class specifies a configuration used to create a new station.
@@ -30,20 +31,20 @@ public class StationConfig implements Serializable {
    *  station is nonblocking. When the input list has reached this limit,
    *  additional events flowing through the ET system are passed to the next
    *  station in line. */
-  int      cue;
+  private int      cue;
   /** A value of N means selecting 1 out of every Nth event that meets this
    *  station's selection criteria. */
-  int      prescale;
+  private int      prescale;
   /** Determine whether the station is part of a single group of stations
    *  through which events flow in parallel or is not. A value of
    *  {@link Constants#stationParallel} means it is a parallel station,
    *  while a value of {@link Constants#stationSerial} means it is not. */
-  int      flowMode;
+  private int      flowMode;
   /** The maximum number of users permitted to attach to this station. A value
    *  of 0 means any number of users may attach. It may be set to
    *  {@link Constants#stationUserMulti} or {@link Constants#stationUserSingle}
    *  meaning unlimited users and a single user respectively. */
-  int      userMode;
+  private int      userMode;
   /** Determine the method of dealing with events obtained by a user through an
    *  attachment, but whose process has ended before putting the events back
    *  into the system. It may have the value {@link Constants#stationRestoreIn}
@@ -51,17 +52,17 @@ public class StationConfig implements Serializable {
    *  {@link Constants#stationRestoreOut} which places them in the output list,
    *  or {@link Constants#stationRestoreGC} which places them in GRAND_CENTRAL
    *  station.*/
-  int      restoreMode;
+  private int      restoreMode;
   /** Determine whether all events will pass through the station (blocking) or
    *  whether events should fill a cue with additional events bypassing the
    *  station and going to the next (nonblocking). The permitted values are
    *  {@link Constants#stationBlocking} and {@link Constants#stationNonBlocking}.
    *  */
-  int      blockMode;
+  private int      blockMode;
   /** Determine the method of filtering events for selection into the station's
    *  input list. A value of {@link Constants#stationSelectAll} applies no
    *  filtering, {@link Constants#stationSelectMatch} applies a builtin
-   *  method for selection ({@link StationLocal#select}), and
+   *  method for selection ({@link org.jlab.coda.et.system.StationLocal#select}), and
    *  {@link Constants#stationSelectUser} allows the user to define a selection
    *  method. If the station is part of a single group of parallel stations, a
    *  value of {@link Constants#stationSelectRRobin} distributes events among the
@@ -69,20 +70,20 @@ public class StationConfig implements Serializable {
    *  is part of a single group of parallel stations, a value of 
    *  {@link Constants#stationSelectEqualCue} distributes events among the
    *  parallel stations using an algorithm to keep the cues equal to eachother.*/
-  int      selectMode;
+  private int      selectMode;
   /** An array of integers used in the builtin selection method and available
    *  for any tasks the user desires. Its size is set by
    *  {@link Constants#stationSelectInts}. */
-  int[]    select;
+  private int[]    select;
   /** Name of user-defined select function in a C library. It may be null. This
    *  is only relevant to C language ET systems. */
-  String   selectFunction;
+  private String   selectFunction;
   /** Name of the C library containing the user-defined select function. It may
    *  be null. This is only relevant to C language ET systems. */
-  String   selectLibrary;
+  private String   selectLibrary;
   /** Name of the Java class containing the user-defined select method. It may
    *  be null. This is only relevant to Java language ET systems. */
-  String   selectClass;
+  private String   selectClass;
 
   /** Creates a new StationConfig object with default values for everything.
    *  The default values are:
@@ -191,7 +192,7 @@ public class StationConfig implements Serializable {
   public int     getSelectMode()     {return selectMode;}
  /** Gets the select integer array.
    * @return select integer array */
-  public int[]   getSelect()         {return (int[])select.clone();}
+  public int[]   getSelect()         {return select.clone();}
  /** Gets the user-defined select function name.
    * @return selection function name */
   public String  getSelectFunction() {return selectFunction;}
@@ -206,7 +207,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's cue size.
    *  @param q cue size
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad cue size value
    */
   public void setCue(int q) throws EtException {
@@ -218,7 +219,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's prescale value.
    *  @param pre prescale value
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad prescale value
    */
   public void setPrescale(int pre) throws EtException {
@@ -230,7 +231,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's flow mode value.
    *  @param mode flow mode
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad flow mode value
    */
   public void setFlowMode(int mode) throws EtException {
@@ -243,7 +244,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's user mode value.
    *  @param mode user mode
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad user mode value
    */
   public void setUserMode(int mode) throws EtException {
@@ -259,7 +260,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's restore mode value.
    *  @param mode restore mode
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad restore mode value
    */
   public void setRestoreMode(int mode) throws EtException {
@@ -274,7 +275,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's block mode value.
    *  @param mode block mode
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad block mode value
    */
   public void setBlockMode(int mode) throws EtException {
@@ -287,7 +288,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's select mode value.
    *  @param mode select mode
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there is a bad select mode value
    */
   public void setSelectMode(int mode) throws EtException {
@@ -303,7 +304,7 @@ public class StationConfig implements Serializable {
 
   /** Sets the station's select integer array.
    *  @param sel select integer array
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if there are the wrong number of elements in the array
    */
   public void setSelect(int[] sel) throws EtException {
