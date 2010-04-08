@@ -12,10 +12,15 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
 
 import java.lang.*;
 import java.util.*;
+import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.system.AttachmentLocal;
+import org.jlab.coda.et.Event;
+import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EventImpl;
 
 /**
  * This class defines a linked list of events for use as either a station's
@@ -27,23 +32,25 @@ import java.util.*;
 class EventList {
 
   /** Linked list of events. */
-  LinkedList<Event> events;
-  /** Number of events put into this list. */
-  long       eventsIn;
+  private LinkedList<EventImpl> events;
+
+    /** Number of events put into this list. */
+  private long eventsIn;
   /** Number of events taken out of this list. */
-  long       eventsOut;
+  private long eventsOut;
 
   // input list members only
 
-  /** Number of events tried to put into this list when used with prescaling. */
-  long             eventsTry;
+
+    /** Number of events tried to put into this list when used with prescaling. */
+  private long eventsTry;
 
   /** Flag telling the list to wake up the user waiting to read events. */
   private  boolean wakeAll;
 
   /** Count of the number of users sleeping on reading events. Last one to wake
    *  up needs to reset wakeAll. */
-  private int      waitingCount;
+  private int waitingCount;
 
   // output list members only
 
@@ -51,25 +58,48 @@ class EventList {
   private int lastHigh;
 
 
+    public LinkedList<EventImpl> getEvents() {
+        return events;
+    }
+    public long getEventsTry() {
+        return eventsTry;
+    }
+    public void setEventsTry(long eventsTry) {
+        this.eventsTry = eventsTry;
+    }
+    public long getEventsIn() {
+        return eventsIn;
+    }
+    public void setEventsIn(long eventsIn) {
+        this.eventsIn = eventsIn;
+    }
+
+
+    public long getEventsOut() {
+        return eventsOut;
+    }
+
+ 
+
   /** Creates a new EventList object. */
-  EventList() {
-    events = new LinkedList<Event>();
+  public EventList() {
+    events = new LinkedList<EventImpl>();
   }
 
   // methods for waking up reading attachments on input lists
 
   /** Wake up an attachment waiting to read events from this list.
    *  @param att attachment to be woken up */
-  synchronized void wakeUp(AttachmentLocal att) {
-    if (!att.waiting) {
+  public synchronized void wakeUp(AttachmentLocal att) {
+    if (!att.isWaiting()) {
       return;
     }
-    att.wakeUp = true;
+    att.setWakeUp(true);
     notifyAll();
   }
 
   /** Wake up all attachments waiting to read events from this list. */
-  synchronized void wakeUpAll() {
+  public synchronized void wakeUpAll() {
     if (waitingCount < 1) {
       return;
     }
@@ -84,7 +114,7 @@ class EventList {
    * GRAND_CENTRAL station.
    * @param newEvents list of events to put
    */
-  void putInLow(List<Event> newEvents) {
+  public void putInLow(List<EventImpl> newEvents) {
     // add all events to list's end
     events.addAll(newEvents);
     // keep stats
@@ -96,7 +126,7 @@ class EventList {
    * GRAND_CENTRAL station.
    * @param newEvents array of events to put
    */
-  synchronized void putInGC(Event[] newEvents) {
+  public synchronized void putInGC(EventImpl[] newEvents) {
     // convert array to list and put as low priority events
     putInLow(Arrays.asList(newEvents));
   }
@@ -106,7 +136,7 @@ class EventList {
    * GRAND_CENTRAL station.
    * @param newEvents list of events to put
    */
-  synchronized void putInGC(List<Event> newEvents) {
+  public synchronized void putInGC(List<EventImpl> newEvents) {
     putInLow(newEvents);
   }
 
@@ -117,12 +147,12 @@ class EventList {
    * newEvents.
    * @param newEvents list of events to put
    */
-  void putAll(List<Event> newEvents) {
+  public void putAll(List<EventImpl> newEvents) {
       // number of incoming events
       int num = newEvents.size();
 
       // all incoming events' priorities are low or no events in this EventList
-      if ((events.size() == 0) || ((newEvents.get(0)).priority == Constants.low))  {
+      if ((events.size() == 0) || ((newEvents.get(0)).getPriority() == Constants.low))  {
           // adds new events to the end
           events.addAll(newEvents);
           /*
@@ -140,7 +170,7 @@ class EventList {
           // find last high priority event already in list
           int highCount = 0;
           for (Event ev : events) {
-              if (ev.priority != Constants.high) {
+              if (ev.getPriority() != Constants.high) {
                   break;
               }
               highCount++;
@@ -149,8 +179,8 @@ class EventList {
 
           // add new high pri items
           int newHighCount = 0;
-          for (Event ev : newEvents) {
-              if (ev.priority != Constants.high) {
+          for (EventImpl ev : newEvents) {
+              if (ev.getPriority() != Constants.high) {
                   break;
               }
 //System.out.println("  putAll add high " + ev.id + " at " + (highCount + newHighCount));
@@ -174,16 +204,16 @@ class EventList {
    * restore events to the input list when user connection is broken.
    * @param newEvents array of events to put
    */
-  synchronized void put(Event[] newEvents) {
+  public synchronized void put(EventImpl[] newEvents) {
       // if no events in list, initialize lastHigh
       if (events.size() == 0) {
 	    lastHigh = 0;
       }
 
       // put events in one-by-one - with place depending on priority
-      for (Event ev : newEvents) {
+      for (EventImpl ev : newEvents) {
         // if low priority event, add to the list end
-        if (ev.priority == Constants.low) {
+        if (ev.getPriority() == Constants.low) {
 //System.out.println(" put in low - " + ev.id);
 	      events.addLast(ev);
         }
@@ -203,16 +233,16 @@ class EventList {
    * restore events to the input list when user connection is broken.
    * @param newEvents list of events to put
    */
-  synchronized void put(List<Event> newEvents) {
+  public synchronized void put(List<EventImpl> newEvents) {
       // if no events in list, initialize lastHigh
       if (events.size() == 0) {
 	    lastHigh = 0;
       }
 
       // put events in one-by-one - with place depending on priority
-      for (Event ev : newEvents) {
+      for (EventImpl ev : newEvents) {
         // if low priority event, add to the list end
-        if (ev.priority == Constants.low) {
+        if (ev.getPriority() == Constants.low) {
 //System.out.println(" put in low - " + ev.id);
 	      events.addLast(ev);
         }
@@ -234,7 +264,7 @@ class EventList {
      * Used to restore events to input/output lists when user connection is broken.
      * @param newEvents list of events to put
      */
-    synchronized void putReverse(List<Event> newEvents) {
+    public synchronized void putReverse(List<EventImpl> newEvents) {
         // if no events in list, initialize lastHigh
         if (events.size() == 0) {
             lastHigh = 0;
@@ -244,7 +274,7 @@ class EventList {
             // it here since this method can be used for input lists.
             int highCount = 0;
             for (Event ev : events) {
-                if (ev.priority != Constants.high) {
+                if (ev.getPriority() != Constants.high) {
                     break;
                 }
                 highCount++;
@@ -253,9 +283,9 @@ class EventList {
         }
 
         // put events in one-by-one - with place depending on priority
-        for (Event ev : newEvents) {
+        for (EventImpl ev : newEvents) {
           // if low priority event, add below last high priority but above low priority events
-          if (ev.priority == Constants.low) {
+          if (ev.getPriority() == Constants.low) {
 //System.out.println(" put in low - " + ev.id);
               events.add(lastHigh, ev);
           }
@@ -275,7 +305,7 @@ class EventList {
    * Used only by conductor to get all events from a station's output list.
    * @param eventsToGo list of event to get
    */
-  synchronized void get(List<Event> eventsToGo) {
+  public synchronized void get(List<EventImpl> eventsToGo) {
       eventsToGo.addAll(events);
       eventsOut += events.size();
       events.clear();
@@ -290,14 +320,14 @@ class EventList {
    * @param microSec time in microseconds to wait if timed wait mode
    * @param quantity number of events desired
    *
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
    */
-  synchronized Event[] get(AttachmentLocal att, int mode, int microSec, int quantity)
+  public synchronized EventImpl[] get(AttachmentLocal att, int mode, int microSec, int quantity)
           throws EtEmptyException, EtWakeUpException, EtTimeoutException {
 
       int  nanos, count = events.size();
@@ -309,7 +339,7 @@ class EventList {
           if (mode == Constants.sleep) {
               while (count < 1) {
                   waitingCount++;
-                  att.waiting = true;
+                  att.setWaiting(true);
 //System.out.println("  get" + att.id + ": sleep");
                   try {
                       wait();
@@ -318,17 +348,17 @@ class EventList {
                   }
 
                   // if we've been told to wakeup & exit ...
-                  if (att.wakeUp || wakeAll) {
-                      att.wakeUp = false;
-                      att.waiting = false;
+                  if (att.isWakeUp() || wakeAll) {
+                      att.setWakeUp(false);
+                      att.setWaiting(false);
                       // last man to wake resets variable
                       if (--waitingCount < 1) {
                           wakeAll = false;
                       }
-                      throw new EtWakeUpException("attachment " + att.id + " woken up");
+                      throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                   }
 
-                  att.waiting = false;
+                  att.setWaiting(false);
                   waitingCount--;
                   count = events.size();
               }
@@ -343,8 +373,8 @@ class EventList {
                   nanos = 1000 * (int)(microDelay - 1000*milliSec);
 
                   waitingCount++;
-                  att.waiting = true;
-//System.out.println("  get" + att.id + ": wait " + milliSec + " ms and " +
+                  att.setWaiting(true);
+//System.out.println("  get" + att.getId() + ": wait " + milliSec + " ms and " +
 //                   nanos + " nsec, elapsed time = " + elapsedTime);
                   begin = System.currentTimeMillis();
                   try {
@@ -355,17 +385,17 @@ class EventList {
                   elapsedTime += System.currentTimeMillis() - begin;
 
                   // if we've been told to wakeup & exit ...
-                  if (att.wakeUp || wakeAll) {
-                      att.wakeUp = false;
-                      att.waiting = false;
+                  if (att.isWakeUp() || wakeAll) {
+                      att.setWakeUp(false);
+                      att.setWaiting(false);
                       // last man to wake resets variable
                       if (--waitingCount < 1) {
                           wakeAll = false;
                       }
-                      throw new EtWakeUpException("attachment " + att.id + " woken up");
+                      throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                   }
 
-                  att.waiting = false;
+                  att.setWaiting(false);
                   waitingCount--;
                   count = events.size();
 //System.out.println("  get" + att.id + ": woke up and counts = " + count);
@@ -381,8 +411,8 @@ class EventList {
       }
 //System.out.println("  get"+ att.id + ": quantity = " + quantity);
 
-      List<Event> deleteList = events.subList(0, quantity);
-      Event[] eventsToGo = new Event[quantity];
+      List<EventImpl> deleteList = events.subList(0, quantity);
+      EventImpl[] eventsToGo = new EventImpl[quantity];
       deleteList.toArray(eventsToGo);
       deleteList.clear();
 
@@ -399,21 +429,21 @@ class EventList {
      * @param quantity number of events desired
      * @param group group number of events desired
      *
-     * @exception org.jlab.coda.et.EtEmptyException
+     * @exception EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception org.jlab.coda.et.EtTimeoutException
+     * @exception EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception org.jlab.coda.et.EtWakeUpException
+     * @exception EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      */
-    synchronized List<Event> get(AttachmentLocal att, int mode, int microSec, int quantity, int group)
+    public synchronized List<EventImpl> get(AttachmentLocal att, int mode, int microSec, int quantity, int group)
             throws EtEmptyException, EtWakeUpException, EtTimeoutException {
 
         int nanos, count = events.size(), groupCount = 0;
-        Event ev;
+        EventImpl ev;
         boolean scanList = true;
         long begin, microDelay, milliSec, elapsedTime = 0;
-        LinkedList<Event> groupList = new LinkedList<Event>();
+        LinkedList<EventImpl> groupList = new LinkedList<EventImpl>();
 
         // Sleep mode is never used since it is implemented in the TcpServer
         // thread by repeated calls in timed mode.
@@ -421,7 +451,7 @@ class EventList {
             if (mode == Constants.sleep) {
                 while (count < 1 || !scanList) {
                     waitingCount++;
-                    att.waiting = true;
+                    att.setWaiting(true);
 //System.out.println("  get" + att.id + ": sleep");
                     try {
                         wait();
@@ -430,17 +460,17 @@ class EventList {
                     }
 
                     // if we've been told to wakeup & exit ...
-                    if (att.wakeUp || wakeAll) {
-                        att.wakeUp = false;
-                        att.waiting = false;
+                    if (att.isWakeUp() || wakeAll) {
+                        att.setWakeUp(false);
+                        att.setWaiting(false);
                         // last man to wake resets variable
                         if (--waitingCount < 1) {
                             wakeAll = false;
                         }
-                        throw new EtWakeUpException("attachment " + att.id + " woken up");
+                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                     }
 
-                    att.waiting = false;
+                    att.setWaiting(false);
                     waitingCount--;
                     count = events.size();
                     scanList = true;
@@ -460,7 +490,7 @@ class EventList {
 //                  }
 
                     waitingCount++;
-                    att.waiting = true;
+                    att.setWaiting(true);
 //System.out.println("  get" + att.id + ": wait " + milliSec + " ms and " +
 //                   nanos + " nsec, elapsed time = " + elapsedTime);
                     begin = System.currentTimeMillis();
@@ -472,17 +502,17 @@ class EventList {
                     elapsedTime += System.currentTimeMillis() - begin;
 
                     // if we've been told to wakeup & exit ...
-                    if (att.wakeUp || wakeAll) {
-                        att.wakeUp = false;
-                        att.waiting = false;
+                    if (att.isWakeUp() || wakeAll) {
+                        att.setWakeUp(false);
+                        att.setWaiting(false);
                         // last man to wake resets variable
                         if (--waitingCount < 1) {
                             wakeAll = false;
                         }
-                        throw new EtWakeUpException("attachment " + att.id + " woken up");
+                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                     }
 
-                    att.waiting = false;
+                    att.setWaiting(false);
                     waitingCount--;
                     count = events.size();
 //System.out.println("  get" + att.id + ": woke up and counts = " + count);
@@ -499,8 +529,8 @@ class EventList {
 //System.out.println("  get"+ att.id + ": quantity = " + quantity);
 
             for (ListIterator liter = events.listIterator(); liter.hasNext(); ) {
-                ev = (Event)liter.next();
-                if (ev.group == group) {
+                ev = (EventImpl)liter.next();
+                if (ev.getGroup() == group) {
                     groupList.add(ev);
                     if (++groupCount >= quantity)  break;
                 }

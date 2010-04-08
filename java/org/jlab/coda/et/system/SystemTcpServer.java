@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
 
 import java.lang.*;
 import java.util.*;
@@ -22,6 +22,8 @@ import java.net.*;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.ByteBuffer;
+import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.*;
 
 /**
  * This class implements a thread which listens for users trying to connect to
@@ -31,7 +33,7 @@ import java.nio.ByteBuffer;
  * @author Carl Timmer
  */
 
-public class SystemTcpServer extends Thread {
+class SystemTcpServer extends Thread {
 
   /** Port number to listen on. */
   private int port;
@@ -42,13 +44,13 @@ public class SystemTcpServer extends Thread {
    *  @param _sys ET system object */
   SystemTcpServer(SystemCreate _sys) {
       sys  = _sys;
-      port = sys.config.serverPort;
+      port = sys.getConfig().getServerPort();
   }
 
   /** Start thread to listen for connections and spawn off communication
    *  handling threads. */
   public void run() {
-      if (sys.config.debug >= Constants.debugInfo) {
+      if (sys.getConfig().getDebug() >= Constants.debugInfo) {
           System.out.println("Running TCP Server Thread");
       }
 
@@ -198,7 +200,7 @@ class ClientThread extends Thread {
    */
   ClientThread(SystemCreate _sys, Socket _sock) {
     sys    = _sys;
-    config = sys.config;
+    config = sys.getConfig();
     sock   = _sock;
   }
 
@@ -225,7 +227,7 @@ class ClientThread extends Thread {
             // see if the ET system that the client is
             // trying to connect to is this one.
             if (!etName.equals(sys.name)) {
-                if (config.debug >= Constants.debugError) {
+                if (config.getDebug() >= Constants.debugError) {
                     System.out.println("Tcp Server: client trying to connect to " + etName);
                 }
                 // send error to client
@@ -237,8 +239,8 @@ class ClientThread extends Thread {
             // send ET system info back to client
             out.writeInt(Constants.ok);
             out.writeInt(Constants.endianBig);
-            out.writeInt(config.numEvents);
-            out.writeLong(config.eventSize);
+            out.writeInt(config.getNumEvents());
+            out.writeLong(config.getEventSize());
             out.writeInt(Constants.version);
             out.writeInt(Constants.stationSelectInts);
             out.writeInt(Constants.langJava);
@@ -252,7 +254,7 @@ class ClientThread extends Thread {
             return;
         }
         catch (IOException ex) {
-            if (config.debug >= Constants.debugError) {
+            if (config.getDebug() >= Constants.debugError) {
                 System.out.println("Tcp Server: IO error in client etOpen");
             }
         }
@@ -285,9 +287,9 @@ class ClientThread extends Thread {
       final int ok           = Constants.ok;
 
       int command;
-      Event[] evs = null;
+      EventImpl[] evs = null;
       HashMap<Integer, AttachmentLocal> attachments =
-              new HashMap<Integer, AttachmentLocal>(sys.config.attachmentsMax + 1);
+              new HashMap<Integer, AttachmentLocal>(sys.getConfig().getAttachmentsMax() + 1);
       // buffer for sending events to users
       byte[] buffer = new byte[65535];
       // buffer for reading command parameters (6 ints worth)
@@ -318,10 +320,10 @@ class ClientThread extends Thread {
 
               if (command < Constants.netEvGet) {
                   // No local Linux stuff in Java implementation
-                  if (config.debug >= Constants.debugError) {
+                  if (config.getDebug() >= Constants.debugError) {
                       System.out.println("No Java support for local Linux");
                   }
-                  throw new EtReadException();
+                  throw new EtReadException("No Java support for local Linux");
               }
 
               else if (command < Constants.netAlive) {
@@ -331,11 +333,11 @@ class ClientThread extends Thread {
                       case Constants.netEvGet: {
                           in.readFully(params, 0, 20);
                           int err = ok;
-                          int attId = Event.bytesToInt(params, 0);
-                          int mode  = Event.bytesToInt(params, 4);
-                          int mod   = Event.bytesToInt(params, 8);
-                          int sec   = Event.bytesToInt(params, 12);
-                          int nsec  = Event.bytesToInt(params, 16);
+                          int attId = Utils.bytesToInt(params, 0);
+                          int mode  = Utils.bytesToInt(params, 4);
+                          int mod   = Utils.bytesToInt(params, 8);
+                          int sec   = Utils.bytesToInt(params, 12);
+                          int nsec  = Utils.bytesToInt(params, 16);
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
                           try {
@@ -363,7 +365,7 @@ class ClientThread extends Thread {
                                       try {
                                           if (att.wakeUp) {
                                               att.wakeUp = false;
-                                              throw new EtWakeUpException("attachment " + att.id + " woken up");
+                                              throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.getEvents(att, Constants.timed, 4000000, 1);
                                           // no longer in sleep mode
@@ -423,29 +425,30 @@ class ClientThread extends Thread {
                               break;
                           }
 
-                          Event ev = evs[0];
+                          EventImpl ev = evs[0];
 
                           // handle buffering by hand
-                          byte[] buf = new byte[4 * (10 + selectInts) + ev.length];
+                          byte[] buf = new byte[4 * (10 + selectInts) + ev.getLength()];
 
                           // first send error
-                          Event.intToBytes(err, buf, 0);
-                          Event.longToBytes((long)ev.length,  buf,  4);
-                          Event.longToBytes((long)ev.memSize, buf, 12);
-                          Event.intToBytes(ev.priority | ev.dataStatus << dataShift, buf, 20);
-                          Event.longToBytes(ev.id, buf, 24);
-                          Event.intToBytes(ev.byteOrder, buf, 32);
+                          Utils.intToBytes(err, buf, 0);
+                          Utils.longToBytes((long)ev.getLength(),  buf,  4);
+                          Utils.longToBytes((long)ev.getMemSize(), buf, 12);
+                          Utils.intToBytes(ev.getPriority() | ev.getDataStatus() << dataShift, buf, 20);
+                          Utils.longToBytes(ev.getId(), buf, 24);
+                          Utils.intToBytes(ev.getByteOrder(), buf, 32);
                           // arrays are initialized to zero so skip 0 values elements
                           int index = 36;
+                          int[] control = ev.getControl();
                           for (int i = 0; i < selectInts; i++) {
-                              Event.intToBytes(ev.control[i], buf, index += 4);
+                              Utils.intToBytes(control[i], buf, index += 4);
                           }
-                          System.arraycopy(ev.data, 0, buf, index += 4, ev.length);
+                          System.arraycopy(ev.getData(), 0, buf, index += 4, ev.getLength());
 
                           out.write(buf);
                           out.flush();
 
-                          ev.modify = mod;
+                          ev.setModify(mod);
                           if (mod == 0) {
                               sys.putEvents(att, evs);
                           }
@@ -457,12 +460,12 @@ class ClientThread extends Thread {
                       case Constants.netEvsGet: {
                           in.readFully(params, 0, 24);
                           int err = ok;
-                          int attId = Event.bytesToInt(params,  0);
-                          int mode  = Event.bytesToInt(params,  4);
-                          int mod   = Event.bytesToInt(params,  8);
-                          int count = Event.bytesToInt(params, 12);
-                          int sec   = Event.bytesToInt(params, 16);
-                          int nsec  = Event.bytesToInt(params, 20);
+                          int attId = Utils.bytesToInt(params,  0);
+                          int mode  = Utils.bytesToInt(params,  4);
+                          int mod   = Utils.bytesToInt(params,  8);
+                          int count = Utils.bytesToInt(params, 12);
+                          int sec   = Utils.bytesToInt(params, 16);
+                          int nsec  = Utils.bytesToInt(params, 20);
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
                           try {
@@ -490,7 +493,7 @@ class ClientThread extends Thread {
                                       try {
                                           if (att.wakeUp) {
                                               att.wakeUp = false;
-                                              throw new EtWakeUpException("attachment " + att.id + " woken up");
+                                              throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.getEvents(att, Constants.timed, 4000000, count);
                                           // no longer in sleep mode
@@ -577,36 +580,37 @@ class ClientThread extends Thread {
                           int length, index = 12;
                           int headerSize = 4 * (6 + selectInts);
                           int size = evs.length * headerSize;
-                          for (Event ev1 : evs) {
-                              size += ev1.length;
+                          for (EventImpl ev1 : evs) {
+                              size += ev1.getLength();
                           }
 
-                          Event.intToBytes(evs.length, buffer, 0);
-                          Event.longToBytes((long)size, buffer, 4);
-                          for (Event ev : evs) {
-                              ev.modify = mod;
-                              length = ev.length;
-                              Event.longToBytes((long)length, buffer, index);
-                              Event.longToBytes((long)ev.memSize, buffer, index += 8);
-                              Event.intToBytes(ev.priority | ev.dataStatus << dataShift, buffer, index += 8);
-                              Event.longToBytes(ev.id, buffer, index += 4);
-                              Event.intToBytes(ev.byteOrder, buffer, index += 8);
-                              Event.intToBytes(0, buffer, index += 4);
+                          Utils.intToBytes(evs.length, buffer, 0);
+                          Utils.longToBytes((long)size, buffer, 4);
+                          for (EventImpl ev : evs) {
+                              ev.setModify(mod);
+                              length = ev.getLength();
+                              Utils.longToBytes((long)length, buffer, index);
+                              Utils.longToBytes((long)ev.getMemSize(), buffer, index += 8);
+                              Utils.intToBytes(ev.getPriority() | ev.getDataStatus() << dataShift, buffer, index += 8);
+                              Utils.longToBytes(ev.getId(), buffer, index += 4);
+                              Utils.intToBytes(ev.getByteOrder(), buffer, index += 8);
+                              Utils.intToBytes(0, buffer, index += 4);
+                              int[] control = ev.getControl();
                               for (int i = 0; i < selectInts; i++) {
-                                  Event.intToBytes(ev.control[i], buffer, index += 4);
+                                  Utils.intToBytes(control[i], buffer, index += 4);
                               }
                               index += 4;
                               if (index + headerSize + length > buffer.length) {
                                   out.write(buffer, 0, index);
                                   index = 0;
                                   if (headerSize + length > buffer.length / 2) {
-                                      out.write(ev.data, 0, length);
+                                      out.write(ev.getData(), 0, length);
                                       out.flush();
                                       continue;
                                   }
                                   out.flush();
                               }
-                              System.arraycopy(ev.data, 0, buffer, index, length);
+                              System.arraycopy(ev.getData(), 0, buffer, index, length);
                               index += length;
                           }
 
@@ -626,34 +630,36 @@ class ClientThread extends Thread {
                       case Constants.netEvPut: {
                           in.readFully(params, 0, 32 + 4 * selectInts);
 
-                          int attId = Event.bytesToInt(params, 0);
+                          int attId = Utils.bytesToInt(params, 0);
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
-                          long id = Event.bytesToLong(params, 4);
-                          Event ev = sys.events.get(new Long(id));
+                          long id = Utils.bytesToLong(params, 4);
+                          EventImpl ev = sys.events.get(new Long(id));
 
-                          long len = Event.bytesToLong(params, 12);
+                          long len = Utils.bytesToLong(params, 12);
                           if (len > Integer.MAX_VALUE) {
                               throw new EtException("Event is too long for this (java) ET system");
                           }
-                          ev.length = (int) len;
+                          ev.setLength((int) len);
 
-                          int priAndStat = Event.bytesToInt(params, 20);
-                          ev.priority    = priAndStat & priorityMask;
-                          ev.dataStatus  = (priAndStat & dataMask) >> dataShift;
-                          ev.byteOrder   = Event.bytesToInt(params, 24);
+                          int priAndStat = Utils.bytesToInt(params, 20);
+                          ev.setPriority(priAndStat & priorityMask);
+                          ev.setDataStatus((priAndStat & dataMask) >> dataShift);
+                          ev.setByteOrder(Utils.bytesToInt(params, 24));
                           // last parameter is ignored
 
                           int index = 24;
+                          int[] control = new int[selectInts];
                           for (int i = 0; i < selectInts; i++) {
-                              ev.control[i] = Event.bytesToInt(params, index += 4);
+                              control[i] = Utils.bytesToInt(params, index += 4);
                           }
+                          ev.setControl(control);
                           // only read data if modifying everything
-                          if (ev.modify == modify) {
-                              in.readFully(ev.data, 0, ev.length);
+                          if (ev.getModify() == modify) {
+                              in.readFully(ev.getData(), 0, ev.getLength());
                           }
 
-                          Event[] evArray = new Event[1];
+                          EventImpl[] evArray = new EventImpl[1];
                           evArray[0] = ev;
 
                           sys.putEvents(att, evArray);
@@ -666,44 +672,46 @@ class ClientThread extends Thread {
 
                       case Constants.netEvsPut: {
                           in.readFully(params, 0, 16);
-                          int attId           = Event.bytesToInt(params, 0);
+                          int attId           = Utils.bytesToInt(params, 0);
                           AttachmentLocal att = attachments.get(new Integer(attId));
-                          int numEvents       = Event.bytesToInt(params,  4);
-                          long size           = Event.bytesToLong(params, 8);
+                          int numEvents       = Utils.bytesToInt(params,  4);
+                          long size           = Utils.bytesToLong(params, 8);
 
                           long id, len;
                           int  priAndStat, index;
                           int  byteChunk = 28 + 4 * selectInts;
-                          evs = new Event[numEvents];
+                          evs = new EventImpl[numEvents];
 
                           for (int j = 0; j < numEvents; j++) {
                               in.readFully(params, 0, byteChunk);
 
-                              id = Event.bytesToLong(params, 0);
+                              id = Utils.bytesToLong(params, 0);
                               evs[j] = sys.events.get(new Long(id));
 
-                              len = Event.bytesToLong(params, 8);
+                              len = Utils.bytesToLong(params, 8);
                               if (len > Integer.MAX_VALUE) {
                                   throw new EtException("Event is too long for this (java) ET system");
                               }
-                              evs[j].length = (int) len;
+                              evs[j].setLength((int) len);
 
-                              priAndStat        = Event.bytesToInt(params, 16);
-                              evs[j].priority   = priAndStat & priorityMask;
-                              evs[j].dataStatus = (priAndStat & dataMask) >> dataShift;
-                              evs[j].byteOrder  = Event.bytesToInt(params, 20);
+                              priAndStat        = Utils.bytesToInt(params, 16);
+                              evs[j].setPriority(priAndStat & priorityMask);
+                              evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
+                              evs[j].setByteOrder(Utils.bytesToInt(params, 20));
                               index = 24;
+                              int[] control = new int[selectInts];
                               for (int i = 0; i < selectInts; i++) {
-                                  evs[j].control[i] = Event.bytesToInt(params, index += 4);
+                                  control[i] = Utils.bytesToInt(params, index += 4);
                               }
-                              if (evs[j].modify == modify) {
+                              evs[j].setControl(control);
+                              if (evs[j].getModify() == modify) {
                                   // If user increased data length beyond memSize,
                                   // use more memory.
-                                  if (evs[j].length > evs[j].memSize) {
-                                      evs[j].data    = new byte[evs[j].length];
-                                      evs[j].memSize = evs[j].length;
+                                  if (evs[j].getLength() > evs[j].getMemSize()) {
+                                      evs[j].setData(new byte[evs[j].getLength()]);
+                                      evs[j].setMemSize(evs[j].getLength());
                                   }
-                                  in.readFully(evs[j].data, 0, evs[j].length);
+                                  in.readFully(evs[j].getData(), 0, evs[j].getLength());
                               }
                           }
 
@@ -717,11 +725,11 @@ class ClientThread extends Thread {
                       case Constants.netEvNew: {
                           in.readFully(params, 0, 24);
                           int  err = ok;
-                          int  attId = Event.bytesToInt(params,  0);
-                          int  mode  = Event.bytesToInt(params,  4);
-                          long size  = Event.bytesToLong(params, 8);
-                          int  sec   = Event.bytesToInt(params, 16);
-                          int  nsec  = Event.bytesToInt(params, 20);
+                          int  attId = Utils.bytesToInt(params,  0);
+                          int  mode  = Utils.bytesToInt(params,  4);
+                          long size  = Utils.bytesToLong(params, 8);
+                          int  sec   = Utils.bytesToInt(params, 16);
+                          int  nsec  = Utils.bytesToInt(params, 20);
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
                           if (bit64 && size > Integer.MAX_VALUE/5) {
@@ -755,7 +763,7 @@ class ClientThread extends Thread {
                                       try {
                                           if (att.wakeUp) {
                                               att.wakeUp = false;
-                                              throw new EtWakeUpException("attachment " + att.id + " woken up");
+                                              throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.newEvents(att, Constants.timed, 4000000, 1, (int)size);
                                           // no longer in sleep mode
@@ -815,10 +823,10 @@ class ClientThread extends Thread {
                               break;
                           }
 
-                          evs[0].modify = modify;
+                          evs[0].setModify(modify);
 
                           out.writeInt(err);
-                          out.writeLong(evs[0].id);
+                          out.writeLong(evs[0].getId());
                           out.flush();
                           evs = null;
                       }
@@ -828,12 +836,12 @@ class ClientThread extends Thread {
                       case Constants.netEvsNew: {
                           in.readFully(params, 0, 28);
                           int err = ok;
-                          int  attId = Event.bytesToInt(params,  0);
-                          int  mode  = Event.bytesToInt(params,  4);
-                          long size  = Event.bytesToLong(params, 8);
-                          int  count = Event.bytesToInt(params, 16);
-                          int  sec   = Event.bytesToInt(params, 20);
-                          int  nsec  = Event.bytesToInt(params, 24);
+                          int  attId = Utils.bytesToInt(params,  0);
+                          int  mode  = Utils.bytesToInt(params,  4);
+                          long size  = Utils.bytesToLong(params, 8);
+                          int  count = Utils.bytesToInt(params, 16);
+                          int  sec   = Utils.bytesToInt(params, 20);
+                          int  nsec  = Utils.bytesToInt(params, 24);
 
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
@@ -867,7 +875,7 @@ class ClientThread extends Thread {
                                       try {
                                           if (att.wakeUp) {
                                               att.wakeUp = false;
-                                              throw new EtWakeUpException("attachment " + att.id + " woken up");
+                                              throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.newEvents(att, Constants.timed, 4000000, count, (int)size);
                                           // no longer in sleep mode
@@ -932,10 +940,10 @@ class ClientThread extends Thread {
                           byte[] buf = new byte[4 + 8 * evs.length];
 
                           // first send number of events
-                          Event.intToBytes(evs.length, buf, 0);
-                          for (Event ev : evs) {
-                              ev.modify = modify;
-                              Event.longToBytes(ev.id, buf, index += 8);
+                          Utils.intToBytes(evs.length, buf, 0);
+                          for (EventImpl ev : evs) {
+                              ev.setModify(modify);
+                              Utils.longToBytes(ev.getId(), buf, index += 8);
                           }
                           out.write(buf);
                           out.flush();
@@ -950,8 +958,8 @@ class ClientThread extends Thread {
                           long id    = in.readLong();
 
                           AttachmentLocal att = attachments.get(new Integer(attId));
-                          Event ev = sys.events.get(id);
-                          Event[] evArray = new Event[1];
+                          EventImpl ev = sys.events.get(id);
+                          EventImpl[] evArray = new EventImpl[1];
                           evArray[0] = ev;
                           sys.dumpEvents(att, evArray);
 
@@ -964,7 +972,7 @@ class ClientThread extends Thread {
                       case Constants.netEvsDump: {
                           int attId     = in.readInt();
                           int numEvents = in.readInt();
-                          evs = new Event[numEvents];
+                          evs = new EventImpl[numEvents];
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
                           long id;
@@ -973,7 +981,7 @@ class ClientThread extends Thread {
                           int index = -8;
 
                           for (int j = 0; j < numEvents; j++) {
-                              id = Event.bytesToLong(buf, index += 8);
+                              id = Utils.bytesToLong(buf, index += 8);
                               evs[j] = sys.events.get(new Long(id));
                           }
 
@@ -988,16 +996,16 @@ class ClientThread extends Thread {
                       case Constants.netEvsNewGrp: {
                           in.readFully(params, 0, 32);
                           int err = ok;
-                          int  attId = Event.bytesToInt(params,  0);
-                          int  mode  = Event.bytesToInt(params,  4);
-                          long size  = Event.bytesToLong(params, 8);
-                          int  count = Event.bytesToInt(params, 16);
-                          int  group = Event.bytesToInt(params, 20);
-                          int  sec   = Event.bytesToInt(params, 24);
-                          int  nsec  = Event.bytesToInt(params, 28);
+                          int  attId = Utils.bytesToInt(params,  0);
+                          int  mode  = Utils.bytesToInt(params,  4);
+                          long size  = Utils.bytesToLong(params, 8);
+                          int  count = Utils.bytesToInt(params, 16);
+                          int  group = Utils.bytesToInt(params, 20);
+                          int  sec   = Utils.bytesToInt(params, 24);
+                          int  nsec  = Utils.bytesToInt(params, 28);
 
                           AttachmentLocal att = attachments.get(new Integer(attId));
-                          List<Event> evList=null;
+                          List<EventImpl> evList=null;
 
                           if (bit64 && count*size > Integer.MAX_VALUE/5) {
                               out.writeInt(Constants.errorTooBig);
@@ -1029,7 +1037,7 @@ class ClientThread extends Thread {
                                       try {
                                           if (att.wakeUp) {
                                               att.wakeUp = false;
-                                              throw new EtWakeUpException("attachment " + att.id + " woken up");
+                                              throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evList = sys.newEvents(att, Constants.timed, 4000000, count, (int)size, group);
                                           // no longer in sleep mode
@@ -1094,10 +1102,10 @@ class ClientThread extends Thread {
                           byte[] buf = new byte[4 + 8 * evList.size()];
 
                           // first send number of events
-                          Event.intToBytes(evList.size(), buf, 0);
-                          for (Event ev : evList) {
-                              ev.modify = modify;
-                              Event.longToBytes(ev.id, buf, index += 8);
+                          Utils.intToBytes(evList.size(), buf, 0);
+                          for (EventImpl ev : evList) {
+                              ev.setModify(modify);
+                              Utils.longToBytes(ev.getId(), buf, index += 8);
                           }
                           out.write(buf);
                           out.flush();
@@ -1141,7 +1149,7 @@ class ClientThread extends Thread {
                               ent = (Entry) i.next();
                               sys.detach((AttachmentLocal) ent.getValue());
                           }
-                          if (config.debug >= Constants.debugInfo) {
+                          if (config.getDebug() >= Constants.debugInfo) {
                               java.lang.System.out.println("commandLoop: remote client closing");
                           }
                           return;
@@ -1154,7 +1162,7 @@ class ClientThread extends Thread {
                           // look locally for attachments
                           AttachmentLocal att = attachments.get(new Integer(attId));
                           if (att != null) {
-                              att.station.inputList.wakeUp(att);
+                              att.getStation().getInputList().wakeUp(att);
                               if (att.sleepMode) {
                                   att.wakeUp = true;
                               }
@@ -1166,8 +1174,8 @@ class ClientThread extends Thread {
                       case Constants.netWakeAll: {
                           int statId = in.readInt();
                           // Stations are stored in a linked list. Find one w/ this id.
-                          synchronized (sys.stationLock) {
-                              for (StationLocal stat : sys.stations) {
+                          synchronized (sys.getStationLock()) {
+                              for (StationLocal stat : sys.getStations()) {
                                   if (stat.id == statId) {
                                       // Since attachments which sleep when getting events don't
                                       // really sleep but do a timed wait, they occasionally are
@@ -1177,13 +1185,13 @@ class ClientThread extends Thread {
                                       // attachment's wake up flags, so that the next call to
                                       // getEvents will make them all wake up.
 
-                                      for (AttachmentLocal att : stat.attachments) {
+                                      for (AttachmentLocal att : stat.getAttachments()) {
                                           if (att.sleepMode) {
                                               att.wakeUp = true;
                                           }
                                       }
 
-                                      stat.inputList.wakeUpAll();
+                                      stat.getInputList().wakeUpAll();
                                       break;
                                   }
                               }
@@ -1210,10 +1218,10 @@ class ClientThread extends Thread {
                               att = sys.attach(statId);
                               att.pid = pid;
                               if (length > 0) {
-                                  att.host = host;
+                                  att.setHost(host);
                               }
                               // keep track of all attachments locally
-                              attachments.put(att.id, att);
+                              attachments.put(att.getId(), att);
                           }
                           catch (EtException ex) {
                               err = Constants.error;
@@ -1224,7 +1232,7 @@ class ClientThread extends Thread {
 
                           out.writeInt(err);
                           if (err == ok) {
-                              out.writeInt(att.id);
+                              out.writeInt(att.getId());
                           }
                           else {
                               out.writeInt(0);
@@ -1241,7 +1249,7 @@ class ClientThread extends Thread {
                           sys.detach(att);
 
                           // keep track of all detachments locally
-                          attachments.remove(att.id);
+                          attachments.remove(att.getId());
                           out.writeInt(ok);
                           out.flush();
                       }
@@ -1255,16 +1263,18 @@ class ClientThread extends Thread {
 
                           // read in station config info
                           int init               = in.readInt(); // not used in Java
-                          statConfig.flowMode    = in.readInt();
-                          statConfig.userMode    = in.readInt();
-                          statConfig.restoreMode = in.readInt();
-                          statConfig.blockMode   = in.readInt();
-                          statConfig.prescale    = in.readInt();
-                          statConfig.cue         = in.readInt();
-                          statConfig.selectMode  = in.readInt();
+                          statConfig.setFlowMode(in.readInt());
+                          statConfig.setUserMode(in.readInt());
+                          statConfig.setRestoreMode(in.readInt());
+                          statConfig.setBlockMode(in.readInt());
+                          statConfig.setPrescale(in.readInt());
+                          statConfig.setCue(in.readInt());
+                          statConfig.setSelectMode(in.readInt());
+                          int[] select = new int[Constants.stationSelectInts];
                           for (int i = 0; i < Constants.stationSelectInts; i++) {
-                              statConfig.select[i] = in.readInt();
+                              select[i] = in.readInt();
                           }
+                          statConfig.setSelect(select);
 
                           // If both a function name and library name are sent,
                           // the user thinks he's talking to a C system when
@@ -1284,15 +1294,15 @@ class ClientThread extends Thread {
 
                           if (lengthFunc > 0) {
                               in.readFully(buf, 0, lengthFunc);
-                              statConfig.selectFunction = new String(buf, 0, lengthFunc - 1, "ASCII");
+                              statConfig.setSelectFunction(new String(buf, 0, lengthFunc - 1, "ASCII"));
                           }
                           if (lengthLib > 0) {
                               in.readFully(buf, 0, lengthLib);
-                              statConfig.selectLibrary = new String(buf, 0, lengthLib - 1, "ASCII");
+                              statConfig.setSelectLibrary(new String(buf, 0, lengthLib - 1, "ASCII"));
                           }
                           if (lengthClass > 0) {
                               in.readFully(buf, 0, lengthClass);
-                              statConfig.selectClass = new String(buf, 0, lengthClass - 1, "ASCII");
+                              statConfig.setSelectClass(new String(buf, 0, lengthClass - 1, "ASCII"));
                           }
 
                           in.readFully(buf, 0, lengthName);
@@ -1459,8 +1469,9 @@ class ClientThread extends Thread {
 
                           if (stat != null) {
                               out.writeInt(ok);
+                              int[] select = stat.getConfig().getSelect();
                               for (int i = 0; i < selectInts; i++) {
-                                  out.writeInt(stat.config.select[i]);
+                                  out.writeInt(select[i]);
                               }
                           }
                           else {
@@ -1481,13 +1492,13 @@ class ClientThread extends Thread {
                               stat = sys.stationIdToObject(statId);
                               String returnString;
                               if (command == Constants.netStatFunc) {
-                                  returnString = stat.config.selectFunction;
+                                  returnString = stat.getConfig().getSelectFunction();
                               }
                               else if (command == Constants.netStatLib) {
-                                  returnString = stat.config.selectLibrary;
+                                  returnString = stat.getConfig().getSelectLibrary();
                               }
                               else {
-                                  returnString = stat.config.selectClass;
+                                  returnString = stat.getConfig().getSelectClass();
                               }
 
                               if (returnString == null) {
@@ -1538,36 +1549,36 @@ class ClientThread extends Thread {
                   }
                   else {
                       if (command == Constants.netStatGAtts) {
-                          synchronized (sys.stationLock) {
-                              val = stat.attachments.size();
+                          synchronized (sys.getStationLock()) {
+                              val = stat.getAttachments().size();
                           }
                       }
                       else if (command == Constants.netStatStatus)
-                          val = stat.status;
+                          val = stat.getStatus();
                       else if (command == Constants.netStatInCnt) {
-                          synchronized (stat.inputList) {
-                              val = stat.inputList.events.size();
+                          synchronized (stat.getInputList()) {
+                              val = stat.getInputList().getEvents().size();
                           }
                       }
                       else if (command == Constants.netStatOutCnt) {
-                          synchronized (stat.outputList) {
-                              val = stat.outputList.events.size();
+                          synchronized (stat.getOutputList()) {
+                              val = stat.getOutputList().getEvents().size();
                           }
                       }
                       else if (command == Constants.netStatGBlock)
-                          val = stat.config.blockMode;
+                          val = stat.getConfig().getBlockMode();
                       else if (command == Constants.netStatGUser)
-                          val = stat.config.userMode;
+                          val = stat.getConfig().getUserMode();
                       else if (command == Constants.netStatGRestore)
-                          val = stat.config.restoreMode;
+                          val = stat.getConfig().getRestoreMode();
                       else if (command == Constants.netStatGPre)
-                          val = stat.config.prescale;
+                          val = stat.getConfig().getPrescale();
                       else if (command == Constants.netStatGCue)
-                          val = stat.config.cue;
+                          val = stat.getConfig().getCue();
                       else if (command == Constants.netStatGSelect)
-                          val = stat.config.selectMode;
+                          val = stat.getConfig().getSelectMode();
                       else {
-                          if (config.debug >= Constants.debugError) {
+                          if (config.getDebug() >= Constants.debugError) {
                               java.lang.System.out.println("commandLoop: bad command value");
                           }
                           throw new EtReadException("bad command value");
@@ -1605,7 +1616,7 @@ class ClientThread extends Thread {
                       else if (command == Constants.netStatSCue)
                           stat.setCue(val);
                       else {
-                          if (config.debug >= Constants.debugError) {
+                          if (config.getDebug() >= Constants.debugError) {
                               java.lang.System.out.println("commandLoop: bad command value");
                           }
                           throw new EtReadException("bad command value");
@@ -1647,12 +1658,12 @@ class ClientThread extends Thread {
                   else if (command == Constants.netSysTmpMax)
                       val = 0; // no max # of temps
                   else if (command == Constants.netSysStat) {
-                      synchronized (sys.stationLock) {
-                          val = sys.stations.size(); // # stations active or idle
+                      synchronized (sys.getStationLock()) {
+                          val = sys.getStations().size(); // # stations active or idle
                       }
                   }
                   else if (command == Constants.netSysStatMax)
-                      val = sys.config.stationsMax; // max # stations allowed
+                      val = sys.getConfig().getStationsMax(); // max # stations allowed
                   else if (command == Constants.netSysProc)
                       val = 0; // no processes since no shared memory
                   else if (command == Constants.netSysProcMax)
@@ -1663,17 +1674,17 @@ class ClientThread extends Thread {
                       }
                   }
                   else if (command == Constants.netSysAttMax)
-                      val = sys.config.attachmentsMax; // max # attachments allowed
+                      val = sys.getConfig().getAttachmentsMax(); // max # attachments allowed
                   else if (command == Constants.netSysHBeat)
                       val = 0; // no heartbeat since no shared mem
                   else if (command == Constants.netSysPid) {
                       val = -1; // no pids in Java
                   }
                   else if (command == Constants.netSysGrp) {
-                      val = sys.config.groups.length; // number of groups
+                      val = sys.getConfig().getGroups().length; // number of groups
                   }
                   else {
-                      if (config.debug >= Constants.debugError) {
+                      if (config.getDebug() >= Constants.debugError) {
                           java.lang.System.out.println("commandLoop: bad command value");
                       }
                       throw new EtReadException("bad command value");
@@ -1710,7 +1721,7 @@ class ClientThread extends Thread {
               }
 
               else {
-                  if (config.debug >= Constants.debugError) {
+                  if (config.getDebug() >= Constants.debugError) {
                       java.lang.System.out.println("commandLoop: bad command value");
                   }
                   throw new EtReadException("bad command value");
@@ -1736,7 +1747,7 @@ class ClientThread extends Thread {
           sys.detach(entry.getValue());
       }
 
-      if (config.debug >= Constants.debugError) {
+      if (config.getDebug() >= Constants.debugError) {
           java.lang.System.out.println("commandLoop: remote client connection broken");
       }
 

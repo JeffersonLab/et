@@ -12,11 +12,13 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
 
 import java.lang.*;
 import java.util.*;
 import java.net.*;
+import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.Constants;
 
 /**
  * This class defines a configuration for the creation of an ET system.
@@ -39,11 +41,11 @@ public class SystemConfig {
   /** Maximum number of attachments. */
   int      attachmentsMax;
   /**
-   *  Debug level. This may have values of {@link Constants#debugNone} meaning
-   *  print nothing, {@link Constants#debugSevere} meaning print only the
-   *  severest errors, {@link Constants#debugError} meaning print all errors,
-   *  {@link Constants#debugWarn} meaning print all errors and warnings, and
-   *  finally {@link Constants#debugInfo} meaning print all errors, warnings,
+   *  Debug level. This may have values of {@link org.jlab.coda.et.Constants#debugNone} meaning
+   *  print nothing, {@link org.jlab.coda.et.Constants#debugSevere} meaning print only the
+   *  severest errors, {@link org.jlab.coda.et.Constants#debugError} meaning print all errors,
+   *  {@link org.jlab.coda.et.Constants#debugWarn} meaning print all errors and warnings, and
+   *  finally {@link org.jlab.coda.et.Constants#debugInfo} meaning print all errors, warnings,
    *  and informative messages.
    */
   int      debug;
@@ -62,14 +64,14 @@ public class SystemConfig {
   /**
    * Creates a new SystemConfig object using default parameters.
    * The default parameters are:
-   *      number of events          = {@link Constants#defaultNumEvents},
-   *      event size                = {@link Constants#defaultEventSize},
-   *      max number of stations    = {@link Constants#defaultStationsMax},
-   *      max number of attachments = {@link Constants#defaultAttsMax},
-   *      debug level               = {@link Constants#debugError},
-   *      udp port                  = {@link Constants#broadcastPort},
-   *      server (tcp) port         = {@link Constants#serverPort}, and
-   *      multicasting port         = {@link Constants#multicastPort}.
+   *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
+   *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
+   *      max number of stations    = {@link org.jlab.coda.et.Constants#defaultStationsMax},
+   *      max number of attachments = {@link org.jlab.coda.et.Constants#defaultAttsMax},
+   *      debug level               = {@link org.jlab.coda.et.Constants#debugError},
+   *      udp port                  = {@link org.jlab.coda.et.Constants#broadcastPort},
+   *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
+   *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}.
    */
   public SystemConfig () {
     numEvents       = Constants.defaultNumEvents;
@@ -152,7 +154,7 @@ public class SystemConfig {
 
   /** Adds a multicast address to the set.
    *  @param mCastAddr multicast address
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is not a multicast address
    */
   public void addMulticastAddr(String mCastAddr) throws EtException {
@@ -187,7 +189,7 @@ public class SystemConfig {
 
   /** Sets the total number of events.
    *  @param num total number of events
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 1
    */
   public void setNumEvents(int num) throws EtException {
@@ -200,7 +202,7 @@ public class SystemConfig {
 
   /** Sets the event size in bytes.
    *  @param size event size in bytes
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 1 byte
    */
   public void setEventSize(int size) throws EtException {
@@ -214,7 +216,7 @@ public class SystemConfig {
    * guarantee available events for each producer.
    *
    *  @param groups array defining number of events in each group
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the groups array has length < 1 or values are not positive ints
    */
   public void setGroups(int[] groups) throws EtException {
@@ -232,7 +234,7 @@ public class SystemConfig {
 
   /** Sets the maximum number of stations.
    *  @param num maximum number of stations
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 2
    */
   public void setStationsMax(int num) throws EtException {
@@ -244,7 +246,7 @@ public class SystemConfig {
 
   /** Sets the maximum number of attachments.
    *  @param num maximum number of attachments
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 1
    */
   public void setAttachmentsMax(int num) throws EtException {
@@ -256,7 +258,7 @@ public class SystemConfig {
 
   /** Sets the debug level.
    *  @param level debug level
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument has a bad value
    */
   public void setDebug(int level) throws EtException {
@@ -272,7 +274,7 @@ public class SystemConfig {
 
   /** Sets the udp port number.
    *  @param port udp port number
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 1024
    */
   public void setUdpPort(int port) throws EtException {
@@ -284,7 +286,7 @@ public class SystemConfig {
 
   /** Sets the tcp server port number.
    *  @param port tcp server port number
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 1024
    */
   public void setServerPort(int port) throws EtException {
@@ -296,7 +298,7 @@ public class SystemConfig {
 
   /** Sets the multicast port number.
    *  @param port multicast port number
-   *  @exception org.jlab.coda.et.EtException
+   *  @exception EtException
    *     if the argument is less than 1024
    */
   public void setMulticastPort(int port) throws EtException {
@@ -313,7 +315,7 @@ public class SystemConfig {
      * Checks configuration settings for consistency.
      * @return true if consistent, else false
      */
-    boolean selfConsistent() {
+    public boolean selfConsistent() {
         // Check to see if the number of events in groups equal the total number of events
         int count = 0;
         for (int i : groups) {

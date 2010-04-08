@@ -12,12 +12,16 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
 
 import java.lang.*;
 import java.util.*;
 import java.io.*;
 import java.net.*;
+import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.system.StationLocal;
+import org.jlab.coda.et.system.AttachmentLocal;
+import org.jlab.coda.et.*;
 
 /**
  * This class creates an ET system.
@@ -28,14 +32,15 @@ import java.net.*;
 public class SystemCreate {
 
   /** A copy of the ET system configuration. */
-  SystemConfig     config;
+  private SystemConfig config;
   /** The name of the ET system file name. */
   String           name;
-  /** A list of stations defining the flow of events. Only the first
+
+    /** A list of stations defining the flow of events. Only the first
    *  station of a single group of parallel stations is included in
    *  this list. The other parallel stations are available in a list
    *  kept by the first parallel station. */
-  LinkedList<StationLocal> stations;            // protected by stopTransfer & systemLock
+  private LinkedList<StationLocal> stations;            // protected by stopTransfer & systemLock
   /** The total number of idle and active stations. This consists
     * of the number of main stations given by the size of the "stations"
     * linked list (stations.size()) and the number of additional parallel
@@ -46,15 +51,16 @@ public class SystemCreate {
   /** Table of all ET system attachments. */
   HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
   /** Table of all ET system events. */
-  HashMap<Long,Event>  events;
+  HashMap<Long, EventImpl>  events;
   /** All local IP addresses */
   InetAddress[]    netAddresses;
   /** Flag telling if the ET system is running. */
   private boolean  running;
   /** Mutex for system stuff. */
   byte[]           systemLock;
-  /** Mutex for station stuff. */
-  byte[]           stationLock;
+
+    /** Mutex for station stuff. */
+  private byte[]           stationLock;
   /** Flag for killing all threads started by ET system. */
   volatile boolean killAllThreads;
 
@@ -71,20 +77,28 @@ public class SystemCreate {
   byte[] infoArray = new byte[6000];
 
 
+    public LinkedList<StationLocal> getStations() {
+        return stations;
+    }
+    public byte[] getStationLock() {
+        return stationLock;
+    }
+
+
   /**
    * Creates a new ET system using default parameters and starts it running.
    * The default parameters are:
-   *      number of events          = {@link Constants#defaultNumEvents},
-   *      event size                = {@link Constants#defaultEventSize},
-   *      max number of stations    = {@link Constants#defaultStationsMax},
-   *      max number of attachments = {@link Constants#defaultAttsMax},
-   *      debug level               = {@link Constants#debugError},
-   *      udp port                  = {@link Constants#broadcastPort},
-   *      server (tcp) port         = {@link Constants#serverPort}, and
-   *      multicasting port         = {@link Constants#multicastPort}
+   *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
+   *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
+   *      max number of stations    = {@link org.jlab.coda.et.Constants#defaultStationsMax},
+   *      max number of attachments = {@link org.jlab.coda.et.Constants#defaultAttsMax},
+   *      debug level               = {@link org.jlab.coda.et.Constants#debugError},
+   *      udp port                  = {@link org.jlab.coda.et.Constants#broadcastPort},
+   *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
+   *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}
    *
    * @param _name   file name
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the file already exists or cannot be created
    */
   public SystemCreate(String _name) throws EtException {
@@ -96,13 +110,13 @@ public class SystemCreate {
    *
    * @param _name     file name
    * @param _config   ET system configuration
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the file already exists or cannot be created
    */
   public SystemCreate (String _name, SystemConfig _config) throws EtException {
         // check config for consistency
         if (!_config.selfConsistent()) {
-            if (config.debug >= Constants.debugInfo) {
+            if (config.getDebug() >= Constants.debugInfo) {
                 System.out.println("Number of events in groups does not equal total number of events");
             }
             throw new EtException("Number of events in groups does not equal total number of events");
@@ -110,7 +124,7 @@ public class SystemCreate {
         name = _name;
         config = new SystemConfig(_config);
         attachments = new HashMap<Integer, AttachmentLocal>(Constants.attachmentsMax + 1, 1);
-        events = new HashMap<Long, Event>(config.numEvents + 1, 1);
+        events = new HashMap<Long, EventImpl>(config.getNumEvents() + 1, 1);
         stations = new LinkedList<StationLocal>();
         // netAddresses will be set in SystemUdpServer
         systemLock = new byte[0];
@@ -122,14 +136,14 @@ public class SystemCreate {
         try {
             // if file already exists ...
             if (!etFile.createNewFile()) {
-                if (config.debug >= Constants.debugInfo) {
+                if (config.getDebug() >= Constants.debugInfo) {
                     System.out.println("ET file already exists");
                 }
                 throw new EtException("ET file already exists");
             }
         }
         catch (IOException ex) {
-            if (config.debug >= Constants.debugInfo) {
+            if (config.getDebug() >= Constants.debugInfo) {
                 System.out.println("cannot create ET file");
             }
             throw new EtException("Cannot create ET file");
@@ -158,7 +172,7 @@ public class SystemCreate {
             netAddresses = InetAddress.getAllByName(InetAddress.getLocalHost().getHostName());
         }
         catch (UnknownHostException ex) {
-            if (config.debug >= Constants.debugError) {
+            if (config.getDebug() >= Constants.debugError) {
                 System.out.println("cannot find local IP addresses");
                 ex.printStackTrace();
             }
@@ -191,28 +205,28 @@ public class SystemCreate {
     gcStation = createGrandCentral();
 
     // fill GC with standard sized events
-    Event ev;
+    EventImpl ev;
     int index = 0, count = 0;
-    ArrayList<Event> eventList = new ArrayList<Event>(config.numEvents);
+    ArrayList<EventImpl> eventList = new ArrayList<EventImpl>(config.getNumEvents());
 
-    for (long i=0; i < config.numEvents; i++) {
-      ev = new Event(config.eventSize);
-      ev.id = i;
+    for (long i=0; i < config.getNumEvents(); i++) {
+      ev = new EventImpl(config.getEventSize());
+      ev.setId(i);
         
       // assign group numbers
       if (count < 1)
-          count = config.groups[index++];
-      ev.group = index;
+          count = (config.getGroups())[index++];
+      ev.setGroup(index);
       count--;
 
       eventList.add(ev);
       // add to hashTable for future easy access
-      events.put(ev.id, ev);
+      events.put(ev.getId(), ev);
     }
 
-    gcStation.inputList.putInLow(eventList);
+    gcStation.getInputList().putInLow(eventList);
     // undo statistics keeping for inital event loading
-    gcStation.inputList.eventsIn = 0;
+    gcStation.getInputList().setEventsIn(0);
 
     // run tcp server thread
     SystemTcpServer tcpServer = new SystemTcpServer(this);
@@ -261,11 +275,11 @@ public class SystemCreate {
    *
    * @return the new station object
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the select method's class cannot be loaded
-   * @exception org.jlab.coda.et.EtExistsException
+   * @exception EtExistsException
    *     if the station already exists but with a different configuration
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if the maximum number of stations has been created already
    */
   public StationLocal createStation(StationConfig stationConfig, String name)
@@ -285,11 +299,11 @@ public class SystemCreate {
    *
    * @return                the new station object
    *
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the select method's class cannot be loaded
-   * @exception org.jlab.coda.et.EtExistsException
+   * @exception EtExistsException
    *     if the station already exists but with a different configuration
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if the maximum number of stations has been created already
    */
   StationLocal createStation(StationConfig stationConfig, String name,
@@ -303,7 +317,7 @@ public class SystemCreate {
       // grab station mutex
       synchronized (stationLock) {
           // check to see if hit maximum allowed # of stations
-          if (stations.size() >= config.stationsMax) {
+          if (stations.size() >= config.getStationsMax()) {
               throw new EtTooManyException("Maximum number of stations already created");
           }
           else if (position > stations.size()) {
@@ -314,18 +328,18 @@ public class SystemCreate {
           StationLocal listStation;
           try {
               listStation = stationNameToObject(name);
-              // it's got the same name, let's see if it's defined the same
-              if (    (listStation.config.flowMode == stationConfig.flowMode) &&
-                      (listStation.config.userMode == stationConfig.userMode) &&
-                      (listStation.config.blockMode == stationConfig.blockMode) &&
-                      (listStation.config.selectMode == stationConfig.selectMode) &&
-                      (listStation.config.restoreMode == stationConfig.restoreMode) &&
-                      (listStation.config.prescale == stationConfig.prescale) &&
-                      (listStation.config.cue == stationConfig.cue) &&
-                      (Arrays.equals(listStation.config.select, stationConfig.select))) {
+              // it's got the same name, let's see if it's defined the same // TODO: get config once !!
+              if (    (listStation.getConfig().getFlowMode() == stationConfig.getFlowMode()) &&
+                      (listStation.getConfig().getUserMode() == stationConfig.getUserMode()) &&
+                      (listStation.getConfig().getBlockMode() == stationConfig.getBlockMode()) &&
+                      (listStation.getConfig().getSelectMode() == stationConfig.getSelectMode()) &&
+                      (listStation.getConfig().getRestoreMode() == stationConfig.getRestoreMode()) &&
+                      (listStation.getConfig().getPrescale() == stationConfig.getPrescale()) &&
+                      (listStation.getConfig().getCue() == stationConfig.getCue()) &&
+                      (Arrays.equals(listStation.getConfig().getSelect(), stationConfig.getSelect()))) {
 
-                  if ((listStation.config.selectClass != null) &&
-                          (!listStation.config.selectClass.equals(stationConfig.selectClass))) {
+                  if ((listStation.getConfig().getSelectClass() != null) &&
+                          (!listStation.getConfig().getSelectClass().equals(stationConfig.getSelectClass()))) {
                       throw new EtExistsException("Station already exists with different configuration");
                   }
                   // station definitions are the same, use listStation
@@ -342,13 +356,13 @@ public class SystemCreate {
           for (int i = 0; i < stationCount + 1; i++) {
               for (ListIterator j = stations.listIterator(); j.hasNext();) {
                   listStation = (StationLocal) j.next();
-                  if (listStation.id == i) {
+                  if (listStation.getStationId() == i) {
                       continue search;
                   }
-                  if (listStation.config.flowMode == Constants.stationParallel) {
-                      for (ListIterator k = listStation.parallelStations.listIterator(1); k.hasNext();) {
+                  if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                      for (ListIterator k = listStation.getParallelStations().listIterator(1); k.hasNext();) {
                           listStation = (StationLocal) k.next();
-                          if (listStation.id == i) {
+                          if (listStation.getStationId() == i) {
                               continue search;
                           }
                       }
@@ -368,8 +382,8 @@ public class SystemCreate {
           Thread.yield();
 
           // make sure the conductor is started or we'll get race conditions
-          while (station.status != Constants.stationIdle) {
-              if (config.debug >= Constants.debugInfo) {
+          while (station.getStatus() != Constants.stationIdle) {
+              if (config.getDebug() >= Constants.debugInfo) {
                   System.out.println("Waiting for " + name + "'s conductor thread to start");
               }
               // sleep for minimum amount of time (1 nsec haha)
@@ -421,7 +435,7 @@ public class SystemCreate {
    * Removes an existing station.
    *
    * @param   statId station id
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if attachments to the station still exist or the station does not exist
    */
   void removeStation(int statId) throws EtException {
@@ -430,7 +444,7 @@ public class SystemCreate {
     synchronized(stationLock) {
       stat = stationIdToObject(statId);
       // only remove if no attached processes
-      if (stat.attachments.size() != 0) {
+      if (stat.getAttachments().size() != 0) {
 	    throw new EtException("Remove all attachments before removing station");
       }
 
@@ -438,11 +452,11 @@ public class SystemCreate {
       gcStation.removeStation(stat);
 
       // kill conductor thread
-      stat.killConductor = true;
+      stat.setKillConductor(true);
       stat.interrupt();
 
       // set status
-      stat.status = Constants.stationUnused;
+      stat.setStatus(Constants.stationUnused);
       
       // keep track of the total number of stations
       stationCount--;
@@ -457,7 +471,7 @@ public class SystemCreate {
    * @param position   position in the main linked list of stations (starting at 0)
    * @param parallelPosition position of a parallel station in a group of
    *     parallel stations (starting at 0)
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist, or
    *     if trying to move an incompatible parallel station to an existing group
    *     of parallel stations or to the head of an existing group of parallel
@@ -479,7 +493,7 @@ public class SystemCreate {
    *
    * @param statId   station id
    * @return         the position of a station in the linked list of stations
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
    */
   int getStationPosition(int statId) throws EtException {
@@ -489,12 +503,12 @@ public class SystemCreate {
 
       synchronized (stationLock) {
           for (StationLocal stat : stations) {
-              if (stat.id == statId) {
+              if (stat.getStationId() == statId) {
                   return position;
               }
-              if (stat.config.flowMode == Constants.stationParallel) {
-                  for (StationLocal stat2 : stat.parallelStations) {
-                      if (stat2.id == statId) {
+              if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                  for (StationLocal stat2 : stat.getParallelStations()) {
+                      if (stat2.getStationId() == statId) {
                           return position;
                       }
                   }
@@ -512,7 +526,7 @@ public class SystemCreate {
    * @param statId   station id
    * @return         the position of a parallel station in its linked list
    *      of parallel stations, or zero if station is serial
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
    */
   int getStationParallelPosition(int statId) throws EtException {
@@ -522,13 +536,13 @@ public class SystemCreate {
 
       synchronized (stationLock) {
           for (StationLocal stat : stations) {
-              if (stat.id == statId) {
+              if (stat.getStationId() == statId) {
                   return 0;
               }
-              if (stat.config.flowMode == Constants.stationParallel) {
+              if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
                   pposition = 1;
-                  for (StationLocal stat2 : stat.parallelStations) {
-                      if (stat2.id == statId) {
+                  for (StationLocal stat2 : stat.getParallelStations()) {
+                      if (stat2.getStationId() == statId) {
                           return pposition;
                       }
                       pposition++;
@@ -546,15 +560,15 @@ public class SystemCreate {
    * @param attId    attachment id
    * @return         <code>true</code> if an attachment is attached to a station
    *                 and <code>false</code> otherwise
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
    */
   boolean stationAttached(int statId, int attId) throws EtException {
       StationLocal stat;
       synchronized (stationLock) {
           stat = stationIdToObject(statId);
-          for (AttachmentLocal att : stat.attachments) {
-              if (att.id == attId) {
+          for (AttachmentLocal att : stat.getAttachments()) {
+              if (att.getId() == attId) {
                   return true;
               }
           }
@@ -575,8 +589,8 @@ public class SystemCreate {
                 return true;
             }
             for (StationLocal listStation : stations) {
-                if (listStation.config.flowMode == Constants.stationParallel) {
-                    if (listStation.parallelStations.contains(station)) {
+                if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                    if (listStation.getParallelStations().contains(station)) {
                         return true;
                     }
                 }
@@ -607,18 +621,18 @@ public class SystemCreate {
    *
    * @param    name station name
    * @return   a station's object
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
    */
   StationLocal stationNameToObject(String name) throws EtException {
       synchronized (stationLock) {
           for (StationLocal listStation : stations) {
-              if (listStation.name.equals(name)) {
+              if (listStation.getName().equals(name)) {
                   return listStation;
               }
-              if (listStation.config.flowMode == Constants.stationParallel) {
-                  for (StationLocal listStation2 : listStation.parallelStations) {
-                      if (listStation2.name.equals(name)) {
+              if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                  for (StationLocal listStation2 : listStation.getParallelStations()) {
+                      if (listStation2.getName().equals(name)) {
                           return listStation2;
                       }
                   }
@@ -634,18 +648,18 @@ public class SystemCreate {
    *
    * @param     statId station id
    * @return    the station's object
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
    */
   StationLocal stationIdToObject(int statId) throws EtException {
       synchronized (stationLock) {
           for (StationLocal stat : stations) {
-              if (stat.id == statId) {
+              if (stat.getStationId() == statId) {
                   return stat;
               }
-              if (stat.config.flowMode == Constants.stationParallel) {
-                  for (StationLocal stat2 : stat.parallelStations) {
-                      if (stat2.id == statId) {
+              if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                  for (StationLocal stat2 : stat.getParallelStations()) {
+                      if (stat2.getStationId() == statId) {
                           return stat2;
                       }
                   }
@@ -664,9 +678,9 @@ public class SystemCreate {
    *
    * @param statId   station id
    * @return         an attachment object
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station does not exist
-   * @exception org.jlab.coda.et.EtTooManyException
+   * @exception EtTooManyException
    *     if station does not exist, or
    *     if no more attachments are allowed to the station, or
    *     if no more attachments are allowed to ET system
@@ -678,23 +692,23 @@ public class SystemCreate {
           StationLocal station = stationIdToObject(statId);
 
           // limit on # of attachments to station
-          if ((station.config.userMode > 0) &&
-                  (station.config.userMode <= station.attachments.size())) {
+          if ((station.getConfig().getUserMode() > 0) &&
+                  (station.getConfig().getUserMode() <= station.getAttachments().size())) {
               throw new EtTooManyException("no more attachments allowed to station");
           }
 
           synchronized (systemLock) {
               // limit on number of attachments to ET system
-              if (attachments.size() >= config.attachmentsMax) {
+              if (attachments.size() >= config.getAttachmentsMax()) {
                   throw new EtTooManyException("no more attachments allowed to ET system");
               }
 
               // Server will overwrite id & host with true (remote) values
               att = new AttachmentLocal();
-              att.station = station;
+              att.setStation(station);
               // find smallest possible unique id number
               if (attachments.size() == 0) {
-                  att.id = 0;
+                  att.setId(0);
               }
               else {
                   search:
@@ -703,17 +717,17 @@ public class SystemCreate {
                           if (j == i) continue search;
                       }
                       // only get down here if "i" is not a used id number
-                      att.id = i;
+                      att.setId(i);
                       break;
                   }
               }
               //att.status = Constants.attActive;
 //System.out.println("attach att #" + att.id + " will put into system's map");
-              attachments.put(att.id, att);
+              attachments.put(att.getId(), att);
           }
 
           // keep att stats in station too?
-          station.attachments.add(att);
+          station.getAttachments().add(att);
           // station.status = Constants.stationActive;
           // change station status - first grabbing stopTransfer mutexes
           gcStation.changeStationStatus(station, Constants.stationActive);
@@ -733,22 +747,23 @@ public class SystemCreate {
 //System.out.println("detach: IN");
         synchronized (stationLock) {
             // if last attachment & not GrandCentral - mark station idle
-            if ((att.station.attachments.size() == 1) && (att.station.id != 0)) {
+            if ((att.getStation().getAttachments().size() == 1) && (att.getStation().getStationId() != 0)) {
 //System.out.println("detach: att #" + att.id + " and make idle");
                 // att.station.status = Constants.stationIdle;
                 // change station status - first grabbing stopTransfer mutexes
-                gcStation.changeStationStatus(att.station, Constants.stationIdle);
+                gcStation.changeStationStatus(att.getStation(), Constants.stationIdle);
                 // give other threads a chance to finish putting events in
                 Thread.yield();
                 // flush any remaining events
-                if (att.station.config.getRestoreMode() == Constants.stationRestoreRedist) {
+                if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreRedist) {
                     // send to output list of previous station
                     try {
-                        int pos = getStationPosition(att.station.id);
+                        int pos = getStationPosition(att.getStation().getStationId());
                         if (--pos < 0) return;
                         StationLocal prevStat = stations.get(pos);
                         try {
-                            moveEvents(prevStat.outputList, Arrays.asList(getEvents(att, Constants.async, 0, config.numEvents)));
+                            moveEvents(prevStat.getOutputList(), Arrays.asList(getEvents(att, Constants.async,
+                                                                                         0, config.getNumEvents())));
                         }
                         catch (Exception e) {
                         }
@@ -761,13 +776,13 @@ public class SystemCreate {
                 else {
                     // send to output list
                     try {
-                        putEvents(att, getEvents(att, Constants.async, 0, config.numEvents));
+                        putEvents(att, getEvents(att, Constants.async, 0, config.getNumEvents()));
                     }
                     catch (Exception ex) { }
                 }
             }
 //System.out.println("detach att #" + att.id + " remove from station map");
-            att.station.attachments.remove(att);
+            att.getStation().getAttachments().remove(att);
 
             // restore events gotten but not put back into system
             restoreEvents(att);
@@ -775,7 +790,7 @@ public class SystemCreate {
             synchronized (systemLock) {
                 // get rid of attachment
 //System.out.println("detach att #" + att.id + " remove from system map");
-                attachments.remove(new Integer(att.id));
+                attachments.remove(new Integer(att.getId()));
             }
         }
         return;
@@ -792,15 +807,15 @@ public class SystemCreate {
   private void restoreEvents(AttachmentLocal att) {
       // Split new events (which should be dumped) from used
       // events which go where directed by station configuration.
-      ArrayList<Event> usedEvs = new ArrayList<Event>(config.numEvents);
-      ArrayList<Event>  newEvs = new ArrayList<Event>(config.numEvents);
+      ArrayList<EventImpl> usedEvs = new ArrayList<EventImpl>(config.getNumEvents());
+      ArrayList<EventImpl>  newEvs = new ArrayList<EventImpl>(config.getNumEvents());
 //System.out.println("into restoreEvents");
 
       // look at all events
-      for (Event ev : events.values()) {
+      for (EventImpl ev : events.values()) {
           // find those owned by this attachment
-          if (ev.owner == att.id) {
-              if (ev.age == Constants.eventNew) {
+          if (ev.getOwner() == att.getId()) {
+              if (ev.getAge() == Constants.eventNew) {
 //System.out.println("found new ev " + ev.id + " owned by attachment " + att.id);
                   newEvs.add(ev);
               }
@@ -808,7 +823,7 @@ public class SystemCreate {
                   // Put high priority events first.
                   // Original order may get messed up here.
 //System.out.println("found used ev " + ev.id + " owned by attachment " + att.id);
-                  if (ev.priority == Constants.high) {
+                  if (ev.getPriority() == Constants.high) {
                       usedEvs.add(0, ev);
                   }
                   else {
@@ -826,8 +841,8 @@ public class SystemCreate {
       if (usedEvs.size() > 0) {
 //System.out.println("restore " + usedEvs.size() + " used events");
           // if normal events are to be returned to GrandCentral
-          if ((att.station.config.restoreMode == Constants.stationRestoreGC) ||
-                  (att.station.id == 0)) {
+          if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreGC) ||
+                  (att.getStation().getStationId() == 0)) {
 //System.out.println("restore used events to GC (dump)");
               dumpEvents(att, usedEvs);
           }
@@ -836,19 +851,19 @@ public class SystemCreate {
           // inputList, but we are the last attachement (and in the
           // middle of detaching), then events put into the inputList
           // will be lost to the system. Place them into the outputList.
-          else if ((att.station.config.restoreMode == Constants.stationRestoreOut) ||
-                  ((att.station.config.restoreMode == Constants.stationRestoreIn) &&
-                          (att.station.attachments.size() == 0))) {
+          else if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreOut) ||
+                  ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) &&
+                          (att.getStation().getAttachments().size() == 0))) {
 //System.out.println("restore used events to output list");
               putEvents(att, usedEvs);
           }
-          else if (att.station.config.restoreMode == Constants.stationRestoreIn) {
+          else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) {
               // If the station is blocking, its inputList has room for all
               // the events and there's no problem putting them all.
               // Statistics don't get messed up here.
-              if (att.station.config.blockMode == Constants.stationBlocking) {
+              if (att.getStation().getConfig().getBlockMode() == Constants.stationBlocking) {
 //System.out.println("restore used events to input list of blocking station");
-                  moveEvents(att.station.inputList, usedEvs);
+                  moveEvents(att.getStation().getInputList(), usedEvs);
               }
               // Else if nonblocking there may not be enough room.
               // Equivalent to putting events back into the station's inputList
@@ -859,16 +874,16 @@ public class SystemCreate {
               else {
                   try {
                       // Find previous station
-                      int pos = getStationPosition(att.station.id);
+                      int pos = getStationPosition(att.getStation().getStationId());
                       if (--pos < 0) return;
                       StationLocal prevStat = stations.get(pos);
-                      moveEvents(prevStat.outputList, usedEvs);
+                      moveEvents(prevStat.getOutputList(), usedEvs);
                   }
                   catch (EtException e) { return; }
 //System.out.println("restore used events to input list of nonblocking station");
               }
           }
-          else if (att.station.config.restoreMode == Constants.stationRestoreRedist) {
+          else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreRedist) {
               // Put events into the previous station's outputList and let its
               // conductor thread do the work - redistributing them to the members
               // of the parallel station group.
@@ -876,11 +891,11 @@ public class SystemCreate {
               // up the statistics as some events may be counted twice.
               try {
 //System.out.println("TRY to restore used events to output list of previous station");
-                  int pos = getStationPosition(att.station.id);
+                  int pos = getStationPosition(att.getStation().getStationId());
                   if (--pos < 0) return;
                   StationLocal prevStat = stations.get(pos);
 //System.out.println("Found previous station -> " + prevStat.name + ", putting " + usedEvs.size() + " number of events");
-                  moveEvents(prevStat.outputList, usedEvs);
+                  moveEvents(prevStat.getOutputList(), usedEvs);
               }
               catch (Exception e) { return; }
 //System.out.println("DID restore used events to output list of previous station");
@@ -907,43 +922,46 @@ public class SystemCreate {
    *
    * @return an array of events
    *
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtBusyException
+   * @exception EtBusyException
    *     if the mode is asynchronous and the station's input list is being used
    *     (the mutex is locked)
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
    *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
    */
-  Event[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
+  EventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
                     throws EtEmptyException, EtBusyException,
                            EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: get " + count + " events");
 
     // get events from GrandCentral Station's output list
-    Event[] evs = gcStation.inputList.get(att, mode, microSec, count);
+    EventImpl[] evs = gcStation.getInputList().get(att, mode, microSec, count);
 //System.out.println("newEvents: got events");
 
     // for each event ...
-    for (Event ev : evs) {
+    for (EventImpl ev : evs) {
       // initialize fields
       ev.init();
       // registered as owned by this attachment
-      ev.owner = att.id;
+      ev.setOwner(att.getId());
       // if size is too small make it larger
-      if (ev.memSize < size) {
-        ev.data = new byte[size];
-        ev.memSize = size;
+      if (ev.getMemSize() < size) {
+          try {
+              ev.setData(new byte[size]);
+          }
+          catch (EtException e) { }  // TODO: is this kosher??
+          ev.setMemSize(size);
       }
 //System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize);
     }
 
     // keep track of # of events made by this attachment
-    att.eventsMake += evs.length;
+    att.setEventsMake(att.getEventsMake() + evs.length);
 //System.out.println("newEvents: att.eventsMake = "+ att.eventsMake);
     return evs;
   }
@@ -966,49 +984,49 @@ public class SystemCreate {
      *
      * @return a list of events
      *
-     * @exception org.jlab.coda.et.EtException
+     * @exception EtException
      *     if the group number is not meaningful
-     * @exception org.jlab.coda.et.EtEmptyException
+     * @exception EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception org.jlab.coda.et.EtBusyException
+     * @exception EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception org.jlab.coda.et.EtTimeoutException
+     * @exception EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception org.jlab.coda.et.EtWakeUpException
+     * @exception EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
-    List<Event> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
+    List<EventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
                       throws EtException, EtEmptyException, EtBusyException,
                              EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: try getting " + count + " events of group # " + group);
       // check to see if value of group is meaningful
-      if (group > config.groups.length) {
+      if (group > config.getGroups().length) {
           throw new EtException("group number is too high");
       }
 
       // get events from GrandCentral Station's output list
-      List<Event> evs = gcStation.inputList.get(att, mode, microSec, count, group);
+      List<EventImpl> evs = gcStation.getInputList().get(att, mode, microSec, count, group);
 //System.out.println("newEvents: got events (# = " + evs.size() + ")");
 
       // for each event ...
-      for (Event ev : evs) {
+      for (EventImpl ev : evs) {
         // initialize fields
         ev.init();
         // registered as owned by this attachment
-        ev.owner = att.id;
+        ev.setOwner(att.getId());
         // if size is too small make it larger
-        if (ev.memSize < size) {
-          ev.data = new byte[size];
-          ev.memSize = size;
+        if (ev.getMemSize() < size) {
+          ev.setData(new byte[size]);
+          ev.setMemSize(size);
         }
 //System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize + ", group = " + ev.group);
       }
 
       // keep track of # of events made by this attachment
-      att.eventsMake += evs.size();
+      att.setEventsMake(att.getEventsMake() + evs.size());
 //System.out.println("newEvents: att.eventsMake = "+ att.eventsMake);
       return evs;
     }
@@ -1029,30 +1047,30 @@ public class SystemCreate {
    *
    * @return an array of events
    *
-   * @exception org.jlab.coda.et.EtEmptyException
+   * @exception EtEmptyException
    *     if the mode is asynchronous and the station's input list is empty
-   * @exception org.jlab.coda.et.EtBusyException
+   * @exception EtBusyException
    *     if the mode is asynchronous and the station's input list is being used
    *     (the mutex is locked)
-   * @exception org.jlab.coda.et.EtTimeoutException
+   * @exception EtTimeoutException
    *     if the mode is timed wait and the time has expired
-   * @exception org.jlab.coda.et.EtWakeUpException
+   * @exception EtWakeUpException
    *     if the attachment has been commanded to wakeup,
    *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
    */
-  Event[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
+  EventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
                       throws EtEmptyException, EtBusyException,
                              EtTimeoutException, EtWakeUpException {
 
-    Event[] evs = att.station.inputList.get(att, mode, microSec, count);
+    EventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
 
     // each event is registered as owned by this attachment
-    for (Event ev : evs) {
-      ev.owner = att.id;
+    for (EventImpl ev : evs) {
+      ev.setOwner(att.getId());
     }
 
     // keep track of # of events gotten by this attachment
-    att.eventsGet += evs.length;
+    att.setEventsGet(att.getEventsGet() + evs.length);
 
     return evs;
   }
@@ -1068,11 +1086,11 @@ public class SystemCreate {
    * @param eventList   list of event objects
    *
    */
-  private void moveEvents(EventList list, List<Event> eventList) {
+  private void moveEvents(EventList list, List<EventImpl> eventList) {
     // mark events as used and as owned by system
-    for (Event ev : eventList) {
-      ev.age   = Constants.eventUsed;
-      ev.owner = Constants.system;
+    for (EventImpl ev : eventList) {
+      ev.setAge(Constants.eventUsed);
+      ev.setOwner(Constants.system);
     }
 
     list.putReverse(eventList);
@@ -1090,17 +1108,17 @@ public class SystemCreate {
      * @param eventArray   array of event objects
      *
      */
-    void putEvents(AttachmentLocal att, Event[] eventArray) {
+    void putEvents(AttachmentLocal att, EventImpl[] eventArray) {
       // mark events as used and as owned by system
-      for (Event ev : eventArray) {
+      for (EventImpl ev : eventArray) {
 //System.out.println("putEvents: set age & owner of event " + i);
-        ev.age   = Constants.eventUsed;
-        ev.owner = Constants.system;
+          ev.setAge(Constants.eventUsed);
+          ev.setOwner(Constants.system);
       }
 
-      att.station.outputList.put(eventArray);
+      att.getStation().getOutputList().put(eventArray);
       // keep track of # of events put by this attachment
-      att.eventsPut += eventArray.length;
+      att.setEventsPut(att.getEventsPut() + eventArray.length);
 
       return;
     }
@@ -1115,18 +1133,18 @@ public class SystemCreate {
    * @param eventList   list of event objects
    *
    */
-  private void putEvents(AttachmentLocal att, ArrayList<Event> eventList) {
+  private void putEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
 //System.out.println("putEvents: got in, array length = " + eventList.length);
     // mark events as used and as owned by system
-    for (Event ev : eventList) {
+    for (EventImpl ev : eventList) {
 //System.out.println("putEvents: set age & owner of event " + i);
-      ev.age   = Constants.eventUsed;
-      ev.owner = Constants.system;
+        ev.setAge(Constants.eventUsed);
+        ev.setOwner(Constants.system);
     }
 
-    att.station.outputList.put(eventList);
+    att.getStation().getOutputList().put(eventList);
     // keep track of # of events put by this attachment
-    att.eventsPut += eventList.size();
+    att.setEventsPut(att.getEventsPut() + eventList.size());
 
     return;
   }
@@ -1141,17 +1159,17 @@ public class SystemCreate {
    * @param eventArray   array of event objects
    *
    */
-  void dumpEvents(AttachmentLocal att, Event[] eventArray) {
+  void dumpEvents(AttachmentLocal att, EventImpl[] eventArray) {
     // mark as owned by system
-    for (Event ev : eventArray) {
-      ev.owner = Constants.system;
+    for (EventImpl ev : eventArray) {
+        ev.setOwner(Constants.system);
     }
 
     // put into GrandCentral Station
-    gcStation.inputList.putInGC(eventArray);
+    gcStation.getInputList().putInGC(eventArray);
 
     // keep track of # of events put by this attachment
-    att.eventsDump += eventArray.length;
+    att.setEventsDump(att.getEventsDump() + eventArray.length);
 
     return;
   }
@@ -1166,12 +1184,12 @@ public class SystemCreate {
    * @param eventList   list of event objects
    *
    */
-  private void dumpEvents(AttachmentLocal att, ArrayList<Event> eventList) {
-    for (Event ev : eventList) {
-      ev.owner = Constants.system;
+  private void dumpEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
+    for (EventImpl ev : eventList) {
+        ev.setOwner(Constants.system);
     }
-    gcStation.inputList.putInGC(eventList);
-    att.eventsDump += eventList.size();
+    gcStation.getInputList().putInGC(eventList);
+    att.setEventsDump(att.getEventsDump() + eventList.size());
     return;
   }
 
@@ -1220,13 +1238,13 @@ public class SystemCreate {
           int len3 = writeAttachmentData(infoArray, 4+len1+len2, numAtts);
 //System.out.println("len1-3 = " + len1 + ", " + len2 + ", " + len3);
           // no process data in Java ET systems
-          Event.intToBytes(0, infoArray, 4+len1+len2+len3);
+          Utils.intToBytes(0, infoArray, 4+len1+len2+len3);
           int len4 = 4;
           dataLength = len1+len2+len3+len4;
 
           // Write size of data (not including the length now being written)
           // in beginning of array.
-          Event.intToBytes(dataLength, infoArray, 0);
+          Utils.intToBytes(dataLength, infoArray, 0);
 
           gather = false;
         }
@@ -1248,50 +1266,50 @@ public class SystemCreate {
    */
   private int writeSystemData(byte[] info, int off) {
     // values which can change
-    Event.intToBytes(1, info, off); // alive by definition
-    Event.intToBytes(0, info, off+=4); // no heartbeat
-    Event.intToBytes(0, info, off+=4); // no temp events
-    Event.intToBytes(stations.size(), info, off+=4); // aren't these redundant???
-    Event.intToBytes(attachments.size(), info, off+=4); // aren't these redundant???
-    Event.intToBytes(0, info, off+=4); // no processes sharing memory
+    Utils.intToBytes(1, info, off); // alive by definition
+    Utils.intToBytes(0, info, off+=4); // no heartbeat
+    Utils.intToBytes(0, info, off+=4); // no temp events
+    Utils.intToBytes(stations.size(), info, off+=4); // aren't these redundant???
+    Utils.intToBytes(attachments.size(), info, off+=4); // aren't these redundant???
+    Utils.intToBytes(0, info, off+=4); // no processes sharing memory
 
     // find out how many events the system owns
     int eventsOwned = 0;
     for (Event ev : events.values()) {
-        if (ev.owner == Constants.system) {
+        if (ev.getOwner() == Constants.system) {
           eventsOwned++;
         }
     }
-    Event.intToBytes(eventsOwned, info, off+=4);
+    Utils.intToBytes(eventsOwned, info, off+=4);
 
     // no way to test and see if mutexes are locked in Java
-    Event.intToBytes(Constants.mutexUnlocked, info, off+=4);
-    Event.intToBytes(Constants.mutexUnlocked, info, off+=4);
-    Event.intToBytes(Constants.mutexUnlocked, info, off+=4);
+    Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
+    Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
+    Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
 
     // values which do NOT change
-    Event.intToBytes(Constants.endianBig, info, off+=4);
-    Event.intToBytes(Constants.mutexNoShare, info, off+=4);
-    Event.intToBytes(-1, info, off+=4);
-    Event.intToBytes(Constants.stationSelectInts, info, off+=4);
-    Event.intToBytes(config.numEvents, info, off+=4);
-    Event.longToBytes((long)config.eventSize, info, off+=4);
-    Event.intToBytes(0, info, off+=8);   // send 0 if 32 bits, else 1 if 64 bits
-    Event.intToBytes(0, info, off+=4);
-    Event.intToBytes(config.stationsMax, info, off+=4);
-    Event.intToBytes(config.attachmentsMax, info, off+=4);
-    Event.intToBytes(0, info, off+=4);
+    Utils.intToBytes(Constants.endianBig, info, off+=4);
+    Utils.intToBytes(Constants.mutexNoShare, info, off+=4);
+    Utils.intToBytes(-1, info, off+=4);
+    Utils.intToBytes(Constants.stationSelectInts, info, off+=4);
+    Utils.intToBytes(config.getNumEvents(), info, off+=4);
+    Utils.longToBytes((long)config.getEventSize(), info, off+=4);
+    Utils.intToBytes(0, info, off+=8);   // send 0 if 32 bits, else 1 if 64 bits
+    Utils.intToBytes(0, info, off+=4);
+    Utils.intToBytes(config.getStationsMax(), info, off+=4);
+    Utils.intToBytes(config.getAttachmentsMax(), info, off+=4);
+    Utils.intToBytes(0, info, off+=4);
 
     // tcp server port
-    Event.intToBytes(config.serverPort, info, off+=4);
+    Utils.intToBytes(config.getServerPort(), info, off+=4);
     // udp port
-    Event.intToBytes(config.udpPort, info, off+=4);
+    Utils.intToBytes(config.getUdpPort(), info, off+=4);
     // multicast port
-    Event.intToBytes(config.multicastPort, info, off+=4);
+    Utils.intToBytes(config.getMulticastPort(), info, off+=4);
 
     // # of interfaces and multicast addresses
-    Event.intToBytes(netAddresses.length, info, off+=4);
-    Event.intToBytes(config.multicastAddrs.size(), info, off+=4);
+    Utils.intToBytes(netAddresses.length, info, off+=4);
+    Utils.intToBytes(config.getMulticastAddrs().size(), info, off+=4);
 
     int len;
     int totalInts = 27;
@@ -1300,7 +1318,7 @@ public class SystemCreate {
     // length of interface address strings
     for (InetAddress addr : netAddresses) {
       len = addr.getHostAddress().length() + 1;
-      Event.intToBytes(len, info, off+=4);
+      Utils.intToBytes(len, info, off+=4);
       totalInts++;
       totalStringLen += len;
     }
@@ -1308,16 +1326,16 @@ public class SystemCreate {
     // what about broadcast address strings???
 
     // length of multicast address strings
-    for (InetAddress addr : config.multicastAddrs) {
+    for (InetAddress addr : config.getMulticastAddrs()) {
       len = addr.getHostAddress().length() + 1;
-      Event.intToBytes(len, info, off+=4);
+      Utils.intToBytes(len, info, off+=4);
       totalInts++;
       totalStringLen += len;
     }
 
     // length ET file name
     len = name.length() + 1;
-    Event.intToBytes(len, info, off+=4);
+    Utils.intToBytes(len, info, off+=4);
     totalInts++;
     totalStringLen += len;
 
@@ -1338,7 +1356,7 @@ public class SystemCreate {
       info[off++] = 0; // C null terminator
     }
 
-    for (InetAddress addr : config.multicastAddrs) {
+    for (InetAddress addr : config.getMulticastAddrs()) {
       try {
         outString = addr.getHostAddress().getBytes("ASCII");
         System.arraycopy(outString, 0, info, off, outString.length);
@@ -1392,62 +1410,63 @@ public class SystemCreate {
           // reserve a spot here to be filled later with num of attachments.
           offAtt = off;
 
-          Event.intToBytes(stat.id, info, off += 4);
-          Event.intToBytes(stat.status, info, off += 4);
-          Event.intToBytes(Constants.mutexUnlocked, info, off += 4);
+          Utils.intToBytes(stat.getStationId(), info, off += 4);
+          Utils.intToBytes(stat.getStatus(), info, off += 4);
+          Utils.intToBytes(Constants.mutexUnlocked, info, off += 4);
 
           // since the number of attachments may change, be careful
           counter = 0;
-          for (AttachmentLocal att : stat.attachments) {
-              Event.intToBytes(att.id, info, off += 4);
+          for (AttachmentLocal att : stat.getAttachments()) {
+              Utils.intToBytes(att.getId(), info, off += 4);
               counter++;
           }
-          Event.intToBytes(counter, info, offAtt);
+          Utils.intToBytes(counter, info, offAtt);
           numAtts = counter;
 
-          Event.intToBytes(Constants.mutexUnlocked, info, off += 4);
-          Event.intToBytes(stat.inputList.events.size(), info, off += 4);
-          Event.longToBytes(stat.inputList.eventsTry, info, off += 4);
-          Event.longToBytes(stat.inputList.eventsIn, info, off += 8);
-          Event.intToBytes(Constants.mutexUnlocked, info, off += 8);
-          Event.intToBytes(stat.outputList.events.size(), info, off += 4);
-          Event.longToBytes(stat.outputList.eventsOut, info, off += 4);
+          Utils.intToBytes(Constants.mutexUnlocked, info, off += 4);
+          Utils.intToBytes(stat.getInputList().getEvents().size(), info, off += 4);
+          Utils.longToBytes(stat.getInputList().getEventsTry(), info, off += 4);
+          Utils.longToBytes(stat.getInputList().getEventsIn(), info, off += 8);
+          Utils.intToBytes(Constants.mutexUnlocked, info, off += 8);
+          Utils.intToBytes(stat.getOutputList().getEvents().size(), info, off += 4);
+          Utils.longToBytes(stat.getOutputList().getEventsOut(), info, off += 4);
 
-          if (stat.config.flowMode == Constants.stationParallel && isHead) {
-              Event.intToBytes(Constants.stationParallelHead, info, off += 8);
+          if (stat.getConfig().getFlowMode() == Constants.stationParallel && isHead) {
+              Utils.intToBytes(Constants.stationParallelHead, info, off += 8);
           }
           else {
-              Event.intToBytes(stat.config.flowMode, info, off += 8);
+              Utils.intToBytes(stat.getConfig().getFlowMode(), info, off += 8);
           }
-          Event.intToBytes(stat.config.userMode, info, off += 4);
-          Event.intToBytes(stat.config.restoreMode, info, off += 4);
-          Event.intToBytes(stat.config.blockMode, info, off += 4);
-          Event.intToBytes(stat.config.prescale, info, off += 4);
-          Event.intToBytes(stat.config.cue, info, off += 4);
-          Event.intToBytes(stat.config.selectMode, info, off += 4);
+          Utils.intToBytes(stat.getConfig().getUserMode(), info, off += 4);
+          Utils.intToBytes(stat.getConfig().getRestoreMode(), info, off += 4);
+          Utils.intToBytes(stat.getConfig().getBlockMode(), info, off += 4);
+          Utils.intToBytes(stat.getConfig().getPrescale(), info, off += 4);
+          Utils.intToBytes(stat.getConfig().getCue(), info, off += 4);
+          Utils.intToBytes(stat.getConfig().getSelectMode(), info, off += 4);
+          int[] select = stat.getConfig().getSelect();
           for (int j = 0; j < Constants.stationSelectInts; j++) {
-              Event.intToBytes(stat.config.select[j], info, off += 4);
+              Utils.intToBytes(select[j], info, off += 4);
           }
 
           // write strings, lengths first
           len1 = 0;
-          if (stat.config.selectFunction != null) {
-              len1 = stat.config.selectFunction.length() + 1;
+          if (stat.getConfig().getSelectFunction() != null) {
+              len1 = stat.getConfig().getSelectFunction().length() + 1;
           }
           len2 = 0;
-          if (stat.config.selectLibrary != null) {
-              len2 = stat.config.selectLibrary.length() + 1;
+          if (stat.getConfig().getSelectLibrary() != null) {
+              len2 = stat.getConfig().getSelectLibrary().length() + 1;
           }
           len3 = 0;
-          if (stat.config.selectClass != null) {
-              len3 = stat.config.selectClass.length() + 1;
+          if (stat.getConfig().getSelectClass() != null) {
+              len3 = stat.getConfig().getSelectClass().length() + 1;
           }
-          len4 = stat.name.length() + 1;
+          len4 = stat.getName().length() + 1;
 
-          Event.intToBytes(len1, info, off += 4);
-          Event.intToBytes(len2, info, off += 4);
-          Event.intToBytes(len3, info, off += 4);
-          Event.intToBytes(len4, info, off += 4);
+          Utils.intToBytes(len1, info, off += 4);
+          Utils.intToBytes(len2, info, off += 4);
+          Utils.intToBytes(len3, info, off += 4);
+          Utils.intToBytes(len4, info, off += 4);
 
           // write strings into array
           off += 4;
@@ -1455,25 +1474,25 @@ public class SystemCreate {
 
           try {
               if (len1 > 0) {
-                  outString = stat.config.selectFunction.getBytes("ASCII");
+                  outString = stat.getConfig().getSelectFunction().getBytes("ASCII");
                   System.arraycopy(outString, 0, info, off, outString.length);
                   off += outString.length;
                   info[off++] = 0; // C null terminator
               }
               if (len2 > 0) {
-                  outString = stat.config.selectLibrary.getBytes("ASCII");
+                  outString = stat.getConfig().getSelectLibrary().getBytes("ASCII");
                   System.arraycopy(outString, 0, info, off, outString.length);
                   off += outString.length;
                   info[off++] = 0; // C null terminator
               }
               if (len3 > 0) {
-                  outString = stat.config.selectClass.getBytes("ASCII");
+                  outString = stat.getConfig().getSelectClass().getBytes("ASCII");
                   System.arraycopy(outString, 0, info, off, outString.length);
                   off += outString.length;
                   info[off++] = 0; // C null terminator
               }
 
-              outString = stat.name.getBytes("ASCII");
+              outString = stat.getName().getBytes("ASCII");
               System.arraycopy(outString, 0, info, off, outString.length);
               off += outString.length;
               info[off++] = 0; // C null terminator
@@ -1492,9 +1511,9 @@ public class SystemCreate {
           }
 
           // if head of parallel linked list ...
-          if ((stat.config.flowMode == Constants.stationParallel) &&
+          if ((stat.getConfig().getFlowMode() == Constants.stationParallel) &&
                   (stations.contains(stat))) {
-              parallelIterator = stat.parallelStations.listIterator(1);
+              parallelIterator = stat.getParallelStations().listIterator(1);
               if (parallelIterator.hasNext()) {
                   isHead = false;
                   stat = (StationLocal) parallelIterator.next();
@@ -1503,7 +1522,7 @@ public class SystemCreate {
               }
           }
           // if in (but not head of) parallel linked list ...
-          else if (stat.config.flowMode == Constants.stationParallel) {
+          else if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
               if (parallelIterator.hasNext()) {
                   isHead = false;
                   stat = (StationLocal) parallelIterator.next();
@@ -1521,7 +1540,7 @@ public class SystemCreate {
       }
 
       // enter # of stations
-      Event.intToBytes(statCount, info, offset);
+      Utils.intToBytes(statCount, info, offset);
 
     return byteSize;
   }
@@ -1541,7 +1560,7 @@ public class SystemCreate {
     // exceed "attsMax" number of attachments.
 
     if (attsMax == 0) {
-      Event.intToBytes(0, info, offset);
+      Utils.intToBytes(0, info, offset);
       return 4;
     }
 
@@ -1556,45 +1575,45 @@ public class SystemCreate {
 
     for (AttachmentLocal att :  attachments.values()) {
 
-      Event.intToBytes(att.id, info, off);
-      Event.intToBytes(-1, info, off+=4); // no ET "processes" in Java
-      Event.intToBytes(att.station.id, info, off+=4);
-      Event.intToBytes(-1, info, off+=4);
-      Event.intToBytes((att.waiting? Constants.attBlocked : Constants.attUnblocked), info, off+=4);
-      Event.intToBytes((att.wakeUp? Constants.attQuit : Constants.attContinue), info, off+=4);
+      Utils.intToBytes(att.getId(), info, off);
+      Utils.intToBytes(-1, info, off+=4); // no ET "processes" in Java
+      Utils.intToBytes(att.getStation().getStationId(), info, off+=4);
+      Utils.intToBytes(-1, info, off+=4);
+      Utils.intToBytes((att.isWaiting()? Constants.attBlocked : Constants.attUnblocked), info, off+=4);
+      Utils.intToBytes((att.isWakeUp()? Constants.attQuit : Constants.attContinue), info, off+=4);
 
       // find out how many events the attachment owns
       eventsOwned = 0;
 
       for (Event ev : events.values()) {
-        if (ev.owner == att.id) {
+        if (ev.getOwner() == att.getId()) {
           eventsOwned++;
         }
       }
-      Event.intToBytes(eventsOwned, info, off+=4);
+      Utils.intToBytes(eventsOwned, info, off+=4);
 
-      Event.longToBytes(att.eventsPut,  info, off+=4);
-      Event.longToBytes(att.eventsGet,  info, off+=8);
-      Event.longToBytes(att.eventsDump, info, off+=8);
-      Event.longToBytes(att.eventsMake, info, off+=8);
+      Utils.longToBytes(att.getEventsPut(),  info, off+=4);
+      Utils.longToBytes(att.getEventsGet(),  info, off+=8);
+      Utils.longToBytes(att.getEventsDump(), info, off+=8);
+      Utils.longToBytes(att.getEventsMake(), info, off+=8);
 
       // read strings, lengths first
-      len1 = att.host.length() + 1;
-      len2 = att.station.name.length() + 1;
-      Event.intToBytes(len1, info, off+=8);
-      Event.intToBytes(len2, info, off+=4);
+      len1 = att.getHost().length() + 1;
+      len2 = att.getStation().getName().length() + 1;
+      Utils.intToBytes(len1, info, off+=8);
+      Utils.intToBytes(len2, info, off+=4);
 //System.out.println("writeAttachments: len1 = " + len1 + ", len2 = " + len2);
       // write strings into array
       off += 4;
       byte[] outString;
 
       try {
-        outString = att.host.getBytes("ASCII");
+        outString = att.getHost().getBytes("ASCII");
         System.arraycopy(outString, 0, info, off, outString.length);
         off += outString.length;
         info[off++] = 0; // C null terminator
 
-        outString = att.station.name.getBytes("ASCII");
+        outString = att.getStation().getName().getBytes("ASCII");
         System.arraycopy(outString, 0, info, off, outString.length);
         off += outString.length;
         info[off++] = 0; // C null terminator
@@ -1613,7 +1632,7 @@ public class SystemCreate {
 //System.out.println("writeAttachments: #atts = " + attCount + ", byteSize = " + byteSize);
 
     // send # of attachments
-    Event.intToBytes(attCount, info, offset);
+    Utils.intToBytes(attCount, info, offset);
 
     return byteSize;
   }

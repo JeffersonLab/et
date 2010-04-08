@@ -12,10 +12,12 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
 
 import java.lang.*;
 import java.util.*;
+import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.*;
 
 /**
  * This class defines a station for ET system use.
@@ -26,19 +28,23 @@ import java.util.*;
 public class StationLocal extends Thread implements EventSelectable {
 
   /** ET system object. */
-  private SystemCreate  sys;
+  private SystemCreate sys;
   /** Unique id number. */
   int                   id;
   /** Unique station name. */
   String                name;
-  /** Station configuration object. */
-  StationConfig         config;
-  /** Station status. It may have the values {@link Constants#stationUnused},
-   *  {@link Constants#stationCreating}, {@link Constants#stationIdle}, and
-   *  {@link Constants#stationActive}. */
-  volatile int          status;
-  /** Flag telling this station to kill the conductor thread */
-  volatile boolean      killConductor;
+
+
+    /** Station configuration object. */
+  private StationConfig config;
+
+    /** Station status. It may have the values {@link org.jlab.coda.et.Constants#stationUnused},
+   *  {@link org.jlab.coda.et.Constants#stationCreating}, {@link org.jlab.coda.et.Constants#stationIdle}, and
+   *  {@link org.jlab.coda.et.Constants#stationActive}. */
+  private volatile int status;
+
+    /** Flag telling this station to kill the conductor thread */
+  private volatile boolean killConductor;
   /** Flag telling if this station was the last to receive an event
    *  when using the round-robin selection method for a parallel group
    *  of stations. */
@@ -46,18 +52,19 @@ public class StationLocal extends Thread implements EventSelectable {
   /** Object used to lock a mutex when events are being transferred by the
    *  conductor thread. */
   private byte[]        stopTransfer;
-  /** If this station is the first in a linked list of parallel stations,
+
+    /** If this station is the first in a linked list of parallel stations,
    *  this list contains all the parallel stations in that group.*/
-  LinkedList<StationLocal> parallelStations;  // protected by stopTransfer & systemLock
+  private LinkedList<StationLocal> parallelStations;  // protected by stopTransfer & systemLock
 
 
-  /** Input list of events. */
-  EventList inputList;
+    /** Input list of events. */
+  private EventList inputList;
   /** Output list of events. */
-  EventList outputList;
+  private EventList outputList;
 
-  /** Set of attachments to this station. */
-  HashSet<AttachmentLocal> attachments;
+    /** Set of attachments to this station. */
+  private HashSet<AttachmentLocal> attachments;
 
   /** Predefined event selection method used when the station's select mode
    *  is {@link Constants#stationSelectMatch}. */
@@ -69,10 +76,10 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param _name station name
    * @param _config station configuration
    * @param _id unique station id number
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if the station cannot load the selectClass
    */
-  StationLocal(SystemCreate _sys, String _name, StationConfig _config, int _id)
+  public StationLocal(SystemCreate _sys, String _name, StationConfig _config, int _id)
                                                 throws EtException {
     id               = _id;
     sys              = _sys;
@@ -90,24 +97,24 @@ public class StationLocal extends Thread implements EventSelectable {
 
     // user event selection routine
     selector = this;
-    if (config.selectMode == Constants.stationSelectUser) {
+    if (config.getSelectMode() == Constants.stationSelectUser) {
       // instantiate object of proper class
       try {
-	    Object f = Class.forName(config.selectClass).newInstance();
+	    Object f = Class.forName(config.getSelectClass()).newInstance();
 	    selector = (EventSelectable) f;
       }
       catch (ClassNotFoundException ex) {
-        throw new EtException("station cannot load select class " + config.selectClass);
+        throw new EtException("station cannot load select class " + config.getSelectClass());
       }
       catch (InstantiationException ex) {
-        throw new EtException("station cannot instantiate class " + config.selectClass);
+        throw new EtException("station cannot instantiate class " + config.getSelectClass());
       }
       catch (IllegalAccessException ex) {
-        throw new EtException("station cannot load class " + config.selectClass);
+        throw new EtException("station cannot load class " + config.getSelectClass());
       }
 
-      if (sys.config.debug >= Constants.debugInfo) {
-	    System.out.println(name + " loaded select class " + config.selectClass);
+      if (sys.getConfig().getDebug() >= Constants.debugInfo) {
+	    System.out.println(name + " loaded select class " + config.getSelectClass());
       }
     }
   }
@@ -116,6 +123,40 @@ public class StationLocal extends Thread implements EventSelectable {
   /** Gets the station id number.
    *  @return station id number */
   public int getStationId() {return id;}
+    public EventList getInputList() {
+        return inputList;
+    }
+
+    public EventList getOutputList() {
+        return outputList;
+    }
+    public StationConfig getConfig() {
+        return config;
+    }
+ 
+    public LinkedList<StationLocal> getParallelStations() {
+        return parallelStations;
+    }
+    public int getStatus() {
+        return status;
+    }
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    public HashSet<AttachmentLocal> getAttachments() {
+        return attachments;
+    }
+
+    public boolean isKillConductor() {
+        return killConductor;
+    }
+
+    public void setKillConductor(boolean killConductor) {
+        this.killConductor = killConductor;
+    }
+
+
   
   
   /**
@@ -124,7 +165,7 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param position the desired position in the main linked list of stations
    * @param parallelPosition the desired position of a parallel station in the
    *      group of parallel stations it's being added to
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if trying to add an incompatible parallel station to an existing group
    *     of parallel stations or to the head of an existing group of parallel
    *     stations.
@@ -133,23 +174,23 @@ public class StationLocal extends Thread implements EventSelectable {
           throws EtException {
       // If GRAND_CENTRAL is only existing station, or if we're at
       // or past the end of the linked list, put station on the end
-      if ((sys.stations.size() < 2) ||
-              (position >= sys.stations.size()) ||
+      if ((sys.getStations().size() < 2) ||
+              (position >= sys.getStations().size()) ||
               (position == Constants.end)) {
 
-          sys.stations.add(newStation);
-          if (newStation.config.flowMode == Constants.stationParallel) {
+          sys.getStations().add(newStation);
+          if (newStation.config.getFlowMode() == Constants.stationParallel) {
               newStation.parallelStations = new LinkedList<StationLocal>();
               newStation.parallelStations.add(newStation);
           }
       }
       // else, put the station in the desired position in the middle somewhere
       else {
-          StationLocal stat = (StationLocal) sys.stations.get(position);
+          StationLocal stat = (StationLocal) sys.getStations().get(position);
 
           // if the station in "position" and this station are both parallel ...
-          if ((newStation.config.flowMode == Constants.stationParallel) &&
-                  (stat.config.flowMode == Constants.stationParallel) &&
+          if ((newStation.config.getFlowMode() == Constants.stationParallel) &&
+                  (stat.config.getFlowMode() == Constants.stationParallel) &&
                   (parallelPosition != Constants.newHead)) {
 
               // If these 2 stations have imcompatible definitions or we're trying to place
@@ -172,8 +213,8 @@ public class StationLocal extends Thread implements EventSelectable {
               }
           }
           else {
-              sys.stations.add(position, newStation);
-              if (newStation.config.flowMode == Constants.stationParallel) {
+              sys.getStations().add(position, newStation);
+              if (newStation.config.getFlowMode() == Constants.stationParallel) {
                   newStation.parallelStations = new LinkedList<StationLocal>();
                   newStation.parallelStations.add(newStation);
               }
@@ -191,14 +232,14 @@ public class StationLocal extends Thread implements EventSelectable {
         // be in the main linked list if it is a parallel station.
 
         // if the station is in the main linked list ...
-        if (sys.stations.contains(station)) {
+        if (sys.getStations().contains(station)) {
             // remember where the station was located
-            int index = sys.stations.indexOf(station);
+            int index = sys.getStations().indexOf(station);
             // remove it from main list
-            sys.stations.remove(station);
+            sys.getStations().remove(station);
 
             // if it's not a parallel station, we're done
-            if (station.config.flowMode == Constants.stationSerial) {
+            if (station.config.getFlowMode() == Constants.stationSerial) {
                 return;
             }
 
@@ -217,13 +258,13 @@ public class StationLocal extends Thread implements EventSelectable {
             StationLocal nextStation = (StationLocal) station.parallelStations.getFirst();
             nextStation.parallelStations = station.parallelStations;
             station.parallelStations = null;
-            sys.stations.add(index, nextStation);
+            sys.getStations().add(index, nextStation);
         }
 
         // else if it's not in the main linked list, we'll have to hunt it down
         else {
             // loop thru all stations in main list
-            for (StationLocal nextStation : sys.stations) {
+            for (StationLocal nextStation : sys.getStations()) {
                 // If it's a parallel station, try to remove "station" from the
                 // list of parallel stations registered with it.
                 if (nextStation.parallelStations != null) {
@@ -251,16 +292,16 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param position the desired position in the main linked list of stations
    * @param parallelPosition the desired position of a parallel station in the
    *     group of parallel stations it's being added to
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if trying to add an incompatible parallel station to an existing group
    *     of parallel stations or to the head of an existing group of parallel
    *     stations.
    */
-  void addStation(StationLocal newStation, int position, int parallelPosition)
+ public  void addStation(StationLocal newStation, int position, int parallelPosition)
                                                              throws EtException {
     StationLocal nextStation;
-    int nextIndex = sys.stations.indexOf(this) + 1;
-    ListIterator i = sys.stations.listIterator(nextIndex);
+    int nextIndex = sys.getStations().indexOf(this) + 1;
+    ListIterator i = sys.getStations().listIterator(nextIndex);
     if (i.hasNext()) {
       nextStation = (StationLocal) i.next();
       synchronized(stopTransfer) {
@@ -280,10 +321,10 @@ public class StationLocal extends Thread implements EventSelectable {
    * the ET system's linked lists of stations. This method is called recursively.
    * @param station station object
    */
-  void removeStation(StationLocal station) {
+  public void removeStation(StationLocal station) {
     StationLocal nextStation;
-    int nextIndex = sys.stations.indexOf(this) + 1;
-    ListIterator i = sys.stations.listIterator(nextIndex);
+    int nextIndex = sys.getStations().indexOf(this) + 1;
+    ListIterator i = sys.getStations().listIterator(nextIndex);
     if (i.hasNext()) {
       nextStation = (StationLocal) i.next();
       synchronized(stopTransfer) {
@@ -305,16 +346,16 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param position the desired position in the main linked list of stations
    * @param parallelPosition the desired position of a parallel station in the
    *      group of parallel stations it's being added to
-   * @exception org.jlab.coda.et.EtException
+   * @exception EtException
    *     if trying to move an incompatible parallel station to an existing group
    *     of parallel stations or to the head of an existing group of parallel
    *     stations.
    */
-  void moveStation(StationLocal station, int position, int parallelPosition)
+  public void moveStation(StationLocal station, int position, int parallelPosition)
                                                              throws EtException {
     StationLocal nextStation;
-    int nextIndex = sys.stations.indexOf(this) + 1;
-    ListIterator i = sys.stations.listIterator(nextIndex);
+    int nextIndex = sys.getStations().indexOf(this) + 1;
+    ListIterator i = sys.getStations().listIterator(nextIndex);
     if (i.hasNext()) {
       nextStation = (StationLocal) i.next();
       synchronized(stopTransfer) {
@@ -337,10 +378,10 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param station station object
    * @param status the desired status of the station
    */
-  void changeStationStatus(StationLocal station, int status) {
+  public void changeStationStatus(StationLocal station, int status) {
     StationLocal nextStation;
-    int nextIndex = sys.stations.indexOf(this) + 1;
-    ListIterator i = sys.stations.listIterator(nextIndex);
+    int nextIndex = sys.getStations().indexOf(this) + 1;
+    ListIterator i = sys.getStations().listIterator(nextIndex);
     if (i.hasNext()) {
       nextStation = (StationLocal) i.next();
       synchronized(stopTransfer) {
@@ -360,10 +401,13 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param mode blocking mode value
    */
   void setBlockMode(int mode) {
-    if (config.blockMode == mode) return;
-    synchronized(sys.stationLock) {
+    if (config.getBlockMode() == mode) return;
+    synchronized(sys.getStationLock()) {
       synchronized(inputList) {
-        config.blockMode = mode;
+          try {
+              config.setBlockMode(mode);
+          }
+          catch (EtException e) { /* should not happen. */  } // TODO: check this out
       }
     }
   }
@@ -373,10 +417,13 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param cue cue value
    */
   void setCue(int cue) {
-    if (config.cue == cue) return;
-    synchronized(sys.stationLock) {
+    if (config.getCue() == cue) return;
+    synchronized(sys.getStationLock()) {
       synchronized(inputList) {
-	    config.cue = cue;
+          try {
+              config.setCue(cue);
+          }
+          catch (EtException e) { /* should not happen. */  } // TODO: check this out
       }
     }
   }
@@ -386,10 +433,13 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param prescale prescale value
    */
   void setPrescale(int prescale) {
-    if (config.prescale == prescale) return;
-    synchronized(sys.stationLock) {
+    if (config.getPrescale() == prescale) return;
+    synchronized(sys.getStationLock()) {
       synchronized(inputList) {
-	    config.prescale = prescale;
+          try {
+              config.setPrescale(prescale);
+          }
+          catch (EtException e) { /* should not happen. */  } // TODO: check this out
       }
     }
   }
@@ -400,10 +450,13 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param select array of selection integers
    */
   void setSelectWords(int[] select) {
-    if (config.select == select) return;
-    synchronized(sys.stationLock) {
+    if (config.getSelect() == select) return;
+    synchronized(sys.getStationLock()) {
       synchronized(inputList) {
-	    config.select = (int[]) select.clone();
+          try {
+              config.setSelect(select.clone());
+          }
+          catch (EtException e) { /* should not happen. */  } // TODO: check this out
       }
     }
   }
@@ -413,9 +466,12 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param mode user mode value
    */
   void setUserMode(int mode) {
-    if (config.userMode == mode) return;
-    synchronized(sys.stationLock) {
-      config.userMode = mode;
+    if (config.getUserMode() == mode) return;
+    synchronized(sys.getStationLock()) {
+        try {
+            config.setUserMode(mode);
+        }
+        catch (EtException e) { /* should not happen. */  } // TODO: check this out
     }
   }
   
@@ -425,9 +481,12 @@ public class StationLocal extends Thread implements EventSelectable {
    * @param mode restore mode value
    */
   void setRestoreMode(int mode) {
-    if (config.restoreMode == mode) return;
-    synchronized(sys.stationLock) {
-      config.restoreMode = mode;
+    if (config.getRestoreMode() == mode) return;
+    synchronized(sys.getStationLock()) {
+        try {
+            config.setRestoreMode(mode);
+        }
+        catch (EtException e) { /* should not happen. */  } // TODO: check this out
     }
   }
   
@@ -442,15 +501,17 @@ public class StationLocal extends Thread implements EventSelectable {
    */
   public boolean select(SystemCreate sys, StationLocal stat, Event ev) {
     boolean result = false;
+    int[] select  = stat.config.getSelect();
+    int[] control = ev.getControl();
 
     for (int i=0; i < Constants.stationSelectInts ; i++) {
       if (i%2 == 0) {
-	    result = result || ((stat.config.select[i] != -1) &&
-                            (stat.config.select[i] == ev.control[i]));
+	    result = result || ((select[i] != -1) &&
+                            (select[i] == control[i]));
       }
       else {
-	    result = result || ((stat.config.select[i] != -1) &&
-                           ((stat.config.select[i] & ev.control[i]) != 0));
+	    result = result || ((select[i] != -1) &&
+                           ((select[i] & control[i]) != 0));
       }
     }
     return result;
@@ -500,18 +561,18 @@ private void shellSort(int n, int[] a, int[] b) {
     public void run() {
         int count, prescale, available, getListSize, position;
         long listTry;
-        Event ev = null;
+        EventImpl ev = null;
         boolean writeAll, parallelIsActive = false, rrobinOrEqualcue = false;
         StationLocal currentStat = null, stat = null, firstActive, startStation;
-        List<Event> subList = null;
+        List<EventImpl> subList = null;
         ListIterator statIterator, pIterator = null;
 
         // inputList of next station
         EventList inList = null;
         // events read from station's outputList
-        ArrayList<Event> getList = new ArrayList<Event>(sys.config.numEvents);
+        ArrayList<EventImpl> getList = new ArrayList<EventImpl>(sys.getConfig().getNumEvents());
         // events to be put into the next station's inputList
-        ArrayList<Event> putList = new ArrayList<Event>(sys.config.numEvents);
+        ArrayList<EventImpl> putList = new ArrayList<EventImpl>(sys.getConfig().getNumEvents());
 
         // store some constants in stack variables for greater speed
         final int idle = Constants.stationIdle;
@@ -531,7 +592,7 @@ private void shellSort(int n, int[] a, int[] b) {
         while (true) {
             // wait for events
             synchronized (outputList) {
-                while (outputList.events.size() < 1) {
+                while (outputList.getEvents().size() < 1) {
                     try {
                         outputList.wait();
                     }
@@ -552,14 +613,14 @@ private void shellSort(int n, int[] a, int[] b) {
             // allow no change to linked list of created stations
             synchronized (stopTransfer) {
                 // find next station in main linked list
-                position = sys.stations.indexOf(this);
+                position = sys.getStations().indexOf(this);
                 // If we're a parallel station which is NOT the head of its group,
                 // find our position in the main linked list
                 if (position < 0) {
                     position = 1;
-                    for (ListIterator i = sys.stations.listIterator(1); i.hasNext();) {
+                    for (ListIterator i = sys.getStations().listIterator(1); i.hasNext();) {
                         stat = (StationLocal) i.next();
-                        if (stat.config.flowMode == parallel) {
+                        if (stat.config.getFlowMode() == parallel) {
                             // we've found the group of parallel stations we belong to & our position
                             if (stat.parallelStations.indexOf(this) > -1) {
                                 break;
@@ -569,13 +630,13 @@ private void shellSort(int n, int[] a, int[] b) {
                     }
                 }
 
-                statIterator = sys.stations.listIterator(position + 1);
+                statIterator = sys.getStations().listIterator(position + 1);
                 if (statIterator.hasNext()) {
                     currentStat = (StationLocal) statIterator.next();
                 }
                 else {
                     // the next station is GrandCentral, put everything in it
-                    currentStat = (StationLocal) sys.stations.getFirst();
+                    currentStat = (StationLocal) sys.getStations().getFirst();
                     inList = currentStat.inputList;
                     synchronized (inList) {
                         inList.putInLow(getList);
@@ -594,7 +655,7 @@ private void shellSort(int n, int[] a, int[] b) {
                     firstActive = null;
 
                     // if this is a parallel station ...
-                    if (currentStat.config.flowMode == Constants.stationParallel) {
+                    if (currentStat.config.getFlowMode() == Constants.stationParallel) {
                         // Are any of the parallel stations active or can we skip the bunch?
                         pIterator = currentStat.parallelStations.listIterator();
                         while (pIterator.hasNext()) {
@@ -610,8 +671,8 @@ private void shellSort(int n, int[] a, int[] b) {
 
                         // Which algorithm are we using?
                         if (parallelIsActive &&
-                                ((currentStat.config.selectMode == Constants.stationSelectRRobin) ||
-                                 (currentStat.config.selectMode == Constants.stationSelectEqualCue))) {
+                                ((currentStat.config.getSelectMode() == Constants.stationSelectRRobin) ||
+                                 (currentStat.config.getSelectMode() == Constants.stationSelectEqualCue))) {
                             rrobinOrEqualcue = true;
                         }
                     }
@@ -620,7 +681,7 @@ private void shellSort(int n, int[] a, int[] b) {
                     if (!rrobinOrEqualcue &&
                             (parallelIsActive || (currentStat.status == Constants.stationActive))) {
 
-                        if (currentStat.config.flowMode == Constants.stationParallel) {
+                        if (currentStat.config.getFlowMode() == Constants.stationParallel) {
                             // Skip to first active parallel station
                             currentStat = firstActive;
                             inList = currentStat.inputList;
@@ -637,29 +698,29 @@ private void shellSort(int n, int[] a, int[] b) {
                                 }
 
                                 // all events, blocking
-                                else if ((currentStat.config.selectMode == selectAll) &&
-                                         (currentStat.config.blockMode == blocking)) {
+                                else if ((currentStat.config.getSelectMode() == selectAll) &&
+                                         (currentStat.config.getBlockMode() == blocking)) {
 
                                     // if prescale=1, dump everything into station
                                     getListSize = getList.size();
-                                    if (currentStat.config.prescale == 1) {
+                                    if (currentStat.config.getPrescale() == 1) {
                                         writeAll = true;
                                     }
                                     else {
-                                        prescale = currentStat.config.prescale;
-                                        listTry = inList.eventsTry;
+                                        prescale = currentStat.config.getPrescale();
+                                        listTry = inList.getEventsTry();
                                         subList = getList.subList(0, (int) ((listTry + getListSize) / prescale - listTry / prescale));
                                         putList.addAll(subList);
                                         subList.clear();
                                     }
-                                    inList.eventsTry += getListSize;
+                                    inList.setEventsTry(inList.getEventsTry() + getListSize);
                                 }
 
                                 // all events, nonblocking
-                                else if ((currentStat.config.selectMode == selectAll) &&
-                                        (currentStat.config.blockMode == nonBlocking)) {
-                                    if (inList.events.size() < currentStat.config.cue) {
-                                        count = currentStat.config.cue - inList.events.size();
+                                else if ((currentStat.config.getSelectMode() == selectAll) &&
+                                        (currentStat.config.getBlockMode() == nonBlocking)) {
+                                    if (inList.getEvents().size() < currentStat.config.getCue()) {
+                                        count = currentStat.config.getCue() - inList.getEvents().size();
                                         available = getList.size();
                                         subList = getList.subList(0, (count > available) ? available : count);
                                         putList.addAll(subList);
@@ -668,14 +729,16 @@ private void shellSort(int n, int[] a, int[] b) {
                                 }
 
                                 //  condition (user or match), blocking
-                                else if (currentStat.config.blockMode == blocking) {
-                                    prescale = currentStat.config.prescale;
+                                else if (currentStat.config.getBlockMode() == blocking) {
+                                    prescale = currentStat.config.getPrescale();
                                     for (ListIterator i = getList.listIterator(); i.hasNext();) {
-                                        ev = (Event) i.next();
+                                        ev = (EventImpl) i.next();
                                         // apply selection method
                                         if (currentStat.selector.select(sys, currentStat, ev)) {
                                             // apply prescale
-                                            if (((inList.eventsTry++) % prescale) == 0) {
+                                            listTry = inList.getEventsTry();
+                                            inList.setEventsTry(listTry + 1);
+                                            if ((listTry % prescale) == 0) {
                                                 putList.add(ev);
                                                 i.remove();
                                             }
@@ -684,11 +747,11 @@ private void shellSort(int n, int[] a, int[] b) {
                                 }
 
                                 // condition (user or match) + nonblocking
-                                else if (currentStat.config.blockMode == nonBlocking) {
-                                    if (inList.events.size() < currentStat.config.cue) {
-                                        count = currentStat.config.cue - inList.events.size();
+                                else if (currentStat.config.getBlockMode() == nonBlocking) {
+                                    if (inList.getEvents().size() < currentStat.config.getCue()) {
+                                        count = currentStat.config.getCue() - inList.getEvents().size();
                                         for (ListIterator i = getList.listIterator(); i.hasNext();) {
-                                            ev = (Event) i.next();
+                                            ev = (EventImpl) i.next();
                                             // apply selection method
                                             if (currentStat.selector.select(sys, currentStat, ev)) {
                                                 putList.add(ev);
@@ -757,7 +820,7 @@ private void shellSort(int n, int[] a, int[] b) {
                         int eventsPerStation, nextHigherCue, eventsDoledOut, stationsWithSameCue;
                         int[] numEvents;
 
-                        if (currentStat.config.selectMode == Constants.stationSelectRRobin) {
+                        if (currentStat.config.getSelectMode() == Constants.stationSelectRRobin) {
                             // Flag to start looking for station that receives first round-robin event
                             boolean startLooking = false;
                             stat = currentStat;
@@ -855,7 +918,7 @@ private void shellSort(int n, int[] a, int[] b) {
                                         synchronized (inList) {
                                             subList = putList.subList(eventsAlreadyPut, eventsAlreadyPut + eventsToPut);
                                             inList.putAll(subList);
-                                            inList.eventsTry += eventsToPut;
+                                            inList.setEventsTry(inList.getEventsTry() + eventsToPut);
                                             // signal reader that new events are here
                                             inList.notifyAll();
                                         }
@@ -896,9 +959,9 @@ private void shellSort(int n, int[] a, int[] b) {
                             // one that contains input list counts.
                             // Give 'em an extra element as the sorting routine
                             // assumes a starting index of 1.
-                            int[] place = new int[sys.config.stationsMax + 1];
-                            int[] inListCount = new int[sys.config.stationsMax + 1];
-                            for (int i = 1; i <= sys.config.stationsMax; i++) {
+                            int[] place = new int[sys.getConfig().getStationsMax() + 1];
+                            int[] inListCount = new int[sys.getConfig().getStationsMax() + 1];
+                            for (int i = 1; i <= sys.getConfig().getStationsMax(); i++) {
                                 place[i] = i;
                             }
 
@@ -910,7 +973,7 @@ private void shellSort(int n, int[] a, int[] b) {
                                     // Store this information as it will change and we don't
                                     // really want to grab all the input mutexes to make
                                     // sure these values don't change.
-                                    inListCount[numActiveStations + 1] = stat.inputList.events.size();
+                                    inListCount[numActiveStations + 1] = stat.inputList.getEvents().size();
 
                                     // Total number of active stations
                                     numActiveStations++;
@@ -1010,7 +1073,7 @@ private void shellSort(int n, int[] a, int[] b) {
                                     synchronized (inList) {
                                         subList = getList.subList(eventsAlreadyPut, eventsAlreadyPut + eventsToPut);
                                         inList.putAll(subList);
-                                        inList.eventsTry += eventsToPut;
+                                        inList.setEventsTry(inList.getEventsTry() + eventsToPut);
                                         // signal reader that new events are here
                                         inList.notifyAll();
                                     }
@@ -1041,7 +1104,7 @@ private void shellSort(int n, int[] a, int[] b) {
                         currentStat = (StationLocal) statIterator.next();
                     }
                     else {
-                        currentStat = (StationLocal) sys.stations.getFirst();
+                        currentStat = (StationLocal) sys.getStations().getFirst();
                     }
                     inList = currentStat.inputList;
 

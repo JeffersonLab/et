@@ -12,11 +12,12 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
 
 import java.lang.*;
 import java.io.*;
 import java.net.*;
+import org.jlab.coda.et.*;
 
 /**
  * This class implements a thread which starts other threads - each of which
@@ -26,7 +27,7 @@ import java.net.*;
  * @author Carl Timmer
  */
 
-public class SystemUdpServer extends Thread {
+class SystemUdpServer extends Thread {
 
   /* Udp port to listen on. */
   private int port;
@@ -39,13 +40,13 @@ public class SystemUdpServer extends Thread {
    *  @param sys ET system object */
   SystemUdpServer(SystemCreate sys) {
       this.sys = sys;
-      config   = sys.config;
-      port     = config.serverPort;
+      config   = sys.getConfig();
+      port     = config.getServerPort();
   }
 
   /** Starts threads to listen for packets at a different addresses. */
   public void run() {
-      if (config.debug >= Constants.debugInfo) {
+      if (config.getDebug() >= Constants.debugInfo) {
           System.out.println("Running UDP Listening Threads");
       }
 
@@ -137,7 +138,7 @@ class ListeningThread extends Thread {
      */
     ListeningThread(SystemCreate sys, MulticastSocket mSock) throws IOException {
         this.sys = sys;
-        config   = sys.config;
+        config   = sys.getConfig();
         for (InetAddress address : config.getMulticastAddrs()) {
             if (address.isMulticastAddress()) {
                 mSock.joinGroup(address);
@@ -155,7 +156,7 @@ class ListeningThread extends Thread {
      */
     ListeningThread(SystemCreate sys, DatagramSocket sock) throws UnknownHostException {
         this.sys  = sys;
-        config    = sys.config;
+        config    = sys.getConfig();
         this.sock = sock;
         cast = Constants.broadcast;
     }
@@ -215,7 +216,7 @@ class ListeningThread extends Thread {
           dos.writeInt(Constants.magicNumbers[2]);
 
           dos.writeInt(Constants.version);
-          dos.writeInt(config.serverPort);
+          dos.writeInt(config.getServerPort());
           dos.writeInt(cast);
 
           // 0.0.0.0
@@ -326,7 +327,7 @@ class ListeningThread extends Thread {
 
 //System.out.println("et_listen_thread: received packet version =  " + version +
 //                                  ", ET = " + etName);
-              if (config.debug >= Constants.debugInfo) {
+              if (config.getDebug() >= Constants.debugInfo) {
                   System.out.println("et_listen_thread: received packet from " +
                           rPacket.getAddress().getHostName() +
                           " @ " + rPacket.getAddress().getHostAddress() +
@@ -338,14 +339,14 @@ class ListeningThread extends Thread {
                   // we're the one the client is looking for, send a reply
                   DatagramPacket sPacket = new DatagramPacket(sBuffer, sBuffer.length,
                                                               rPacket.getAddress(), rPacket.getPort());
-                  if (config.debug >= Constants.debugInfo) {
+                  if (config.getDebug() >= Constants.debugInfo) {
                       System.out.println("et_listen_thread: send return packet");
                   }
                   sock.send(sPacket);
               }
           }
           catch (IOException ex) {
-              if (config.debug >= Constants.debugError) {
+              if (config.getDebug() >= Constants.debugError) {
                   System.out.println("error handling UDP packets");
                   ex.printStackTrace();
               }

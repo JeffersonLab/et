@@ -12,7 +12,8 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.system;
+
 
 /**
  * This class defines an attachment to a station of an ET system for use by the
@@ -28,14 +29,16 @@ class AttachmentLocal {
 
   // keep a list or set of events we currently have out?
 
-  /** Unique id number. */
-  int              id;
+    /** Unique id number. */
+  private int              id;
   /** Process id number for attachments written in C language. */
   int              pid;
-  /** Name of the host the attachment is residing on. */
-  String           host;
-  /** Station the attachment is associated with. */
-  StationLocal     station;
+
+    /** Name of the host the attachment is residing on. */
+  private String           host;
+
+    /** Station the attachment is associated with. */
+  private StationLocal station;
   /** Number of events put by a user into the attachment. */
   long             eventsPut;
   /** Number of events gotten by a user from the attachment. */
@@ -45,7 +48,8 @@ class AttachmentLocal {
   long             eventsDump;
   /** Number of new events gotten by a user from the attachment. */
   long             eventsMake;
-  /** Flag telling whether the attachment is blocked waiting to read events
+
+    /** Flag telling whether the attachment is blocked waiting to read events
       from a station that has no events.  */
   boolean          waiting;
   /** Flag telling whether the attachment is currently in the sleep mode of
@@ -55,18 +59,85 @@ class AttachmentLocal {
       newEvents. If this flag is true, the command to wake up will go ahead
       and set "wakeUp" to true - even if "waiting" is false. */
   volatile boolean sleepMode;
-  /** Flag telling the attachment blocked on a read to wake up or return. */
+
+    /** Flag telling the attachment blocked on a read to wake up or return. */
   volatile boolean wakeUp;
 
   /** Gets the attachment id number.
    *  @return attachment id number */
   public int getId() {return id;}
+    public void setId(int id) {
+        this.id = id;
+    }
+
   
+    public String getHost() {
+        return host;
+    }
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+
+    public boolean isWaiting() {
+        return waiting;
+    }
+    public void setWaiting(boolean waiting) {
+        this.waiting = waiting;
+    }
+    public boolean isWakeUp() {
+        return wakeUp;
+    }
+    public void setWakeUp(boolean wakeUp) {
+        this.wakeUp = wakeUp;
+    }
+    public StationLocal getStation() {
+        return station;
+    }
+
+    public void setStation(StationLocal station) {
+        this.station = station;
+    }
+
+    public long getEventsPut() {
+        return eventsPut;
+    }
+
+    public void setEventsPut(long eventsPut) {
+        this.eventsPut = eventsPut;
+    }
+
+    public long getEventsGet() {
+        return eventsGet;
+    }
+
+    public void setEventsGet(long eventsGet) {
+        this.eventsGet = eventsGet;
+    }
+
+    public long getEventsDump() {
+        return eventsDump;
+    }
+
+    public void setEventsDump(long eventsDump) {
+        this.eventsDump = eventsDump;
+    }
+
+    public long getEventsMake() {
+        return eventsMake;
+    }
+
+    public void setEventsMake(long eventsMake) {
+        this.eventsMake = eventsMake;
+    }
+
+ 
+
   /**
    * Attachments are only created by an ET system's
    * {@link SystemCreate#attach} method.
    */
-  AttachmentLocal() {
+  public AttachmentLocal() {
     id         = -1;
     pid        = -1;
   }
