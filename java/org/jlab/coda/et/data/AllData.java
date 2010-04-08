@@ -12,7 +12,8 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.data;
+
 
 /**
  * This class holds all the information about an ET system. This includes
@@ -29,19 +30,19 @@ public class AllData {
    * Information about stations, attachments, and processes are added by
    * other methods.
    *
-   * @see SystemUse#getData
+   * @see org.jlab.coda.et.SystemUse#getData
    */
   public AllData() {
     sysData = new SystemData();
   }
 
   /** Holds system information. */
-  public SystemData     sysData;
+  public SystemData sysData;
   /** Holds station information. */
-  public StationData    statData[];
+  public StationData statData[];
   /** Holds attachment information. */
   public AttachmentData attData[];
   /** Hold process information. There are no processes (local processes which
    *  have direct access to the ET shared memory) in Java language ET. */
-  public ProcessData    procData[];
+  public ProcessData procData[];
 }

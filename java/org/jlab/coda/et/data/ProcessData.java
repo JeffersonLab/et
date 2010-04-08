@@ -12,7 +12,9 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.data;
+
+import org.jlab.coda.et.Constants;
 
 import java.lang.*;
 import java.io.*;
@@ -50,7 +52,7 @@ public class ProcessData {
   /** Get the number of attachments this process created. */
   public int getAttachments() {return attachments;}
   /** Get the array of attachment id numbers. */
-  public int[] getAttachmentIds() {return (int[]) attIds.clone();}
+  public int[] getAttachmentIds() {return attIds.clone();}
 
   /**
    *  Reads the process information from a data stream which is sent out by

@@ -12,7 +12,9 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.data;
+
+import org.jlab.coda.et.Utils;
 
 import java.lang.*;
 import java.io.*;
@@ -30,109 +32,109 @@ public class SystemData {
 
   /** Flag which specifying whether the ET system is alive. A value of 1 means
    *  alive and 0 means dead. */
-  int alive;
+  private int alive;
   /** Heartbeat count of the ET system process. It is not relevant in Java ET
    *  systems. */
-  int heartbeat;
+  private int heartbeat;
   /** Count of the current amount of temporary events. It is not relevant in
    *  Java ET systems. */
-  int temps;
+  private int temps;
   /** Count of the current number of stations in the linked list (are either
    *  active or idle).
-   *  @see SystemCreate#stations */
-  int stations;
+   *  @see org.jlab.coda.et.system.SystemCreate#stations */
+  private int stations;
   /** Count of the current number of attachments.
-   *  @see SystemCreate#attachments */
-  int attachments;
+   *  @see org.jlab.coda.et.system.SystemCreate#attachments */
+  private int attachments;
   /** Count of the current number of processes. It is not relevant in Java ET
    *  systems. */
-  int processes;
+  private int processes;
   /** Number of events owned by the system (as opposed to attachments). */
-  int eventsOwned;
+  private int eventsOwned;
 
-  /** System mutex status. It has the value {@link Constants#mutexLocked} if
-   *  locked and {@link Constants#mutexUnlocked} otherwise. This is only
+  /** System mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked} if
+   *  locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
    *  relevant in C ET systems, since in Java, mutexes cannot be tested without
    *  possibility of blocking. This is not boolean for C ET system compatibility.
-   *  {@link SystemCreate#systemLock}. */
-  int mutex;
-  /** Station mutex status. It has the value {@link Constants#mutexLocked} if
-   *  locked and {@link Constants#mutexUnlocked} otherwise. This is only
+   *  {@link org.jlab.coda.et.system.SystemCreate#systemLock}. */
+  private int mutex;
+  /** Station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked} if
+   *  locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
    *  relevant in C ET systems, since in Java, mutexes cannot be tested without
    *  possibility of blocking. This is not boolean for C ET system compatibility.
-   *  {@link SystemCreate#stationLock}. */
-  int statMutex;
-  /** Add-station mutex status. It has the value {@link Constants#mutexLocked}
-   *  if locked and {@link Constants#mutexUnlocked} otherwise. This is only
+   *  {@link org.jlab.coda.et.system.SystemCreate#stationLock}. */
+  private int statMutex;
+  /** Add-station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
+   *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
    *  relevant in C ET systems as this mutex is not used in Java systems. */
-  int statAddMutex;
+  private int statAddMutex;
 
   // values which do NOT change
 
   /** Endian of host running the ET system. This can have values of either
-   *  {@link Constants#endianBig} or {@link Constants#endianLittle}.
+   *  {@link org.jlab.coda.et.Constants#endianBig} or {@link org.jlab.coda.et.Constants#endianLittle}.
    */
-  int endian;
+  private int endian;
   /** Flag specifying whether the operating system can share mutexes between
-   *  processes. It has the value {@link Constants#mutexShare} if they can be
-   *  shared and {@link Constants#mutexNoShare} otherwise. This is not
+   *  processes. It has the value {@link org.jlab.coda.et.Constants#mutexShare} if they can be
+   *  shared and {@link org.jlab.coda.et.Constants#mutexNoShare} otherwise. This is not
    *  relevant in Java ET systems. */
-  int share;
+  private int share;
   /** Unix pid of the ET system process. This is not relevant for Java ET
    *  systems, and C based ET systems on Linux may have several pids. */
-  int mainPid;
+  private int mainPid;
   /** The number of ints in a station's select array.
-   *  @see Constants#stationSelectInts */
-  int selects;
+   *  @see org.jlab.coda.et.Constants#stationSelectInts */
+  private int selects;
   /** Total number of events in a system.
-   *  @see SystemConfig#numEvents
-   *  @see SystemCreate#events */
-  int events;
+   *  @see org.jlab.coda.et.system.SystemConfig#numEvents
+   *  @see org.jlab.coda.et.system.SystemCreate#events */
+  private int events;
   /** Size of "normal" events in bytes.
-   *  @see SystemConfig#eventSize  */
-  long eventSize;
+   *  @see org.jlab.coda.et.system.SystemConfig#eventSize  */
+  private long eventSize;
   /** Is the operating system running the ET system 64 bit? */
-  boolean bit64;
+  private boolean bit64;
   /** Maximum number of temporary events allowed in the ET system.  This is not
    *  relevant in Java ET systems. */
-  int tempsMax;
+  private int tempsMax;
   /** Maximum number of station allowed in the ET system.
-   *  @see SystemConfig#stationsMax */
-  int stationsMax;
+   *  @see org.jlab.coda.et.system.SystemConfig#stationsMax */
+  private int stationsMax;
   /** Maximum number of attachments allowed in the ET system.
-   *  @see SystemConfig#attachmentsMax */
-  int attachmentsMax;
+   *  @see org.jlab.coda.et.system.SystemConfig#attachmentsMax */
+  private int attachmentsMax;
   /** Maximum number of processes allowed in the ET system. This is not
    *  relevant in Java ET systems. */
-  int processesMax;
+  private int processesMax;
 
   /** Port number of the ET TCP server.
-   *  @see SystemConfig#serverPort */
-  int tcpPort;
+   *  @see org.jlab.coda.et.system.SystemConfig#serverPort */
+  private int tcpPort;
   /** Port number of the ET UDP broadcast listening thread.
-   *  @see SystemConfig#udpPort */
-  int udpPort;
+   *  @see org.jlab.coda.et.system.SystemConfig#udpPort */
+  private int udpPort;
   /** Port number of the ET UDP multicast listening thread.
-   *  @see SystemConfig#multicastPort */
-  int multicastPort;
+   *  @see org.jlab.coda.et.system.SystemConfig#multicastPort */
+  private int multicastPort;
 
   /** Number of network interfaces on the host computer. */
-  int interfaceCount;
+  private int interfaceCount;
   /** Number of multicast addresses the UDP server listens on. */
-  int multicastCount;
+  private int multicastCount;
 
   /** Dotted-decimal IP addresses of network interfaces on the host. */
-  String interfaceAddresses[];
+  private String interfaceAddresses[];
   /** Dotted-decimal multicast addresses the UDP server listens on.
-   *  @see SystemConfig#getMulticastStrings
-   *  @see SystemConfig#getMulticastAddrs
-   *  @see SystemConfig#addMulticastAddr
-   *  @see SystemConfig#removeMulticastAddr */
-  String multicastAddresses[];
+   *  @see org.jlab.coda.et.system.SystemConfig#getMulticastStrings
+   *  @see org.jlab.coda.et.system.SystemConfig#getMulticastAddrs
+   *  @see org.jlab.coda.et.system.SystemConfig#addMulticastAddr
+   *  @see org.jlab.coda.et.system.SystemConfig#removeMulticastAddr */
+  private String multicastAddresses[];
   /** The ET system (file) name.
-   *  @see SystemCreate#SystemCreate
-   *  @see SystemCreate#name */
-  String etName;
+   *  @see org.jlab.coda.et.system.SystemCreate#SystemCreate
+   *  @see org.jlab.coda.et.system.SystemCreate#name */
+  private String etName;
 
 
   // Get methods
@@ -155,27 +157,27 @@ public class SystemData {
   /** Get the number of events owned by the system (not by attachments). */
   public int getEventsOwned() {return eventsOwned;}
 
-  /** Get the system mutex status. It has the value {@link Constants#mutexLocked}
-   *  if locked and {@link Constants#mutexUnlocked} otherwise. This is only
+  /** Get the system mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
+   *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
    *  relevant in C ET systems as this mutex is not used in Java systems. */
   public int getMutex() {return mutex;}
-  /** Get the station mutex status. It has the value {@link Constants#mutexLocked}
-   *  if locked and {@link Constants#mutexUnlocked} otherwise. This is only
+  /** Get the station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
+   *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
    *  relevant in C ET systems as this mutex is not used in Java systems. */
   public int getStatMutex() {return statMutex;}
-  /** Get the add-station mutex status. It has the value {@link Constants#mutexLocked}
-   *  if locked and {@link Constants#mutexUnlocked} otherwise. This is only
+  /** Get the add-station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
+   *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
    *  relevant in C ET systems as this mutex is not used in Java systems. */
   public int getStatAddMutex() {return statAddMutex;}
 
 
   /** Get the endian value of the host running the ET system.  This can
-   *  have values of either {@link Constants#endianBig} or
-   *  {@link Constants#endianLittle}. */
+   *  have values of either {@link org.jlab.coda.et.Constants#endianBig} or
+   *  {@link org.jlab.coda.et.Constants#endianLittle}. */
   public int getEndian() {return endian;}
   /** Get the value specifying whether the operating system can share
-   *  mutexes between processes. It has the value {@link Constants#mutexShare}
-   *  if they can be shared and {@link Constants#mutexNoShare} otherwise.
+   *  mutexes between processes. It has the value {@link org.jlab.coda.et.Constants#mutexShare}
+   *  if they can be shared and {@link org.jlab.coda.et.Constants#mutexNoShare} otherwise.
    *  It is not relevant in Java ET systems.*/
   public int getShare() {return share;}
   /** Get the Unix pid of the ET system process. Java ET  systems return
@@ -183,14 +185,14 @@ public class SystemData {
    *  not given here. */
   public int getMainPid() {return mainPid;}
   /** Get the number of ints in a station's select array.
-   *  @see Constants#stationSelectInts */
+   *  @see org.jlab.coda.et.Constants#stationSelectInts */
   public int getSelects() {return selects;}
   /** Get the total number of events in a system.
-   *  @see SystemConfig#numEvents
-   *  @see SystemCreate#events */
+   *  @see org.jlab.coda.et.system.SystemConfig#numEvents
+   *  @see org.jlab.coda.et.system.SystemCreate#events */
   public int getEvents() {return events;}
   /** Get the size of "normal" events in bytes.
-   *  @see SystemConfig#eventSize  */
+   *  @see org.jlab.coda.et.system.SystemConfig#eventSize  */
   public long getEventSize() {return eventSize;}
   /** Gets wether the number of bits of the operating system running the ET system
    * is 64 bits. If not, then it's 32 bits. */
@@ -199,23 +201,23 @@ public class SystemData {
    *  This is not relevant in Java ET systems. */
   public int getTempsMax() {return tempsMax;}
   /** Get the maximum number of station allowed in the ET system.
-   *  @see SystemConfig#stationsMax */
+   *  @see org.jlab.coda.et.system.SystemConfig#stationsMax */
   public int getStationsMax() {return stationsMax;}
   /** Get the maximum number of attachments allowed in the ET system.
-   *  @see SystemConfig#attachmentsMax */
+   *  @see org.jlab.coda.et.system.SystemConfig#attachmentsMax */
   public int getAttachmentsMax() {return attachmentsMax;}
   /** Get the maximum number of processes allowed in the ET system.
    *  This is not relevant in Java ET systems. */
   public int getProcessesMax() {return processesMax;}
 
   /** Get the port number of the ET TCP server.
-   *  @see SystemConfig#serverPort */
+   *  @see org.jlab.coda.et.system.SystemConfig#serverPort */
   public int getTcpPort() {return tcpPort;}
   /** Get the port number of the ET UDP broadcast listening thread.
-   *  @see SystemConfig#udpPort */
+   *  @see org.jlab.coda.et.system.SystemConfig#udpPort */
   public int getUdpPort() {return udpPort;}
   /** Get the port number of the ET UDP multicast listening thread.
-   *  @see SystemConfig#multicastPort */
+   *  @see org.jlab.coda.et.system.SystemConfig#multicastPort */
   public int getMulticastPort() {return multicastPort;}
 
   /** Get the number of network interfaces on the host computer. */
@@ -224,16 +226,16 @@ public class SystemData {
   public int getMulticasts() {return multicastCount;}
 
   /** Get the dotted-decimal IP addresses of network interfaces on the host. */
-  public String[] getInterfaceAddresses() {return (String[]) interfaceAddresses.clone();}
+  public String[] getInterfaceAddresses() {return interfaceAddresses.clone();}
   /** Get the dotted-decimal multicast addresses the UDP server listens on.
-   *  @see SystemConfig#getMulticastStrings
-   *  @see SystemConfig#getMulticastAddrs
-   *  @see SystemConfig#addMulticastAddr
-   *  @see SystemConfig#removeMulticastAddr */
-  public String[] getMulticastAddresses() {return (String[]) multicastAddresses.clone();}
+   *  @see org.jlab.coda.et.system.SystemConfig#getMulticastStrings
+   *  @see org.jlab.coda.et.system.SystemConfig#getMulticastAddrs
+   *  @see org.jlab.coda.et.system.SystemConfig#addMulticastAddr
+   *  @see org.jlab.coda.et.system.SystemConfig#removeMulticastAddr */
+  public String[] getMulticastAddresses() {return multicastAddresses.clone();}
   /** Get the ET system (file) name.
-   *  @see SystemCreate#SystemCreate
-   *  @see SystemCreate#name */
+   *  @see org.jlab.coda.et.system.SystemCreate#SystemCreate
+   *  @see org.jlab.coda.et.system.SystemCreate#name */
   public String getEtName() {return etName;}
 
 
@@ -245,41 +247,41 @@ public class SystemData {
    *  @exception java.io.IOException
    *     if data stream read error
    */
-  void read(DataInputStream dis) throws IOException {
+  public void read(DataInputStream dis) throws IOException {
     int off = 0;
     byte[] info = new byte[108];
     dis.readFully(info);
 
-    alive          = Event.bytesToInt(info, off);
-    heartbeat      = Event.bytesToInt(info, off+=4);
-    temps          = Event.bytesToInt(info, off+=4);
-    stations       = Event.bytesToInt(info, off+=4);
-    attachments    = Event.bytesToInt(info, off+=4);
-    processes      = Event.bytesToInt(info, off+=4);
-    eventsOwned    = Event.bytesToInt(info, off+=4);
-    mutex          = Event.bytesToInt(info, off+=4);
-    statMutex      = Event.bytesToInt(info, off+=4);
-    statAddMutex   = Event.bytesToInt(info, off+=4);
+    alive          = Utils.bytesToInt(info, off);
+    heartbeat      = Utils.bytesToInt(info, off+=4);
+    temps          = Utils.bytesToInt(info, off+=4);
+    stations       = Utils.bytesToInt(info, off+=4);
+    attachments    = Utils.bytesToInt(info, off+=4);
+    processes      = Utils.bytesToInt(info, off+=4);
+    eventsOwned    = Utils.bytesToInt(info, off+=4);
+    mutex          = Utils.bytesToInt(info, off+=4);
+    statMutex      = Utils.bytesToInt(info, off+=4);
+    statAddMutex   = Utils.bytesToInt(info, off+=4);
 
-    endian         = Event.bytesToInt(info, off+=4);
-    share          = Event.bytesToInt(info, off+=4);
-    mainPid        = Event.bytesToInt(info, off+=4);
-    selects        = Event.bytesToInt(info, off+=4);
-    events         = Event.bytesToInt(info, off+=4);
-    eventSize      = Event.bytesToLong(info, off+=4);
-    bit64          = Event.bytesToInt(info, off+=8) == 1;
+    endian         = Utils.bytesToInt(info, off+=4);
+    share          = Utils.bytesToInt(info, off+=4);
+    mainPid        = Utils.bytesToInt(info, off+=4);
+    selects        = Utils.bytesToInt(info, off+=4);
+    events         = Utils.bytesToInt(info, off+=4);
+    eventSize      = Utils.bytesToLong(info, off+=4);
+    bit64          = Utils.bytesToInt(info, off+=8) == 1;
 
-    tempsMax       = Event.bytesToInt(info, off+=4);
-    stationsMax    = Event.bytesToInt(info, off+=4);
-    attachmentsMax = Event.bytesToInt(info, off+=4);
-    processesMax   = Event.bytesToInt(info, off+=4);
+    tempsMax       = Utils.bytesToInt(info, off+=4);
+    stationsMax    = Utils.bytesToInt(info, off+=4);
+    attachmentsMax = Utils.bytesToInt(info, off+=4);
+    processesMax   = Utils.bytesToInt(info, off+=4);
 
-    tcpPort        = Event.bytesToInt(info, off+=4);
-    udpPort        = Event.bytesToInt(info, off+=4);
-    multicastPort  = Event.bytesToInt(info, off+=4);
+    tcpPort        = Utils.bytesToInt(info, off+=4);
+    udpPort        = Utils.bytesToInt(info, off+=4);
+    multicastPort  = Utils.bytesToInt(info, off+=4);
 
-    interfaceCount = Event.bytesToInt(info, off+=4);
-    multicastCount = Event.bytesToInt(info, off+=4);
+    interfaceCount = Utils.bytesToInt(info, off+=4);
+    multicastCount = Utils.bytesToInt(info, off+=4);
 
     // read string lengths first
     off = 0;
