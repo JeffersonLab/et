@@ -20,7 +20,7 @@ import SCons.Node.FS
 os.umask(022)
 
 # Software version
-versionMajor = '10'
+versionMajor = '12'
 versionMinor = '0'
 
 # determine the os and machine names
