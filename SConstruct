@@ -16,6 +16,7 @@
 import os
 import string
 import SCons.Node.FS
+from os import access, F_OK, sep, symlink, lstat
 
 os.umask(022)
 
