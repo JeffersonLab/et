@@ -27,6 +27,8 @@ import javax.swing.tree.*;
 import javax.swing.event.*;
 
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.data.*;
+import org.jlab.coda.et.exception.*;
 import com.loox.jloox.*;
 import com.loox.jloox.layout.*;
 

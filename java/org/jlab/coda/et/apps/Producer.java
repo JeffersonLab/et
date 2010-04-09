@@ -12,8 +12,10 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
+package org.jlab.coda.et.apps;
+
+
 import java.lang.*;
-import java.net.*;
 import org.jlab.coda.et.*;
 
 /**
@@ -25,14 +27,6 @@ import org.jlab.coda.et.*;
 public class Producer {
 
   public Producer() {
-  }
-  
-  // for putting integer data into a byte array - useful when testing
-  private static final void intToBytes(int intVal, byte[] bytes, int offset) {
-    bytes[offset]   = (byte) ((intVal & 0xff000000) >>> 24);
-    bytes[1+offset] = (byte) ((intVal & 0x00ff0000) >>> 16);
-    bytes[2+offset] = (byte) ((intVal & 0x0000ff00) >>>  8);
-    bytes[3+offset] = (byte)  (intVal & 0x000000ff);
   }
 
 
@@ -173,7 +167,7 @@ public class Producer {
                     if (false) {
                         for (int j = 0; j < mevs.length; j++) {
                             // put integer (j) into front of data buffer
-                            intToBytes(j, mevs[j].getData(), 0);
+                            Utils.intToBytes(j, mevs[j].getData(), 0);
                             // set data length to be 4 bytes (1 integer)
                             mevs[j].setLength(4);
                             // set every other event's priority as high

@@ -12,8 +12,9 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
+package org.jlab.coda.et.apps;
+
 import java.lang.*;
-import java.net.*;
 import org.jlab.coda.et.*;
 
 
@@ -28,14 +29,6 @@ public class Consumer {
   public Consumer() {
   }
 
-  // for getting integer data from a byte array - useful when testing
-  private static final int bytesToInt(byte[] b, int off) {
-    int result = ((b[off]  &0xff) << 24) |
-                 ((b[off+1]&0xff) << 16) |
-                 ((b[off+2]&0xff) <<  8) |
-                  (b[off+3]&0xff);
-    return result;
-  }
   
   
   private static void usage() {

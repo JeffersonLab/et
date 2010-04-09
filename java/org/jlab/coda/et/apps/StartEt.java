@@ -12,9 +12,12 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
+package org.jlab.coda.et.apps;
+
 import java.lang.*;
 
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.system.*;
 
 /**
  * This class is an example of starting up an ET system.

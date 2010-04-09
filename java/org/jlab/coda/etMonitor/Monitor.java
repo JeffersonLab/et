@@ -27,6 +27,7 @@ import javax.swing.event.*;
 
 import org.xml.sax.SAXException;
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.exception.*;
 
 /**
  * This class implements a monitor of ET systems.

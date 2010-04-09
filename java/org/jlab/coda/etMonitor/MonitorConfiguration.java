@@ -26,6 +26,7 @@ import javax.xml.validation.SchemaFactory;
 import javax.xml.XMLConstants;
 
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.exception.*;
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 
