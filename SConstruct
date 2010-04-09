@@ -34,6 +34,61 @@ osname   = platform + '-' +  machine
 # So for vxworks, make sure the tools are in your PATH
 env = Environment(ENV = {'PATH' : os.environ['PATH']})
 
+####################################################################################
+# Create a Builder to install symbolic links, where "source" is list of node objects
+# of the existing files, and "target" is a list of node objects of link files.
+# NOTE: link file must have same name as its source file.
+####################################################################################
+def buildSymbolicLinks(target, source, env):    
+    # For each file to create a link for ...
+    for s in source:
+        filename = os.path.basename(str(s))
+
+        # is there a corresponding link to make?
+        makeLink = False
+        for t in target:
+            linkname = os.path.basename(str(t))
+            if not linkname == filename:
+                continue
+            else :
+                makeLink = True
+                break
+
+        # go to next source since no corresponding link
+        if not makeLink:
+            continue
+        
+        # If link exists don't recreate it
+        try:
+            # Test if the symlink exists
+            lstat(str(t))
+        except OSError:
+            # OK, symlink doesn't exist so create it
+            pass
+        else:
+            continue
+
+        # remember our current working dir
+        currentDir = os.getcwd()
+
+        # get directory of target
+        targetDirName = os.path.dirname(str(t))
+
+        # change dirs to target directory
+        os.chdir(targetDirName)
+
+        # create symbolic link: symlink(source, linkname)
+        symlink("../../include/"+linkname, linkname)
+
+        # change back to original directory
+        os.chdir(currentDir)
+
+    return None
+
+
+symLinkBuilder = Builder(action = buildSymbolicLinks)
+env.Append(BUILDERS = {'CreateSymbolicLinks' : symLinkBuilder})
+
 ################################
 # 64 or 32 bit operating system?
 ################################
@@ -72,13 +127,12 @@ int main(int argc, char **argv) {
 # but for Darwin or Solaris there is no obvious check so run
 # a configure-type test.
 is64bits = False
-if platform == 'Linux':
-    if machine == 'x86_64':
+if platform == 'Linux'and machine == 'x86_64':
         is64bits = True
-elif platform == 'Darwin' or platform == 'SunOS':
-    ccflags = '-xarch=amd64'
-    if platform == 'Darwin':
-        ccflags = '-arch x86_64'
+        print 'Found 64 bit system'
+else:
+    if platform == 'SunOS':
+        ccflags = '-xarch=amd64'
     # run the test
     conf = Configure( env, custom_tests = { 'CheckBits' : CheckHas64Bits } )
     ret = conf.CheckBits(ccflags)
@@ -266,6 +320,7 @@ else:
 # set our install directories
 libDir = prefix + "/" + osname + '/lib'
 binDir = prefix + "/" + osname + '/bin'
+archIncDir = prefix + "/" + osname + '/include'
 incDir = prefix + '/include'
 print 'binDir = ', binDir
 print 'libDir = ', libDir
@@ -316,7 +371,7 @@ Help('tar                 create tar file (in ./tar)\n')
 ######################################################
 
 # make available to lower level scons files
-Export('env incDir libDir binDir archDir execLibs tarfile debugSuffix')
+Export('env incDir libDir binDir archIncDir archDir execLibs tarfile debugSuffix')
 
 # run lower level build files
 
