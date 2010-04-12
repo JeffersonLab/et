@@ -105,29 +105,31 @@ public class SystemCreate {
       this(_name, new SystemConfig());
   }
 
-    /**
+  /**
    * Creates a new ET system with specified parameters and starts it running.
    *
-   * @param _name     file name
-   * @param _config   ET system configuration
+   * @param name     file name
+   * @param config   ET system configuration
    * @exception EtException
    *     if the file already exists or cannot be created
    */
-  public SystemCreate (String _name, SystemConfig _config) throws EtException {
-        // check config for consistency
-        if (!_config.selfConsistent()) {
+  public SystemCreate (String name, SystemConfig config) throws EtException {
+
+      // check config for consistency
+        if (!config.selfConsistent()) {
             if (config.getDebug() >= Constants.debugInfo) {
                 System.out.println("Number of events in groups does not equal total number of events");
             }
             throw new EtException("Number of events in groups does not equal total number of events");
         }
-        name = _name;
-        config = new SystemConfig(_config);
-        attachments = new HashMap<Integer, AttachmentLocal>(Constants.attachmentsMax + 1, 1);
-        events = new HashMap<Long, EventImpl>(config.getNumEvents() + 1, 1);
+
+        this.name = name;
+        this.config = new SystemConfig(config);
+        attachments = new HashMap<Integer, AttachmentLocal>(Constants.attachmentsMax + 1);
+        events = new HashMap<Long, EventImpl>(config.getNumEvents() + 1);
         stations = new LinkedList<StationLocal>();
         // netAddresses will be set in SystemUdpServer
-        systemLock = new byte[0];
+        systemLock  = new byte[0];
         stationLock = new byte[0];
 
         // The ET name is a file (which is really irrelevant in Java)
@@ -627,12 +629,12 @@ public class SystemCreate {
   StationLocal stationNameToObject(String name) throws EtException {
       synchronized (stationLock) {
           for (StationLocal listStation : stations) {
-              if (listStation.getName().equals(name)) {
+              if (listStation.getStationName().equals(name)) {
                   return listStation;
               }
               if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
                   for (StationLocal listStation2 : listStation.getParallelStations()) {
-                      if (listStation2.getName().equals(name)) {
+                      if (listStation2.getStationName().equals(name)) {
                           return listStation2;
                       }
                   }
@@ -1461,7 +1463,7 @@ public class SystemCreate {
           if (stat.getConfig().getSelectClass() != null) {
               len3 = stat.getConfig().getSelectClass().length() + 1;
           }
-          len4 = stat.getName().length() + 1;
+          len4 = stat.getStationName().length() + 1;
 
           Utils.intToBytes(len1, info, off += 4);
           Utils.intToBytes(len2, info, off += 4);
@@ -1492,7 +1494,7 @@ public class SystemCreate {
                   info[off++] = 0; // C null terminator
               }
 
-              outString = stat.getName().getBytes("ASCII");
+              outString = stat.getStationName().getBytes("ASCII");
               System.arraycopy(outString, 0, info, off, outString.length);
               off += outString.length;
               info[off++] = 0; // C null terminator
@@ -1599,7 +1601,7 @@ public class SystemCreate {
 
       // read strings, lengths first
       len1 = att.getHost().length() + 1;
-      len2 = att.getStation().getName().length() + 1;
+      len2 = att.getStation().getStationName().length() + 1;
       Utils.intToBytes(len1, info, off+=8);
       Utils.intToBytes(len2, info, off+=4);
 //System.out.println("writeAttachments: len1 = " + len1 + ", len2 = " + len2);
@@ -1613,7 +1615,7 @@ public class SystemCreate {
         off += outString.length;
         info[off++] = 0; // C null terminator
 
-        outString = att.getStation().getName().getBytes("ASCII");
+        outString = att.getStation().getStationName().getBytes("ASCII");
         System.arraycopy(outString, 0, info, off, outString.length);
         off += outString.length;
         info[off++] = 0; // C null terminator

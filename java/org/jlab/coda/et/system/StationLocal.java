@@ -31,8 +31,9 @@ public class StationLocal extends Thread implements EventSelectable {
   private SystemCreate sys;
   /** Unique id number. */
   int                   id;
+
   /** Unique station name. */
-  String                name;
+  String name;
 
 
     /** Station configuration object. */
@@ -70,7 +71,7 @@ public class StationLocal extends Thread implements EventSelectable {
    *  is {@link Constants#stationSelectMatch}. */
   EventSelectable selector;
 
-  /**
+    /**
    * Creates a new StationLocal object.
    * @param _sys ET system object
    * @param _name station name
@@ -83,7 +84,7 @@ public class StationLocal extends Thread implements EventSelectable {
                                                 throws EtException {
     id               = _id;
     sys              = _sys;
-    name             = _name;
+    name = _name;
     config           = new StationConfig(_config);
     status           = Constants.stationUnused;
     stopTransfer     = new byte[0];
@@ -120,9 +121,19 @@ public class StationLocal extends Thread implements EventSelectable {
   }
   
   
-  /** Gets the station id number.
-   *  @return station id number */
-  public int getStationId() {return id;}
+    /** Gets the station id number.
+     *  @return station id number */
+    public int getStationId() {return id;}
+
+    /**
+     * Because this class extends Thread, calling this method getName() would override the method from the Thread
+     * class, which is something we do NOT want. So call this method getStationName() instead.
+     * @return
+     */
+    public String getStationName() {
+        return name;
+    }
+
     public EventList getInputList() {
         return inputList;
     }
