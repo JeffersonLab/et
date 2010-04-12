@@ -193,6 +193,9 @@ class ListeningThread extends Thread {
       // All aliases are sent here.
       //
 
+      // buffer for reading ET name
+      byte[] etNameBytes = new byte[Constants.fileNameLengthMax];
+
       // Put outgoing packet into byte array
       ByteArrayOutputStream baos = null;
 
@@ -319,11 +322,16 @@ class ListeningThread extends Thread {
                   continue;
               }
               // reject improper formats
-              if ((length < 1) || (length > Constants.fileNameLength)) {
+              if ((length < 1) || (length > Constants.fileNameLengthMax)) {
                   continue;
               }
 
-              String etName = new String(rPacket.getData(), 8, length - 1, "ASCII");
+              // read all string bytes
+              if (length > etNameBytes.length) {
+                  etNameBytes = new byte[length];
+              }
+              dis.readFully(etNameBytes, 0, length-1);
+              String etName = new String(etNameBytes, 0, length-1, "US-ASCII");
 
 //System.out.println("et_listen_thread: received packet version =  " + version +
 //                                  ", ET = " + etName);
