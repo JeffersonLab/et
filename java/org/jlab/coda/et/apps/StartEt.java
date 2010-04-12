@@ -81,7 +81,6 @@ public class StartEt {
         if (file == null) {
             usage();
             System.exit(-1);
-
         }
         
         try {
@@ -109,7 +108,7 @@ public class StartEt {
             if (debug)
                 config.setDebug(Constants.debugInfo);
             // create an active ET system
-            SystemCreate sys = new SystemCreate("/tmp/etet", config);
+            SystemCreate sys = new SystemCreate(file, config);
         }
         catch (Exception ex) {
             System.out.println("ERROR STARTING ET SYSTEM");
