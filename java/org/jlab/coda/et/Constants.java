@@ -75,7 +75,7 @@ public final class Constants {
   public static final int    stationSelectInts   = 4;
   /** A limit on the length of the ET system (or file) name's length. This limit
    *  is due to the C implementation. */
-  public static final int    fileNameLength      = 101;
+  public static final int fileNameLengthMax = 101;
 
 
   /** A policy that chooses the first ET system to respond when broadcasting
