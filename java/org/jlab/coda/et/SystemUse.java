@@ -1493,12 +1493,12 @@ public class SystemUse {
       }
       evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
       evs[j].setLength((int)length);
-      priAndStat = Utils.bytesToInt(buffer, 12);
+      priAndStat = Utils.bytesToInt(buffer, 16);
       evs[j].setPriority(priAndStat & priorityMask);
       evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
-      evs[j].setId(Utils.bytesToLong(buffer, 16));
-      evs[j].setByteOrder(Utils.bytesToInt(buffer, 24));
-      index = 28;
+      evs[j].setId(Utils.bytesToLong(buffer, 20));
+      evs[j].setByteOrder(Utils.bytesToInt(buffer, 28));
+      index = 32;   // skip unused int
       int[] control = new int[selectInts];
       for (int i=0; i < selectInts; i++) {
 	    control[i] = Utils.bytesToInt(buffer, index+=4);
