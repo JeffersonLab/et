@@ -31,7 +31,8 @@ public class SystemCreate {
 
     /** A copy of the ET system configuration. */
     private SystemConfig config;
-    /** The name of the ET system file name. */
+
+    /** The ET system file name. */
     String name;
 
     /** A list of stations defining the flow of events. Only the first
@@ -39,26 +40,34 @@ public class SystemCreate {
      *  this list. The other parallel stations are available in a list
      *  kept by the first parallel station. */
     private LinkedList<StationLocal> stations;            // protected by stopTransfer & systemLock
+
     /** The total number of idle and active stations. This consists
      * of the number of main stations given by the size of the "stations"
      * linked list (stations.size()) and the number of additional parallel
      * stations added together. */
     int stationCount;
+
     /** GRAND_CENTRAL station object */
     private StationLocal gcStation;
-    /** Table of all ET system attachments. */
+
+    /** Map of all ET system attachments. */
     HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
-    /** Table of all ET system events. */
+
+    /** Map of all ET system events. */
     HashMap<Long, EventImpl> events;
+
     /** All local IP addresses */
     InetAddress[]netAddresses;
+
     /** Flag telling if the ET system is running. */
     private boolean running;
-    /** Mutex for system stuff. */
+
+    /** Object on which to synchronize for system stuff. */
     byte[] systemLock;
 
-    /** Mutex for station stuff. */
+    /** Object on which to synchronize for station stuff. */
     private byte[] stationLock;
+
     /** Flag for killing all threads started by ET system. */
     volatile boolean killAllThreads;
 
@@ -67,25 +76,19 @@ public class SystemCreate {
 
     /** Flag for specifying it's time to regather system information. */
     private boolean gather = true;
+
     /** Monitor time when gathering system information. */
     private long time1 = 0L;
+
     /** Length of valid data in array storing system information. */
     int dataLength = 0;
+
     /** Array for storing system information for distribution. */
     byte[] infoArray = new byte[6000];
 
 
-    public LinkedList<StationLocal> getStations() {
-        return stations;
-    }
-
-    public byte[] getStationLock() {
-        return stationLock;
-    }
-
-
     /**
-     * Creates a new ET system using default parameters and starts it running.
+     * Constructor that creates a new ET system using default parameters and starts it running.
      * The default parameters are:
      *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
      *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
@@ -105,7 +108,7 @@ public class SystemCreate {
     }
 
     /**
-     * Creates a new ET system with specified parameters and starts it running.
+     * COnstructor that creates a new ET system with specified parameters and starts it running.
      *
      * @param name     file name
      * @param config   ET system configuration
@@ -194,9 +197,16 @@ public class SystemCreate {
     public SystemConfig getConfig() {return new SystemConfig(config);}
 
     /** Tells if the ET system is running or not.
-     *  @return <code>true</code> if the system is running and <code>false</code>
-     *  if it is not */
+     *  @return <code>true</code> if the system is running, else <code>false</code> */
     synchronized public boolean running() {return running;}
+
+    /** Get the linked list of stations.
+     * @return linked list of stations */
+    public LinkedList<StationLocal> getStations() { return stations; }
+
+    /** Get the station synchronization object.
+     * @return  station synchronization object */
+    public byte[] getStationLock() { return stationLock; }
 
 
     /** Starts the ET system running. If the system is already running, nothing
