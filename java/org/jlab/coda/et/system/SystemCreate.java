@@ -19,8 +19,6 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 import org.jlab.coda.et.exception.*;
-import org.jlab.coda.et.system.StationLocal;
-import org.jlab.coda.et.system.AttachmentLocal;
 import org.jlab.coda.et.*;
 
 /**
@@ -31,91 +29,92 @@ import org.jlab.coda.et.*;
 
 public class SystemCreate {
 
-  /** A copy of the ET system configuration. */
-  private SystemConfig config;
-  /** The name of the ET system file name. */
-  String           name;
+    /** A copy of the ET system configuration. */
+    private SystemConfig config;
+    /** The name of the ET system file name. */
+    String name;
 
     /** A list of stations defining the flow of events. Only the first
-   *  station of a single group of parallel stations is included in
-   *  this list. The other parallel stations are available in a list
-   *  kept by the first parallel station. */
-  private LinkedList<StationLocal> stations;            // protected by stopTransfer & systemLock
-  /** The total number of idle and active stations. This consists
-    * of the number of main stations given by the size of the "stations"
-    * linked list (stations.size()) and the number of additional parallel
-    * stations added together. */
-  int              stationCount;
-  /** GRAND_CENTRAL station object */
-  private StationLocal gcStation;
-  /** Table of all ET system attachments. */
-  HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
-  /** Table of all ET system events. */
-  HashMap<Long, EventImpl>  events;
-  /** All local IP addresses */
-  InetAddress[]    netAddresses;
-  /** Flag telling if the ET system is running. */
-  private boolean  running;
-  /** Mutex for system stuff. */
-  byte[]           systemLock;
+     *  station of a single group of parallel stations is included in
+     *  this list. The other parallel stations are available in a list
+     *  kept by the first parallel station. */
+    private LinkedList<StationLocal> stations;            // protected by stopTransfer & systemLock
+    /** The total number of idle and active stations. This consists
+     * of the number of main stations given by the size of the "stations"
+     * linked list (stations.size()) and the number of additional parallel
+     * stations added together. */
+    int stationCount;
+    /** GRAND_CENTRAL station object */
+    private StationLocal gcStation;
+    /** Table of all ET system attachments. */
+    HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
+    /** Table of all ET system events. */
+    HashMap<Long, EventImpl> events;
+    /** All local IP addresses */
+    InetAddress[]netAddresses;
+    /** Flag telling if the ET system is running. */
+    private boolean running;
+    /** Mutex for system stuff. */
+    byte[] systemLock;
 
     /** Mutex for station stuff. */
-  private byte[]           stationLock;
-  /** Flag for killing all threads started by ET system. */
-  volatile boolean killAllThreads;
+    private byte[] stationLock;
+    /** Flag for killing all threads started by ET system. */
+    volatile boolean killAllThreads;
 
-  // Variables for gathering system information for distribution.
-  // Do it no more than once per second.
+    // Variables for gathering system information for distribution.
+    // Do it no more than once per second.
 
-  /** Flag for specifying it's time to regather system information. */
-  private boolean gather = true;
-  /** Monitor time when gathering system information. */
-  private long time1=0;
-  /** Length of valid data in array storing system information. */
-  int dataLength=0;
-  /** Array for storing system information for distribution. */
-  byte[] infoArray = new byte[6000];
+    /** Flag for specifying it's time to regather system information. */
+    private boolean gather = true;
+    /** Monitor time when gathering system information. */
+    private long time1 = 0L;
+    /** Length of valid data in array storing system information. */
+    int dataLength = 0;
+    /** Array for storing system information for distribution. */
+    byte[] infoArray = new byte[6000];
 
 
     public LinkedList<StationLocal> getStations() {
         return stations;
     }
+
     public byte[] getStationLock() {
         return stationLock;
     }
 
 
-  /**
-   * Creates a new ET system using default parameters and starts it running.
-   * The default parameters are:
-   *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
-   *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
-   *      max number of stations    = {@link org.jlab.coda.et.Constants#defaultStationsMax},
-   *      max number of attachments = {@link org.jlab.coda.et.Constants#defaultAttsMax},
-   *      debug level               = {@link org.jlab.coda.et.Constants#debugError},
-   *      udp port                  = {@link org.jlab.coda.et.Constants#broadcastPort},
-   *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
-   *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}
-   *
-   * @param _name   file name
-   * @exception EtException
-   *     if the file already exists or cannot be created
-   */
-  public SystemCreate(String _name) throws EtException {
-      this(_name, new SystemConfig());
-  }
+    /**
+     * Creates a new ET system using default parameters and starts it running.
+     * The default parameters are:
+     *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
+     *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
+     *      max number of stations    = {@link org.jlab.coda.et.Constants#defaultStationsMax},
+     *      max number of attachments = {@link org.jlab.coda.et.Constants#defaultAttsMax},
+     *      debug level               = {@link org.jlab.coda.et.Constants#debugError},
+     *      udp port                  = {@link org.jlab.coda.et.Constants#broadcastPort},
+     *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
+     *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}
+     *
+     * @param _name   file name
+     * @exception EtException
+     *     if the file already exists or cannot be created
+     */
+    public SystemCreate(String _name) throws EtException {
+        this(_name, new SystemConfig());
+    }
 
-  /**
-   * Creates a new ET system with specified parameters and starts it running.
-   *
-   * @param name     file name
-   * @param config   ET system configuration
-   * @exception EtException
-   *     if the file already exists or cannot be created
-   */
-  public SystemCreate (String name, SystemConfig config) throws EtException {
+    /**
+     * Creates a new ET system with specified parameters and starts it running.
+     *
+     * @param name     file name
+     * @param config   ET system configuration
+     * @exception EtException
+     *     if the file already exists or cannot be created
+     */
+    public SystemCreate (String name, SystemConfig config) throws EtException {
 
-      // check config for consistency
+        // check config for consistency
         if (!config.selfConsistent()) {
             if (config.getDebug() >= Constants.debugInfo) {
                 System.out.println("Number of events in groups does not equal total number of events");
@@ -186,285 +185,551 @@ public class SystemCreate {
     }
 
 
-  /** Gets the ET system file name.
-   *  @return ET system file name */
-  public String getName() {return name;}
-  /** Gets the ET system configuration.
-   *  @return ET system configuration */
-  public SystemConfig getConfig() {return new SystemConfig(config);}
-  /** Tells if the ET system is running or not.
-   *  @return <code>true</code> if the system is running and <code>false</code>
-   *  if it is not */
-  synchronized public boolean running() {return running;}
+    /** Gets the ET system file name.
+     *  @return ET system file name */
+    public String getName() {return name;}
+
+    /** Gets the ET system configuration.
+     *  @return ET system configuration */
+    public SystemConfig getConfig() {return new SystemConfig(config);}
+
+    /** Tells if the ET system is running or not.
+     *  @return <code>true</code> if the system is running and <code>false</code>
+     *  if it is not */
+    synchronized public boolean running() {return running;}
 
 
-  /** Starts the ET system running. If the system is already running, nothing
-   * is done. */
-  synchronized public void startUp() {
-    if (running) return;
+    /** Starts the ET system running. If the system is already running, nothing
+     * is done. */
+    synchronized public void startUp() {
+        if (running) return;
 
-    // make grandcentral
-    gcStation = createGrandCentral();
+        // make grandcentral
+        gcStation = createGrandCentral();
 
-    // fill GC with standard sized events
-    EventImpl ev;
-    int index = 0, count = 0;
-    ArrayList<EventImpl> eventList = new ArrayList<EventImpl>(config.getNumEvents());
+        // fill GC with standard sized events
+        EventImpl ev;
+        int index = 0, count = 0;
+        ArrayList<EventImpl> eventList = new ArrayList<EventImpl>(config.getNumEvents());
 
-    for (long i=0; i < config.getNumEvents(); i++) {
-      ev = new EventImpl(config.getEventSize());
-      ev.setId(i);
-        
-      // assign group numbers
-      if (count < 1)
-          count = (config.getGroups())[index++];
-      ev.setGroup(index);
-      count--;
+        for (long i=0; i < config.getNumEvents(); i++) {
+            ev = new EventImpl(config.getEventSize());
+            ev.setId(i);
 
-      eventList.add(ev);
-      // add to hashTable for future easy access
-      events.put(ev.getId(), ev);
+            // assign group numbers
+            if (count < 1)
+                count = (config.getGroups())[index++];
+            ev.setGroup(index);
+            count--;
+
+            eventList.add(ev);
+            // add to hashTable for future easy access
+            events.put(ev.getId(), ev);
+        }
+
+        gcStation.getInputList().putInLow(eventList);
+        // undo statistics keeping for inital event loading
+        gcStation.getInputList().setEventsIn(0);
+
+        // run tcp server thread
+        SystemTcpServer tcpServer = new SystemTcpServer(this);
+        tcpServer.start();
+
+        // run udp listening thread
+        SystemUdpServer udpServer = new SystemUdpServer(this);
+        udpServer.start();
+
+        running = true;
     }
 
-    gcStation.getInputList().putInLow(eventList);
-    // undo statistics keeping for inital event loading
-    gcStation.getInputList().setEventsIn(0);
 
-    // run tcp server thread
-    SystemTcpServer tcpServer = new SystemTcpServer(this);
-    tcpServer.start();
+    /** Stops the ET system if it is running. All threads are stopped.
+     * If the system is not running, nothing is done. */
+    synchronized public void shutdown() {
+        if (!running) return;
+        // tell threads to kill themselves
+        killAllThreads = true;
+        // sockets on 2 second timeout so wait
+        try {Thread.sleep(2500);}
+        catch (InterruptedException ex) {}
+        // delete file
+        File etFile = new File(name);
+        etFile.delete();
 
-    // run udp listening thread
-    SystemUdpServer udpServer = new SystemUdpServer(this);
-    udpServer.start();
-
-    running = true;
-  }
-
-
-  /** Stops the ET system if it is running. All threads are stopped.
-   * If the system is not running, nothing is done. */
-  synchronized public void shutdown() {
-    if (!running) return;
-    // tell threads to kill themselves
-    killAllThreads = true;
-    // sockets on 2 second timeout so wait
-    try {Thread.sleep(2500);}
-    catch (InterruptedException ex) {}
-    // delete file
-    File etFile = new File(name);
-    etFile.delete();
-
-    // clear everything
-    stations       = null;
-    attachments    = null;
-    events         = null;
-    netAddresses   = null;
-    stationLock    = null;
-    killAllThreads = false;
-    running        = false;
-  }
-
-  //
-  // Station related methods
-  //
-
-  /**
-   * Creates a new station placed at the end of the linked list of stations.
-   *
-   * @param stationConfig   station configuration
-   * @param name            station name
-   *
-   * @return the new station object
-   *
-   * @exception EtException
-   *     if the select method's class cannot be loaded
-   * @exception EtExistsException
-   *     if the station already exists but with a different configuration
-   * @exception EtTooManyException
-   *     if the maximum number of stations has been created already
-   */
-  public StationLocal createStation(StationConfig stationConfig, String name)
-                throws EtException, EtExistsException, EtTooManyException {
-    synchronized(stationLock) {
-      return createStation(stationConfig, name, stations.size(), Constants.end);
+        // clear everything
+        stations       = null;
+        attachments    = null;
+        events         = null;
+        netAddresses   = null;
+        stationLock    = null;
+        killAllThreads = false;
+        running        = false;
     }
-  }
 
-  /**
-   * Creates a new station at a specified position in the linked list of
-   * stations. Cannot exceed the maximum number of stations allowed in a system.
-   *
-   * @param stationConfig   station configuration
-   * @param name            station name
-   * @param position        position in the linked list to put the station.
-   *
-   * @return                the new station object
-   *
-   * @exception EtException
-   *     if the select method's class cannot be loaded
-   * @exception EtExistsException
-   *     if the station already exists but with a different configuration
-   * @exception EtTooManyException
-   *     if the maximum number of stations has been created already
-   */
-  StationLocal createStation(StationConfig stationConfig, String name,
-                             int position, int parallelPosition)
-          throws EtException, EtExistsException, EtTooManyException {
+    //---------------------------------------------------------------------------
+    // Station related methods, mainly to manipulate the linked lists of stations
+    //---------------------------------------------------------------------------
 
-
-      int id = 0;
-      StationLocal station;
-
-      // grab station mutex
-      synchronized (stationLock) {
-          // check to see if hit maximum allowed # of stations
-          if (stations.size() >= config.getStationsMax()) {
-              throw new EtTooManyException("Maximum number of stations already created");
-          }
-          else if (position > stations.size()) {
-              position = stations.size();
-          }
-
-          // check to see if it already exists
-          StationLocal listStation;
-          try {
-              listStation = stationNameToObject(name);
-              // it's got the same name, let's see if it's defined the same // TODO: get config once !!
-              if (    (listStation.getConfig().getFlowMode() == stationConfig.getFlowMode()) &&
-                      (listStation.getConfig().getUserMode() == stationConfig.getUserMode()) &&
-                      (listStation.getConfig().getBlockMode() == stationConfig.getBlockMode()) &&
-                      (listStation.getConfig().getSelectMode() == stationConfig.getSelectMode()) &&
-                      (listStation.getConfig().getRestoreMode() == stationConfig.getRestoreMode()) &&
-                      (listStation.getConfig().getPrescale() == stationConfig.getPrescale()) &&
-                      (listStation.getConfig().getCue() == stationConfig.getCue()) &&
-                      (Arrays.equals(listStation.getConfig().getSelect(), stationConfig.getSelect()))) {
-
-                  if ((listStation.getConfig().getSelectClass() != null) &&
-                          (!listStation.getConfig().getSelectClass().equals(stationConfig.getSelectClass()))) {
-                      throw new EtExistsException("Station already exists with different configuration");
-                  }
-                  // station definitions are the same, use listStation
-                  return listStation;
-              }
-              throw new EtExistsException("Station already exists with different configuration");
-          }
-          catch (EtException ex) {
-              // station does NOT exist, continue on
-          }
-
-          // find smallest possible unique id number
-          search:
-          for (int i = 0; i < stationCount + 1; i++) {
-              for (ListIterator j = stations.listIterator(); j.hasNext();) {
-                  listStation = (StationLocal) j.next();
-                  if (listStation.getStationId() == i) {
-                      continue search;
-                  }
-                  if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
-                      for (ListIterator k = listStation.getParallelStations().listIterator(1); k.hasNext();) {
-                          listStation = (StationLocal) k.next();
-                          if (listStation.getStationId() == i) {
-                              continue search;
-                          }
-                      }
-                  }
-              }
-              // only get down here if "i" is not a used id number
-              id = i;
-              break;
-          }
-
-          // create station
-          station = new StationLocal(this, name, stationConfig, id);
-
-          // start its conductor thread
-          station.start();
-          // give up processor so thread can start
-          Thread.yield();
-
-          // make sure the conductor is started or we'll get race conditions
-          while (station.getStatus() != Constants.stationIdle) {
-              if (config.getDebug() >= Constants.debugInfo) {
-                  System.out.println("Waiting for " + name + "'s conductor thread to start");
-              }
-              // sleep for minimum amount of time (1 nsec haha)
-              try {
-                  Thread.sleep(0, 1);
-              }
-              catch (InterruptedException ex) {
-              }
-          }
-
-          // put in linked list(s) - first grabbing stopTransfer mutexes
-          gcStation.addStation(station, position, parallelPosition);
-          // keep track of the total number of stations
-          stationCount++;
-      } // release station mutex
-
-      return station;
-  }
-
-  /**
-   * Creates the first station by the name of GRAND_CENTRAL and starts its
-   * conductor thread.
-   *
-   * @return GRAND_CENTRAL station's object
-   */
-  private StationLocal createGrandCentral() {
-    // use the default configuration
-    StationConfig gcConfig = new StationConfig();
-    StationLocal station = null;
-    // create station
-    try {
-      station = new StationLocal(this, "GRAND_CENTRAL", gcConfig, 0);
+    /**
+     * This method locks the stopTransfer locks of all existing stations which ensures no events
+     * are currently being moved.
+     */
+    private void lockAllStationTransferLocks() {
+        for (StationLocal mainListStation : stations) {
+            // lock station in main linked list
+            mainListStation.getStopTransferLock().lock();
+            // if this station is the head of a parallel linked list, grab all their locks too
+            if (mainListStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                // skip first element in parallel list as it is identical to mainListStation
+                StationLocal parallelListStation;
+                for (ListIterator iter = mainListStation.getParallelStations().listIterator(1); iter.hasNext();) {
+                    parallelListStation = (StationLocal) iter.next();
+                    parallelListStation.getStopTransferLock().lock();
+                }
+            }
+        }
     }
-    catch (EtException ex) {}
 
-    // put in linked list
-    stations.clear();
-    stations.addFirst(station);
 
-    // start its conductor thread
-    station.start();
+    /**
+     * This method unlocks the stopTransfer locks of all existing stations which means events
+     * are now allowed to be moved.
+     */
+    private void unlockAllStationTransferLocks() {
+        for (StationLocal mainListStation : stations) {
+            // unlock station in main linked list
+            mainListStation.getStopTransferLock().unlock();
+            // if this station is the head of a parallel linked list, release all their locks too
+            if (mainListStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                // skip first element in parallel list as it is identical to mainListStation
+                StationLocal parallelListStation;
+                for (ListIterator iter = mainListStation.getParallelStations().listIterator(1); iter.hasNext();) {
+                    parallelListStation = (StationLocal) iter.next();
+                    parallelListStation.getStopTransferLock().unlock();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Method used to add a new station to all the relevant linked lists of stations.
+     *
+     * @param newStation station object
+     * @param position the desired position in the main linked list of stations
+     * @param parallelPosition the desired position of a parallel station in the
+     *      group of parallel stations it's being added to
+     * @exception EtException
+     *     if trying to add an incompatible parallel station to an existing group
+     *     of parallel stations or to the head of an existing group of parallel
+     *     stations.
+     */
+    private void insertStation(StationLocal newStation, int position, int parallelPosition) throws EtException {
+
+        // If GRAND_CENTRAL is only existing station, or if we're at
+        // or past the end of the linked list, put station on the end
+        if ((stations.size() < 2) ||
+                (position >= stations.size()) ||
+                (position == Constants.end)) {
+
+            stations.add(newStation);
+            if (newStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                newStation.getParallelStations().clear();
+                newStation.getParallelStations().add(newStation);
+            }
+        }
+        // else, put the station in the desired position in the middle somewhere
+        else {
+            StationLocal stat = stations.get(position);
+
+            // if the station in "position" and this station are both parallel ...
+            if ((newStation.getConfig().getFlowMode() == Constants.stationParallel) &&
+                    (stat.getConfig().getFlowMode() == Constants.stationParallel) &&
+                    (parallelPosition != Constants.newHead)) {
+
+                // If these 2 stations have incompatible definitions or we're trying to place
+                // a parallel station in the first (already taken) spot of its group ...
+                if (!StationConfig.compatibleParallelConfigs(stat.getConfig(), newStation.getConfig())) {
+                    throw new EtException("trying to add incompatible parallel station\n");
+                }
+                else if (parallelPosition == 0) {
+                    throw new EtException("trying to add parallel station to head of existing parallel group\n");
+                }
+
+                // Add this parallel station in the "parallelPosition" slot in the
+                // parallel linked list or to the end if parallelPosition = Constants.end.
+                if ((parallelPosition == Constants.end) ||
+                        (parallelPosition >= stat.getParallelStations().size())) {
+                    stat.getParallelStations().add(newStation);
+                }
+                else {
+                    stat.getParallelStations().add(parallelPosition, newStation);
+                }
+            }
+            else {
+                stations.add(position, newStation);
+                if (newStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                    newStation.getParallelStations().clear();
+                    newStation.getParallelStations().add(newStation);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Method used to remove a station from all relevant linked lists of stations.
+     * @param station station object
+     */
+    private void deleteStation(StationLocal station) {
+        // The only tricky part in removing a station is to remember that it may not
+        // be in the main linked list if it is a parallel station.
+
+        // if the station is in the main linked list ...
+        if (stations.contains(station)) {
+
+            // remember where the station was located
+            int index = stations.indexOf(station);
+
+            // remove it from main list
+            stations.remove(station);
+
+            // if it's not a parallel station, we're done
+            if (station.getConfig().getFlowMode() == Constants.stationSerial) {
+                return;
+            }
+
+            // if the station is parallel, it's the head of another linked list.
+            station.getParallelStations().removeFirst();
+
+            // if no other stations in the group, we're done
+            if (station.getParallelStations().size() < 1) {
+                return;
+            }
+
+            // If there are other stations in the group, make sure that the linked
+            // list of parallel stations is passed on to the next member. And put
+            // the new head of the parallel list into the main list.
+            StationLocal nextStation = station.getParallelStations().getFirst();
+            nextStation.getParallelStations().clear();
+            nextStation.getParallelStations().addAll(station.getParallelStations());
+            station.getParallelStations().clear();
+            stations.add(index, nextStation);
+        }
+
+        // else if it's not in the main linked list, we'll have to hunt it down
+        else {
+            // loop thru all stations in main list
+            for (StationLocal nextStation : stations) {
+                // If it's a parallel station, try to remove "station" from the
+                // list of parallel stations registered with it.
+                if (nextStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                    if (nextStation.getParallelStations().remove(station)) {
+                        // we got it
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Method for use by {@link #createStation} to grab all stations'
+     * transfer locks and stop all event transfer before adding a new station to
+     * the ET system's linked lists of stations.
+     *
+     * @param newStation station to add
+     * @param position the desired position in the main linked list of stations
+     * @param parallelPosition the desired position of a parallel station in the
+     *     group of parallel stations it's being added to
+     * @exception EtException
+     *     if trying to add an incompatible parallel station to an existing group
+     *     of parallel stations or to the head of an existing group of parallel
+     *     stations.
+     */
+   private void addStationToList(StationLocal newStation, int position, int parallelPosition) throws EtException {
+        lockAllStationTransferLocks();
+        try {
+            insertStation(newStation, position, parallelPosition);
+            // since we locked all stations' transfer locks, do so with the new one too
+            newStation.getStopTransferLock().lock();
+        }
+        finally {
+            unlockAllStationTransferLocks();
+        }
+    }
+
+
+    /**
+     * Method for use by {@link #removeStation} to grab all stations'
+     * transfer locks and stop all event transfer before removing a station from
+     * the ET system's linked lists of stations.
+     * 
+     * @param station station to remove
+     */
+    private void removeStationFromList(StationLocal station) {
+        lockAllStationTransferLocks();
+        try {
+            deleteStation(station);
+            // since we will unlock all stations' transfer locks, do so with the new one too
+            station.getStopTransferLock().unlock();
+        }
+        finally {
+            unlockAllStationTransferLocks();
+        }
+    }
+
+
+    /**
+     * Method for use by {@link #removeStationFromList} to grab all stations'
+     * transfer locks and stop all event transfer before moving a station in
+     * the ET system's linked lists of stations.
+     *
+     * @param station station to move
+     * @param position the desired position in the main linked list of stations
+     * @param parallelPosition the desired position of a parallel station in the
+     *      group of parallel stations it's being added to
+     * @exception EtException
+     *     if trying to move an incompatible parallel station to an existing group
+     *     of parallel stations or to the head of an existing group of parallel
+     *     stations.
+     */
+    private void moveStationInList(StationLocal station, int position, int parallelPosition) throws EtException {
+        lockAllStationTransferLocks();
+        try {
+            deleteStation(station);
+            insertStation(station, position, parallelPosition);
+        }
+        finally {
+            unlockAllStationTransferLocks();
+        }
+    }
+
+
+    /**
+     * Method for use by {@link #deleteStation(StationLocal)} and {@link #detach(AttachmentLocal)}
+     * to grab all stations' transfer locks and stop all event transfer before changing a station's status.
+     *
+     * @param station station to set status on
+     * @param status the desired status of the station
+     */
+    void changeStationStatus(StationLocal station, int status) {
+        lockAllStationTransferLocks();
+        try {
+            station.setStatus(status);
+        }
+        finally {
+            unlockAllStationTransferLocks();
+        }
+    }
+
     
-    // keep track of the total number of stations
-    stationCount++;
-    return station;
-  }
+    //
+    // Done with station manipulation methods
+    //
 
-  /**
-   * Removes an existing station.
-   *
-   * @param   statId station id
-   * @exception EtException
-   *     if attachments to the station still exist or the station does not exist
-   */
-  void removeStation(int statId) throws EtException {
-    StationLocal stat;
-    // grab station mutex
-    synchronized(stationLock) {
-      stat = stationIdToObject(statId);
-      // only remove if no attached processes
-      if (stat.getAttachments().size() != 0) {
-	    throw new EtException("Remove all attachments before removing station");
-      }
 
-      // remove from linked list - first grabbing stopTransfer mutexes
-      gcStation.removeStation(stat);
-
-      // kill conductor thread
-      stat.setKillConductor(true);
-      stat.interrupt();
-
-      // set status
-      stat.setStatus(Constants.stationUnused);
-      
-      // keep track of the total number of stations
-      stationCount--;
-      return;
+    /**
+     * Creates a new station placed at the end of the linked list of stations.
+     *
+     * @param stationConfig   station configuration
+     * @param name            station name
+     *
+     * @return the new station object
+     *
+     * @exception EtException
+     *     if the select method's class cannot be loaded
+     * @exception EtExistsException
+     *     if the station already exists but with a different configuration
+     * @exception EtTooManyException
+     *     if the maximum number of stations has been created already
+     */
+    public StationLocal createStation(StationConfig stationConfig, String name)
+            throws EtException, EtExistsException, EtTooManyException {
+        synchronized(stationLock) {
+            return createStation(stationConfig, name, stations.size(), Constants.end);
+        }
     }
-  }
+
+
+    /**
+     * Creates a new station at a specified position in the linked list of
+     * stations. Cannot exceed the maximum number of stations allowed in a system.
+     *
+     * @param stationConfig   station configuration
+     * @param name            station name
+     * @param position        position in the linked list to put the station.
+     *
+     * @return                the new station object
+     *
+     * @exception EtException
+     *     if the select method's class cannot be loaded
+     * @exception EtExistsException
+     *     if the station already exists but with a different configuration
+     * @exception EtTooManyException
+     *     if the maximum number of stations has been created already
+     */
+    StationLocal createStation(StationConfig stationConfig, String name,
+                               int position, int parallelPosition)
+            throws EtException, EtExistsException, EtTooManyException {
+
+
+        int id = 0;
+        StationLocal station;
+
+        // grab station mutex
+        synchronized (stationLock) {
+            // check to see if hit maximum allowed # of stations
+            if (stations.size() >= config.getStationsMax()) {
+                throw new EtTooManyException("Maximum number of stations already created");
+            }
+            else if (position > stations.size()) {
+                position = stations.size();
+            }
+
+            // check to see if it already exists
+            StationLocal listStation;
+            try {
+                listStation = stationNameToObject(name);
+                StationConfig listStationConfig = listStation.getConfig();
+                // it's got the same name, let's see if it's defined the same
+                if ((listStationConfig.getFlowMode()    == stationConfig.getFlowMode())    &&
+                    (listStationConfig.getUserMode()    == stationConfig.getUserMode())    &&
+                    (listStationConfig.getBlockMode()   == stationConfig.getBlockMode())   &&
+                    (listStationConfig.getSelectMode()  == stationConfig.getSelectMode())  &&
+                    (listStationConfig.getRestoreMode() == stationConfig.getRestoreMode()) &&
+                    (listStationConfig.getPrescale()    == stationConfig.getPrescale())    &&
+                    (listStationConfig.getCue()         == stationConfig.getCue())         &&
+                    (Arrays.equals(listStationConfig.getSelect(), stationConfig.getSelect()))) {
+
+                    if ((listStationConfig.getSelectClass() != null) &&
+                            (!listStationConfig.getSelectClass().equals(stationConfig.getSelectClass()))) {
+                        throw new EtExistsException("Station already exists with different configuration");
+                    }
+                    // station definitions are the same, use listStation
+                    return listStation;
+                }
+                throw new EtExistsException("Station already exists with different configuration");
+            }
+            catch (EtException ex) {
+                // station does NOT exist, continue on
+            }
+
+            // find smallest possible unique id number
+            search:
+            for (int i = 0; i < stationCount + 1; i++) {
+                for (ListIterator j = stations.listIterator(); j.hasNext();) {
+                    listStation = (StationLocal) j.next();
+                    if (listStation.getStationId() == i) {
+                        continue search;
+                    }
+                    if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                        for (ListIterator k = listStation.getParallelStations().listIterator(1); k.hasNext();) {
+                            listStation = (StationLocal) k.next();
+                            if (listStation.getStationId() == i) {
+                                continue search;
+                            }
+                        }
+                    }
+                }
+                // only get down here if "i" is not a used id number
+                id = i;
+                break;
+            }
+
+            // create station
+            station = new StationLocal(this, name, stationConfig, id);
+
+            // start its conductor thread
+            station.start();
+            // give up processor so thread can start
+            Thread.yield();
+
+            // make sure the conductor is started or we'll get race conditions
+            while (station.getStatus() != Constants.stationIdle) {
+                if (config.getDebug() >= Constants.debugInfo) {
+                    System.out.println("Waiting for " + name + "'s conductor thread to start");
+                }
+                // sleep for minimum amount of time (1 nsec haha)
+                try {
+                    Thread.sleep(0, 1);
+                }
+                catch (InterruptedException ex) {
+                }
+            }
+
+            // put in linked list(s) - first grabbing stopTransfer mutexes
+            addStationToList(station, position, parallelPosition);
+            // keep track of the total number of stations
+            stationCount++;
+        } // release station mutex
+
+        return station;
+    }
+
+
+    /**
+     * Creates the first station by the name of GRAND_CENTRAL and starts its
+     * conductor thread.
+     *
+     * @return GRAND_CENTRAL station's object
+     */
+    private StationLocal createGrandCentral() {
+        // use the default configuration
+        StationConfig gcConfig = new StationConfig();
+        StationLocal station = null;
+        // create station
+        try {
+            station = new StationLocal(this, "GRAND_CENTRAL", gcConfig, 0);
+        }
+        catch (EtException ex) {}
+
+        // put in linked list
+        stations.clear();
+        stations.addFirst(station);
+
+        // start its conductor thread
+        station.start();
+
+        // keep track of the total number of stations
+        stationCount++;
+        return station;
+    }
+
+    
+    /**
+     * Removes an existing station.
+     *
+     * @param   statId station id
+     * @exception EtException
+     *     if attachments to the station still exist or the station does not exist
+     */
+    void removeStation(int statId) throws EtException {
+        StationLocal stat;
+        // grab station mutex
+        synchronized(stationLock) {
+            stat = stationIdToObject(statId);
+            // only remove if no attached processes
+            if (stat.getAttachments().size() != 0) {
+                throw new EtException("Remove all attachments before removing station");
+            }
+
+            // remove from linked list - first grabbing stopTransfer mutexes
+            removeStationFromList(stat);
+
+            // kill conductor thread
+            stat.killConductor();
+            stat.interrupt();
+
+            // set status
+            stat.setStatus(Constants.stationUnused);
+
+            // keep track of the total number of stations
+            stationCount--;
+            return;
+        }
+    }
 
   /**
    * Changes the position of a station in the linked lists of stations.
@@ -486,7 +751,7 @@ public class SystemCreate {
     synchronized(stationLock) {
       stat = stationIdToObject(statId);
       // change linked list - first grabbing stopTransfer mutexes
-      gcStation.moveStation(stat, position, parallelPosition);
+      moveStationInList(stat, position, parallelPosition);
     }
   }
 
@@ -732,7 +997,7 @@ public class SystemCreate {
           station.getAttachments().add(att);
           // station.status = Constants.stationActive;
           // change station status - first grabbing stopTransfer mutexes
-          gcStation.changeStationStatus(station, Constants.stationActive);
+          changeStationStatus(station, Constants.stationActive);
 //System.out.println("attach att #" + att.id + " put into station's map & active");
       }
 
@@ -753,7 +1018,7 @@ public class SystemCreate {
 //System.out.println("detach: att #" + att.id + " and make idle");
                 // att.station.status = Constants.stationIdle;
                 // change station status - first grabbing stopTransfer mutexes
-                gcStation.changeStationStatus(att.getStation(), Constants.stationIdle);
+                changeStationStatus(att.getStation(), Constants.stationIdle);
                 // give other threads a chance to finish putting events in
                 Thread.yield();
                 // flush any remaining events
@@ -1638,9 +1903,6 @@ public class SystemCreate {
 
     return byteSize;
   }
-
-
-
 
 
 }
