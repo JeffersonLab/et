@@ -215,7 +215,7 @@ public class StationLocal extends Thread implements EventSelectable {
                 try {
                     config.setBlockMode(mode);
                 }
-                catch (EtException e) { /* should not happen. */  } // TODO: check this out
+                catch (EtException e) { /* should not happen. */  }
             }
         }
     }
@@ -232,7 +232,7 @@ public class StationLocal extends Thread implements EventSelectable {
                 try {
                     config.setCue(cue);
                 }
-                catch (EtException e) { /* should not happen. */  } // TODO: check this out
+                catch (EtException e) { /* should not happen. */  }
             }
         }
     }
@@ -249,7 +249,7 @@ public class StationLocal extends Thread implements EventSelectable {
                 try {
                     config.setPrescale(prescale);
                 }
-                catch (EtException e) { /* should not happen. */  } // TODO: check this out
+                catch (EtException e) { /* should not happen. */  }
             }
         }
     }
@@ -266,7 +266,7 @@ public class StationLocal extends Thread implements EventSelectable {
                 try {
                     config.setSelect(select.clone());
                 }
-                catch (EtException e) { /* should not happen. */  } // TODO: check this out
+                catch (EtException e) { /* should not happen. */  }
             }
         }
     }
@@ -282,7 +282,7 @@ public class StationLocal extends Thread implements EventSelectable {
             try {
                 config.setUserMode(mode);
             }
-            catch (EtException e) { /* should not happen. */  } // TODO: check this out
+            catch (EtException e) { /* should not happen. */  }
         }
     }
 
@@ -297,7 +297,7 @@ public class StationLocal extends Thread implements EventSelectable {
             try {
                 config.setRestoreMode(mode);
             }
-            catch (EtException e) { /* should not happen. */  } // TODO: check this out
+            catch (EtException e) { /* should not happen. */  }
         }
     }
 
@@ -933,7 +933,7 @@ public class StationLocal extends Thread implements EventSelectable {
             stopTransferLock.unlock();
 
         } // while(true)
-        
+
     } // run method
 
 
