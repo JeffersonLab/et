@@ -267,6 +267,7 @@ public class SystemCreate {
             events.put(ev.getId(), ev);
         }
 
+        // synchronization not necessary here as we're just starting up
         gcStation.getInputList().putInLow(eventList);
         // undo statistics keeping for inital event loading
         gcStation.getInputList().setEventsIn(0);
