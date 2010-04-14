@@ -383,23 +383,15 @@ class ClientThread extends Thread {
                                         }
                                         // if timeout, check socket to see if still open
                                         catch (EtTimeoutException tx) {
-                                            while (true) {
-                                                try {
-                                                    // 1/2 second max delay on read
-                                                    in.readInt();
-                                                    // should never be able to get here
-                                                    att.setSleepMode(false);
-                                                    throw new EtException("communication protocol error");
-                                                }
-                                                // if there's an interrupted ex, socket is OK
-                                                catch (InterruptedIOException ex) {
-                                                    continue tryToGetEvents;
-                                                }
-                                                // if there's an io ex, socket is closed
-                                                catch (IOException ex) {
-                                                    throw ex;
-                                                }
+                                            try {
+                                                // 1/2 second max delay on read
+                                                in.readInt();
+                                                // should never be able to get here
+                                                att.setSleepMode(false);
+                                                throw new EtException("communication protocol error");
                                             }
+                                            // if there's an interrupted ex, socket is OK
+                                            catch (InterruptedIOException ex) { }
                                         }
                                     }
 
@@ -511,23 +503,15 @@ class ClientThread extends Thread {
                                         }
                                         // if timeout, check socket to see if still open
                                         catch (EtTimeoutException tx) {
-                                            while (true) {
-                                                try {
-                                                    // 1/2 second max delay on read
-                                                    in.readInt();
-                                                    // should never be able to get here
-                                                    att.setSleepMode(false);
-                                                    throw new EtException("communication protocol error");
-                                                }
-                                                // if there's an interrupted ex, socket is OK
-                                                catch (InterruptedIOException ex) {
-                                                    continue tryToGetEvents;
-                                                }
-                                                // if there's an io ex, socket is closed
-                                                catch (IOException ex) {
-                                                    throw ex;
-                                                }
+                                            try {
+                                                // 1/2 second max delay on read
+                                                in.readInt();
+                                                // should never be able to get here
+                                                att.setSleepMode(false);
+                                                throw new EtException("communication protocol error");
                                             }
+                                            // if there's an interrupted ex, socket is OK
+                                            catch (InterruptedIOException ex) { }
                                         }
                                     }
 
@@ -781,23 +765,15 @@ class ClientThread extends Thread {
                                         }
                                         // if timeout, check socket to see if still open
                                         catch (EtTimeoutException tx) {
-                                            while (true) {
-                                                try {
-                                                    // 1/2 second max delay on read
-                                                    in.readInt();
-                                                    // should never be able to get here
-                                                    att.setSleepMode(false);
-                                                    throw new EtException("communication protocol error");
-                                                }
-                                                // if there's an interrupted ex, socket is OK
-                                                catch (InterruptedIOException ex) {
-                                                    continue tryToGetEvents;
-                                                }
-                                                // if there's an io ex, socket is closed
-                                                catch (IOException ex) {
-                                                    throw ex;
-                                                }
+                                            try {
+                                                // 1/2 second max delay on read
+                                                in.readInt();
+                                                // should never be able to get here
+                                                att.setSleepMode(false);
+                                                throw new EtException("communication protocol error");
                                             }
+                                            // if there's an interrupted ex, socket is OK
+                                            catch (InterruptedIOException ex) { }
                                         }
                                     }
 
@@ -893,23 +869,15 @@ class ClientThread extends Thread {
                                         }
                                         // if timeout, check socket to see if still open
                                         catch (EtTimeoutException tx) {
-                                            while (true) {
-                                                try {
-                                                    // 1/2 second max delay on read
-                                                    in.readInt();
-                                                    // should never be able to get here
-                                                    att.setSleepMode(false);
-                                                    throw new EtException("communication protocol error");
-                                                }
-                                                // if there's an interrupted ex, socket is OK
-                                                catch (InterruptedIOException ex) {
-                                                    continue tryToGetEvents;
-                                                }
-                                                // if there's an io ex, socket is closed
-                                                catch (IOException ex) {
-                                                    throw ex;
-                                                }
+                                            try {
+                                                // 1/2 second max delay on read
+                                                in.readInt();
+                                                // should never be able to get here
+                                                att.setSleepMode(false);
+                                                throw new EtException("communication protocol error");
                                             }
+                                            // if there's an interrupted ex, socket is OK
+                                            catch (InterruptedIOException ex) { }
                                         }
                                     }
 
@@ -1055,23 +1023,34 @@ class ClientThread extends Thread {
                                         }
                                         // if timeout, check socket to see if still open
                                         catch (EtTimeoutException tx) {
-                                            while (true) {
-                                                try {
-                                                    // 1/2 second max delay on read
-                                                    in.readInt();
-                                                    // should never be able to get here
-                                                    att.setSleepMode(false);
-                                                    throw new EtException("communication protocol error");
-                                                }
-                                                // if there's an interrupted ex, socket is OK
-                                                catch (InterruptedIOException ex) {
-                                                    continue tryToGetEvents;
-                                                }
-                                                // if there's an io ex, socket is closed
-                                                catch (IOException ex) {
-                                                    throw ex;
-                                                }
+                                            try {
+                                                // 1/2 second max delay on read
+                                                in.readInt();
+                                                // should never be able to get here
+                                                att.setSleepMode(false);
+                                                throw new EtException("communication protocol error");
                                             }
+                                            // if there's an interrupted ex, socket is OK
+                                            catch (InterruptedIOException ex) { }
+
+                                            // original loop
+//                                            while (true) {
+//                                                try {
+//                                                    // 1/2 second max delay on read
+//                                                    in.readInt();
+//                                                    // should never be able to get here
+//                                                    att.setSleepMode(false);
+//                                                    throw new EtException("communication protocol error");
+//                                                }
+//                                                // if there's an interrupted ex, socket is OK
+//                                                catch (InterruptedIOException ex) {
+//                                                    continue tryToGetEvents;
+//                                                }
+//                                                // if there's an io ex, socket is closed
+//                                                catch (IOException ex) {
+//                                                    throw ex;
+//                                                }
+//                                            }
                                         }
                                     }
 
@@ -1269,7 +1248,7 @@ class ClientThread extends Thread {
                             StationConfig statConfig = new StationConfig();
 
                             // read in station config info
-                            int init               = in.readInt(); // not used in Java
+                            int init = in.readInt(); // not used in Java
                             statConfig.setFlowMode(in.readInt());
                             statConfig.setUserMode(in.readInt());
                             statConfig.setRestoreMode(in.readInt());
