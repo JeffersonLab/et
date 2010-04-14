@@ -126,7 +126,7 @@ public class SystemConfig {
 
     /** Gets the array of how many events in each group.
      *  @return array of how many events in each group */
-    public int[] getGroups() {return (int []) groups.clone();}
+    public int[] getGroups() {return groups.clone();}
 
     /** Gets the maximum number of stations.
      *  @return maximum number of stations */
