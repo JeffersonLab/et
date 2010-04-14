@@ -554,7 +554,7 @@ public class SystemCreate {
      * @param station station to set status on
      * @param status the desired status of the station
      */
-    void changeStationStatus(StationLocal station, int status) {
+    private void changeStationStatus(StationLocal station, int status) {
         lockAllStationTransferLocks();
         try {
             station.setStatus(status);
@@ -585,7 +585,7 @@ public class SystemCreate {
      * @exception EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    public StationLocal createStation(StationConfig stationConfig, String name)
+    StationLocal createStation(StationConfig stationConfig, String name)
             throws EtException, EtExistsException, EtTooManyException {
         synchronized(stationLock) {
             return createStation(stationConfig, name, stations.size(), Constants.end);
