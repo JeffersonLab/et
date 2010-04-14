@@ -357,21 +357,21 @@ class ClientThread extends Thread {
 
                                   // Store the fact we're trying to sleep - necessary when
                                   // told to wake up.
-                                  att.sleepMode = true;
+                                  att.setSleepMode(true);
 
                                   tryToGetEvents:
                                   while (true) {
                                       // try a 4 second wait for an event
                                       try {
-                                          if (att.wakeUp) {
-                                              att.wakeUp = false;
+                                          if (att.isWakeUp()) {
+                                              att.setWakeUp(false);
                                               throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.getEvents(att, Constants.timed, 4000000, 1);
                                           // no longer in sleep mode
-                                          att.sleepMode = false;
+                                          att.setSleepMode(false);
                                           // may have been told to wake up between last 2 statements.
-                                          att.wakeUp = false;
+                                          att.setWakeUp(false);
                                           break;
                                       }
                                       // if timeout, check socket to see if still open
@@ -381,7 +381,7 @@ class ClientThread extends Thread {
                                                   // 1/2 second max delay on read
                                                   in.readInt();
                                                   // should never be able to get here
-                                                  att.sleepMode = false;
+                                                  att.setSleepMode(false);
                                                   throw new EtException("communication protocol error");
                                               }
                                               // if there's an interrupted ex, socket is OK
@@ -413,7 +413,7 @@ class ClientThread extends Thread {
                           }
                           catch (EtWakeUpException ex) {
                               err = Constants.errorWakeUp;
-                              att.sleepMode = false;
+                              att.setSleepMode(false);
                           }
                           catch (EtTimeoutException ex) {
                               err = Constants.errorTimeout;
@@ -485,21 +485,21 @@ class ClientThread extends Thread {
 
                                   // Store the fact we're trying to sleep - necessary when
                                   // told to wake up.
-                                  att.sleepMode = true;
+                                  att.setSleepMode(true);
 
                                   tryToGetEvents:
                                   while (true) {
                                       // try a 4 second wait for events
                                       try {
-                                          if (att.wakeUp) {
-                                              att.wakeUp = false;
+                                          if (att.isWakeUp()) {
+                                              att.setWakeUp(false);
                                               throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.getEvents(att, Constants.timed, 4000000, count);
                                           // no longer in sleep mode
-                                          att.sleepMode = false;
+                                          att.setSleepMode(false);
                                           // may have been told to wake up between last 2 statements.
-                                          att.wakeUp = false;
+                                          att.setWakeUp(false);
                                           break;
                                       }
                                       // if timeout, check socket to see if still open
@@ -509,7 +509,7 @@ class ClientThread extends Thread {
                                                   // 1/2 second max delay on read
                                                   in.readInt();
                                                   // should never be able to get here
-                                                  att.sleepMode = false;
+                                                  att.setSleepMode(false);
                                                   throw new EtException("communication protocol error");
                                               }
                                               // if there's an interrupted ex, socket is OK
@@ -541,7 +541,7 @@ class ClientThread extends Thread {
                           }
                           catch (EtWakeUpException ex) {
                               err = Constants.errorWakeUp;
-                              att.sleepMode = false;
+                              att.setSleepMode(false);
                           }
                           catch (EtTimeoutException ex) {
                               err = Constants.errorTimeout;
@@ -755,21 +755,21 @@ class ClientThread extends Thread {
 
                                   // Store the fact we're trying to sleep - necessary when
                                   // told to wake up.
-                                  att.sleepMode = true;
+                                  att.setSleepMode(true);
 
                                   tryToGetEvents:
                                   while (true) {
                                       // try a 4 second wait for an event
                                       try {
-                                          if (att.wakeUp) {
-                                              att.wakeUp = false;
+                                          if (att.isWakeUp()) {
+                                              att.setWakeUp(false);
                                               throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.newEvents(att, Constants.timed, 4000000, 1, (int)size);
                                           // no longer in sleep mode
-                                          att.sleepMode = false;
+                                          att.setSleepMode(false);
                                           // may have been told to wake up between last 2 statements.
-                                          att.wakeUp = false;
+                                          att.setWakeUp(false);
                                           break;
                                       }
                                       // if timeout, check socket to see if still open
@@ -779,7 +779,7 @@ class ClientThread extends Thread {
                                                   // 1/2 second max delay on read
                                                   in.readInt();
                                                   // should never be able to get here
-                                                  att.sleepMode = false;
+                                                  att.setSleepMode(false);
                                                   throw new EtException("communication protocol error");
                                               }
                                               // if there's an interrupted ex, socket is OK
@@ -810,7 +810,7 @@ class ClientThread extends Thread {
                           }
                           catch (EtWakeUpException ex) {
                               err = Constants.errorWakeUp;
-                              att.sleepMode = false;
+                              att.setSleepMode(false);
                           }
                           catch (EtTimeoutException ex) {
                               err = Constants.errorTimeout;
@@ -867,21 +867,21 @@ class ClientThread extends Thread {
 
                                   // Store the fact we're trying to sleep - necessary when
                                   // told to wake up.
-                                  att.sleepMode = true;
+                                  att.setSleepMode(true);
 
                                   tryToGetEvents:
                                   while (true) {
                                       // try a 4 second wait for events
                                       try {
-                                          if (att.wakeUp) {
-                                              att.wakeUp = false;
+                                          if (att.isWakeUp()) {
+                                              att.setWakeUp(false);
                                               throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evs = sys.newEvents(att, Constants.timed, 4000000, count, (int)size);
                                           // no longer in sleep mode
-                                          att.sleepMode = false;
+                                          att.setSleepMode(false);
                                           // may have been told to wake up between last 2 statements.
-                                          att.wakeUp = false;
+                                          att.setWakeUp(false);
                                           break;
                                       }
                                       // if timeout, check socket to see if still open
@@ -891,7 +891,7 @@ class ClientThread extends Thread {
                                                   // 1/2 second max delay on read
                                                   in.readInt();
                                                   // should never be able to get here
-                                                  att.sleepMode = false;
+                                                  att.setSleepMode(false);
                                                   throw new EtException("communication protocol error");
                                               }
                                               // if there's an interrupted ex, socket is OK
@@ -923,7 +923,7 @@ class ClientThread extends Thread {
                           }
                           catch (EtWakeUpException ex) {
                               err = Constants.errorWakeUp;
-                              att.sleepMode = false;
+                              att.setSleepMode(false);
                           }
                           catch (EtTimeoutException ex) {
                               err = Constants.errorTimeout;
@@ -1029,21 +1029,21 @@ class ClientThread extends Thread {
 
                                   // Store the fact we're trying to sleep - necessary when
                                   // told to wake up.
-                                  att.sleepMode = true;
+                                  att.setSleepMode(true);
 
                                   tryToGetEvents:
                                   while (true) {
                                       // try a 4 second wait for events
                                       try {
-                                          if (att.wakeUp) {
-                                              att.wakeUp = false;
+                                          if (att.isWakeUp()) {
+                                              att.setWakeUp(false);
                                               throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                           }
                                           evList = sys.newEvents(att, Constants.timed, 4000000, count, (int)size, group);
                                           // no longer in sleep mode
-                                          att.sleepMode = false;
+                                          att.setSleepMode(false);
                                           // may have been told to wake up between last 2 statements.
-                                          att.wakeUp = false;
+                                          att.setWakeUp(false);
                                           break;
                                       }
                                       // if timeout, check socket to see if still open
@@ -1053,7 +1053,7 @@ class ClientThread extends Thread {
                                                   // 1/2 second max delay on read
                                                   in.readInt();
                                                   // should never be able to get here
-                                                  att.sleepMode = false;
+                                                  att.setSleepMode(false);
                                                   throw new EtException("communication protocol error");
                                               }
                                               // if there's an interrupted ex, socket is OK
@@ -1085,7 +1085,7 @@ class ClientThread extends Thread {
                           }
                           catch (EtWakeUpException ex) {
                               err = Constants.errorWakeUp;
-                              att.sleepMode = false;
+                              att.setSleepMode(false);
                           }
                           catch (EtTimeoutException ex) {
                               err = Constants.errorTimeout;
@@ -1163,8 +1163,8 @@ class ClientThread extends Thread {
                           AttachmentLocal att = attachments.get(new Integer(attId));
                           if (att != null) {
                               att.getStation().getInputList().wakeUp(att);
-                              if (att.sleepMode) {
-                                  att.wakeUp = true;
+                              if (att.isSleepMode()) {
+                                  att.setWakeUp(true);
                               }
                           }
                       }
@@ -1186,8 +1186,8 @@ class ClientThread extends Thread {
                                       // getEvents will make them all wake up.
 
                                       for (AttachmentLocal att : stat.getAttachments()) {
-                                          if (att.sleepMode) {
-                                              att.wakeUp = true;
+                                          if (att.isSleepMode()) {
+                                              att.setWakeUp(true);
                                           }
                                       }
 
@@ -1216,7 +1216,7 @@ class ClientThread extends Thread {
 
                           try {
                               att = sys.attach(statId);
-                              att.pid = pid;
+                              att.setPid(pid);
                               if (length > 0) {
                                   att.setHost(host);
                               }
@@ -1638,13 +1638,13 @@ class ClientThread extends Thread {
                   else {
                       out.writeInt(ok);
                       if (command == Constants.netAttPut)
-                          out.writeLong(att.eventsPut);
+                          out.writeLong(att.getEventsPut());
                       else if (command == Constants.netAttGet)
-                          out.writeLong(att.eventsGet);
+                          out.writeLong(att.getEventsGet());
                       else if (command == Constants.netAttDump)
-                          out.writeLong(att.eventsDump);
+                          out.writeLong(att.getEventsDump());
                       else if (command == Constants.netAttMake)
-                          out.writeLong(att.eventsMake);
+                          out.writeLong(att.getEventsMake());
                   }
                   out.flush();
               }

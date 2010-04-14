@@ -27,53 +27,73 @@ package org.jlab.coda.et.system;
 
 class AttachmentLocal {
 
-  // keep a list or set of events we currently have out?
+    // keep a list or set of events we currently have out?
 
     /** Unique id number. */
-  private int              id;
-  /** Process id number for attachments written in C language. */
-  int              pid;
+    private int id;
+
+    /** Process id number for attachments written in C language. */
+    private int pid;
 
     /** Name of the host the attachment is residing on. */
-  private String           host;
+    private String host;
 
     /** Station the attachment is associated with. */
-  private StationLocal station;
-  /** Number of events put by a user into the attachment. */
-  long             eventsPut;
-  /** Number of events gotten by a user from the attachment. */
-  long             eventsGet;
-  /** Number of events dumped (recycled by returning to GRAND_CENTRAL station)
-      by a user through the attachment. */
-  long             eventsDump;
-  /** Number of new events gotten by a user from the attachment. */
-  long             eventsMake;
+    private StationLocal station;
+
+    /** Number of events put by a user into the attachment. */
+    private long eventsPut;
+
+    /** Number of events gotten by a user from the attachment. */
+    private long eventsGet;
+
+    /** Number of events dumped (recycled by returning to GRAND_CENTRAL station)
+     *  by a user through the attachment. */
+    private long eventsDump;
+
+    /** Number of new events gotten by a user from the attachment. */
+    private long eventsMake;
 
     /** Flag telling whether the attachment is blocked waiting to read events
-      from a station that has no events.  */
-  boolean          waiting;
-  /** Flag telling whether the attachment is currently in the sleep mode of
-      getEvents or newEvents. Since the implementation of this mode is
-      done by using the timed wait mode, it occasionally happens that the
-      attachment is told to wake up while it is not actually in getEvents or
-      newEvents. If this flag is true, the command to wake up will go ahead
-      and set "wakeUp" to true - even if "waiting" is false. */
-  volatile boolean sleepMode;
+     *  from a station that has no events.  */
+    private boolean waiting;
+
+    /**
+     * Flag telling whether the attachment is currently in the sleep mode of
+     * getEvents or newEvents. Since the implementation of this mode is
+     * done by using the timed wait mode, it occasionally happens that the
+     * attachment is told to wake up while it is not actually in getEvents or
+     * newEvents. If this flag is true, the command to wake up will go ahead
+     * and set "wakeUp" to true - even if "waiting" is false.
+     */
+    private volatile boolean sleepMode;
 
     /** Flag telling the attachment blocked on a read to wake up or return. */
-  volatile boolean wakeUp;
+    private volatile boolean wakeUp;
 
-  /** Gets the attachment id number.
-   *  @return attachment id number */
-  public int getId() {return id;}
+
+    /** Gets the attachment id number.
+     *  @return attachment id number */
+    public int getId() {
+        return id;
+    }
+
     public void setId(int id) {
         this.id = id;
     }
 
-  
+    public int getPid() {
+        return pid;
+    }
+
+    public void setPid(int pid) {
+        this.pid = pid;
+    }
+
     public String getHost() {
         return host;
     }
+
     public void setHost(String host) {
         this.host = host;
     }
@@ -91,6 +111,15 @@ class AttachmentLocal {
     public void setWakeUp(boolean wakeUp) {
         this.wakeUp = wakeUp;
     }
+    
+    public boolean isSleepMode() {
+        return sleepMode;
+    }
+
+    public void setSleepMode(boolean sleepMode) {
+        this.sleepMode = sleepMode;
+    }
+
     public StationLocal getStation() {
         return station;
     }
@@ -131,16 +160,16 @@ class AttachmentLocal {
         this.eventsMake = eventsMake;
     }
 
- 
 
-  /**
-   * Attachments are only created by an ET system's
-   * {@link SystemCreate#attach} method.
-   */
-  public AttachmentLocal() {
-    id         = -1;
-    pid        = -1;
-  }
+
+    /**
+     * Attachments are only created by an ET system's
+     * {@link SystemCreate#attach} method.
+     */
+    public AttachmentLocal() {
+        id         = -1;
+        pid        = -1;
+    }
 
 }
 
