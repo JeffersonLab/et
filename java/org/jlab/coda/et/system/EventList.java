@@ -357,7 +357,7 @@ class EventList {
 
 
     /**
-     * For an attachment (in TcpServer thread) to get an array of events.
+     * Method for an attachment (in TcpServer thread) to get an array of events.
      *
      * @param att attachment
      * @param mode wait mode
@@ -466,7 +466,7 @@ class EventList {
 
 
     /**
-     * For an attachment (in TcpServer thread) to get an array of events.
+     * Method for an attachment (in TcpServer thread) to get a list of events.
      *
      * @param att attachment
      * @param mode wait mode
