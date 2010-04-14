@@ -28,40 +28,50 @@ import org.jlab.coda.et.Constants;
 
 public class SystemConfig {
 
-  /** Total number of events. */
-  int      numEvents;
-  /** Size of the "normal" event in bytes. This is the memory allocated to each
-   *  event upon starting up the ET system. */
-  int      eventSize;
-  /** Number of events in each group. Used with mulitple producers who want to
-   * guarantee available events for each producer. */
-  int[]    groups;
-  /** Maximum number of station. */
-  int      stationsMax;
-  /** Maximum number of attachments. */
-  int      attachmentsMax;
-  /**
-   *  Debug level. This may have values of {@link org.jlab.coda.et.Constants#debugNone} meaning
-   *  print nothing, {@link org.jlab.coda.et.Constants#debugSevere} meaning print only the
-   *  severest errors, {@link org.jlab.coda.et.Constants#debugError} meaning print all errors,
-   *  {@link org.jlab.coda.et.Constants#debugWarn} meaning print all errors and warnings, and
-   *  finally {@link org.jlab.coda.et.Constants#debugInfo} meaning print all errors, warnings,
-   *  and informative messages.
-   */
-  int      debug;
-  /** UDP port number for thread responding to users' broadcasts looking for the
-   *  ET system. */
-  int      udpPort;
-  /** TCP port number for the thread establishing connections with users,
-   *  otherwise referred to as the ET server thread. */
-  int      serverPort;
-  /** UDP port number for thread responding to users' multicasts looking for the
-   *  ET system. */
-  int      multicastPort;
-  /** Set of all multicast addresses to listen on (in String form). */
-  HashSet<InetAddress>  multicastAddrs;
+    /** Total number of events. */
+    private int numEvents;
 
-  /**
+    /** Size of the "normal" event in bytes. This is the memory allocated to each
+     *  event upon starting up the ET system. */
+    private int eventSize;
+
+    /** Number of events in each group. Used with mulitple producers who want to
+     * guarantee available events for each producer. */
+    private int[] groups;
+
+    /** Maximum number of station. */
+    private int stationsMax;
+
+    /** Maximum number of attachments. */
+    private int attachmentsMax;
+
+    /**
+     *  Debug level. This may have values of {@link Constants#debugNone} meaning
+     *  print nothing, {@link Constants#debugSevere} meaning print only the
+     *  severest errors, {@link Constants#debugError} meaning print all errors,
+     *  {@link Constants#debugWarn} meaning print all errors and warnings, and
+     *  finally {@link Constants#debugInfo} meaning print all errors, warnings,
+     *  and informative messages.
+     */
+    private int debug;
+
+    /** UDP port number for thread responding to users' broadcasts looking for the
+     *  ET system. */
+    private int udpPort;
+
+    /** TCP port number for the thread establishing connections with users,
+     *  otherwise referred to as the ET server thread. */
+    private int serverPort;
+
+    /** UDP port number for thread responding to users' multicasts looking for the
+     *  ET system. */
+    private int multicastPort;
+
+    /** Set of all multicast addresses to listen on (in String form). */
+    private HashSet<InetAddress> multicastAddrs;
+
+
+    /**
    * Creates a new SystemConfig object using default parameters.
    * The default parameters are:
    *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
