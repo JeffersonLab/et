@@ -88,7 +88,7 @@ class SystemTcpServer extends Thread {
                   // server socket accept timeout
                   catch (InterruptedIOException ex) {
                       // check to see if we've been commanded to die
-                      if (sys.killAllThreads) {
+                      if (sys.killAllThreads()) {
                           return;
                       }
                   }
@@ -226,7 +226,7 @@ class ClientThread extends Thread {
 
             // see if the ET system that the client is
             // trying to connect to is this one.
-            if (!etName.equals(sys.name)) {
+            if (!etName.equals(sys.getName())) {
                 if (config.getDebug() >= Constants.debugError) {
                     System.out.println("Tcp Server: client trying to connect to " + etName);
                 }
@@ -308,7 +308,7 @@ class ClientThread extends Thread {
                   // socket read timeout
                   catch (InterruptedIOException ex) {
                       // check to see if we've been commanded to die
-                      if (sys.killAllThreads) {
+                      if (sys.killAllThreads()) {
                           return;
                       }
                   }
@@ -634,7 +634,7 @@ class ClientThread extends Thread {
                           AttachmentLocal att = attachments.get(new Integer(attId));
 
                           long id = Utils.bytesToLong(params, 4);
-                          EventImpl ev = sys.events.get(new Long(id));
+                          EventImpl ev = sys.getEvents().get(new Long(id));
 
                           long len = Utils.bytesToLong(params, 12);
                           if (len > Integer.MAX_VALUE) {
@@ -686,7 +686,7 @@ class ClientThread extends Thread {
                               in.readFully(params, 0, byteChunk);
 
                               id = Utils.bytesToLong(params, 0);
-                              evs[j] = sys.events.get(new Long(id));
+                              evs[j] = sys.getEvents().get(new Long(id));
 
                               len = Utils.bytesToLong(params, 8);
                               if (len > Integer.MAX_VALUE) {
@@ -958,7 +958,7 @@ class ClientThread extends Thread {
                           long id    = in.readLong();
 
                           AttachmentLocal att = attachments.get(new Integer(attId));
-                          EventImpl ev = sys.events.get(id);
+                          EventImpl ev = sys.getEvents().get(id);
                           EventImpl[] evArray = new EventImpl[1];
                           evArray[0] = ev;
                           sys.dumpEvents(att, evArray);
@@ -982,7 +982,7 @@ class ClientThread extends Thread {
 
                           for (int j = 0; j < numEvents; j++) {
                               id = Utils.bytesToLong(buf, index += 8);
-                              evs[j] = sys.events.get(new Long(id));
+                              evs[j] = sys.getEvents().get(new Long(id));
                           }
 
                           sys.dumpEvents(att, evs);
@@ -1176,7 +1176,7 @@ class ClientThread extends Thread {
                           // Stations are stored in a linked list. Find one w/ this id.
                           synchronized (sys.getStationLock()) {
                               for (StationLocal stat : sys.getStations()) {
-                                  if (stat.id == statId) {
+                                  if (stat.getStationId() == statId) {
                                       // Since attachments which sleep when getting events don't
                                       // really sleep but do a timed wait, they occasionally are
                                       // not in a get method but are checking the status of the
@@ -1326,7 +1326,7 @@ class ClientThread extends Thread {
                               out.writeInt(0);
                           }
                           else {
-                              out.writeInt(stat.id);
+                              out.writeInt(stat.getStationId());
                           }
                           out.flush();
                       }
@@ -1417,7 +1417,7 @@ class ClientThread extends Thread {
 
                           // in equivalent "C" function, station id is also returned
                           try {
-                              statId = sys.stationNameToObject(name).id;
+                              statId = sys.stationNameToObject(name).getStationId();
                           }
                           catch (EtException ex) {
                               exists = false;
@@ -1669,8 +1669,8 @@ class ClientThread extends Thread {
                   else if (command == Constants.netSysProcMax)
                       val = 0; // no max # of processes since no shared memory
                   else if (command == Constants.netSysAtt) {
-                      synchronized (sys.systemLock) {
-                          val = sys.attachments.size(); // # attachments
+                      synchronized (sys.getSystemLock()) {
+                          val = sys.getAttachments().size(); // # attachments
                       }
                   }
                   else if (command == Constants.netSysAttMax)
@@ -1700,12 +1700,12 @@ class ClientThread extends Thread {
                   // command to distribute data about this ET system over the network
                   if (command == Constants.netSysData) {
                       // allow only 1 thread at a time a crack at updating information
-                      synchronized (sys.infoArray) {
+                      synchronized (sys.getInfoArray()) {
                           int err = sys.gatherSystemData();
                           out.writeInt(err);
                           if (err == ok) {
                               // Send data + int holding data size
-                              out.write(sys.infoArray, 0, sys.dataLength + 4);
+                              out.write(sys.getInfoArray(), 0, sys.getDataLength() + 4);
                           }
                       }
                       out.flush();

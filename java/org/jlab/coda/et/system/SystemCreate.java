@@ -33,7 +33,7 @@ public class SystemCreate {
     private SystemConfig config;
 
     /** The ET system file name. */
-    String name;
+    private String name;
 
     /** A list of stations defining the flow of events. Only the first
      *  station of a single group of parallel stations is included in
@@ -45,31 +45,31 @@ public class SystemCreate {
      * of the number of main stations given by the size of the "stations"
      * linked list (stations.size()) and the number of additional parallel
      * stations added together. */
-    int stationCount;
+    private int stationCount;
 
     /** GRAND_CENTRAL station object */
     private StationLocal gcStation;
 
     /** Map of all ET system attachments. */
-    HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
+    private HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
 
     /** Map of all ET system events. */
-    HashMap<Long, EventImpl> events;
+    private HashMap<Long, EventImpl> events;
 
     /** All local IP addresses */
-    InetAddress[]netAddresses;
+    private InetAddress[]netAddresses;
 
     /** Flag telling if the ET system is running. */
     private boolean running;
 
-    /** Object on which to synchronize for system stuff. */
-    byte[] systemLock;
+    /** Object on which to synchronize for system stuff - attachments. */
+    private byte[] systemLock;
 
     /** Object on which to synchronize for station stuff. */
     private byte[] stationLock;
 
     /** Flag for killing all threads started by ET system. */
-    volatile boolean killAllThreads;
+    private volatile boolean killAllThreads;
 
     // Variables for gathering system information for distribution.
     // Do it no more than once per second.
@@ -81,11 +81,11 @@ public class SystemCreate {
     private long time1 = 0L;
 
     /** Length of valid data in array storing system information. */
-    int dataLength = 0;
+    private int dataLength = 0;
 
     /** Array for storing system information for distribution. */
-    byte[] infoArray = new byte[6000];
-
+    private byte[] infoArray = new byte[6000];
+    
 
     /**
      * Constructor that creates a new ET system using default parameters and starts it running.
@@ -106,6 +106,7 @@ public class SystemCreate {
     public SystemCreate(String _name) throws EtException {
         this(_name, new SystemConfig());
     }
+
 
     /**
      * COnstructor that creates a new ET system with specified parameters and starts it running.
@@ -208,6 +209,35 @@ public class SystemCreate {
      * @return  station synchronization object */
     public byte[] getStationLock() { return stationLock; }
 
+    /** Get the system synchronization object.
+     * @return  system synchronization object */
+    public byte[] getSystemLock() { return systemLock; }
+
+    /** Get map holding all ET system's events.
+     * @return map holding all ET system's events */
+    public HashMap<Long, EventImpl> getEvents() { return events; }
+
+    /** Gets the list of all network addresses.
+     *  @return list of all network addresses */
+    public InetAddress[] getNetAddresses() { return netAddresses; }
+
+    /** Get the map of all attachments.
+     * @return map of all attachments */
+    public HashMap<Integer, AttachmentLocal> getAttachments() { return attachments; }
+
+    /** Has this object been told to kill all spawned threads?
+     * @return <code>true</code> if this object has been told to kill all spawned threads  */
+    public boolean killAllThreads() { return killAllThreads; }
+
+    /** Get array for storing system information for distribution.
+     * @return rray for storing system information for distribution  */
+    public byte[] getInfoArray() { return infoArray; }
+
+    /** Get length (number of bytes) of valid data in array storing system information.
+     * @return length (number of bytes) of valid data in array storing system information */
+    public int getDataLength() { return dataLength; }
+
+   
 
     /** Starts the ET system running. If the system is already running, nothing
      * is done. */
@@ -741,125 +771,128 @@ public class SystemCreate {
         }
     }
 
-  /**
-   * Changes the position of a station in the linked lists of stations.
-   *
-   * @param statId     station id
-   * @param position   position in the main linked list of stations (starting at 0)
-   * @param parallelPosition position of a parallel station in a group of
-   *     parallel stations (starting at 0)
-   * @exception EtException
-   *     if the station does not exist, or
-   *     if trying to move an incompatible parallel station to an existing group
-   *     of parallel stations or to the head of an existing group of parallel
-   *     stations.
-   */
-  void setStationPosition(int statId, int position, int parallelPosition)
-                                                          throws EtException {
-    StationLocal stat;
-    // grab station mutex
-    synchronized(stationLock) {
-      stat = stationIdToObject(statId);
-      // change linked list - first grabbing stopTransfer mutexes
-      moveStationInList(stat, position, parallelPosition);
-    }
-  }
-
-  /**
-   * Gets the position of a station in the main linked list of stations.
-   *
-   * @param statId   station id
-   * @return         the position of a station in the linked list of stations
-   * @exception EtException
-   *     if the station does not exist
-   */
-  int getStationPosition(int statId) throws EtException {
-      // GrandCentral is always first
-      if (statId == 0) return 0;
-      int position = 0;
-
-      synchronized (stationLock) {
-          for (StationLocal stat : stations) {
-              if (stat.getStationId() == statId) {
-                  return position;
-              }
-              if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
-                  for (StationLocal stat2 : stat.getParallelStations()) {
-                      if (stat2.getStationId() == statId) {
-                          return position;
-                      }
-                  }
-              }
-              position++;
-          }
-      }
-      throw new EtException("cannot find station");
-  }
-
-  /**
-   * Gets the position of a parallel station in its linked list of 
-   * parallel stations.
-   *
-   * @param statId   station id
-   * @return         the position of a parallel station in its linked list
-   *      of parallel stations, or zero if station is serial
-   * @exception EtException
-   *     if the station does not exist
-   */
-  int getStationParallelPosition(int statId) throws EtException {
-      // parallel position is 0 for serial stations
-      if (statId == 0) return 0;
-      int pposition;
-
-      synchronized (stationLock) {
-          for (StationLocal stat : stations) {
-              if (stat.getStationId() == statId) {
-                  return 0;
-              }
-              if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
-                  pposition = 1;
-                  for (StationLocal stat2 : stat.getParallelStations()) {
-                      if (stat2.getStationId() == statId) {
-                          return pposition;
-                      }
-                      pposition++;
-                  }
-              }
-          }
-      }
-      throw new EtException("cannot find station");
-  }
-
-  /**
-   * Tells if an attachment is attached to a station.
-   *
-   * @param statId   station id
-   * @param attId    attachment id
-   * @return         <code>true</code> if an attachment is attached to a station
-   *                 and <code>false</code> otherwise
-   * @exception EtException
-   *     if the station does not exist
-   */
-  boolean stationAttached(int statId, int attId) throws EtException {
-      StationLocal stat;
-      synchronized (stationLock) {
-          stat = stationIdToObject(statId);
-          for (AttachmentLocal att : stat.getAttachments()) {
-              if (att.getId() == attId) {
-                  return true;
-              }
-          }
-          return false;
-      }
-  }
 
     /**
-   * Tells if a station exists.
-   *
-   * @param station station object
-   * @return <code>true</code> if a station exists and
-   *         <code>false</code> otherwise
-   */
+     * Changes the position of a station in the linked lists of stations.
+     *
+     * @param statId     station id
+     * @param position   position in the main linked list of stations (starting at 0)
+     * @param parallelPosition position of a parallel station in a group of
+     *     parallel stations (starting at 0)
+     * @exception EtException
+     *     if the station does not exist, or
+     *     if trying to move an incompatible parallel station to an existing group
+     *     of parallel stations or to the head of an existing group of parallel
+     *     stations.
+     */
+    void setStationPosition(int statId, int position, int parallelPosition) throws EtException {
+        StationLocal stat;
+        // grab station mutex
+        synchronized(stationLock) {
+            stat = stationIdToObject(statId);
+            // change linked list - first grabbing stopTransfer mutexes
+            moveStationInList(stat, position, parallelPosition);
+        }
+    }
+
+    /**
+     * Gets the position of a station in the main linked list of stations.
+     *
+     * @param statId   station id
+     * @return         the position of a station in the linked list of stations
+     * @exception EtException
+     *     if the station does not exist
+     */
+    int getStationPosition(int statId) throws EtException {
+        // GrandCentral is always first
+        if (statId == 0) return 0;
+        int position = 0;
+
+        synchronized (stationLock) {
+            for (StationLocal stat : stations) {
+                if (stat.getStationId() == statId) {
+                    return position;
+                }
+                if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                    for (StationLocal stat2 : stat.getParallelStations()) {
+                        if (stat2.getStationId() == statId) {
+                            return position;
+                        }
+                    }
+                }
+                position++;
+            }
+        }
+        throw new EtException("cannot find station");
+    }
+
+
+    /**
+     * Gets the position of a parallel station in its linked list of
+     * parallel stations.
+     *
+     * @param statId   station id
+     * @return         the position of a parallel station in its linked list
+     *      of parallel stations, or zero if station is serial
+     * @exception EtException
+     *     if the station does not exist
+     */
+    int getStationParallelPosition(int statId) throws EtException {
+        // parallel position is 0 for serial stations
+        if (statId == 0) return 0;
+        int pposition;
+
+        synchronized (stationLock) {
+            for (StationLocal stat : stations) {
+                if (stat.getStationId() == statId) {
+                    return 0;
+                }
+                if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                    pposition = 1;
+                    for (StationLocal stat2 : stat.getParallelStations()) {
+                        if (stat2.getStationId() == statId) {
+                            return pposition;
+                        }
+                        pposition++;
+                    }
+                }
+            }
+        }
+        throw new EtException("cannot find station");
+    }
+
+
+    /**
+     * Tells if an attachment is attached to a station.
+     *
+     * @param statId   station id
+     * @param attId    attachment id
+     * @return         <code>true</code> if an attachment is attached to a station
+     *                 and <code>false</code> otherwise
+     * @exception EtException
+     *     if the station does not exist
+     */
+    boolean stationAttached(int statId, int attId) throws EtException {
+        StationLocal stat;
+        synchronized (stationLock) {
+            stat = stationIdToObject(statId);
+            for (AttachmentLocal att : stat.getAttachments()) {
+                if (att.getId() == attId) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+
+    /**
+     * Tells if a station exists.
+     *
+     * @param station station object
+     * @return <code>true</code> if a station exists and
+     *         <code>false</code> otherwise
+     */
     boolean stationExists(StationLocal station) {
         synchronized (stationLock) {
             if (stations.contains(station)) {
@@ -876,151 +909,156 @@ public class SystemCreate {
         return false;
     }
 
-  /**
-   * Tells if a station exists.
-   *
-   * @param    name station name
-   * @return   <code>true</code> if a station exists and
-   *           <code>false</code> otherwise
-   */
-  boolean stationExists(String name) {
-      try {
-          stationNameToObject(name);
-      }
-      catch (EtException ex) {
-          return false;
-      }
-      return true;
-  }
 
-  /**
-   * Gets a station's object representation.
-   *
-   * @param    name station name
-   * @return   a station's object
-   * @exception EtException
-   *     if the station does not exist
-   */
-  StationLocal stationNameToObject(String name) throws EtException {
-      synchronized (stationLock) {
-          for (StationLocal listStation : stations) {
-              if (listStation.getStationName().equals(name)) {
-                  return listStation;
-              }
-              if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
-                  for (StationLocal listStation2 : listStation.getParallelStations()) {
-                      if (listStation2.getStationName().equals(name)) {
-                          return listStation2;
-                      }
-                  }
-              }
-          }
-      }
-      throw new EtException("station " + name + " does not exist");
-  }
+    /**
+     * Tells if a station exists.
+     *
+     * @param    name station name
+     * @return   <code>true</code> if a station exists and
+     *           <code>false</code> otherwise
+     */
+    boolean stationExists(String name) {
+        try {
+            stationNameToObject(name);
+        }
+        catch (EtException ex) {
+            return false;
+        }
+        return true;
+    }
 
-  /**
-   * Given a station id number, this method gets the corresponding
-   * StationLocal object.
-   *
-   * @param     statId station id
-   * @return    the station's object
-   * @exception EtException
-   *     if the station does not exist
-   */
-  StationLocal stationIdToObject(int statId) throws EtException {
-      synchronized (stationLock) {
-          for (StationLocal stat : stations) {
-              if (stat.getStationId() == statId) {
-                  return stat;
-              }
-              if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
-                  for (StationLocal stat2 : stat.getParallelStations()) {
-                      if (stat2.getStationId() == statId) {
-                          return stat2;
-                      }
-                  }
-              }
-          }
-      }
-      throw new EtException("station  with id \"" + statId + "\" does not exist");
-  }
 
-  //
-  // attachment related methods
-  //
+    /**
+     * Gets a station's object representation.
+     *
+     * @param    name station name
+     * @return   a station's object
+     * @exception EtException
+     *     if the station does not exist
+     */
+    StationLocal stationNameToObject(String name) throws EtException {
+        synchronized (stationLock) {
+            for (StationLocal listStation : stations) {
+                if (listStation.getStationName().equals(name)) {
+                    return listStation;
+                }
+                if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                    for (StationLocal listStation2 : listStation.getParallelStations()) {
+                        if (listStation2.getStationName().equals(name)) {
+                            return listStation2;
+                        }
+                    }
+                }
+            }
+        }
+        throw new EtException("station " + name + " does not exist");
+    }
 
-  /**
-   * Create an attachment to a station.
-   *
-   * @param statId   station id
-   * @return         an attachment object
-   * @exception EtException
-   *     if the station does not exist
-   * @exception EtTooManyException
-   *     if station does not exist, or
-   *     if no more attachments are allowed to the station, or
-   *     if no more attachments are allowed to ET system
-   */
-  AttachmentLocal attach(int statId) throws EtException, EtTooManyException {
 
-      AttachmentLocal att;
-      synchronized (stationLock) {
-          StationLocal station = stationIdToObject(statId);
+    /**
+     * Given a station id number, this method gets the corresponding
+     * StationLocal object.
+     *
+     * @param     statId station id
+     * @return    the station's object
+     * @exception EtException
+     *     if the station does not exist
+     */
+    StationLocal stationIdToObject(int statId) throws EtException {
+        synchronized (stationLock) {
+            for (StationLocal stat : stations) {
+                if (stat.getStationId() == statId) {
+                    return stat;
+                }
+                if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                    for (StationLocal stat2 : stat.getParallelStations()) {
+                        if (stat2.getStationId() == statId) {
+                            return stat2;
+                        }
+                    }
+                }
+            }
+        }
+        throw new EtException("station  with id \"" + statId + "\" does not exist");
+    }
 
-          // limit on # of attachments to station
-          if ((station.getConfig().getUserMode() > 0) &&
-                  (station.getConfig().getUserMode() <= station.getAttachments().size())) {
-              throw new EtTooManyException("no more attachments allowed to station");
-          }
 
-          synchronized (systemLock) {
-              // limit on number of attachments to ET system
-              if (attachments.size() >= config.getAttachmentsMax()) {
-                  throw new EtTooManyException("no more attachments allowed to ET system");
-              }
+    //
+    // attachment related methods
+    //
 
-              // Server will overwrite id & host with true (remote) values
-              att = new AttachmentLocal();
-              att.setStation(station);
-              // find smallest possible unique id number
-              if (attachments.size() == 0) {
-                  att.setId(0);
-              }
-              else {
-                  search:
-                  for (int i = 0; i < attachments.size() + 1; i++) {
-                      for (Integer j : attachments.keySet()) {
-                          if (j == i) continue search;
-                      }
-                      // only get down here if "i" is not a used id number
-                      att.setId(i);
-                      break;
-                  }
-              }
-              //att.status = Constants.attActive;
+
+    /**
+     * Create an attachment to a station.
+     *
+     * @param statId   station id
+     * @return         an attachment object
+     * @exception EtException
+     *     if the station does not exist
+     * @exception EtTooManyException
+     *     if station does not exist, or
+     *     if no more attachments are allowed to the station, or
+     *     if no more attachments are allowed to ET system
+     */
+    AttachmentLocal attach(int statId) throws EtException, EtTooManyException {
+
+        AttachmentLocal att;
+        synchronized (stationLock) {
+            StationLocal station = stationIdToObject(statId);
+
+            // limit on # of attachments to station
+            if ((station.getConfig().getUserMode() > 0) &&
+                (station.getConfig().getUserMode() <= station.getAttachments().size())) {
+                throw new EtTooManyException("no more attachments allowed to station");
+            }
+
+            synchronized (systemLock) {
+                // limit on number of attachments to ET system
+                if (attachments.size() >= config.getAttachmentsMax()) {
+                    throw new EtTooManyException("no more attachments allowed to ET system");
+                }
+
+                // Server will overwrite id & host with true (remote) values
+                att = new AttachmentLocal();
+                att.setStation(station);
+                // find smallest possible unique id number
+                if (attachments.size() == 0) {
+                    att.setId(0);
+                }
+                else {
+                    search:
+                    for (int i = 0; i < attachments.size() + 1; i++) {
+                        for (Integer j : attachments.keySet()) {
+                            if (j == i) continue search;
+                        }
+                        // only get down here if "i" is not a used id number
+                        att.setId(i);
+                        break;
+                    }
+                }
+                //att.status = Constants.attActive;
 //System.out.println("attach att #" + att.id + " will put into system's map");
-              attachments.put(att.getId(), att);
-          }
+                attachments.put(att.getId(), att);
+            }
 
-          // keep att stats in station too?
-          station.getAttachments().add(att);
-          // station.status = Constants.stationActive;
-          // change station status - first grabbing stopTransfer mutexes
-          changeStationStatus(station, Constants.stationActive);
+            // keep att stats in station too?
+            station.getAttachments().add(att);
+            // station.status = Constants.stationActive;
+            // change station status - first grabbing stopTransfer mutexes
+            changeStationStatus(station, Constants.stationActive);
 //System.out.println("attach att #" + att.id + " put into station's map & active");
-      }
+        }
 
-      return att;
-  }
+        return att;
+    }
 
 
-  /**
-   * Remove an attachment from a station.
-   *
-   * @param att   attachment object
-   */
-  void detach(AttachmentLocal att) {
+    /**
+     * Remove an attachment from a station.
+     *
+     * @param att   attachment object
+     */
+    void detach(AttachmentLocal att) {
 //System.out.println("detach: IN");
         synchronized (stationLock) {
             // if last attachment & not GrandCentral - mark station idle
@@ -1074,176 +1112,175 @@ public class SystemCreate {
     }
 
 
-  /**
-   * Restore events gotten by an attachment but lost when its network connection
-   * was broken. These events are not guaranteed to be restored in any
-   * particular order.
-   *
-   * @param att   attachment object
-   */
-  private void restoreEvents(AttachmentLocal att) {
-      // Split new events (which should be dumped) from used
-      // events which go where directed by station configuration.
-      ArrayList<EventImpl> usedEvs = new ArrayList<EventImpl>(config.getNumEvents());
-      ArrayList<EventImpl>  newEvs = new ArrayList<EventImpl>(config.getNumEvents());
+    /**
+     * Restore events gotten by an attachment but lost when its network connection
+     * was broken. These events are not guaranteed to be restored in any
+     * particular order.
+     *
+     * @param att   attachment object
+     */
+    private void restoreEvents(AttachmentLocal att) {
+        // Split new events (which should be dumped) from used
+        // events which go where directed by station configuration.
+        ArrayList<EventImpl> usedEvs = new ArrayList<EventImpl>(config.getNumEvents());
+        ArrayList<EventImpl>  newEvs = new ArrayList<EventImpl>(config.getNumEvents());
 //System.out.println("into restoreEvents");
 
-      // look at all events
-      for (EventImpl ev : events.values()) {
-          // find those owned by this attachment
-          if (ev.getOwner() == att.getId()) {
-              if (ev.getAge() == Constants.eventNew) {
+        // look at all events
+        for (EventImpl ev : events.values()) {
+            // find those owned by this attachment
+            if (ev.getOwner() == att.getId()) {
+                if (ev.getAge() == Constants.eventNew) {
 //System.out.println("found new ev " + ev.id + " owned by attachment " + att.id);
-                  newEvs.add(ev);
-              }
-              else {
-                  // Put high priority events first.
-                  // Original order may get messed up here.
+                    newEvs.add(ev);
+                }
+                else {
+                    // Put high priority events first.
+                    // Original order may get messed up here.
 //System.out.println("found used ev " + ev.id + " owned by attachment " + att.id);
-                  if (ev.getPriority() == Constants.high) {
-                      usedEvs.add(0, ev);
-                  }
-                  else {
-                      usedEvs.add(ev);
-                  }
-              }
-          }
-      }
+                    if (ev.getPriority() == Constants.high) {
+                        usedEvs.add(0, ev);
+                    }
+                    else {
+                        usedEvs.add(ev);
+                    }
+                }
+            }
+        }
 
-      if (newEvs.size() > 0) {
+        if (newEvs.size() > 0) {
 //System.out.println("dump " + newEvs.size() + " new events");
-          dumpEvents(att, newEvs);
-      }
+            dumpEvents(att, newEvs);
+        }
 
-      if (usedEvs.size() > 0) {
+        if (usedEvs.size() > 0) {
 //System.out.println("restore " + usedEvs.size() + " used events");
-          // if normal events are to be returned to GrandCentral
-          if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreGC) ||
-                  (att.getStation().getStationId() == 0)) {
+            // if normal events are to be returned to GrandCentral
+            if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreGC) ||
+                    (att.getStation().getStationId() == 0)) {
 //System.out.println("restore used events to GC (dump)");
-              dumpEvents(att, usedEvs);
-          }
-          // Else if events are to be returned to station's outputList ...
-          // Notice that if we are supposed to put things in the
-          // inputList, but we are the last attachement (and in the
-          // middle of detaching), then events put into the inputList
-          // will be lost to the system. Place them into the outputList.
-          else if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreOut) ||
-                  ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) &&
-                          (att.getStation().getAttachments().size() == 0))) {
+                dumpEvents(att, usedEvs);
+            }
+            // Else if events are to be returned to station's outputList ...
+            // Notice that if we are supposed to put things in the
+            // inputList, but we are the last attachement (and in the
+            // middle of detaching), then events put into the inputList
+            // will be lost to the system. Place them into the outputList.
+            else if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreOut) ||
+                    ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) &&
+                     (att.getStation().getAttachments().size() == 0))) {
 //System.out.println("restore used events to output list");
-              putEvents(att, usedEvs);
-          }
-          else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) {
-              // If the station is blocking, its inputList has room for all
-              // the events and there's no problem putting them all.
-              // Statistics don't get messed up here.
-              if (att.getStation().getConfig().getBlockMode() == Constants.stationBlocking) {
+                putEvents(att, usedEvs);
+            }
+            else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) {
+                // If the station is blocking, its inputList has room for all
+                // the events and there's no problem putting them all.
+                // Statistics don't get messed up here.
+                if (att.getStation().getConfig().getBlockMode() == Constants.stationBlocking) {
 //System.out.println("restore used events to input list of blocking station");
-                  moveEvents(att.getStation().getInputList(), usedEvs);
-              }
-              // Else if nonblocking there may not be enough room.
-              // Equivalent to putting events back into the station's inputList
-              // is to put them into the previous station' outputList and letting
-              // its conductor thread do the work - which is easy to program.
-              // This has the unfortunate side effect of probably messing
-              // up the statistics as some events may be counted twice.
-              else {
-                  try {
-                      // Find previous station
-                      int pos = getStationPosition(att.getStation().getStationId());
-                      if (--pos < 0) return;
-                      StationLocal prevStat = stations.get(pos);
-                      moveEvents(prevStat.getOutputList(), usedEvs);
-                  }
-                  catch (EtException e) { return; }
+                    moveEvents(att.getStation().getInputList(), usedEvs);
+                }
+                // Else if nonblocking there may not be enough room.
+                // Equivalent to putting events back into the station's inputList
+                // is to put them into the previous station' outputList and letting
+                // its conductor thread do the work - which is easy to program.
+                // This has the unfortunate side effect of probably messing
+                // up the statistics as some events may be counted twice.
+                else {
+                    try {
+                        // Find previous station
+                        int pos = getStationPosition(att.getStation().getStationId());
+                        if (--pos < 0) return;
+                        StationLocal prevStat = stations.get(pos);
+                        moveEvents(prevStat.getOutputList(), usedEvs);
+                    }
+                    catch (EtException e) { return; }
 //System.out.println("restore used events to input list of nonblocking station");
-              }
-          }
-          else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreRedist) {
-              // Put events into the previous station's outputList and let its
-              // conductor thread do the work - redistributing them to the members
-              // of the parallel station group.
-              // This has the unfortunate side effect of probably messing
-              // up the statistics as some events may be counted twice.
-              try {
+                }
+            }
+            else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreRedist) {
+                // Put events into the previous station's outputList and let its
+                // conductor thread do the work - redistributing them to the members
+                // of the parallel station group.
+                // This has the unfortunate side effect of probably messing
+                // up the statistics as some events may be counted twice.
+                try {
 //System.out.println("TRY to restore used events to output list of previous station");
-                  int pos = getStationPosition(att.getStation().getStationId());
-                  if (--pos < 0) return;
-                  StationLocal prevStat = stations.get(pos);
+                    int pos = getStationPosition(att.getStation().getStationId());
+                    if (--pos < 0) return;
+                    StationLocal prevStat = stations.get(pos);
 //System.out.println("Found previous station -> " + prevStat.name + ", putting " + usedEvs.size() + " number of events");
-                  moveEvents(prevStat.getOutputList(), usedEvs);
-              }
-              catch (Exception e) { return; }
+                    moveEvents(prevStat.getOutputList(), usedEvs);
+                }
+                catch (Exception e) { return; }
 //System.out.println("DID restore used events to output list of previous station");
-          }
-      }
-      return;
-  }
+            }
+        }
+        return;
+    }
 
-  //
-  // event related methods
-  //
 
-  /**
-   * Get new or unused events from an ET system.
-   *
-   * @param att       attachment object
-   * @param mode      if there are no events available, this parameter specifies
-   *                  whether to wait for some by sleeping, by waiting for a set
-   *                  time, or by returning immediately (asynchronous)
-   * @param microSec  the number of microseconds to wait if a timed wait is
-   *                  specified
-   * @param count     the number of events desired
-   * @param size      the size of events in bytes
-   *
-   * @return an array of events
-   *
-   * @exception EtEmptyException
-   *     if the mode is asynchronous and the station's input list is empty
-   * @exception EtBusyException
-   *     if the mode is asynchronous and the station's input list is being used
-   *     (the mutex is locked)
-   * @exception EtTimeoutException
-   *     if the mode is timed wait and the time has expired
-   * @exception EtWakeUpException
-   *     if the attachment has been commanded to wakeup,
-   *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
-   */
-  EventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
-                    throws EtEmptyException, EtBusyException,
-                           EtTimeoutException, EtWakeUpException {
+    //
+    // event related methods
+    //
+
+
+    /**
+     * Get new or unused events from an ET system.
+     *
+     * @param att       attachment object
+     * @param mode      if there are no events available, this parameter specifies
+     *                  whether to wait for some by sleeping, by waiting for a set
+     *                  time, or by returning immediately (asynchronous)
+     * @param microSec  the number of microseconds to wait if a timed wait is
+     *                  specified
+     * @param count     the number of events desired
+     * @param size      the size of events in bytes
+     *
+     * @return an array of events
+     *
+     * @exception EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @exception EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @exception EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @exception EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     */
+    EventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
+            throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: get " + count + " events");
 
-    // get events from GrandCentral Station's output list
-    EventImpl[] evs = gcStation.getInputList().get(att, mode, microSec, count);
+        // get events from GrandCentral Station's output list
+        EventImpl[] evs = gcStation.getInputList().get(att, mode, microSec, count);
 //System.out.println("newEvents: got events");
 
-    // for each event ...
-    for (EventImpl ev : evs) {
-      // initialize fields
-      ev.init();
-      // registered as owned by this attachment
-      ev.setOwner(att.getId());
-      // if size is too small make it larger
-      if (ev.getMemSize() < size) {
-          try {
-              ev.setData(new byte[size]);
-          }
-          catch (EtException e) { }  // TODO: is this kosher??
-          ev.setMemSize(size);
-      }
+        // for each event ...
+        for (EventImpl ev : evs) {
+            // initialize fields
+            ev.init();
+            // registered as owned by this attachment
+            ev.setOwner(att.getId());
+            // if size is too small make it larger
+            if (ev.getMemSize() < size) {
+                try {
+                    ev.setData(new byte[size]);
+                }
+                catch (EtException e) { }  // TODO: is this kosher??
+                ev.setMemSize(size);
+            }
 //System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize);
-    }
+        }
 
-    // keep track of # of events made by this attachment
-    att.setEventsMake(att.getEventsMake() + evs.length);
+        // keep track of # of events made by this attachment
+        att.setEventsMake(att.getEventsMake() + evs.length);
 //System.out.println("newEvents: att.eventsMake = "+ att.eventsMake);
-    return evs;
-  }
-
-
+        return evs;
+    }
 
 
     /**
@@ -1275,107 +1312,99 @@ public class SystemCreate {
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
     List<EventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
-                      throws EtException, EtEmptyException, EtBusyException,
-                             EtTimeoutException, EtWakeUpException {
+            throws EtException, EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: try getting " + count + " events of group # " + group);
-      // check to see if value of group is meaningful
-      if (group > config.getGroups().length) {
-          throw new EtException("group number is too high");
-      }
+        // check to see if value of group is meaningful
+        if (group > config.getGroups().length) {
+            throw new EtException("group number is too high");
+        }
 
-      // get events from GrandCentral Station's output list
-      List<EventImpl> evs = gcStation.getInputList().get(att, mode, microSec, count, group);
+        // get events from GrandCentral Station's output list
+        List<EventImpl> evs = gcStation.getInputList().get(att, mode, microSec, count, group);
 //System.out.println("newEvents: got events (# = " + evs.size() + ")");
 
-      // for each event ...
-      for (EventImpl ev : evs) {
-        // initialize fields
-        ev.init();
-        // registered as owned by this attachment
-        ev.setOwner(att.getId());
-        // if size is too small make it larger
-        if (ev.getMemSize() < size) {
-          ev.setData(new byte[size]);
-          ev.setMemSize(size);
-        }
+        // for each event ...
+        for (EventImpl ev : evs) {
+            // initialize fields
+            ev.init();
+            // registered as owned by this attachment
+            ev.setOwner(att.getId());
+            // if size is too small make it larger
+            if (ev.getMemSize() < size) {
+                ev.setData(new byte[size]);
+                ev.setMemSize(size);
+            }
 //System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize + ", group = " + ev.group);
-      }
+        }
 
-      // keep track of # of events made by this attachment
-      att.setEventsMake(att.getEventsMake() + evs.size());
+        // keep track of # of events made by this attachment
+        att.setEventsMake(att.getEventsMake() + evs.size());
 //System.out.println("newEvents: att.eventsMake = "+ att.eventsMake);
-      return evs;
+        return evs;
     }
 
 
+    /**
+     * Get events from an ET system.
+     *
+     * @param att      attachment object
+     * @param mode     if there are no events available, this parameter specifies
+     *                 whether to wait for some by sleeping, by waiting for a set
+     *                 time, or by returning immediately (asynchronous)
+     * @param microSec the number of microseconds to wait if a timed wait is
+     *                 specified
+     * @param count    the number of events desired
+     *
+     * @return an array of events
+     *
+     * @exception EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @exception EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @exception EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @exception EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     */
+    EventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
+            throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
+        EventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
 
-  /**
-   * Get events from an ET system.
-   *
-   * @param att      attachment object
-   * @param mode     if there are no events available, this parameter specifies
-   *                 whether to wait for some by sleeping, by waiting for a set
-   *                 time, or by returning immediately (asynchronous)
-   * @param microSec the number of microseconds to wait if a timed wait is
-   *                 specified
-   * @param count    the number of events desired
-   *
-   * @return an array of events
-   *
-   * @exception EtEmptyException
-   *     if the mode is asynchronous and the station's input list is empty
-   * @exception EtBusyException
-   *     if the mode is asynchronous and the station's input list is being used
-   *     (the mutex is locked)
-   * @exception EtTimeoutException
-   *     if the mode is timed wait and the time has expired
-   * @exception EtWakeUpException
-   *     if the attachment has been commanded to wakeup,
-   *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
-   */
-  EventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
-                      throws EtEmptyException, EtBusyException,
-                             EtTimeoutException, EtWakeUpException {
+        // each event is registered as owned by this attachment
+        for (EventImpl ev : evs) {
+            ev.setOwner(att.getId());
+        }
 
-    EventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
+        // keep track of # of events gotten by this attachment
+        att.setEventsGet(att.getEventsGet() + evs.length);
 
-    // each event is registered as owned by this attachment
-    for (EventImpl ev : evs) {
-      ev.setOwner(att.getId());
+        return evs;
     }
 
-    // keep track of # of events gotten by this attachment
-    att.setEventsGet(att.getEventsGet() + evs.length);
 
-    return evs;
-  }
+    /**
+     * Place events into a station's input or output list.
+     * Used when moving events stranded at a station due to
+     * the last attachment having crashed. Does not change statistics.
+     *
+     * @param list        station's input or output list into which events are placed
+     * @param eventList   list of event objects
+     */
+    private void moveEvents(EventList list, List<EventImpl> eventList) {
+        // mark events as used and as owned by system
+        for (EventImpl ev : eventList) {
+            ev.setAge(Constants.eventUsed);
+            ev.setOwner(Constants.system);
+        }
 
+        list.putReverse(eventList);
 
-
-  /**
-   * Place events into a station's input or output list.
-   * Used when moving events stranded at a station due to
-   * the last attachment having crashed. Does not change statistics.
-   *
-   * @param list        station's input or output list into which events are placed
-   * @param eventList   list of event objects
-   *
-   */
-  private void moveEvents(EventList list, List<EventImpl> eventList) {
-    // mark events as used and as owned by system
-    for (EventImpl ev : eventList) {
-      ev.setAge(Constants.eventUsed);
-      ev.setOwner(Constants.system);
+        return;
     }
-
-    list.putReverse(eventList);
-
-    return;
-  }
-
-
 
 
     /**
@@ -1383,536 +1412,527 @@ public class SystemCreate {
      *
      * @param att          attachment object
      * @param eventArray   array of event objects
-     *
      */
     void putEvents(AttachmentLocal att, EventImpl[] eventArray) {
-      // mark events as used and as owned by system
-      for (EventImpl ev : eventArray) {
+        // mark events as used and as owned by system
+        for (EventImpl ev : eventArray) {
 //System.out.println("putEvents: set age & owner of event " + i);
-          ev.setAge(Constants.eventUsed);
-          ev.setOwner(Constants.system);
-      }
+            ev.setAge(Constants.eventUsed);
+            ev.setOwner(Constants.system);
+        }
 
-      att.getStation().getOutputList().put(eventArray);
-      // keep track of # of events put by this attachment
-      att.setEventsPut(att.getEventsPut() + eventArray.length);
+        att.getStation().getOutputList().put(eventArray);
+        // keep track of # of events put by this attachment
+        att.setEventsPut(att.getEventsPut() + eventArray.length);
 
-      return;
+        return;
     }
 
 
-
-
-  /**
-   * Put events into an ET system.
-   *
-   * @param att         attachment object
-   * @param eventList   list of event objects
-   *
-   */
-  private void putEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
+    /**
+     * Put events into an ET system.
+     *
+     * @param att         attachment object
+     * @param eventList   list of event objects
+     */
+    private void putEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
 //System.out.println("putEvents: got in, array length = " + eventList.length);
-    // mark events as used and as owned by system
-    for (EventImpl ev : eventList) {
+        // mark events as used and as owned by system
+        for (EventImpl ev : eventList) {
 //System.out.println("putEvents: set age & owner of event " + i);
-        ev.setAge(Constants.eventUsed);
-        ev.setOwner(Constants.system);
+            ev.setAge(Constants.eventUsed);
+            ev.setOwner(Constants.system);
+        }
+
+        att.getStation().getOutputList().put(eventList);
+        // keep track of # of events put by this attachment
+        att.setEventsPut(att.getEventsPut() + eventList.size());
+
+        return;
     }
 
-    att.getStation().getOutputList().put(eventList);
-    // keep track of # of events put by this attachment
-    att.setEventsPut(att.getEventsPut() + eventList.size());
 
-    return;
-  }
+    /**
+     * Dispose of unwanted events in an ET system. The events are recycled and not
+     * made available to any other user.
+     *
+     * @param att          attachment object
+     * @param eventArray   array of event objects
+     */
+    void dumpEvents(AttachmentLocal att, EventImpl[] eventArray) {
+        // mark as owned by system
+        for (EventImpl ev : eventArray) {
+            ev.setOwner(Constants.system);
+        }
 
+        // put into GrandCentral Station
+        gcStation.getInputList().putInGC(eventArray);
 
+        // keep track of # of events put by this attachment
+        att.setEventsDump(att.getEventsDump() + eventArray.length);
 
-  /**
-   * Dispose of unwanted events in an ET system. The events are recycled and not
-   * made available to any other user.
-   *
-   * @param att          attachment object
-   * @param eventArray   array of event objects
-   *
-   */
-  void dumpEvents(AttachmentLocal att, EventImpl[] eventArray) {
-    // mark as owned by system
-    for (EventImpl ev : eventArray) {
-        ev.setOwner(Constants.system);
+        return;
     }
 
-    // put into GrandCentral Station
-    gcStation.getInputList().putInGC(eventArray);
 
-    // keep track of # of events put by this attachment
-    att.setEventsDump(att.getEventsDump() + eventArray.length);
-
-    return;
-  }
-
-
-
-  /**
-   * Dispose of unwanted events in an ET system. The events are recycled and not
-   * made available to any other user.
-   *
-   * @param att         attachment object
-   * @param eventList   list of event objects
-   *
-   */
-  private void dumpEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
-    for (EventImpl ev : eventList) {
-        ev.setOwner(Constants.system);
+    /**
+     * Dispose of unwanted events in an ET system. The events are recycled and not
+     * made available to any other user.
+     *
+     * @param att         attachment object
+     * @param eventList   list of event objects
+     */
+    private void dumpEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
+        for (EventImpl ev : eventList) {
+            ev.setOwner(Constants.system);
+        }
+        gcStation.getInputList().putInGC(eventList);
+        att.setEventsDump(att.getEventsDump() + eventList.size());
+        return;
     }
-    gcStation.getInputList().putInGC(eventList);
-    att.setEventsDump(att.getEventsDump() + eventList.size());
-    return;
-  }
 
 
+    /**
+     * Gather all ET system data for sending over the network and put it into a
+     * single byte array. Putting the data into a byte array is done so that its
+     * size is known beforehand and can be sent as the first int of data. It is
+     * also done so that this gathering of data is done no more than once a second
+     * and so that the data is shared by the many attachments that may want it.
+     * It is far more efficient to send an existing array of data to an attachment
+     * than it is to regather it for each request. The calling of this method is
+     * mutex protected so only 1 thread/attachment can modify or access the
+     * array at a time.
+     *
+     * @return <code>Constants.ok</code> if everything is fine and
+     *         <code>Constants.error</code> otherwise
+     */
+    int gatherSystemData() {
+        int err = Constants.ok;
 
-  /**
-   * Gather all ET system data for sending over the network and put it into a
-   * single byte array. Putting the data into a byte array is done so that its
-   * size is known beforehand and can be sent as the first int of data. It is
-   * also done so that this gathering of data is done no more than once a second
-   * and so that the data is shared by the many attachments that may want it.
-   * It is far more efficient to send an existing array of data to an attachment
-   * than it is to regather it for each request. The calling of this method is
-   * mutex protected so only 1 thread/attachment can modify or access the
-   * array at a time.
-   *
-   * @return <code>Constants.ok</code> if everything is fine and
-   *         <code>Constants.error</code> otherwise
-   */
-  int gatherSystemData() {
-      int err = Constants.ok;
+        // regather all system information every second at most
+        long time2 = System.currentTimeMillis();
+        if (time2 - time1 > 1000) {
+            gather = true;
+        }
 
-      // regather all system information every second at most
-      long time2 = System.currentTimeMillis();
-      if (time2 - time1 > 1000) {
-        gather = true;
-      }
+        if (gather) {
+            time1 = System.currentTimeMillis();
+            try {
+                // Estimate the maximum space we need to store all the data
+                // (assuming no more than 10 network interfaces & multicast addrs).
+                // Use of LinkedList/HashMap is not mutex protected here so it
+                // may fail. Catch all errors.
+                int numStations = stationCount;
+                int numAtts = attachments.size();
+                int size = 600 + 570*numStations + 160*numAtts;
 
-      if (gather) {
-        time1 = System.currentTimeMillis();
-        try {
-          // Estimate the maximum space we need to store all the data
-          // (assuming no more than 10 network interfaces & multicast addrs).
-          // Use of LinkedList/HashMap is not mutex protected here so it
-          // may fail. Catch all errors.
-          int numStations = stationCount;	  
-          int numAtts = attachments.size();
-          int size = 600 + 570*numStations + 160*numAtts;
+                if (size > infoArray.length) {
+                    infoArray = new byte[size];
+                }
 
-          if (size > infoArray.length) {
-            infoArray = new byte[size];
-          }
-
-          int len1 = writeSystemData(infoArray, 4);
-          int len2 = writeStationData(infoArray, 4+len1, numStations);
-          int len3 = writeAttachmentData(infoArray, 4+len1+len2, numAtts);
+                int len1 = writeSystemData(infoArray, 4);
+                int len2 = writeStationData(infoArray, 4+len1, numStations);
+                int len3 = writeAttachmentData(infoArray, 4+len1+len2, numAtts);
 //System.out.println("len1-3 = " + len1 + ", " + len2 + ", " + len3);
-          // no process data in Java ET systems
-          Utils.intToBytes(0, infoArray, 4+len1+len2+len3);
-          int len4 = 4;
-          dataLength = len1+len2+len3+len4;
+                // no process data in Java ET systems
+                Utils.intToBytes(0, infoArray, 4+len1+len2+len3);
+                int len4 = 4;
+                dataLength = len1+len2+len3+len4;
 
-          // Write size of data (not including the length now being written)
-          // in beginning of array.
-          Utils.intToBytes(dataLength, infoArray, 0);
+                // Write size of data (not including the length now being written)
+                // in beginning of array.
+                Utils.intToBytes(dataLength, infoArray, 0);
 
-          gather = false;
+                gather = false;
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+                err = Constants.error;
+            }
         }
-        catch (Exception ex) {
-            ex.printStackTrace();
-            err = Constants.error;
+        return err;
+    }
+
+
+    /**
+     * Get ET system data for sending over the network.
+     *
+     * @param info byte array to hold system data
+     * @param off offset of the byte array
+     * @return size of the data in bytes placed into the byte array
+     */
+    private int writeSystemData(byte[] info, int off) {
+        // values which can change
+        Utils.intToBytes(1, info, off); // alive by definition
+        Utils.intToBytes(0, info, off+=4); // no heartbeat
+        Utils.intToBytes(0, info, off+=4); // no temp events
+        Utils.intToBytes(stations.size(),    info, off+=4); // aren't these redundant???
+        Utils.intToBytes(attachments.size(), info, off+=4); // aren't these redundant???
+        Utils.intToBytes(0, info, off+=4); // no processes sharing memory
+
+        // find out how many events the system owns
+        int eventsOwned = 0;
+        for (Event ev : events.values()) {
+            if (ev.getOwner() == Constants.system) {
+                eventsOwned++;
+            }
         }
-      }
-      return err;
-  }
+        Utils.intToBytes(eventsOwned, info, off+=4);
 
+        // no way to test and see if mutexes are locked in Java
+        Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
+        Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
+        Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
 
-  /**
-   * Get ET system data for sending over the network.
-   *
-   * @param info byte array to hold system data
-   * @param off offset of the byte array
-   * @return size of the data in bytes placed into the byte array
-   */
-  private int writeSystemData(byte[] info, int off) {
-    // values which can change
-    Utils.intToBytes(1, info, off); // alive by definition
-    Utils.intToBytes(0, info, off+=4); // no heartbeat
-    Utils.intToBytes(0, info, off+=4); // no temp events
-    Utils.intToBytes(stations.size(), info, off+=4); // aren't these redundant???
-    Utils.intToBytes(attachments.size(), info, off+=4); // aren't these redundant???
-    Utils.intToBytes(0, info, off+=4); // no processes sharing memory
+        // values which do NOT change
+        Utils.intToBytes(Constants.endianBig,          info, off+=4);
+        Utils.intToBytes(Constants.mutexNoShare,       info, off+=4);
+        Utils.intToBytes(-1,                           info, off+=4);
+        Utils.intToBytes(Constants.stationSelectInts,  info, off+=4);
+        Utils.intToBytes(config.getNumEvents(),        info, off+=4);
+        Utils.longToBytes((long)config.getEventSize(), info, off+=4);
+        Utils.intToBytes(0,                            info, off+=8);   // send 0 if 32 bits, else 1 if 64 bits
+        Utils.intToBytes(0,                            info, off+=4);
+        Utils.intToBytes(config.getStationsMax(),      info, off+=4);
+        Utils.intToBytes(config.getAttachmentsMax(),   info, off+=4);
+        Utils.intToBytes(0,                            info, off+=4);
 
-    // find out how many events the system owns
-    int eventsOwned = 0;
-    for (Event ev : events.values()) {
-        if (ev.getOwner() == Constants.system) {
-          eventsOwned++;
+        // tcp server port
+        Utils.intToBytes(config.getServerPort(), info, off+=4);
+        // udp port
+        Utils.intToBytes(config.getUdpPort(), info, off+=4);
+        // multicast port
+        Utils.intToBytes(config.getMulticastPort(), info, off+=4);
+
+        // # of interfaces and multicast addresses
+        Utils.intToBytes(netAddresses.length, info, off+=4);
+        Utils.intToBytes(config.getMulticastAddrs().size(), info, off+=4);
+
+        int len;
+        int totalInts = 27;
+        int totalStringLen = 0;
+
+        // length of interface address strings
+        for (InetAddress addr : netAddresses) {
+            len = addr.getHostAddress().length() + 1;
+            Utils.intToBytes(len, info, off+=4);
+            totalInts++;
+            totalStringLen += len;
         }
-    }
-    Utils.intToBytes(eventsOwned, info, off+=4);
 
-    // no way to test and see if mutexes are locked in Java
-    Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
-    Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
-    Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
+        // what about broadcast address strings???
 
-    // values which do NOT change
-    Utils.intToBytes(Constants.endianBig, info, off+=4);
-    Utils.intToBytes(Constants.mutexNoShare, info, off+=4);
-    Utils.intToBytes(-1, info, off+=4);
-    Utils.intToBytes(Constants.stationSelectInts, info, off+=4);
-    Utils.intToBytes(config.getNumEvents(), info, off+=4);
-    Utils.longToBytes((long)config.getEventSize(), info, off+=4);
-    Utils.intToBytes(0, info, off+=8);   // send 0 if 32 bits, else 1 if 64 bits
-    Utils.intToBytes(0, info, off+=4);
-    Utils.intToBytes(config.getStationsMax(), info, off+=4);
-    Utils.intToBytes(config.getAttachmentsMax(), info, off+=4);
-    Utils.intToBytes(0, info, off+=4);
+        // length of multicast address strings
+        for (InetAddress addr : config.getMulticastAddrs()) {
+            len = addr.getHostAddress().length() + 1;
+            Utils.intToBytes(len, info, off+=4);
+            totalInts++;
+            totalStringLen += len;
+        }
 
-    // tcp server port
-    Utils.intToBytes(config.getServerPort(), info, off+=4);
-    // udp port
-    Utils.intToBytes(config.getUdpPort(), info, off+=4);
-    // multicast port
-    Utils.intToBytes(config.getMulticastPort(), info, off+=4);
+        // length ET file name
+        len = name.length() + 1;
+        Utils.intToBytes(len, info, off+=4);
+        totalInts++;
+        totalStringLen += len;
 
-    // # of interfaces and multicast addresses
-    Utils.intToBytes(netAddresses.length, info, off+=4);
-    Utils.intToBytes(config.getMulticastAddrs().size(), info, off+=4);
+        // total data size
+        int byteSize = 4*totalInts + totalStringLen;
 
-    int len;
-    int totalInts = 27;
-    int totalStringLen = 0;
+        // write strings into array
+        off += 4;
+        byte[] outString;
 
-    // length of interface address strings
-    for (InetAddress addr : netAddresses) {
-      len = addr.getHostAddress().length() + 1;
-      Utils.intToBytes(len, info, off+=4);
-      totalInts++;
-      totalStringLen += len;
-    }
+        for (InetAddress addr : netAddresses) {
+            try {
+                outString = addr.getHostAddress().getBytes("ASCII");
+                System.arraycopy(outString, 0, info, off, outString.length);
+                off += outString.length;
+            }
+            catch (UnsupportedEncodingException ex) {}
+            info[off++] = 0; // C null terminator
+        }
 
-    // what about broadcast address strings???
+        for (InetAddress addr : config.getMulticastAddrs()) {
+            try {
+                outString = addr.getHostAddress().getBytes("ASCII");
+                System.arraycopy(outString, 0, info, off, outString.length);
+                off += outString.length;
+            }
+            catch (UnsupportedEncodingException ex) {}
+            info[off++] = 0; // C null terminator
+        }
 
-    // length of multicast address strings
-    for (InetAddress addr : config.getMulticastAddrs()) {
-      len = addr.getHostAddress().length() + 1;
-      Utils.intToBytes(len, info, off+=4);
-      totalInts++;
-      totalStringLen += len;
-    }
+        try {
+            outString = name.getBytes("ASCII");
+            System.arraycopy(outString, 0, info, off, outString.length);
+            off += outString.length;
+        }
+        catch (UnsupportedEncodingException ex) {}
+        info[off] = 0; // C null terminator
 
-    // length ET file name
-    len = name.length() + 1;
-    Utils.intToBytes(len, info, off+=4);
-    totalInts++;
-    totalStringLen += len;
-
-    // total data size
-    int byteSize = 4*totalInts + totalStringLen;
-
-    // write strings into array
-    off += 4;
-    byte[] outString;
-
-    for (InetAddress addr : netAddresses) {
-      try {
-        outString = addr.getHostAddress().getBytes("ASCII");
-        System.arraycopy(outString, 0, info, off, outString.length);
-        off += outString.length;
-      }
-      catch (UnsupportedEncodingException ex) {}
-      info[off++] = 0; // C null terminator
+        return byteSize;
     }
 
-    for (InetAddress addr : config.getMulticastAddrs()) {
-      try {
-        outString = addr.getHostAddress().getBytes("ASCII");
-        System.arraycopy(outString, 0, info, off, outString.length);
-        off += outString.length;
-      }
-      catch (UnsupportedEncodingException ex) {}
-      info[off++] = 0; // C null terminator
-    }
 
-    try {
-      outString = name.getBytes("ASCII");
-      System.arraycopy(outString, 0, info, off, outString.length);
-      off += outString.length;
-    }
-    catch (UnsupportedEncodingException ex) {}
-    info[off] = 0; // C null terminator
+    /**
+     * Get station data for sending over the network.
+     *
+     * @param info byte array to hold station data
+     * @param offset offset of the byte array
+     * @param stationsMax limit on number of stations to gather data on
+     * @return size of the data in bytes placed into the byte array
+     */
+    private int writeStationData(byte[] info, int offset, int stationsMax) {
+        // Since we're not grabbing any mutexes, the number of stations may have
+        // changed between when the buffer size was set and now. Therefore, do not
+        // exceed "stationsMax" number of stations.
 
-    return byteSize;
-  }
+        int len1, len2, len3, len4, numAtts, counter, offAtt;
+        int off = offset;
+        int byteSize = 0;
+        int statCount = 0;
+        boolean isHead = true;
+        // save space at beginning to insert int containing # of stations
+        byteSize += 4;
+        off += 4;
 
-
-  /**
-   * Get station data for sending over the network.
-   *
-   * @param info byte array to hold station data
-   * @param offset offset of the byte array
-   * @param stationsMax limit on number of stations to gather data on
-   * @return size of the data in bytes placed into the byte array
-   */
-  private int writeStationData(byte[] info, int offset, int stationsMax) {
-      // Since we're not grabbing any mutexes, the number of stations may have
-      // changed between when the buffer size was set and now. Therefore, do not
-      // exceed "stationsMax" number of stations.
-
-      int len1, len2, len3, len4, numAtts, counter, offAtt;
-      int off = offset;
-      int byteSize = 0;
-      int statCount = 0;
-      boolean isHead = true;
-      // save space at beginning to insert int containing # of stations
-      byteSize += 4;
-      off += 4;
-
-      ListIterator parallelIterator = null;
-      ListIterator mainIterator = stations.listIterator();
-      StationLocal stat = (StationLocal) mainIterator.next();
+        ListIterator parallelIterator = null;
+        ListIterator mainIterator = stations.listIterator();
+        StationLocal stat = (StationLocal) mainIterator.next();
 //System.out.println("writeStationData: " + stationsMax + " stats, start with " + stat.name);      
-      while (true) {
+        while (true) {
 
-          // Since the number of attachments may change, be careful,
-          // reserve a spot here to be filled later with num of attachments.
-          offAtt = off;
+            // Since the number of attachments may change, be careful,
+            // reserve a spot here to be filled later with num of attachments.
+            offAtt = off;
 
-          Utils.intToBytes(stat.getStationId(), info, off += 4);
-          Utils.intToBytes(stat.getStatus(), info, off += 4);
-          Utils.intToBytes(Constants.mutexUnlocked, info, off += 4);
+            Utils.intToBytes(stat.getStationId(),     info, off += 4);
+            Utils.intToBytes(stat.getStatus(),        info, off += 4);
+            Utils.intToBytes(Constants.mutexUnlocked, info, off += 4);
 
-          // since the number of attachments may change, be careful
-          counter = 0;
-          for (AttachmentLocal att : stat.getAttachments()) {
-              Utils.intToBytes(att.getId(), info, off += 4);
-              counter++;
-          }
-          Utils.intToBytes(counter, info, offAtt);
-          numAtts = counter;
+            // since the number of attachments may change, be careful
+            counter = 0;
+            for (AttachmentLocal att : stat.getAttachments()) {
+                Utils.intToBytes(att.getId(), info, off += 4);
+                counter++;
+            }
+            Utils.intToBytes(counter, info, offAtt);
+            numAtts = counter;
 
-          Utils.intToBytes(Constants.mutexUnlocked, info, off += 4);
-          Utils.intToBytes(stat.getInputList().getEvents().size(), info, off += 4);
-          Utils.longToBytes(stat.getInputList().getEventsTry(), info, off += 4);
-          Utils.longToBytes(stat.getInputList().getEventsIn(), info, off += 8);
-          Utils.intToBytes(Constants.mutexUnlocked, info, off += 8);
-          Utils.intToBytes(stat.getOutputList().getEvents().size(), info, off += 4);
-          Utils.longToBytes(stat.getOutputList().getEventsOut(), info, off += 4);
+            Utils.intToBytes(Constants.mutexUnlocked,                 info, off += 4);
+            Utils.intToBytes(stat.getInputList().getEvents().size(),  info, off += 4);
+            Utils.longToBytes(stat.getInputList().getEventsTry(),     info, off += 4);
+            Utils.longToBytes(stat.getInputList().getEventsIn(),      info, off += 8);
+            Utils.intToBytes(Constants.mutexUnlocked,                 info, off += 8);
+            Utils.intToBytes(stat.getOutputList().getEvents().size(), info, off += 4);
+            Utils.longToBytes(stat.getOutputList().getEventsOut(),    info, off += 4);
 
-          if (stat.getConfig().getFlowMode() == Constants.stationParallel && isHead) {
-              Utils.intToBytes(Constants.stationParallelHead, info, off += 8);
-          }
-          else {
-              Utils.intToBytes(stat.getConfig().getFlowMode(), info, off += 8);
-          }
-          Utils.intToBytes(stat.getConfig().getUserMode(), info, off += 4);
-          Utils.intToBytes(stat.getConfig().getRestoreMode(), info, off += 4);
-          Utils.intToBytes(stat.getConfig().getBlockMode(), info, off += 4);
-          Utils.intToBytes(stat.getConfig().getPrescale(), info, off += 4);
-          Utils.intToBytes(stat.getConfig().getCue(), info, off += 4);
-          Utils.intToBytes(stat.getConfig().getSelectMode(), info, off += 4);
-          int[] select = stat.getConfig().getSelect();
-          for (int j = 0; j < Constants.stationSelectInts; j++) {
-              Utils.intToBytes(select[j], info, off += 4);
-          }
+            if (stat.getConfig().getFlowMode() == Constants.stationParallel && isHead) {
+                Utils.intToBytes(Constants.stationParallelHead, info, off += 8);
+            }
+            else {
+                Utils.intToBytes(stat.getConfig().getFlowMode(), info, off += 8);
+            }
+            Utils.intToBytes(stat.getConfig().getUserMode(),    info, off += 4);
+            Utils.intToBytes(stat.getConfig().getRestoreMode(), info, off += 4);
+            Utils.intToBytes(stat.getConfig().getBlockMode(),   info, off += 4);
+            Utils.intToBytes(stat.getConfig().getPrescale(),    info, off += 4);
+            Utils.intToBytes(stat.getConfig().getCue(),         info, off += 4);
+            Utils.intToBytes(stat.getConfig().getSelectMode(),  info, off += 4);
+            int[] select = stat.getConfig().getSelect();
+            for (int j = 0; j < Constants.stationSelectInts; j++) {
+                Utils.intToBytes(select[j], info, off += 4);
+            }
 
-          // write strings, lengths first
-          len1 = 0;
-          if (stat.getConfig().getSelectFunction() != null) {
-              len1 = stat.getConfig().getSelectFunction().length() + 1;
-          }
-          len2 = 0;
-          if (stat.getConfig().getSelectLibrary() != null) {
-              len2 = stat.getConfig().getSelectLibrary().length() + 1;
-          }
-          len3 = 0;
-          if (stat.getConfig().getSelectClass() != null) {
-              len3 = stat.getConfig().getSelectClass().length() + 1;
-          }
-          len4 = stat.getStationName().length() + 1;
+            // write strings, lengths first
+            len1 = 0;
+            if (stat.getConfig().getSelectFunction() != null) {
+                len1 = stat.getConfig().getSelectFunction().length() + 1;
+            }
+            len2 = 0;
+            if (stat.getConfig().getSelectLibrary() != null) {
+                len2 = stat.getConfig().getSelectLibrary().length() + 1;
+            }
+            len3 = 0;
+            if (stat.getConfig().getSelectClass() != null) {
+                len3 = stat.getConfig().getSelectClass().length() + 1;
+            }
+            len4 = stat.getStationName().length() + 1;
 
-          Utils.intToBytes(len1, info, off += 4);
-          Utils.intToBytes(len2, info, off += 4);
-          Utils.intToBytes(len3, info, off += 4);
-          Utils.intToBytes(len4, info, off += 4);
+            Utils.intToBytes(len1, info, off += 4);
+            Utils.intToBytes(len2, info, off += 4);
+            Utils.intToBytes(len3, info, off += 4);
+            Utils.intToBytes(len4, info, off += 4);
 
-          // write strings into array
-          off += 4;
-          byte[] outString;
+            // write strings into array
+            off += 4;
+            byte[] outString;
 
-          try {
-              if (len1 > 0) {
-                  outString = stat.getConfig().getSelectFunction().getBytes("ASCII");
-                  System.arraycopy(outString, 0, info, off, outString.length);
-                  off += outString.length;
-                  info[off++] = 0; // C null terminator
-              }
-              if (len2 > 0) {
-                  outString = stat.getConfig().getSelectLibrary().getBytes("ASCII");
-                  System.arraycopy(outString, 0, info, off, outString.length);
-                  off += outString.length;
-                  info[off++] = 0; // C null terminator
-              }
-              if (len3 > 0) {
-                  outString = stat.getConfig().getSelectClass().getBytes("ASCII");
-                  System.arraycopy(outString, 0, info, off, outString.length);
-                  off += outString.length;
-                  info[off++] = 0; // C null terminator
-              }
+            try {
+                if (len1 > 0) {
+                    outString = stat.getConfig().getSelectFunction().getBytes("ASCII");
+                    System.arraycopy(outString, 0, info, off, outString.length);
+                    off += outString.length;
+                    info[off++] = 0; // C null terminator
+                }
+                if (len2 > 0) {
+                    outString = stat.getConfig().getSelectLibrary().getBytes("ASCII");
+                    System.arraycopy(outString, 0, info, off, outString.length);
+                    off += outString.length;
+                    info[off++] = 0; // C null terminator
+                }
+                if (len3 > 0) {
+                    outString = stat.getConfig().getSelectClass().getBytes("ASCII");
+                    System.arraycopy(outString, 0, info, off, outString.length);
+                    off += outString.length;
+                    info[off++] = 0; // C null terminator
+                }
 
-              outString = stat.getStationName().getBytes("ASCII");
-              System.arraycopy(outString, 0, info, off, outString.length);
-              off += outString.length;
-              info[off++] = 0; // C null terminator
-          }
-          catch (UnsupportedEncodingException ex) {
-          }
+                outString = stat.getStationName().getBytes("ASCII");
+                System.arraycopy(outString, 0, info, off, outString.length);
+                off += outString.length;
+                info[off++] = 0; // C null terminator
+            }
+            catch (UnsupportedEncodingException ex) {
+            }
 
-          // track size of all data stored in buffer
-          byteSize += 4 * (19 + numAtts + Constants.stationSelectInts) +
-                  8 * 3 + len1 + len2 + len3 + len4;
+            // track size of all data stored in buffer
+            byteSize += 4 * (19 + numAtts + Constants.stationSelectInts) +
+                    8 * 3 + len1 + len2 + len3 + len4;
 
-          // if more stations now than space allowed for, skip rest
-          if (++statCount >= stationsMax) {
+            // if more stations now than space allowed for, skip rest
+            if (++statCount >= stationsMax) {
 //System.out.println("statCount = " + statCount + ", reached station limit, break out ");      
-              break;
-          }
+                break;
+            }
 
-          // if head of parallel linked list ...
-          if ((stat.getConfig().getFlowMode() == Constants.stationParallel) &&
-                  (stations.contains(stat))) {
-              parallelIterator = stat.getParallelStations().listIterator(1);
-              if (parallelIterator.hasNext()) {
-                  isHead = false;
-                  stat = (StationLocal) parallelIterator.next();
+            // if head of parallel linked list ...
+            if ((stat.getConfig().getFlowMode() == Constants.stationParallel) &&
+                    (stations.contains(stat))) {
+                parallelIterator = stat.getParallelStations().listIterator(1);
+                if (parallelIterator.hasNext()) {
+                    isHead = false;
+                    stat = (StationLocal) parallelIterator.next();
 //System.out.println("go to || stat " + stat.name);      
-                  continue;
-              }
-          }
-          // if in (but not head of) parallel linked list ...
-          else if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
-              if (parallelIterator.hasNext()) {
-                  isHead = false;
-                  stat = (StationLocal) parallelIterator.next();
+                    continue;
+                }
+            }
+            // if in (but not head of) parallel linked list ...
+            else if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (parallelIterator.hasNext()) {
+                    isHead = false;
+                    stat = (StationLocal) parallelIterator.next();
 //System.out.println("go to || stat " + stat.name);      
-                  continue;
-              }
-          }
+                    continue;
+                }
+            }
 
-          isHead = true;
-          // if in main linked list ...
-          if (mainIterator.hasNext()) {
-              stat = (StationLocal) mainIterator.next();
+            isHead = true;
+            // if in main linked list ...
+            if (mainIterator.hasNext()) {
+                stat = (StationLocal) mainIterator.next();
 //System.out.println("go to main stat " + stat.name);      
-          }
-      }
-
-      // enter # of stations
-      Utils.intToBytes(statCount, info, offset);
-
-    return byteSize;
-  }
-
-
-  /**
-   * Get attachment data for sending over the network.
-   *
-   * @param info byte array to hold attachment data
-   * @param offset offset of the byte array
-   * @param attsMax limit on number of attachments to gather data on
-   * @return size of the data in bytes placed into the byte array
-   */
-  private int writeAttachmentData(byte[] info, int offset, int attsMax) {
-    // Since we're not grabbing any mutexes, the number of attachments may have
-    // changed between when the buffer size was set and now. Therefore, do not
-    // exceed "attsMax" number of attachments.
-
-    if (attsMax == 0) {
-      Utils.intToBytes(0, info, offset);
-      return 4;
-    }
-
-    int len1, len2;
-    int off = offset;
-    int eventsOwned;
-    int byteSize = 0;
-    int attCount = 0;
-
-    off += 4;
-    byteSize += 4;
-
-    for (AttachmentLocal att :  attachments.values()) {
-
-      Utils.intToBytes(att.getId(), info, off);
-      Utils.intToBytes(-1, info, off+=4); // no ET "processes" in Java
-      Utils.intToBytes(att.getStation().getStationId(), info, off+=4);
-      Utils.intToBytes(-1, info, off+=4);
-      Utils.intToBytes((att.isWaiting()? Constants.attBlocked : Constants.attUnblocked), info, off+=4);
-      Utils.intToBytes((att.isWakeUp()? Constants.attQuit : Constants.attContinue), info, off+=4);
-
-      // find out how many events the attachment owns
-      eventsOwned = 0;
-
-      for (Event ev : events.values()) {
-        if (ev.getOwner() == att.getId()) {
-          eventsOwned++;
+            }
         }
-      }
-      Utils.intToBytes(eventsOwned, info, off+=4);
 
-      Utils.longToBytes(att.getEventsPut(),  info, off+=4);
-      Utils.longToBytes(att.getEventsGet(),  info, off+=8);
-      Utils.longToBytes(att.getEventsDump(), info, off+=8);
-      Utils.longToBytes(att.getEventsMake(), info, off+=8);
+        // enter # of stations
+        Utils.intToBytes(statCount, info, offset);
 
-      // read strings, lengths first
-      len1 = att.getHost().length() + 1;
-      len2 = att.getStation().getStationName().length() + 1;
-      Utils.intToBytes(len1, info, off+=8);
-      Utils.intToBytes(len2, info, off+=4);
-//System.out.println("writeAttachments: len1 = " + len1 + ", len2 = " + len2);
-      // write strings into array
-      off += 4;
-      byte[] outString;
-
-      try {
-        outString = att.getHost().getBytes("ASCII");
-        System.arraycopy(outString, 0, info, off, outString.length);
-        off += outString.length;
-        info[off++] = 0; // C null terminator
-
-        outString = att.getStation().getStationName().getBytes("ASCII");
-        System.arraycopy(outString, 0, info, off, outString.length);
-        off += outString.length;
-        info[off++] = 0; // C null terminator
-      }
-      catch (UnsupportedEncodingException ex) {}
-
-      // track size of all data stored in buffer
-      byteSize += 4*9 + 8*4 + len1 + len2;
-
-      // if more attachments now than space allowed for, skip rest
-      if (++attCount >= attsMax) {
-        break;
-      }
-
+        return byteSize;
     }
+
+
+    /**
+     * Get attachment data for sending over the network.
+     *
+     * @param info byte array to hold attachment data
+     * @param offset offset of the byte array
+     * @param attsMax limit on number of attachments to gather data on
+     * @return size of the data in bytes placed into the byte array
+     */
+    private int writeAttachmentData(byte[] info, int offset, int attsMax) {
+        // Since we're not grabbing any mutexes, the number of attachments may have
+        // changed between when the buffer size was set and now. Therefore, do not
+        // exceed "attsMax" number of attachments.
+
+        if (attsMax == 0) {
+            Utils.intToBytes(0, info, offset);
+            return 4;
+        }
+
+        int len1, len2;
+        int off = offset;
+        int eventsOwned;
+        int byteSize = 0;
+        int attCount = 0;
+
+        off += 4;
+        byteSize += 4;
+
+        for (AttachmentLocal att :  attachments.values()) {
+
+            Utils.intToBytes(att.getId(), info, off);
+            Utils.intToBytes(-1, info, off+=4); // no ET "processes" in Java
+            Utils.intToBytes(att.getStation().getStationId(), info, off+=4);
+            Utils.intToBytes(-1, info, off+=4);
+            Utils.intToBytes((att.isWaiting()? Constants.attBlocked : Constants.attUnblocked), info, off+=4);
+            Utils.intToBytes((att.isWakeUp()? Constants.attQuit : Constants.attContinue), info, off+=4);
+
+            // find out how many events the attachment owns
+            eventsOwned = 0;
+
+            for (Event ev : events.values()) {
+                if (ev.getOwner() == att.getId()) {
+                    eventsOwned++;
+                }
+            }
+            Utils.intToBytes(eventsOwned, info, off+=4);
+
+            Utils.longToBytes(att.getEventsPut(),  info, off+=4);
+            Utils.longToBytes(att.getEventsGet(),  info, off+=8);
+            Utils.longToBytes(att.getEventsDump(), info, off+=8);
+            Utils.longToBytes(att.getEventsMake(), info, off+=8);
+
+            // read strings, lengths first
+            len1 = att.getHost().length() + 1;
+            len2 = att.getStation().getStationName().length() + 1;
+            Utils.intToBytes(len1, info, off+=8);
+            Utils.intToBytes(len2, info, off+=4);
+//System.out.println("writeAttachments: len1 = " + len1 + ", len2 = " + len2);
+            // write strings into array
+            off += 4;
+            byte[] outString;
+
+            try {
+                outString = att.getHost().getBytes("ASCII");
+                System.arraycopy(outString, 0, info, off, outString.length);
+                off += outString.length;
+                info[off++] = 0; // C null terminator
+
+                outString = att.getStation().getStationName().getBytes("ASCII");
+                System.arraycopy(outString, 0, info, off, outString.length);
+                off += outString.length;
+                info[off++] = 0; // C null terminator
+            }
+            catch (UnsupportedEncodingException ex) {}
+
+            // track size of all data stored in buffer
+            byteSize += 4*9 + 8*4 + len1 + len2;
+
+            // if more attachments now than space allowed for, skip rest
+            if (++attCount >= attsMax) {
+                break;
+            }
+
+        }
 //System.out.println("writeAttachments: #atts = " + attCount + ", byteSize = " + byteSize);
 
-    // send # of attachments
-    Utils.intToBytes(attCount, info, offset);
+        // send # of attachments
+        Utils.intToBytes(attCount, info, offset);
 
-    return byteSize;
-  }
+        return byteSize;
+    }
 
 
 }

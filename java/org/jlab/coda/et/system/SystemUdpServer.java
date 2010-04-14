@@ -206,7 +206,7 @@ class ListeningThread extends Thread {
 
           // the send buffer needs to be of byte size ...
           int bufferSize = 11*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
-          for (InetAddress netAddress : sys.netAddresses) {
+          for (InetAddress netAddress : sys.getNetAddresses()) {
               bufferSize += 8 + netAddress.getHostName().length() + 1;
           }
 
@@ -233,7 +233,7 @@ class ListeningThread extends Thread {
           dos.writeByte(0);
 
           // number of names/addrs to follow
-          dos.writeInt(sys.netAddresses.length);
+          dos.writeInt(sys.getNetAddresses().length);
 
           // Send all names and 32 bit addresses associated with this host, starting w/ canonical name
           int addr32 = 0;
@@ -246,7 +246,7 @@ class ListeningThread extends Thread {
           dos.write(canon.getBytes("ASCII"));
           dos.writeByte(0);
 
-          for (InetAddress netAddress : sys.netAddresses) {
+          for (InetAddress netAddress : sys.getNetAddresses()) {
               // convert array of 4 bytes into 32 bit network byte-ordered address
               addr32 = 0;
               for (int j = 0; j < 4; j++) {
@@ -287,7 +287,7 @@ class ListeningThread extends Thread {
                   // socket receive timeout
                   catch (InterruptedIOException ex) {
                       // check to see if we've been commanded to die
-                      if (sys.killAllThreads) {
+                      if (sys.killAllThreads()) {
                           return;
                       }
                   }
@@ -343,7 +343,7 @@ class ListeningThread extends Thread {
               }
 
               // check if the ET system the client wants is ours
-              if (etName.equals(sys.name)) {
+              if (etName.equals(sys.getName())) {
                   // we're the one the client is looking for, send a reply
                   DatagramPacket sPacket = new DatagramPacket(sBuffer, sBuffer.length,
                                                               rPacket.getAddress(), rPacket.getPort());

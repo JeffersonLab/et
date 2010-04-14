@@ -33,10 +33,10 @@ public class StationLocal extends Thread implements EventSelectable {
     private SystemCreate sys;
 
     /** Unique id number. */
-    int id;
+    private int id;
 
     /** Unique station name. */
-    String name;
+    private String name;
 
     /** Station configuration object. */
     private StationConfig config;
@@ -52,7 +52,7 @@ public class StationLocal extends Thread implements EventSelectable {
     /** Flag telling if this station was the last to receive an event
      *  when using the round-robin selection method for a parallel group
      *  of stations. */
-    volatile boolean wasLast;
+    private volatile boolean wasLast;
 
     /** Lock used to stop insertion/removal of stations when events
      *  are being transferred by the conductor thread and vice versa. */
@@ -74,7 +74,7 @@ public class StationLocal extends Thread implements EventSelectable {
 
     /** Predefined event selection method used when the station's select mode
      *  is {@link Constants#stationSelectMatch}. */
-    EventSelectable selector;
+    private EventSelectable selector;
 
     /**
      * Creates a new StationLocal object.
@@ -129,7 +129,9 @@ public class StationLocal extends Thread implements EventSelectable {
 
 
     /**
-     * Gets the station id number.
+     * Gets the station id number. Because this class extends Thread, calling this method
+     * getId() would override the method from the Thread class, which is something
+     * we do NOT want. So call this method getStationId() instead.
      * @return station id number
      */
     public int getStationId() { return id; }
