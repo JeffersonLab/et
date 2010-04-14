@@ -380,14 +380,14 @@ public class StationLocal extends Thread implements EventSelectable {
     public void run() {
         int count, prescale, available, getListSize, position;
         long listTry;
-        EventImpl ev = null;
-        boolean writeAll, parallelIsActive = false, rrobinOrEqualcue = false;
-        StationLocal currentStat = null, stat = null, firstActive, startStation;
-        List<EventImpl> subList = null;
+        EventImpl ev;
+        boolean writeAll, parallelIsActive, rrobinOrEqualcue;
+        StationLocal currentStat, stat, firstActive, startStation;
+        List<EventImpl> subList;
         ListIterator statIterator, pIterator = null;
 
         // inputList of next station
-        EventList inList = null;
+        EventList inList;
         // events read from station's outputList
         ArrayList<EventImpl> getList = new ArrayList<EventImpl>(sys.getConfig().getNumEvents());
         // events to be put into the next station's inputList
@@ -456,7 +456,7 @@ public class StationLocal extends Thread implements EventSelectable {
             }
             else {
                 // the next station is GrandCentral, put everything in it
-                currentStat = (StationLocal) sys.getStations().getFirst();
+                currentStat = sys.getStations().getFirst();
                 inList = currentStat.inputList;
                 synchronized (inList) {
                     inList.putInLow(getList);
@@ -925,7 +925,7 @@ public class StationLocal extends Thread implements EventSelectable {
                     currentStat = (StationLocal) statIterator.next();
                 }
                 else {
-                    currentStat = (StationLocal) sys.getStations().getFirst();
+                    currentStat = sys.getStations().getFirst();
                 }
                 inList = currentStat.inputList;
 
