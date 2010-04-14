@@ -27,7 +27,7 @@ package org.jlab.coda.et.system;
 
 class AttachmentLocal {
 
-    // keep a list or set of events we currently have out?
+    // TODO: keep a list or set of events we currently have out?
 
     /** Unique id number. */
     private int id;
@@ -72,104 +72,194 @@ class AttachmentLocal {
     private volatile boolean wakeUp;
 
 
-    /** Gets the attachment id number.
-     *  @return attachment id number */
+    /**
+     * Constructor. Attachments are only created by an ET system's
+     * {@link SystemCreate#attach} method.
+     */
+    AttachmentLocal() {
+        id         = -1;
+        pid        = -1;
+    }
+
+
+    /**
+     * Gets the attachment id number.
+     * @return attachment id number
+     */
     public int getId() {
         return id;
     }
 
+    /**
+     * Sets the attachment id number.
+     * @param id attachment id number
+     */
     public void setId(int id) {
         this.id = id;
     }
 
+    /**
+     * Gets the process id number for C clients.
+     * @return the process id number for C clients
+     */
     public int getPid() {
         return pid;
     }
 
+    /**
+     * Set the process id number.
+     * @param pid he process id number
+     */
     public void setPid(int pid) {
         this.pid = pid;
     }
 
+    /**
+     * Get the host the attachment is residing on.
+     * @return host the attachment is residing on
+     */
     public String getHost() {
         return host;
     }
 
+    /**
+     * Set the host the attachment is residing on.
+     * @param host host the attachment is residing on
+     */
     public void setHost(String host) {
         this.host = host;
     }
 
-
+    /**
+     * Is the attachment blocked waiting to read events from a station that has no events?
+     * @return <code>true</code> if attachment is blocked waiting to read events from a station that has no events
+     */
     public boolean isWaiting() {
         return waiting;
     }
+
+    /**
+     * Set if attachment is blocked waiting to read events from a station that has no events
+     * @param waiting is attachment blocked waiting to read events from a station that has no events?
+     */
     public void setWaiting(boolean waiting) {
         this.waiting = waiting;
     }
+
+    /**
+     * Is this attachment to wake up or return after returning from blocking read?
+     * @return <code>true</code> if this attachment is to wake up or return after returning from blocking read
+     */
     public boolean isWakeUp() {
         return wakeUp;
     }
+
+    /**
+     * Set the flag to wake up or return after returning from blocking read.
+     * @param wakeUp flag to wake up or return after returning from blocking read
+     */
     public void setWakeUp(boolean wakeUp) {
         this.wakeUp = wakeUp;
     }
-    
+
+    /**
+     * Is this attachment currently in the sleep mode of getEvents or newEvents?
+     * @return <code>true</code> if this attachment is currently in the sleep mode of getEvents or newEvents
+     */
     public boolean isSleepMode() {
         return sleepMode;
     }
 
+    /**
+     * Set the flag to be in the sleep mode of getEvents or newEvents.
+     * @param sleepMode sleep mode of getEvents or newEvents
+     */
     public void setSleepMode(boolean sleepMode) {
         this.sleepMode = sleepMode;
     }
 
+    /**
+     * Get the station this attachment is associated with.
+     * @return station this attachment is associated with
+     */
     public StationLocal getStation() {
         return station;
     }
 
+    /**
+     * Set the station this attachment is associated with.
+     * @param station station this attachment is associated with
+     */
     public void setStation(StationLocal station) {
         this.station = station;
     }
 
+    /**
+     * Get the number of events put by a user into this attachment.
+     * @return number of events put by a user into this attachment
+     */
     public long getEventsPut() {
         return eventsPut;
     }
 
+    /**
+     * Get the number of events put by a user into this attachment.
+     * @param eventsPut number of events put by a user into this attachment
+     */
     public void setEventsPut(long eventsPut) {
         this.eventsPut = eventsPut;
     }
 
+    /**
+     * Get the number of events gotten by a user from this attachment.
+     * @return number of events gotten by a user from this attachment
+     */
     public long getEventsGet() {
         return eventsGet;
     }
 
+    /**
+     * Set the number of events gotten by a user from this attachment
+     * @param eventsGet number of events gotten by a user from this attachment
+     */
     public void setEventsGet(long eventsGet) {
         this.eventsGet = eventsGet;
     }
 
+    /**
+     * Get the number of events dumped (recycled by returning to GRAND_CENTRAL station)
+     * by a user through this attachment.
+     * @return number of events dumped by a user through this attachment
+     */
     public long getEventsDump() {
         return eventsDump;
     }
 
+    /**
+     * Set the number of events dumped (recycled by returning to GRAND_CENTRAL station)
+     * by a user through this attachment.
+     * @param eventsDump number of events dumped by a user through this attachment.
+     */
     public void setEventsDump(long eventsDump) {
         this.eventsDump = eventsDump;
     }
 
+    /**
+     * Get the number of new events gotten by a user from this attachment.
+     * @return number of new events gotten by a user from this attachment
+     */
     public long getEventsMake() {
         return eventsMake;
     }
 
+    /**
+     * Set the number of new events gotten by a user from this attachment.
+     * @param eventsMake number of new events gotten by a user from this attachment
+     */
     public void setEventsMake(long eventsMake) {
         this.eventsMake = eventsMake;
     }
 
-
-
-    /**
-     * Attachments are only created by an ET system's
-     * {@link SystemCreate#attach} method.
-     */
-    public AttachmentLocal() {
-        id         = -1;
-        pid        = -1;
-    }
 
 }
 
