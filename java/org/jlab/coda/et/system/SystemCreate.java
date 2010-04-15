@@ -99,12 +99,12 @@ public class SystemCreate {
      *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
      *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}
      *
-     * @param _name   file name
+     * @param name ET system file name
      * @exception EtException
      *     if the file already exists or cannot be created
      */
-    public SystemCreate(String _name) throws EtException {
-        this(_name, new SystemConfig());
+    public SystemCreate(String name) throws EtException {
+        this(name, new SystemConfig());
     }
 
 
