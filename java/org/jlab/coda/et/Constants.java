@@ -44,16 +44,16 @@ public final class Constants {
    *  @see SystemOpenConfig#setHost */
   public static final String hostAnywhere        = ".anywhere";
   /** Discover an ET system by multicasting.
-   *  @see SystemOpenConfig#setContactMethod */
+   *  @see SystemOpenConfig#setNetworkContactMethod */
   public static final int    multicast           = 0;
   /** Discover an ET system by broadcasting.
-   *  @see SystemOpenConfig#setContactMethod */
+   *  @see SystemOpenConfig#setNetworkContactMethod */
   public static final int    broadcast           = 1;
   /** Open an ET system by specifying host and port.
-   *  @see SystemOpenConfig#setContactMethod */
+   *  @see SystemOpenConfig#setNetworkContactMethod */
   public static final int    direct              = 2;
   /** Discover an ET system by broadcasting and multicasting.
-   *  @see SystemOpenConfig#setContactMethod */
+   *  @see SystemOpenConfig#setNetworkContactMethod */
   public static final int    broadAndMulticast   = 3;
   /** A default port on which to broadcast when finding an ET system. */
   public static final int    broadcastPort       = 11111;
