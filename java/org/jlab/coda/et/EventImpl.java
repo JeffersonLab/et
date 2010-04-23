@@ -15,6 +15,8 @@
 package org.jlab.coda.et;
 
 import java.lang.*;
+import java.math.BigInteger;
+
 import org.jlab.coda.et.exception.*;
 
 /**
@@ -35,7 +37,7 @@ public class EventImpl implements Event {
     private static final int   low = Constants.low;
     private static final int   ok = Constants.dataOk;
 
-    /** Unique id number. */
+    /** Unique id number (pointer to event if C system). */
     private long id;
 
     /** Specifies whether the event was obtained as a new event (through
