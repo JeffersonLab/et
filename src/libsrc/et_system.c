@@ -71,8 +71,8 @@ static void  et_fix_system(et_id *id);
 int et_system_start (et_sys_id* id, et_sysconfig sconfig)
 {
   size_t       size, size_old_used, size_events, size_data,
-               size_system, size_stations, size_histo;
-  int          i, status, status_old, num_try, try_max,
+               size_system, size_stations, size_histo, total_size;
+  int          i, err, status, status_old, num_try, try_max,
                creating=0, groupsDiffer=0;
   unsigned int hbeat;
 #ifdef sun
@@ -82,7 +82,8 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   pthread_t       thd_id;
   struct timespec waitforme, monitor, beat;
   et_sys_config  *config = (et_sys_config *) sconfig;
-  et_mem         *first_item;
+  et_mem         etInfo;
+  char           *ptr, *pSharedMem;
   et_id          *etid;
   et_event       *pe;
   et_station     *ps;
@@ -180,8 +181,11 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   size_data     = config->event_size * config->nevents;
   size = size_system + size_stations + size_histo + size_events + size_data;
   
+printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
+       size_system, size_stations, size_histo, size_events, size_data);
+
   /* create the ET system memory */
-  status = et_mem_create(config->filename, size, (void **) &first_item);
+  status = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
   
   /* if the ET system file already exists ... */
   if (status == ET_ERROR_EXISTS) {
@@ -189,28 +193,20 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
      * To do that, we need to map the existing file to this process to
      * access all the data in the system.
      */
-    first_item = (et_mem *) et_mem_attach(config->filename);
-    if (first_item == NULL) {
+    err = et_mem_attach(config->filename, (void **)&pSharedMem, &etInfo);
+    if (err != ET_OK) {
       if (etid->debug >= ET_DEBUG_ERROR) {
         et_logmsg("ERROR", "et_system_start, can't attach to existing ET system\n");
       }
       pthread_attr_destroy(&attr);
       et_id_destroy(*id);
-      return ET_ERROR;
+      return err;
     }
-    
-    /* find size of mapped memory */
-    if (et_mem_size(config->filename, &etid->memsize, NULL) != ET_OK) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_system_start: cannot find size of ET system file\n");
-      }
-      pthread_attr_destroy(&attr);
-      et_id_destroy(*id);
-      return ET_ERROR;
-    }
-  
-    size_old_used = first_item->usedsize;
-    etid->sys = (et_system *) (first_item + 1);
+ 
+    /* size of mapped memory */
+    etid->memsize = (size_t) etInfo.totalSize;
+    size_old_used = (size_t) etInfo.usedSize;
+    etid->sys = (et_system *) (pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
     
     /* Since we now have access to all the ET system information that
      * we need, the first order of business is to check and see if,
@@ -226,7 +222,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
         et_logmsg("ERROR", "et_system_start, ET system process already exists!\n");
       }
       pthread_attr_destroy(&attr);
-      munmap((void *) first_item, etid->memsize);
+      munmap((void *) pSharedMem, etid->memsize);
       et_id_destroy(*id);
       return ET_ERROR;
     }
@@ -283,7 +279,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       }
       
       pthread_attr_destroy(&attr);
-      munmap((void *) first_item, etid->memsize);
+      munmap((void *) pSharedMem, etid->memsize);
       et_id_destroy(*id);
       return ET_ERROR;
     }
@@ -300,8 +296,8 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       nanosleep(&monitor, NULL);
       
       etid->offset    = 0;
-      etid->pmap      = (void *)       (first_item);
-      etid->sys       = (et_system *)  (first_item + 1);
+      etid->pmap      = (void *)       (pSharedMem);
+      etid->sys       = (et_system *)  (pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
       etid->stats     = (et_station *) (etid->sys + 1);
       etid->histogram = (int *)        (etid->stats + config->nstations);
       etid->events    = (et_event *)   (etid->histogram + (config->nevents + 1));
@@ -324,7 +320,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
        */
       et_fix_system(etid);
       /* This is used to translate ET pointers between processes.*/
-      etid->sys->pmap = (void *) first_item;
+      etid->sys->pmap = (void *) pSharedMem;
 #ifdef sun
       /* keep track of thread concurrency increase */
       etid->sys->con_add = con_add;
@@ -408,20 +404,22 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   else if (status == ET_OK) {
     creating = 1;
 
-    /* find size of mapped memory */
-    if (et_mem_size(config->filename, &etid->memsize, NULL) != ET_OK) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_system_start: cannot find size of ET system file\n");
-      }
-      pthread_attr_destroy(&attr);
-      unlink(config->filename);
-      et_id_destroy(*id);
-      return ET_ERROR;
-    }
-
+    /* memory has been mapped by now, fill first 60 bytes with useful data */
+    et_mem_write_first_block(pSharedMem,
+                             (uint32_t) sizeof(et_event),
+                             (uint64_t) config->event_size,
+                             (uint64_t) (ET_INITIAL_SHARED_MEM_DATA_BYTES +
+                                         size_system + size_stations + size_histo),
+                             (uint64_t) (ET_INITIAL_SHARED_MEM_DATA_BYTES + size_system +
+                                         size_stations + size_histo + size_events),
+                             (uint64_t) total_size,
+                             (uint64_t) size);
+    
+    /* fill in id structure */
+    etid->memsize   = total_size;
     etid->offset    = 0;
-    etid->pmap      = (void *)       (first_item);
-    etid->sys       = (et_system *)  (first_item + 1);
+    etid->pmap      = (void *)       (pSharedMem);
+    etid->sys       = (et_system *)  ((char *)pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
     etid->stats     = (et_station *) (etid->sys + 1);
     etid->histogram = (int *)        (etid->stats + config->nstations);
     etid->events    = (et_event *)   (etid->histogram + (config->nevents + 1));
@@ -440,7 +438,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
     /* initialize et_system mem, mutexes. Do this first */
     et_init_mem_sys(etid, config);
     /* This is used to translate ET pointers between processes.*/
-    etid->sys->pmap = (void *) first_item;
+    etid->sys->pmap = (void *) pSharedMem;
     
 #ifdef sun
     /* keep track of thread concurrency increase */
@@ -879,7 +877,7 @@ static void et_init_mem_station(et_id *id)
 /******************************************************/
 static void et_init_mem_event(et_id *id)
 {
-  int i;
+  int i, diff;
   et_system *sys  = id->sys;
   et_event  *pe   = id->events;
   char      *pmem = id->data;
@@ -891,7 +889,11 @@ static void et_init_mem_event(et_id *id)
   for (i=0; i < sys->config.nevents ; i++) {
     et_init_event(pe);
     sprintf(pe->filename, "%s%s%d", sys->config.filename, "_temp", i);
+diff = (int) (pmem - (char *) (id->pmap));
+if (diff < 0) diff = -diff;
+printf("Storing data ptr for event %d = %d bytes, %d ints\n",i, diff, diff/4);
     pe->data = pmem;
+    pe->place = i;
     pmem += sys->config.event_size;
     pe++;
   }

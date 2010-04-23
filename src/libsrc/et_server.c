@@ -1783,6 +1783,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 /*printf("etr_events_put: pointer = %p\n", events[i]);*/
             events[i]->length      = ET_64BIT_UINT(ntohl(header[2]),ntohl(header[3]));
             len                    = (size_t)events[i]->length;
+printf("etr_events_put: len = %d\n", (int)len);
             events[i]->priority    = ntohl(header[4]) & ET_PRIORITY_MASK;
             events[i]->datastatus  =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
             events[i]->byteorder   = header[5];
@@ -1791,10 +1792,10 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             }
             /* only read data if modifying everything */
             if (events[i]->modify == ET_MODIFY) {
-/*printf("etr_events_put: read in data next\n");*/
               if (et_tcp_read(connfd, events[i]->pdata, len) != len) {
                 goto end;
               }
+printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i]->pdata))) );
             }
           }
 /*printf("etr_events_put: put event for real\n");*/

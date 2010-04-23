@@ -36,6 +36,7 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
   et_system *sys = id->sys;
   void *pdata;
   int   ntemps;
+printf("et_event_make, called\n");
 
   /* grab system mutex */
   et_system_lock(id->sys);

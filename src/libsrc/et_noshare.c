@@ -44,66 +44,32 @@
 int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 {     
   et_open_config *config = (et_open_config *) openconfig;
-  et_mem  *first_item;
+  et_mem etInfo;
   et_id *etid;
   struct timespec heartbeat;
-  int fd, status, sockfd, length, bufsize, version, nselects;
+  int status, sockfd, length, bufsize, version, nselects;
+  int systemType, byteOrder, correctEndian=0;
   int err=ET_OK, transfer[8], incoming[9];
-  char *buf, *pbuf;
+  char *buf, *pbuf, *pSharedMem;
   char  buffer[20];
   
   /* system id */
   etid = (et_id *) *id;
-  
-  /* First look to see if it's a Java ET system, in which case
-   * a remote open must be made instead of a local one.
-   */
-  if ((fd = open(filename, O_RDONLY, S_IRWXU)) < 0) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "etn_open: cannot open ET system file\n");
-    }
-    return ET_ERROR;
-  }
-  if ((read(fd, (void *)buffer, 19)) == 19) {
-    buffer[19] = '\0';
-    if (strcmp(buffer, "JAVA ET SYSTEM FILE") == 0) {
-      /* This is a Java ET system - use remote etr_open */
-      close(fd);
-      return etr_open(id, filename, openconfig);
-    }
-  }
-  close(fd);
-
+    
   /* attach to mapped memory */
-  first_item = (et_mem *) et_mem_attach(filename);
-  if (first_item == NULL) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "etn_open: cannot attach to ET system file\n");
-    }
-    return ET_ERROR;
-  }
-  
-  /* find size of mapped memory */
-  if (et_mem_size(filename, &etid->memsize, NULL) != ET_OK) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "etn_open: cannot find size of ET system file\n");
-    }
-    return ET_ERROR;
+  err = et_mem_attach(filename, (void **)&pSharedMem, &etInfo);
+  if (err != ET_OK) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "etn_open: cannot attach to ET system file\n");
+      }
+      return err;
   }
 
-  etid->pmap   = (void *)       (first_item);
-  etid->sys    = (et_system *)  (first_item + 1);
+  /* size of mapped memory */
+  etid->memsize = (size_t) etInfo.totalSize;
+  etid->pmap    = (void *)       (pSharedMem);
+  etid->sys     = (et_system *)  (pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
   
-  /* Stop here and check to see if the ET system version and our
-   * version of the ET software is the same or not.
-   */
-  if (etid->version != etid->sys->version) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "etn_open: ET system & user's ET versions are different\n");
-    }
-    munmap(etid->pmap, etid->memsize);
-    return ET_ERROR;
-  }
   if (etid->nselects != etid->sys->nselects) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open: ET system & user have incompatible values for ET_STATION_SELECT_INTS\n");

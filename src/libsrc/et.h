@@ -109,8 +109,8 @@ extern "C" {
 #define ET_FUNCNAME_LENGTH  48  /* max length of user's 
                                    event selection func name + 1 */
 #define ET_STATNAME_LENGTH  48  /* max length of station name + 1 */
-/* max length of temp event file name + 1 */
-#define ET_TEMPNAME_LENGTH  (ET_FILENAME_LENGTH+10)
+/* max length of temp event file name + 1, leaves room for _temp<#######> */
+#define ET_TEMPNAME_LENGTH  (ET_FILENAME_LENGTH+12)
 
 /* STATION STUFF */
 /* et_stat_id of grandcentral station */
@@ -247,14 +247,23 @@ extern "C" {
 #define ET_NOSWAP 0
 #define ET_SWAP   1
 
-/* macros for swapping ints & shorts */
-#define ET_SWAP32(x) ((((x) & 0x000000ff) << 24) | \
-                      (((x) & 0x0000ff00) <<  8) | \
-                      (((x) & 0x00ff0000) >>  8) | \
-                      (((x) & 0xff000000) >> 24))
+/* macros for swapping ints of various sizes */
+#define ET_SWAP64(x) ( (((x) >> 56) & 0x00000000000000FFL) | \
+                       (((x) >> 40) & 0x000000000000FF00L) | \
+                       (((x) >> 24) & 0x0000000000FF0000L) | \
+                       (((x) >> 8)  & 0x00000000FF000000L) | \
+                       (((x) << 8)  & 0x000000FF00000000L) | \
+                       (((x) << 24) & 0x0000FF0000000000L) | \
+                       (((x) << 40) & 0x00FF000000000000L) | \
+                       (((x) << 56) & 0xFF00000000000000L) )
 
-#define ET_SWAP16(x) ((((x) & 0x00ff) << 8) | \
-                      (((x) & 0xff00) >> 8))
+#define ET_SWAP32(x) ( (((x) >> 24) & 0x000000FF) | \
+                       (((x) >> 8)  & 0x0000FF00) | \
+                       (((x) << 8)  & 0x00FF0000) | \
+                       (((x) << 24) & 0xFF000000) )
+
+#define ET_SWAP16(x) ( (((x) >> 8) & 0x00FF) | \
+                       (((x) << 8) & 0xFF00) )
 
 
 /* STRUCTURES */
@@ -269,10 +278,18 @@ extern "C" {
  *          : in ev->pdata. When converting the pdata pointer back to
  *          : a value the ET system uses, so the server thread can
  *          : unmap it from memory, grab & restore the stored value.
- * pdata    : = pointer below, or points to temp event buffer
- * data     : pointer to data if not temp event
+ * pdata    : = pointer below (shared mem), or points to temp event buffer
+ * data     : pointer to shared memory data
  * length   : size of actual data in bytes
  * memsize  : total size of available data memory in bytes
+ * pointer  : for REMOTE events- pointer to this event in the
+ *          : server's space. Used for writing of modified events.
+ * modify   : when "getting" events from a remote client - flag to tell
+ *          : server whether this event will be modified with the
+ *          : intention of sending it back to the server (ET_MODIFY) or
+ *          : whether only the header will be modified and returned
+ *          : (ET_MODIFY_HEADER) or whether there'll be no modification
+ *          : of the event (0).
  * priority : ET_HIGH or ET_LOW
  * owner    : # of attachment that owns it, else ET_EVENT_SYS (-1)
  * temp     : =ET_EVENT_TEMP if temporary event, else =ET_EVENT_NORMAL
@@ -283,14 +300,8 @@ extern "C" {
  * byteorder: use to track the data's endianness (set to 0x04030201)
  * group    : group number - events are divided into groups for limiting
  *          : the number of events producers have access to
- * pointer  : for REMOTE events- pointer to this event in the
- *          : server's space. Used for writing of modified events.
- * modify   : when "getting" events from a remote client - flag to tell
- *          : server whether this event will be modified with the
- *          : intention of sending it back to the server (ET_MODIFY) or
- *          : whether only the header will be modified and returned
- *          : (ET_MODIFY_HEADER) or whether there'll be no modification
- *          : of the event (0).
+ * place    : place number of event's relative position in shared mem starting
+ *          : with 0 (lowest memory position) and ending with (# of events - 1).
  * control  : array of ints to select on (see et_stat_config->select)
  * filename : filename of temp event
  */
@@ -300,8 +311,12 @@ typedef struct et_event_t {
   void    *tempdata;
   void    *pdata;
   char    *data;
-  uint64_t  length;
-  uint64_t  memsize;
+  uint64_t length;
+  uint64_t memsize;
+  /* for remote events */
+  uint64_t pointer;
+  int      modify;
+  /* ***************** */
   int     priority;
   int     owner;
   int     temp;
@@ -309,10 +324,7 @@ typedef struct et_event_t {
   int     datastatus;
   int     byteorder;
   int     group;
-  /* for remote events */
-  uint64_t pointer;
-  int      modify;
-  /* ***************** */
+  int     place;
   int     control[ET_STATION_SELECT_INTS];
   char    filename[ET_TEMPNAME_LENGTH];
 } et_event;

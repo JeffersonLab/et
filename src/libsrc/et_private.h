@@ -51,8 +51,8 @@ extern "C" {
 #endif
 
 /* Version Number of this ET software package release */
-#define ET_VERSION 12     /* treated as an int */
-#define ET_MINORVERSION 0 /* treated as an int */
+#define ET_VERSION 12      /* treated as an int */
+#define ET_VERSION_MINOR 0 /* treated as an int */
 
 /* Language of ET software package - implementation 
  * varies a bit from language to language.
@@ -60,6 +60,10 @@ extern "C" {
 #define ET_LANG_C     0      /* C    */
 #define ET_LANG_CPP   1      /* C++  */
 #define ET_LANG_JAVA  2      /* Java */
+
+/* Type of ET system (shared memory layout) */
+#define ET_SYSTEM_TYPE_C     1      /* C    */
+#define ET_SYSTEM_TYPE_JAVA  2      /* Java */
 
 /*
  * String length of dotted-decimal, ip address string
@@ -227,6 +231,11 @@ typedef struct et_netinfo_t {
 /* is mutex locked or not */
 #define ET_MUTEX_UNLOCKED 0
 #define ET_MUTEX_LOCKED   1
+
+/* Size in bytes of the data stored at the beginning of the shared memory.
+ * These data give general info necessary for Java (and C clients too) to
+ * mmap this file properly.*/
+#define ET_INITIAL_SHARED_MEM_DATA_BYTES 60
 
 /*
  * STRUCTURES for the STATIONs:
@@ -793,11 +802,23 @@ typedef struct  et_id_t {
 /*
  * et_mem: Contains info stored at front of mapped memory
  *----------------------------------------------------------
- * This structure must not be changed in size as it will
- * cause differences in the memory location of the version
- * number (in et_system stucture). This version number is
- * used to check the compatiblity of ET systems and users.
  *
+ * byteOrder      : should be 0x01020304, if not, byte order
+ *                : is reversed from local order.
+ * sytemType      : type of local system using the mapped memory.
+ *                : Right now there are only 2 types. One is an ET
+ *                : system written in C (= ET_SYSTEM_TYPE_C).
+ *                : The other is an ET system written in Java
+ *                : with a different layout of the shared memory
+ *                : (= ET_SYSTEM_TYPE_JAVA).
+ * major version  : major version # of this ET software release
+ * minor version  : minor version # of this ET software release
+ * headerByteSize : total size of a header structure in bytes
+ * eventByteSize  : total size of a single event's data memory in bytes
+ * headerPosition : number of bytes past start of shared memory
+ *                : that the headers are stored.
+ * dataPosition   : number of bytes past start of shared memory
+ *                : that the data are stored.
  * totalsize      : total size of mapped memory (mapped
  *                : memory must be allocated in pages).
  * usedsize       : desired size of mapped memory given as arg
@@ -805,8 +826,17 @@ typedef struct  et_id_t {
  */
 
 typedef struct  et_mem_t {
-  uint64_t        totalsize;
-  uint64_t        usedsize;
+    uint32_t  byteOrder;
+    uint32_t  systemType;
+    uint32_t  majorVersion;
+    uint32_t  minorVersion;
+    uint32_t  headerByteSize;
+    
+    uint64_t  eventByteSize;
+    uint64_t  headerPosition;
+    uint64_t  dataPosition;
+    uint64_t  totalSize;
+    uint64_t  usedSize;
 } et_mem;
 
 /****************************
@@ -1026,8 +1056,12 @@ extern int  et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id);
 extern void et_flush_events(et_id *id, et_att_id att, et_stat_id stat_id);
 
 /* mmap/memory functions */
-extern int   et_mem_create(const char *name, size_t memsize, void **pmemory);
-extern void *et_mem_attach(const char *name);
+extern int   et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *totalSize);
+extern void *et_mem_write_first_block(char *ptr,
+                                      uint32_t headerByteSize, uint64_t eventByteSize,
+                                      uint64_t headerPosition, uint64_t dataPosition,
+                                      uint64_t totalByteSize,  uint64_t usedByteSize);
+extern int   et_mem_attach(const char *name, void **pmemory, et_mem *pInfo);
 extern int   et_mem_unmap(const char *name, void *pmem);
 extern int   et_mem_remove(const char *name, void *pmem);
 extern int   et_mem_size(const char *name, size_t *totalsize, size_t *usedsize);

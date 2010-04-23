@@ -28,7 +28,7 @@
 
 #include "et_private.h"
 
-int et_mem_create(const char *name, size_t memsize, void **pmemory)
+int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *totalSize)
 /* name    = name of file (or possibly shared memory)
  * memsize = necessary et memory size in bytes
  * pmemory = pointer to pointer to useable part of mmapped memory
@@ -38,16 +38,14 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory)
   int       fd, num_pages;
   void     *pmem;
   size_t    wantedsize, totalsize, pagesize;
-  et_mem    first_item, *writehere;
   mode_t    mode;
 
   /* get system's pagesize in bytes: 8192-sun, 4096-linux */
   /*pagesize = sysconf(_SC_PAGESIZE);*/
   pagesize = (size_t) getpagesize();
 
-  /* calculate mem size for everything */
-  /* add room for first item in mapped mem (lengths) */
-  wantedsize = memsize + sizeof(et_mem);
+  /* Calculate mem size for everything, adding room for initial data in mapped mem */
+  wantedsize = memsize + ET_INITIAL_SHARED_MEM_DATA_BYTES;
   num_pages  = (int) ceil( ((double) wantedsize)/pagesize );
   totalsize  = pagesize * num_pages;
   /*printf("et_mem_create: size = %d bytes, requested size = %d bytes\n",totalsize, memsize);*/
@@ -67,8 +65,8 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory)
   }
     
   /* map mem to process space */
-  if ((pmem = (void *) mmap((caddr_t) 0, totalsize, PROT_READ|PROT_WRITE,
-       MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
+  if ((pmem = mmap((caddr_t) 0, totalsize, PROT_READ|PROT_WRITE,
+                   MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
     close(fd);
     unlink(name);
     return ET_ERROR;
@@ -77,15 +75,55 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory)
   /* close fd for mapped mem since no longer needed */
   close(fd);
   
-  /* make size info first item in mem */
-  first_item.totalsize = (uint64_t) totalsize;
-  first_item.usedsize  = (uint64_t) memsize;
-   writehere = (et_mem *) pmem;
-  *writehere = first_item;
-   
-  *pmemory = (void *) pmem;
+  if (pmemory   != NULL) *pmemory = pmem;
+  if (totalSize != NULL) *totalSize = totalsize;
+  
   return ET_OK;
 }
+
+/***************************************************/
+/* Write 5, 32-bit ints and 5, 64-bit ints at the very
+ * beginning of the ET system file. In order this includes:
+ *
+ * byteOrder      : when read should be 0x01020304, if not, byte order
+ *                : is reversed from local order.
+ * sytemType      : type of local system using the mapped memory.
+ *                : Right now there are only 2 types. One is an ET
+ *                : system written in C (= ET_SYSTEM_TYPE_C).
+ *                : The other is an ET system written in Java
+ *                : with a different layout of the shared memory
+ *                : (= ET_SYSTEM_TYPE_JAVA).
+ * major version  : major version # of this ET software release
+ * minor version  : minor version # of this ET software release
+ * headerByteSize : total size of a header structure in bytes
+ * eventByteSize  : total size of a single event's data memory in bytes
+ * headerPosition : number of bytes past start of shared memory
+ *                : that the headers are stored.
+ * dataPosition   : number of bytes past start of shared memory
+ *                : that the data are stored.
+ * totalsize      : total size of mapped memory (mapped
+ *                : memory must be allocated in pages).
+ * usedsize       : desired size of mapped memory given as arg
+ *                : to et_mem_create.
+ */
+void *et_mem_write_first_block(char *ptr,
+                               uint32_t headerByteSize, uint64_t eventByteSize,
+                               uint64_t headerPosition, uint64_t dataPosition,
+                               uint64_t totalByteSize,  uint64_t usedByteSize)
+{
+    *((uint32_t *)ptr) = 0x01020304;        ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_SYSTEM_TYPE_C;  ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_VERSION;        ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_VERSION_MINOR;  ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = headerByteSize;    ptr += sizeof(uint32_t);
+
+    *((uint64_t *)ptr) = eventByteSize;     ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = headerPosition;    ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = dataPosition;      ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = totalByteSize;     ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = usedByteSize;
+}
+
 
 /***************************************************/
 /* Attach to shared memory already created by
@@ -94,48 +132,95 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory)
  * The first bit of data in the mapped mem is the total size of
  * mapped memory.
  */
-void *et_mem_attach(const char *name)
+int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
 {
-  int        fd;
-  void      *pmem;
+  int        fd, correctEndian=0;
+  char      *ptr;
   size_t     totalsize;
-  et_mem    *psize;
-  
+  void      *pmem;
+  et_mem     info;
+
   /* open file */
   if ((fd = open(name, O_RDWR, S_IRWXU)) < 0) {
     perror("et_mem_attach: open - ");
-    return NULL;
+    return ET_ERROR;
   }
    
-  /* map mem to this process & find its size */
-  if ((psize = (et_mem *) mmap((caddr_t) 0, sizeof(et_mem), PROT_READ|PROT_WRITE,
-       MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
+  /* map small amount of mem in this process & find some info */
+  if ((pmem = mmap((caddr_t) 0, ET_INITIAL_SHARED_MEM_DATA_BYTES, PROT_READ|PROT_WRITE,
+                    MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
     close(fd);
     perror("et_mem_attach: mmap - ");
-    return NULL;
+    return ET_ERROR;
   }
-  totalsize = (size_t) psize->totalsize;
+
+  ptr = (char *)pmem;
+  if (pInfo == NULL) {
+      pInfo = &info;
+  }
+  pInfo->byteOrder       = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
+  pInfo->systemType      = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
+  pInfo->majorVersion    = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
+  pInfo->minorVersion    = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
+  pInfo->headerByteSize  = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
+    
+  pInfo->eventByteSize   = *((uint64_t *)ptr);  ptr += sizeof(uint64_t);
+  pInfo->headerPosition  = *((uint64_t *)ptr);  ptr += sizeof(uint64_t);
+  pInfo->dataPosition    = *((uint64_t *)ptr);  ptr += sizeof(uint64_t);
+  pInfo->totalSize       = *((uint64_t *)ptr);  ptr += sizeof(uint64_t);
+  pInfo->usedSize        = *((uint64_t *)ptr);
+
+  totalsize = (size_t) pInfo->totalSize;
   
   /* unmap mem */
-  munmap((void *) psize, sizeof(et_mem));
-  
-  /* remap with proper size */
-  if ((pmem = mmap((caddr_t) 0, totalsize, PROT_READ|PROT_WRITE,
-       MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
-    close(fd);
-    perror("et_mem_attach: remmap - ");
-    return NULL;
+  munmap(pmem, ET_INITIAL_SHARED_MEM_DATA_BYTES);
+
+  /* do some error checking before mapping this whole file */
+
+  /* check endian */
+  if (pInfo->byteOrder != 0x01020304) {
+      et_logmsg("ERROR", "et_mem_attach: cannot open ET system file - wrong endian\n");
+      close(fd);
+      return ET_ERROR;
   }
   
-  close(fd);  
-  return pmem;
+  /* check system type */   
+  if (pInfo->systemType == ET_SYSTEM_TYPE_JAVA) {
+      et_logmsg("ERROR", "et_mem_attach: file is used only for Java ET systems\n");
+      close(fd);
+      return ET_ERROR;
+  }
+  
+  /* check major version number */
+  if (pInfo->majorVersion != ET_VERSION) {
+      et_logmsg("ERROR", "et_mem_attach, ET system file is the wrong version (%d), should be %d\n",
+                pInfo->majorVersion, ET_VERSION);
+      close(fd);
+      return ET_ERROR;
+  }
+  
+  /* finally, remap with proper size */
+  if ((pmem = mmap((caddr_t) 0, totalsize, PROT_READ|PROT_WRITE,
+                   MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
+    close(fd);
+    perror("et_mem_attach: remmap - ");
+    return ET_ERROR;
+  }
+  
+  close(fd);
+   
+  if (pmemory != NULL) *pmemory = pmem;
+  
+  return ET_OK;
 }
 
 /***************************************************/
 int et_mem_size(const char *name, size_t *totalsize, size_t *usedsize)
 {
   int     fd;
-  et_mem *psize;
+  void   *pmem;
+  char   *ptr;
+  et_mem  info;
   
   /* open file */
   if ((fd = open(name, O_RDWR, S_IRWXU)) < 0) {
@@ -143,24 +228,28 @@ int et_mem_size(const char *name, size_t *totalsize, size_t *usedsize)
   }
    
   /* map mem to this process & read data */
-  if ((psize = (et_mem *) mmap(0, sizeof(et_mem), PROT_READ|PROT_WRITE,
-       MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
+  if ((pmem = mmap((caddr_t)0, ET_INITIAL_SHARED_MEM_DATA_BYTES, PROT_READ|PROT_WRITE,
+                   MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
     close(fd);
     return ET_ERROR;
   }
   
   /* find mapped mem's total size */
+  ptr = (char *)pmem + 5*sizeof(uint32_t) + 3*sizeof(uint64_t);
   if (totalsize != NULL) {
-    *totalsize = (size_t) psize->totalsize;
+      *totalsize = (size_t) (*((uint64_t *)ptr));
   }
+  
+  /* find mapped mem's size used by ET system */
+  ptr += sizeof(uint64_t);
   if (usedsize != NULL) {
-    *usedsize = (size_t) psize->usedsize;
+    *usedsize = (size_t) (*((uint64_t *)ptr));
   }
   
   close(fd);
   
   /* unmap mem */
-  munmap((void *) psize, sizeof(et_mem));
+  munmap(pmem, ET_INITIAL_SHARED_MEM_DATA_BYTES);
 
   return ET_OK;
 }
@@ -223,8 +312,8 @@ void *et_temp_create(const char *name, size_t size)
   }
    
   /* map fd to process mem */
-  if ((pmem = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED,
-       fd, (off_t)0)) == NULL) {
+  if ((pmem = mmap((caddr_t)0, size, PROT_READ|PROT_WRITE, MAP_SHARED,
+                   fd, (off_t)0)) == NULL) {
     close(fd);
     unlink(name);
     return NULL;
@@ -250,8 +339,8 @@ void *et_temp_attach(const char *name, size_t size)
   }
    
   /* map shared mem to this process */
-  if ((pdata = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED,
-       fd, (off_t)0)) == NULL) {
+  if ((pdata = mmap((caddr_t)0, size, PROT_READ|PROT_WRITE, MAP_SHARED,
+                    fd, (off_t)0)) == NULL) {
     close(fd);
     return NULL;
   }
