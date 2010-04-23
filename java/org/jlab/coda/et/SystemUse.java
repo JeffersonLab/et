@@ -33,26 +33,36 @@ import org.jlab.coda.et.exception.*;
 public class SystemUse {
 
   /** Object to specify how to open the ET system of interest. */
-  private SystemOpenConfig  openConfig;
+  private SystemOpenConfig openConfig;
   /** Object used to connect to a real ET system. */
-  private SystemOpen        sys;
+  private SystemOpen sys;
   /** Flag telling whether the real ET system is currently opened or not. */
-  private boolean           open;
+  private boolean open;
   /** Debug level. */
-  private int               debug;
+  private int debug;
   /** Default event group number. Initially this is zero meaning groups are ignored. */
-  private int               group;
+  private int group;
   /** Tcp socket connected to ET system's tcp server. */
-  private Socket            sock;
+  private Socket sock;
   /** Flag specifying whether the ET system process is Java based or not. */
-  private boolean           isJava;
-  /** Data input stream built on top of the socket's input stream (with an
+  private boolean isJava;
+
+    /** Data input stream built on top of the socket's input stream (with an
    *  intervening buffered input stream). */
-  DataInputStream           in;
+  private DataInputStream in;
   /** Data output stream built on top of the socket's output stream (with an
    *  intervening buffered output stream). */
-  DataOutputStream          out;
+  private DataOutputStream out;
 
+    public DataInputStream getInputStream() {
+        return in;
+    }
+
+    public DataOutputStream getOutputStream() {
+        return out;
+    }
+
+    
 
   /**
    * Create a new SystemUse object.
@@ -90,7 +100,7 @@ public class SystemUse {
     else {
       debug = _debug;
     }
-    sys.debug = debug;
+    sys.setDebug(debug);
     
     open();
   }
@@ -120,7 +130,7 @@ public class SystemUse {
     openConfig = new SystemOpenConfig(_config);
     sys        = new SystemOpen(openConfig);
     debug      = Constants.debugError;
-    sys.debug  = debug;
+    sys.setDebug(debug);
     open();
   }
 
@@ -201,7 +211,7 @@ public class SystemUse {
     catch (EtTooManyException ex) {
       if (debug >= Constants.debugError) {
         System.out.println("The following hosts responded:");
-        for (Map.Entry<String,Integer> entry : sys.responders.entrySet()) {
+        for (Map.Entry<String,Integer> entry : sys.getResponders().entrySet()) {
             System.out.println("  " + entry.getKey() +
                " at port " + entry.getValue());
         }
@@ -209,9 +219,9 @@ public class SystemUse {
       throw ex;
     }
     
-    if (sys.language == Constants.langJava) {isJava = true;}
+    if (sys.getLanguage() == Constants.langJava) {isJava = true;}
     
-    sock = sys.sock;
+    sock = sys.getSocket();
 
     // buffer communication streams for efficiency
     in   = new DataInputStream(new BufferedInputStream(sock.getInputStream(), 65535));
@@ -352,9 +362,9 @@ public class SystemUse {
         throw new EtException("if restoreMode = restoreRedist, station must be parallel");
     }
 
-    if (config.getCue() > sys.numEvents) {
+    if (config.getCue() > sys.getNumEvents()) {
       //throw new EtException("station configuraton cue size must be < max-#-of-events");
-        config.setCue(sys.numEvents);
+        config.setCue(sys.getNumEvents());
     }
   }
 
@@ -1074,7 +1084,7 @@ public class SystemUse {
     in.readFully(buffer, 0, 8*numEvents);
 
     int index=-8;
-    long sizeLimit = (size > sys.eventSize) ? (long)size : sys.eventSize;
+    long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
     final int modify = Constants.modify;
 
       // Java limits array sizes to an integer. Thus we're limited to
@@ -1083,9 +1093,9 @@ public class SystemUse {
       // So set limits on the size accordingly.
 
         // if C ET system we are connected to is 64 bits ...
-        if (!isJava && sys.bit64) {
+        if (!isJava && sys.isBit64()) {
           // if events size > ~1G, only allocate what's asked for
-          if ((long)numEvents*sys.eventSize > Integer.MAX_VALUE/2) {
+          if ((long)numEvents*sys.getEventSize() > Integer.MAX_VALUE/2) {
             sizeLimit = size;
           }
         }
@@ -1269,7 +1279,7 @@ public class SystemUse {
       in.readFully(buffer, 0, 8*numEvents);
 
       int index=-8;
-      long sizeLimit = (size > sys.eventSize) ? (long)size : sys.eventSize;
+      long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
       final int modify = Constants.modify;
 
         // Java limits array sizes to an integer. Thus we're limited to
@@ -1278,9 +1288,9 @@ public class SystemUse {
         // So set limits on the size accordingly.
 
           // if C ET system we are connected to is 64 bits ...
-          if (!isJava && sys.bit64) {
+          if (!isJava && sys.isBit64()) {
             // if events size > ~1G, only allocate what's asked for
-            if ((long)numEvents*sys.eventSize > Integer.MAX_VALUE/2) {
+            if ((long)numEvents*sys.getEventSize() > Integer.MAX_VALUE/2) {
               sizeLimit = size;
             }
           }
@@ -1485,7 +1495,7 @@ public class SystemUse {
       // we'll get an error above.
 
       // if C ET system we are connected to is 64 bits ...
-      if (!isJava && sys.bit64) {
+      if (!isJava && sys.isBit64()) {
           // if event size > ~1G, only allocate enough to hold data
           if (memSize > Integer.MAX_VALUE/2) {
               memSize = length;
@@ -1623,6 +1633,7 @@ public class SystemUse {
 
 	    // send data only if modifying whole event
 	    if (ev.getModify() == modify) {
+System.out.println("Sending data = " + Utils.bytesToInt(ev.getData(),0) + ", len = " + ev.getLength());
           out.write(ev.getData(), 0, ev.getLength());
 	    }
       }
@@ -1918,19 +1929,19 @@ public class SystemUse {
 
   /** Gets the number of events in the ET system.
    *  @return number of events in the ET system */
-  public int  getNumEvents() {return sys.numEvents;}
+  public int  getNumEvents() {return sys.getNumEvents();}
   /** Gets the "normal" event size in bytes.
    *  @return normal event size in bytes */
-  public long  getEventSize() {return sys.eventSize;}
+  public long  getEventSize() {return sys.getEventSize();}
   /** Gets the ET system's implementation language.
    *  @return ET system's implementation language */
-  public int  getLanguage()   {return sys.language;}
+  public int  getLanguage()   {return sys.getLanguage();}
   /** Gets the ET system's host name.
    *  @return ET system's host name */
-  public String  getHost()   {return sys.host;}
+  public String  getHost()   {return sys.getHost();}
   /** Gets the tcp server port number.
    *  @return tcp server port number */
-  public int  getTcpPort()   {return sys.tcpPort;}
+  public int  getTcpPort()   {return sys.getTcpPort();}
   /** Gets the debug output level.
    *  @return debug output level */
   public int  getDebug()     {return debug;}
@@ -2040,8 +2051,8 @@ public class SystemUse {
    *     if there are problems with network communication
    */
   synchronized public int[] getHistogram() throws IOException, EtException {
-    byte[] data = new byte[4*(sys.numEvents+1)];
-    int[]  hist = new int[sys.numEvents+1];
+    byte[] data = new byte[4*(sys.getNumEvents()+1)];
+    int[]  hist = new int[sys.getNumEvents()+1];
 
     out.writeInt(Constants.netSysHist);
     out.flush();
@@ -2052,7 +2063,7 @@ public class SystemUse {
     }
 
     in.readFully(data);
-    for (int i=0; i < sys.numEvents+1; i++) {
+    for (int i=0; i < sys.getNumEvents()+1; i++) {
       hist[i] = Utils.bytesToInt(data, i*4);
     }
     return hist;

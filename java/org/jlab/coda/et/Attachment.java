@@ -91,11 +91,11 @@ public class Attachment {
     long val = 0;
 
     synchronized(sys) {
-      sys.out.writeInt(cmd);
-      sys.out.writeInt(id);
-      sys.out.flush();
-      err = sys.in.readInt();
-      val = sys.in.readLong();
+      sys.getOutputStream().writeInt(cmd);
+      sys.getOutputStream().writeInt(id);
+      sys.getOutputStream().flush();
+      err = sys.getInputStream().readInt();
+      val = sys.getInputStream().readLong();
     }
 
     if (err != Constants.ok) {

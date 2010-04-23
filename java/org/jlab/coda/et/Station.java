@@ -76,12 +76,12 @@ public class Station {
     int[] select = new int[Constants.stationSelectInts];
 
     synchronized(sys) {
-      sys.out.writeInt(Constants.netStatGSw);
-      sys.out.writeInt(id);
-      sys.out.flush();
+      sys.getOutputStream().writeInt(Constants.netStatGSw);
+      sys.getOutputStream().writeInt(id);
+      sys.getOutputStream().flush();
 
-      err = sys.in.readInt();
-      for (int i=0; i < select.length; i++) {select[i] = sys.in.readInt();}
+      err = sys.getInputStream().readInt();
+      for (int i=0; i < select.length; i++) {select[i] = sys.getInputStream().readInt();}
     }
 
     if (err != Constants.ok) {
@@ -114,13 +114,13 @@ public class Station {
     }
     
     synchronized(sys) {
-      sys.out.writeInt(Constants.netStatSSw);
-      sys.out.writeInt(id);
+      sys.getOutputStream().writeInt(Constants.netStatSSw);
+      sys.getOutputStream().writeInt(id);
       for (int i=0; i < select.length; i++) {
-        sys.out.writeInt(select[i]);
+        sys.getOutputStream().writeInt(select[i]);
       }
-      sys.out.flush();
-      err = sys.in.readInt();
+      sys.getOutputStream().flush();
+      err = sys.getInputStream().readInt();
     }
     if (err != Constants.ok) {
       throw new EtException("this station has been removed from ET system");
@@ -145,15 +145,15 @@ public class Station {
     int err = Constants.error, length = 0;
 
     synchronized(sys) {
-      sys.out.writeInt(command);
-      sys.out.writeInt(id);
-      sys.out.flush();
-      err = sys.in.readInt();
-      length = sys.in.readInt();
+      sys.getOutputStream().writeInt(command);
+      sys.getOutputStream().writeInt(id);
+      sys.getOutputStream().flush();
+      err = sys.getInputStream().readInt();
+      length = sys.getInputStream().readInt();
 
       if (err == Constants.ok) {
         buf = new byte[length];
-        sys.in.readFully(buf, 0, length);
+        sys.getInputStream().readFully(buf, 0, length);
       }
     }
 
@@ -228,11 +228,11 @@ public class Station {
     int val = 0;
 
     synchronized(sys) {
-      sys.out.writeInt(cmd);
-      sys.out.writeInt(id);
-      sys.out.flush();
-      err = sys.in.readInt();
-      val = sys.in.readInt();
+      sys.getOutputStream().writeInt(cmd);
+      sys.getOutputStream().writeInt(id);
+      sys.getOutputStream().flush();
+      err = sys.getInputStream().readInt();
+      val = sys.getInputStream().readInt();
     }
     if (err != Constants.ok) {
       throw new EtException("this station has been removed from ET system");
@@ -254,11 +254,11 @@ public class Station {
     int err = Constants.error;
 
     synchronized(sys) {
-      sys.out.writeInt(cmd);
-      sys.out.writeInt(id);
-      sys.out.writeInt(val);
-      sys.out.flush();
-      err = sys.in.readInt();
+      sys.getOutputStream().writeInt(cmd);
+      sys.getOutputStream().writeInt(id);
+      sys.getOutputStream().writeInt(val);
+      sys.getOutputStream().flush();
+      err = sys.getInputStream().readInt();
     }
     if (err != Constants.ok) {
       throw new EtException("this station has been removed from ET system");
