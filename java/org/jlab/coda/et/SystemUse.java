@@ -1155,6 +1155,62 @@ public class SystemUse {
     /**
      * Get new or unused events from an ET system.
      *
+     * @param attId    attachment id number
+     * @param mode     if there are no events available, this parameter specifies
+     *                 whether to wait for some by sleeping, by waiting for a set
+     *                 time, or by returning immediately
+     * @param sec      the number of seconds to wait if a timed wait is specified
+     * @param nsec     the number of nanoseconds to wait if a timed wait is specified
+     * @param count    the number of events desired
+     * @param size     the size of events in bytes
+     * @param group    the group number of events
+     *
+     * @return an array of events
+     *
+     * @exception java.io.IOException
+     *     if problems with network comunications
+     * @exception EtException
+     *     if arguments have bad values or attachment object is invalid
+     * @exception EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @exception EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @exception EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @exception EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     */
+    private Event[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size, int group)
+                        throws EtException  {
+
+        EventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
+                                                    mode, sec, nsec, count, size, group);
+
+        // set all events' data arrays to point to shared memory correctly
+
+        // Start with the whole data buffer and slice it -
+        // create smaller buffers with the SAME underlying data
+        MappedByteBuffer buffer = sys.getBuffer();
+        int position, eventSize = (int) sys.getEventSize();
+
+        for (EventImpl ev : events) {
+            position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
+            buffer.position(position);
+            buffer.limit(position + eventSize);
+            ev.setDataBuffer(buffer.slice());
+        }
+
+        return events;
+    }
+
+
+
+
+    /**
+     * Get new or unused events from an ET system.
+     *
      * @param att       attachment object
      * @param mode      if there are no events available, this parameter specifies
      *                  whether to wait for some by sleeping, by waiting for a set

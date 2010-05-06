@@ -133,7 +133,8 @@ public class EventImpl implements Event {
 
     /**
      * Creates an event object for ET system users when connecting to C-based ET systems
-     * and using native methods. No data array or buffer are created since we will be using shared
+     * and using native methods to call et_events_get.
+     * No data array or buffer are created since we will be using shared
      * memory and it will be taken care of later. Tons of args since it's a lot easier in
      * JNI to call one method with lots of args then to call lots of set methods on one object.
      *
@@ -156,6 +157,32 @@ public class EventImpl implements Event {
         this.priority  = priority;
         this.byteOrder = byteOrder;
         this.control   = control.clone();
+    }
+
+    /**
+     * Creates an event object for ET system users when connecting to C-based ET systems
+     * and using native methods to call et_events_new_group.
+     * No data array or buffer are created since we will be using shared
+     * memory and it will be taken care of later.
+     *
+     *  @param limit limit on the size of the data array in bytes. Only used
+     *         for C-based ET systems.
+     */
+    EventImpl(int limit, int id, int owner) {
+
+        age        = newAge;
+        priority   = low;
+        isJava     = false;
+        byteOrder  = 0x04030201;
+        length     = 0;
+        modify     = 0;
+        dataStatus = ok;
+        control    = new int[numSelectInts];
+
+        memSize    = limit;
+        sizeLimit  = limit;
+        this.id    = id;
+        this.owner = owner;
     }
 
     /** Initialize an event's fields. Called for an event each time it passes
