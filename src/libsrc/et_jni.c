@@ -1,3 +1,21 @@
+/*----------------------------------------------------------------------------*
+ *  Copyright (c) 2010        Jefferson Science Associates,                   *
+ *                            Thomas Jefferson National Accelerator Facility  *
+ *                                                                            *
+ *    This software was developed under a United States Government license    *
+ *    described in the NOTICE file included as part of this distribution.     *
+ *                                                                            *
+ *    Author:  Carl Timmer                                                    *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
+ *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
+ *                                                                            *
+ *----------------------------------------------------------------------------*
+ *
+ * Description:
+ *      Routines to get, put, and dump events through Java's JNI interface
+ *
+ *----------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +97,6 @@ printf("getEvents (native) : will attempt to get events\n");
     /* reading array of up to "count" events */
     status = et_events_get((et_sys_id)etId, (et_att_id)attId, pe, mode, &deltaTime, count, &numread);
     if (status != ET_OK) {
-        printf("et_client: get error\n");
         clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         (*env)->ThrowNew(env, clazz, "getEvents: cannot get events in native code");
         return;
@@ -207,6 +224,43 @@ printf("putEvents (native) : put 'em back\n");
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_dumpEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jobjectArray events, jint length) {
 
+    int i, j, status, place;
+    et_event *pe[length];
+    jclass clazz = NULL;
+    jfieldID fid;
+    jobject event;
+    et_id *etid = (et_id *) etId;
+    
+printf("dumpEvents (native) : dump 'em\n");
+
+    /* look up class object */
+    event = (*env)->GetObjectArrayElement(env, events, 0);
+    clazz = (*env)->GetObjectClass(env, event);
+
+    /* find id's of all the fields that might have changed */
+    fid = (*env)->GetFieldID(env, clazz, "id", "I");
+
+    /* create array of (pointers to) events */
+    for (i=0; i<length; i++) {
+        /* get event object from Java array of events */
+        event = (*env)->GetObjectArrayElement(env, events, i);
+        
+        /* find ptr to event in C world */
+        place = (*env)->GetIntField(env, event, fid);
+        pe[i] = ET_P2EVENT(etid, place);
+        
+        (*env)->DeleteLocalRef(env, event);
+    }
+    
+    /* dump array of events (pointers) */
+    status = et_events_dump((et_sys_id)etId, (et_att_id)attId, pe, length);
+    if (status != ET_OK) {
+        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        (*env)->ThrowNew(env, clazz, "dumpEvents: cannot dump events in native code");
+        return;
+    }
+
+    return;
 }
 
 /*
@@ -218,6 +272,63 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_newEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
          jint sec, jint nsec, jint count, jint size, jint group) {
 
+    int i, j, numread, status;
+    et_event *pe[count];
+    jclass clazz;
+    jmethodID methodId;
+    jboolean isCopy;
+    jint* intArrayElems;
+    jintArray controlInts;
+    jobjectArray eventArray;
+    jobject event;
+
+    /* translate timeout */
+    struct timespec deltaTime;
+    deltaTime.tv_sec  = sec;
+    deltaTime.tv_nsec = nsec;
+printf("newEvents (native) : will attempt to get new events\n");
+    
+    /* reading array of up to "count" events */
+    status = et_events_new_group((et_sys_id)etId, (et_att_id)attId, pe, mode,
+                                  &deltaTime, size, count, group, &numread);
+    if (status != ET_OK) {
+        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        (*env)->ThrowNew(env, clazz, "getEvents: cannot get events in native code");
+        return;
+    }
+
+    /* create array of EventImpl objects */
+    clazz      = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
+    eventArray = (*env)->NewObjectArray(env, numread, clazz, NULL);
+    /* get appropriate constructor for them */
+    methodId = (*env)->GetMethodID(env, clazz, "<init>", "(IIIIIIIIII[I)V");
+
+    /* fill array */
+    for (i=0; i < numread; i++) {
+        /* create control int array */
+        controlInts   = (*env)->NewIntArray(env, ET_STATION_SELECT_INTS);
+        intArrayElems = (*env)->GetIntArrayElements(env, controlInts, &isCopy);
+        for (j=0; j < ET_STATION_SELECT_INTS; j++) {
+            intArrayElems[j] = pe[i]->control[j];
+        }
+        if (isCopy == JNI_TRUE) {
+            (*env)->ReleaseIntArrayElements(env, controlInts, intArrayElems, 0);
+        }
+
+        /* create event object */
+
+        // TODO: use a simpler constructor since many fields are initialized ...
+        event = (*env)->NewObject(env, clazz, methodId, /* constructor args ... */
+                                  (jint)pe[i]->memsize, (jint)pe[i]->place, (jint)pe[i]->owner);
+
+        /* put event in array */
+        (*env)->SetObjectArrayElement(env, eventArray, i, event);
+        (*env)->DeleteLocalRef(env, event);
+    }
+printf("newEvents (native) : filled array!\n");
+
+    /* return the array */
+    return eventArray;
 }
 
 
