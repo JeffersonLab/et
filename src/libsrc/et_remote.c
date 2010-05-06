@@ -1560,7 +1560,7 @@ int et_event_setdatabuffer(et_sys_id id, et_event *pe, void *data)
 int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
                   int mode, struct timespec *deltatime, size_t size)
 {
-    int err, transfer[7], incoming[3], wait, noalloc;
+    int err, transfer[7], incoming[3], wait, noalloc, place;
     size_t eventsize;
     uint64_t pevent;
     et_id *etid = (et_id *) id;
@@ -1595,7 +1595,7 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
         return ET_ERROR_WRITE;
     }
 
-    /* get back a pointer which for later use */
+    /* get back a place for later use */
     if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         et_tcp_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
@@ -1605,7 +1605,8 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
     }
     et_tcp_unlock(etid);
     err    = ntohl(incoming[0]);
-    pevent = ET_64BIT_UINT(ntohl(incoming[1]),ntohl(incoming[2]));
+    place  = ntohl(incoming[1]); /* incoming[2] not used */
+    /*pevent = ET_64BIT_UINT(ntohl(incoming[1]),ntohl(incoming[2]));*/
 
     if (err != ET_OK) {
         return err;
@@ -1679,7 +1680,7 @@ int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,
     }
     newevent->length  = size;
     newevent->memsize = eventsize;
-    newevent->pointer = pevent;
+    newevent->place   = place;
     newevent->modify  = ET_MODIFY;
 
     *ev = newevent;
@@ -1694,7 +1695,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 {
     int i, j, err, temp, nevents, transfer[8], wait, noalloc;
     size_t eventsize;
-    uint64_t *pevents;
+    uint32_t *places;
     et_id *etid = (et_id *) id;
     int sockfd = etid->sockfd;
     et_event **newevents;
@@ -1765,8 +1766,8 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     nevents = err;
     /*printf("etr_events_new: num events coming = %d\n", nevents);*/
 
-    /* allocate memory for event pointers */
-    if ((pevents = (uint64_t *) calloc(nevents, sizeof(uint64_t))) == NULL) {
+    /* allocate memory for event places */
+    if ((places = (uint32_t *) calloc(nevents, sizeof(uint32_t))) == NULL) {
         et_tcp_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
@@ -1777,14 +1778,14 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 
     /* read array of event pointers */
     /*printf("etr_events_new: read in %d 64 bit event pointers\n", nevents);*/
-    if (et_tcp_read(sockfd, (void *) pevents, nevents*sizeof(uint64_t)) !=
-            nevents*sizeof(uint64_t) ) {
+    if (et_tcp_read(sockfd, (void *) places, nevents*sizeof(uint32_t)) !=
+            nevents*sizeof(uint32_t) ) {
 
         et_tcp_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, read error\n");
         }
-        free(pevents);
+        free(places);
         free(newevents);
         return ET_ERROR_READ;
     }
@@ -1850,8 +1851,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
         newevents[i]->length  = size;
         newevents[i]->memsize = eventsize;
         newevents[i]->modify  = ET_MODIFY;
-        newevents[i]->pointer = ntoh64(pevents[i]);
-        /*printf("etr_events_new:   pointer[%d] = 0x%llx\n",i,newevents[i]->pointer );*/
+        newevents[i]->place   = ntohl(places[i]);
         newevents[i]->temp    = temp;
     }
 
@@ -1864,7 +1864,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
             }
             free(newevents[j]);
         }
-        free(pevents);
+        free(places);
         free(newevents);
         return err;
     }
@@ -1876,7 +1876,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     if (nread != NULL) {
         *nread = nevents;
     }
-    free(pevents);
+    free(places);
     free(newevents);
 
     return ET_OK;
@@ -1889,7 +1889,7 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
 {
     int i, j, err, temp, nevents, transfer[9], wait, noalloc;
     size_t eventsize;
-    uint64_t *pevents;
+    uint32_t *places;
     et_id *etid = (et_id *) id;
     int sockfd = etid->sockfd;
     et_event **newevents;
@@ -1962,7 +1962,7 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
     /*printf("etr_events_new: num events coming = %d\n", nevents);*/
 
     /* allocate memory for event pointers */
-    if ((pevents = (uint64_t *) calloc(nevents, sizeof(uint64_t))) == NULL) {
+    if ((places = (uint32_t *) calloc(nevents, sizeof(uint32_t))) == NULL) {
         et_tcp_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
@@ -1973,14 +1973,14 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
 
     /* read array of event pointers */
     /*printf("etr_events_new: read in %d 64 bit event pointers\n", nevents);*/
-    if (et_tcp_read(sockfd, (void *) pevents, nevents*sizeof(uint64_t)) !=
-            nevents*sizeof(uint64_t) ) {
+    if (et_tcp_read(sockfd, (void *) places, nevents*sizeof(uint32_t)) !=
+            nevents*sizeof(uint32_t) ) {
 
         et_tcp_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_events_new, read error\n");
         }
-        free(pevents);
+        free(places);
         free(newevents);
         return ET_ERROR_READ;
     }
@@ -2047,8 +2047,7 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
         newevents[i]->length  = size;
         newevents[i]->memsize = eventsize;
         newevents[i]->modify  = ET_MODIFY;
-        newevents[i]->pointer = ntoh64(pevents[i]);
-        /*printf("etr_events_new:   pointer[%d] = 0x%llx\n",i,newevents[i]->pointer );*/
+        newevents[i]->place   = ntohl(places[i]);
         newevents[i]->temp    = temp;
     }
 
@@ -2061,7 +2060,7 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
             }
             free(newevents[j]);
         }
-        free(pevents);
+        free(places);
         free(newevents);
         return err;
     }
@@ -2073,7 +2072,7 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
     if (nread != NULL) {
         *nread = nevents;
     }
-    free(pevents);
+    free(places);
     free(newevents);
 
     return ET_OK;
@@ -2160,7 +2159,7 @@ int etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
     newevent->memsize      = ET_64BIT_UINT(ntohl(header[2]),ntohl(header[3]));
     newevent->priority     = ntohl(header[4]) & ET_PRIORITY_MASK;
     newevent->datastatus   =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
-    newevent->pointer      = ET_64BIT_UINT(ntohl(header[5]),ntohl(header[6]));
+    newevent->place        = ntohl(header[5]);  /*ET_64BIT_UINT(ntohl(header[5]),ntohl(header[6]));*/
     newevent->byteorder    = header[7];
     for (i=0; i < ET_STATION_SELECT_INTS; i++) {
         newevent->control[i] = ntohl(header[i+9]);
@@ -2327,7 +2326,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         newevents[i]->memsize      = ET_64BIT_UINT(ntohl(header[2]),ntohl(header[3]));
         newevents[i]->priority     = ntohl(header[4]) & ET_PRIORITY_MASK;
         newevents[i]->datastatus   =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
-        newevents[i]->pointer      = ET_64BIT_UINT(ntohl(header[5]),ntohl(header[6]));
+        newevents[i]->place        = ntohl(header[5]);  /*ET_64BIT_UINT(ntohl(header[5]),ntohl(header[6]));*/
         /*printf("Got %llx, high = %x, low = %x\n", newevents[i]->pointer,
                                                   ntohl(header[5]),  ntohl(header[6]));
         */
@@ -2420,8 +2419,8 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
          */
         transfer[0] = htonl(ET_NET_EV_PUT);
         transfer[1] = htonl(att);
-        transfer[2] = htonl(ET_HIGHINT((uint64_t) ev->pointer));
-        transfer[3] = htonl(ET_LOWINT((uint64_t) ev->pointer));
+        transfer[2] = htonl(ev->place);
+        transfer[3] = 0; /* not used */
         transfer[4] = htonl(ET_HIGHINT(ev->length));
         transfer[5] = htonl(ET_LOWINT(ev->length));
         transfer[6] = htonl(ev->priority | ev->datastatus << ET_DATA_SHIFT);
@@ -2532,8 +2531,8 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
                 iov_bufs++;
             }
 
-            header[index]   = htonl(ET_HIGHINT((uint64_t) evs[i]->pointer));
-            header[index+1] = htonl(ET_LOWINT((uint64_t) evs[i]->pointer));
+            header[index]   = htonl(evs[i]->place);
+            header[index+1] = 0; /* not used */
             header[index+2] = htonl(ET_HIGHINT(evs[i]->length));
             header[index+3] = htonl(ET_LOWINT(evs[i]->length));
             header[index+4] = htonl(evs[i]->priority |
@@ -2640,7 +2639,7 @@ int etr_event_dump(et_sys_id id, et_att_id att, et_event *ev)
 {
     et_id *etid = (et_id *) id;
     int sockfd = etid->sockfd;
-    int err=ET_OK, transfer[4];
+    int err=ET_OK, transfer[3];
 
     /* If we've told the ET system that we're changing an event
      * or writing a new event, send back some info.
@@ -2648,8 +2647,7 @@ int etr_event_dump(et_sys_id id, et_att_id att, et_event *ev)
     if (ev->modify > 0) {
         transfer[0] = htonl(ET_NET_EV_DUMP);
         transfer[1] = htonl(att);
-        transfer[2] = htonl(ET_HIGHINT((uint64_t) ev->pointer));
-        transfer[3] = htonl(ET_LOWINT((uint64_t) ev->pointer));
+        transfer[2] = htonl(ev->place);
 
         /* write data */
         et_tcp_lock(etid);
@@ -2699,7 +2697,7 @@ int etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
             /* if first time thru ... */
             if (iov_init == 0) {
                 iov_init++;
-                if ( (transfer = (int *) calloc(2*num+3, sizeof(int))) == NULL) {
+                if ( (transfer = (int *) calloc(num+3, sizeof(int))) == NULL) {
                     if (etid->debug >= ET_DEBUG_ERROR) {
                         et_logmsg("ERROR", "etr_events_dump, cannot allocate memory\n");
                     }
@@ -2711,8 +2709,7 @@ int etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
                 index = 3;
             }
 
-            transfer[index++] = htonl(ET_HIGHINT((uint64_t) evs[i]->pointer));
-            transfer[index++] = htonl(ET_LOWINT((uint64_t) evs[i]->pointer));
+            transfer[index++] = htonl(evs[i]->place);
 
             count++;
         }
@@ -2722,8 +2719,8 @@ int etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
         transfer[2] = htonl(count);
 
         et_tcp_lock(etid);
-        if (et_tcp_write(sockfd, (void *) transfer, (2*count+3)*sizeof(int)) !=
-                (2*count+3)*sizeof(int)) {
+        if (et_tcp_write(sockfd, (void *) transfer, (count+3)*sizeof(int)) !=
+                (count+3)*sizeof(int)) {
             et_tcp_unlock(etid);
             if (etid->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_events_dump, write error\n");

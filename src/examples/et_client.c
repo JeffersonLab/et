@@ -28,8 +28,8 @@
 #endif
 #include "et.h"
 
-#define NUMEVENTS 400
-#define CHUNK 100
+#define NUMEVENTS 40000
+#define CHUNK 10
 
 /* prototype */
 static void *signal_thread (void *arg);
@@ -86,7 +86,7 @@ int main(int argc,char **argv) {
   
   /* open ET system */
   et_open_config_init(&openconfig);
-  /* et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
+  et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
   /* et_open_config_setwait(openconfig, ET_OPEN_WAIT);*/
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("et_client: et_open problems\n");
@@ -187,8 +187,8 @@ int main(int argc,char **argv) {
       /* example of array, timeout read */
       /* status = et_events_get(id, attach1, pe, ET_TIMED, &timeout, CHUNK, &numread);*/
 
-      status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, CHUNK, &numread);
-      if (status == ET_OK) {
+        status = et_event_get(id, attach1, &pe[0], ET_SLEEP, NULL);
+        if (status == ET_OK) {
         ;
       }
       else if (status == ET_ERROR_DEAD) {
@@ -219,6 +219,8 @@ int main(int argc,char **argv) {
         printf("et_client: get error\n");
         goto error;
       }
+
+      numread = 1;
       
       /**************/
       /* print data */
@@ -249,9 +251,11 @@ int main(int argc,char **argv) {
 
       /* example of putting single event */
       /* status = et_event_put(id, attach1, pe[0]);*/
-    
+      //status = et_event_put(id, attach1, pe[0]);
+
       /* example of putting array of events */
-      status = et_events_put(id, attach1, pe, numread);
+      //status = et_events_dump(id, attach1, pe, numread);
+      status = et_event_dump(id, attach1, pe[0]);
       if (status == ET_ERROR_DEAD) {
         printf("et_client: ET is dead\n");
         goto end;

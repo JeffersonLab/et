@@ -867,6 +867,8 @@ typedef struct  et_mem_t {
 #define  ET_NET_EVS_DUMP       27        /* et_events_dump */
 #define  ET_NET_EVS_NEW_GRP    28        /* et_events_new_group */
 
+#define  ET_NET_EVS_NEW_GRP_JAVA 29
+      
 #define  ET_NET_ALIVE          40        /* et_alive */
 #define  ET_NET_WAIT           41        /* et_wait_for_alive */
 #define  ET_NET_CLOSE          42        /* et_close */
@@ -972,6 +974,9 @@ typedef struct et_bridge_config_t {
 /****************************
  *    END BRIDGE STUFF      *
  ****************************/
+
+/* macro to get pointer to event from id and event place */
+#define ET_P2EVENT(etid, place) ((et_event *)((et_event *)(etid->events) + (place)))
 
 /* macros to switch ptrs from et space to user space & vice versa */
 #define ET_PEVENT2USR(p, offset) ((et_event *)((char *)(p) + (offset)))

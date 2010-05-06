@@ -747,7 +747,7 @@ static void et_command_loop(et_threadinfo *info)
   struct iovec *iov;
   et_id        *etid = info->id;
   et_sys_id     id = (et_sys_id) info->id;
-  uint64_t     *ints64 = NULL;
+  uint32_t     *ints32 = NULL;
 
   connfd      = info->connfd;
   iov_max     = info->iov_max;
@@ -802,8 +802,8 @@ static void et_command_loop(et_threadinfo *info)
     return;
   }
 
-  /* Need to translate 32 bit pointers into 64 bit ints for transfer */
-  if ( (ints64 = (uint64_t *) calloc(nevents_max, sizeof(uint64_t))) == NULL) {
+  /* Need to send 32bit ints (events' place) for transfer */
+  if ( (ints32 = (uint32_t *) calloc(nevents_max, sizeof(uint32_t))) == NULL) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_command_loop: cannot allocate memory\n");
     }
@@ -1502,8 +1502,9 @@ static void et_command_loop(et_threadinfo *info)
           /* send the priority & datastatus together and save space */
           header[5] = htonl(event->priority |
                             event->datastatus << ET_DATA_SHIFT);
-          header[6] = htonl(ET_HIGHINT((uintptr_t)event));
-          header[7] = htonl(ET_LOWINT((uintptr_t)event));
+          /* send an index into shared memory and NOT a pointer - for local Java clients */
+          header[6] = htonl(event->place);
+          header[7] = 0; /* not used */
           header[8] = event->byteorder;
           header[9] = 0; /* not used */
           for (i=0; i < ET_STATION_SELECT_INTS; i++) {
@@ -1677,8 +1678,9 @@ static void et_command_loop(et_threadinfo *info)
 /*printf("Get %p, high = %x, low = %x\n", events[i],
 ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 */
-            header[index+5] = htonl(ET_HIGHINT((uintptr_t)events[i]));
-            header[index+6] = htonl(ET_LOWINT((uintptr_t)events[i]));
+            /* send an index into shared memory and NOT a pointer - for local Java clients */
+            header[index+5] = htonl(events[i]->place);
+            header[index+6] = 0; /* not used */
             header[index+7] = events[i]->byteorder;
             header[index+8] = 0; /* not used */
             for (j=0; j < ET_STATION_SELECT_INTS; j++) {
@@ -1720,11 +1722,12 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
            */
-#ifdef _LP64
+/*#ifdef _LP64
           pe  = (et_event *) ET_64BIT_P(ntohl(incoming[1]),ntohl(incoming[2]));
 #else
           pe  = (et_event *) ntohl(incoming[2]);
-#endif
+#endif*/
+          pe               = ET_P2EVENT(etid, ntohl(incoming[1])); /* incoming[2] is NOT used */
           pe->length       = ET_64BIT_UINT(ntohl(incoming[3]),ntohl(incoming[4]));
           pe->priority     = ntohl(incoming[5]) & ET_PRIORITY_MASK;
           pe->datastatus   =(ntohl(incoming[5]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
@@ -1775,15 +1778,16 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
            */
-#ifdef _LP64
+/*#ifdef _LP64
             events[i] = (et_event *) ET_64BIT_P(ntohl(header[0]),ntohl(header[1]));
 #else
             events[i] = (et_event *) ntohl(header[1]);
-#endif
+#endif*/
+            events[i]              = ET_P2EVENT(etid, ntohl(header[0])); /* header[1] is NOT used */
 /*printf("etr_events_put: pointer = %p\n", events[i]);*/
             events[i]->length      = ET_64BIT_UINT(ntohl(header[2]),ntohl(header[3]));
             len                    = (size_t)events[i]->length;
-printf("etr_events_put: len = %d\n", (int)len);
+/*printf("etr_events_put: len = %d\n", (int)len); */
             events[i]->priority    = ntohl(header[4]) & ET_PRIORITY_MASK;
             events[i]->datastatus  =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
             events[i]->byteorder   = header[5];
@@ -1795,7 +1799,7 @@ printf("etr_events_put: len = %d\n", (int)len);
               if (et_tcp_read(connfd, events[i]->pdata, len) != len) {
                 goto end;
               }
-printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i]->pdata))) );
+/*printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i]->pdata))) );*/
             }
           }
 /*printf("etr_events_put: put event for real\n");*/
@@ -1899,8 +1903,9 @@ printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i
           if (err == ET_OK) pe->modify = ET_MODIFY;
 
           transfer[0] = htonl(err);
-          transfer[1] = htonl(ET_HIGHINT((uintptr_t) pe));
-          transfer[2] = htonl(ET_LOWINT((uintptr_t) pe));
+          /* send an index into shared memory and NOT a pointer - for local Java clients */
+          transfer[1] = htonl(pe->place);
+          transfer[2] = 0; /* not used */
 
           if (et_tcp_write(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
@@ -2012,22 +2017,14 @@ printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i
             for (i=0; i < nevents; i++) {
                 /* keep track of how this event is to be modified */
                 events[i]->modify = ET_MODIFY;
-                ints64[i] = hton64((uintptr_t)events[i]);
-                /*
-printf("   32 bit pointer             [%d] = 0x%p\n",i, events[i]);
-printf("   32 bit pointer->uint       [%d] = 0x%x\n",i, (unsigned int)events[i]);
-printf("   32 bit pointer->uint64     [%d] = 0x%llx\n",i, (uint64_t)events[i]);
-printf("   32 bit pointer->uint64 swap[%d] = 0x%llx\n",i, ints64[i]);
-printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
-                 */
+                ints32[i] = htonl(events[i]->place);
             }
-            /*printf("etr_events_new: writing %d 64 bit pointers\n", nevents);*/
 
             nevents_net = htonl(nevents);
             iov[0].iov_base = (void *) &nevents_net;
             iov[0].iov_len  = sizeof(nevents_net);
-            iov[1].iov_base = (void *) ints64;
-            iov[1].iov_len  = nevents*sizeof(uint64_t);
+            iov[1].iov_base = (void *) ints32;
+            iov[1].iov_len  = nevents*sizeof(uint32_t);
 
             if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
                 goto end;
@@ -2142,22 +2139,14 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
             for (i=0; i < nevents; i++) {
                 /* keep track of how this event is to be modified */
                 events[i]->modify = ET_MODIFY;
-                ints64[i] = hton64((uintptr_t)events[i]);
-                /*
-printf("   32 bit pointer             [%d] = 0x%p\n",i, events[i]);
-printf("   32 bit pointer->uint       [%d] = 0x%x\n",i, (unsigned int)events[i]);
-printf("   32 bit pointer->uint64     [%d] = 0x%llx\n",i, (uint64_t)events[i]);
-printf("   32 bit pointer->uint64 swap[%d] = 0x%llx\n",i, ints64[i]);
-printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
-                 */
+                ints32[i] = htonl(events[i]->place);
             }
-            /*printf("etr_events_new: writing %d 64 bit pointers\n", nevents);*/
 
             nevents_net = htonl(nevents);
             iov[0].iov_base = (void *) &nevents_net;
             iov[0].iov_len  = sizeof(nevents_net);
-            iov[1].iov_base = (void *) ints64;
-            iov[1].iov_len  = nevents*sizeof(uint64_t);
+            iov[1].iov_base = (void *) ints32;
+            iov[1].iov_len  = nevents*sizeof(uint32_t);
 
             if (et_tcp_writev(connfd, iov, 2, iov_max) == -1) {
                 goto end;
@@ -2167,7 +2156,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
 
        case  ET_NET_EV_DUMP:
         {
-          int incoming[3];
+          int incoming[2];
           et_event    *pe;
           et_att_id   att;
 
@@ -2179,12 +2168,13 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           /* Pointers (may be 64 bits) are in ET system space and must be translated.
            * The following ifdef avoids compiler warnings.
            */
-#ifdef _LP64
+/*#ifdef _LP64
           pe  = (et_event *) ET_64BIT_P(ntohl(incoming[1]),ntohl(incoming[2]));
 #else
           pe  = (et_event *)ntohl(incoming[2]);
-#endif
+#endif*/
 
+          pe  = ET_P2EVENT(etid, ntohl(incoming[1]));
           err = et_event_dump(id, att, pe);
 
           err = htonl(err);
@@ -2205,12 +2195,13 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
           att     = ntohl(incoming[0]);
           nevents = ntohl(incoming[1]);
 
-          if (et_tcp_read(connfd, (void *) ints64, 2*nevents*sizeof(int)) != 2*nevents*sizeof(int)) {
+          if (et_tcp_read(connfd, (void *) ints32, nevents*sizeof(int)) != nevents*sizeof(int)) {
             goto end;
           }
 
           for (i=0; i < nevents; i++) {
-            events[i] = (et_event *) ((uintptr_t) ntoh64(ints64[i]));
+              events[i] = ET_P2EVENT(etid, ntohl(ints32[i]));
+              /*events[i] = (et_event *) ((uintptr_t) ntoh64(ints32[i]));*/
           }
 
           err = et_events_dump(id, att, events, nevents);
@@ -2263,7 +2254,7 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
               et_logmsg("INFO", "et_command_loop: remote client closing\n");
           }
 
-          free(iov); free(header); free(histogram); free(events); free(ints64);
+          free(iov); free(header); free(histogram); free(events); free(ints32);
           return;
          }
         break;
@@ -2931,6 +2922,6 @@ printf("   64 bit pointer  \" swap swap[%d] = 0x%llx\n",i, ntoh64(ints64[i]));
         et_logmsg("WARN", "et_command_loop: remote client connection broken\n");
     }
 
-    free(iov); free(header); free(histogram); free(events); free(ints64);
+    free(iov); free(header); free(histogram); free(events); free(ints32);
     return;
 }

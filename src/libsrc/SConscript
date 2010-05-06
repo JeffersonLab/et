@@ -1,5 +1,5 @@
 # scons build file for libet and libet_remote
-Import('env', 'libDir', 'incDir', 'archIncDir', 'debugSuffix')
+Import('env', 'libDir', 'incDir', 'archIncDir', 'archDir', 'debugSuffix')
 import os
 from os import sep
 
@@ -12,6 +12,8 @@ linkList = [archIncDir + sep + 'et.h',
             archIncDir + sep + 'et_private.h',
             archIncDir + sep + 'et_network.h',
             archIncDir + sep + 'et_data.h']
+
+jniFileList = ['et_jni.c']
 
 fileList = ['et_attachment.c',
             'et_bridge.c',
@@ -43,9 +45,14 @@ remoteFileList = ['et_init.c',
 env.AppendUnique(CPPPATH = ['.'])
 etLib       = env.SharedLibrary(target = 'et'+debugSuffix,        source = fileList)
 etRemoteLib = env.SharedLibrary(target = 'et_remote'+debugSuffix, source = remoteFileList)
+jniLib      = env.SharedLibrary(target = 'et_jni'+debugSuffix,    source = jniFileList,
+                                LIBS = ['et'+debugSuffix], LIBPATH = [libDir])
 
 env.Alias("install", env.Install(target = incDir, source = headerList))
 env.Alias("install", env.Install(target = libDir, source = etLib))
 env.Alias("install", env.Install(target = libDir, source = etRemoteLib))
+env.Alias("install", env.Install(target = libDir, source = jniLib))
 # create symbolic links to installed header files
 env.Alias("install", env.CreateSymbolicLinks(target = linkList, source = env.Install(target = incDir, source = headerList)))
+
+

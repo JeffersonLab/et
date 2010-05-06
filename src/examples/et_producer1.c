@@ -34,7 +34,7 @@
 #define DOUBLE_MAX   1.7976931348623157E+308
 
 #define NUMLOOPS 100000
-#define CHUNK 100
+#define CHUNK 10
 #define DBL_MAX   1.e+100
 
 /* prototype */
@@ -100,7 +100,8 @@ int main(int argc,char **argv)
 restartLinux:
   /* open ET system */
   et_open_config_init(&openconfig);
-  et_open_config_setwait(openconfig, ET_OPEN_WAIT);
+   et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+   et_open_config_setwait(openconfig, ET_OPEN_WAIT);
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("%s: et_open problems\n", argv[0]);
     exit(1);
@@ -127,7 +128,11 @@ restartLinux:
       totalCount = 0;
       /* loop NUMLOOPS times before printing out statistics */
       for (j=0; j < NUMLOOPS ; j++) {
-        status = et_events_new(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, &count);
+          //status = et_events_new_group(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, 1, &count);
+        status = et_event_new_group(id, attach1, &pe[0], ET_SLEEP, NULL, size, 1);
+
+        //status = et_event_new(id, attach1, &pe[0], ET_SLEEP, NULL, size);
+
         if (status == ET_OK) {
           ;
         }
@@ -160,6 +165,8 @@ restartLinux:
           goto error;
         }
 
+        count = 1;
+
         /* write data, set priority, set control values here */
         if (1) {
 	  char *pdata;
@@ -179,7 +186,8 @@ restartLinux:
         }
 	  
         /* put events back into the ET system */
-        status = et_events_put(id, attach1, pe, count);
+        //status = et_events_put(id, attach1, pe, count);
+        status = et_event_put(id, attach1, pe[0]);
         if (status == ET_OK) {
           ;
         }

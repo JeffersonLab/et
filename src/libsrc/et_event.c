@@ -923,7 +923,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
  */
 int et_event_put(et_sys_id id, et_att_id att, et_event *pe)
 { 
-  int status;
+  int status, ageOrig;
   et_stat_id stat_id;
   et_id      *etid = (et_id *) id;
   et_system  *sys  = etid->sys;
@@ -942,7 +942,7 @@ int et_event_put(et_sys_id id, et_att_id att, et_event *pe)
     }
     return ET_ERROR;
   }
-    
+
   if (etid->locality == ET_REMOTE) {
     return etr_event_put(id, att, pe);
   }
@@ -972,6 +972,7 @@ int et_event_put(et_sys_id id, et_att_id att, et_event *pe)
   }
 
   stat_id = sys->attach[att].stat;
+  ageOrig = pe->age;
   pe->age = ET_EVENT_USED;
 
   if ((status = et_station_write(etid, stat_id, pe)) != ET_OK) {
@@ -979,7 +980,7 @@ int et_event_put(et_sys_id id, et_att_id att, et_event *pe)
       et_logmsg("ERROR", "et_event_put, cannot write event\n");
     }
     /* undo things in case of error */
-    pe->age = ET_EVENT_NEW;
+    pe->age = ageOrig;
     return status;
   }
   
@@ -1052,6 +1053,8 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num)
         return ET_ERROR;
       }
     }
+    /* Store age here temporarily in case it needs to revert if error, modify is not used normally. */
+    pe[i]->modify = pe[i]->age;
     pe[i]->age = ET_EVENT_USED;
   }
 
@@ -1063,7 +1066,8 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num)
     }
     /* undo things in case of error */
     for (i=0; i < num ; i++) {
-      pe[i]->age = ET_EVENT_NEW;
+      pe[i]->age = pe[i]->modify;
+      pe[i]->modify = 0;
     }
     return status;
   }
