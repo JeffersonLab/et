@@ -171,6 +171,8 @@ public class SystemOpen {
   }
   /** Get buffer contained the memory mapped file if {@link #isMapLocalSharedMemory} returns true. */
   public MappedByteBuffer getBuffer() {return buffer;}
+  public JniAccess getJni() {return jni;}
+
 
 
 
@@ -269,20 +271,19 @@ public class SystemOpen {
       MulticastSocket socket;
       DatagramPacket  packet;
 
-      send (String _address, MulticastSocket _socket, int _port) throws UnknownHostException {
-        port    = _port;
-        address = _address;
-	    socket  = _socket;
+      send (String address, MulticastSocket socket, int port) throws UnknownHostException {
+        this.port    = port;
+        this.address = address;
+	    this.socket  = socket;
 	    addr    = InetAddress.getByName(address);  //UnknownHostEx
         packet  = new DatagramPacket(sbuffer, sbuffer.length, addr, port);
       }
     }
 
     int index=0;
-    int numBroadcastAddrs = config.isBroadcasting() ? 1 : 0;
-    int numMulticastAddrs = config.getNumMulticastAddrs();
-    int numAddrs = numBroadcastAddrs + numMulticastAddrs + 1;
-    send[] sendIt = new send[numAddrs];
+
+    // store all places to send packets to in a list
+    LinkedList<send> sendList = new LinkedList<send>();
 
     // unqualifed, specified host
     String unqualifedHost = null;
@@ -301,31 +302,30 @@ public class SystemOpen {
     if ((!config.getHost().equals(Constants.hostRemote)) &&
         (!config.getHost().equals(Constants.hostAnywhere)))  {
 
-      // We can use multicast socket for regular UDP - it works
-      MulticastSocket socket = new MulticastSocket();	//IOEx
-      // Socket will unblock after timeout,
-      // letting reply collecting thread quit
-      try {socket.setSoTimeout(socketTimeOut);}
-      catch (SocketException ex) {}
+        // We can use multicast socket for regular UDP - it works
+        MulticastSocket socket = new MulticastSocket();	//IOEx
+        // Socket will unblock after timeout,
+        // letting reply collecting thread quit
+        try {socket.setSoTimeout(socketTimeOut);}
+        catch (SocketException ex) {}
 
-      // If it's local, find name and send packet directly there.
-      // This will work in Java where the server listens on all addresses.
-      // But it won't work for C where only broad and multicast address
-      // are listened to.
-      if ((config.getHost().equals(Constants.hostLocal)) ||
-          (config.getHost().equals("localhost")))  {
-	    specifiedHost = localHost;
-      // else if we know host's name ...
-      } else {
-	    specifiedHost = config.getHost();
-      }
-      unqualifedHost = specifiedHost.substring(0, specifiedHost.indexOf("."));
-      sendIt[index++] = new send(specifiedHost, socket, config.getUdpPort());
-      numAddrs = 1;
+        // If it's local, find name and send packet directly there.
+        // This will work in Java where the server listens on all addresses.
+        // But it won't work for C where only broad and multicast address
+        // are listened to.
+        if ((config.getHost().equals(Constants.hostLocal)) ||
+            (config.getHost().equals("localhost")))  {
+            specifiedHost = localHost;
+            // else if we know host's name ...
+        } else {
+            specifiedHost = config.getHost();
+        }
+        unqualifedHost = specifiedHost.substring(0, specifiedHost.indexOf("."));
+        sendList.add(new send(specifiedHost, socket, config.getUdpPort()));
 
         // setup broadcast sockets & packets first
         if ((config.getNetworkContactMethod() == Constants.broadcast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
 
             // We can use multicast socket for broadcasting - it works
             socket = new MulticastSocket();    //IOEx
@@ -338,20 +338,16 @@ public class SystemOpen {
             catch (SocketException ex) {
             }
 
-            sendIt[index++] = new send(config.broadcastIP, socket, config.getUdpPort());
+            sendList.add(new send(config.broadcastIP, socket, config.getUdpPort()));
             if (debug >= Constants.debugInfo) {
                 System.out.println("findServerPort: broadcasting to " + config.broadcastIP +
-                " on port " + config.getUdpPort());
+                        " on port " + config.getUdpPort());
             }
-            numBroadcastAddrs = 1;
-        }
-        else {
-            numBroadcastAddrs = 0;
         }
 
         // setup multicast sockets & packets next
         if ((config.getNetworkContactMethod() == Constants.multicast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
 
             for (String addr : config.getMulticastAddrs()) {
                 socket = new MulticastSocket();    //IOEx
@@ -365,16 +361,12 @@ public class SystemOpen {
                     socket.setTimeToLive(config.getTTL());        //IOEx
                 }
 
-                sendIt[index++] = new send(addr, socket, config.getMulticastPort());
+                sendList.add(new send(addr, socket, config.getMulticastPort()));
                 if (debug >= Constants.debugInfo) {
                     System.out.println("findServerPort: multicasting to " + addr + " on port " + config.getMulticastPort());
                 }
             }
         }
-        else {
-            numMulticastAddrs = 0;
-        }
-        numAddrs += numBroadcastAddrs + numMulticastAddrs;
 
         if (debug >= Constants.debugInfo) {
             System.out.println("findServerPort: send to local or specified host " + specifiedHost +
@@ -388,7 +380,7 @@ public class SystemOpen {
 
         // setup broadcast sockets & packets first
         if ((config.getNetworkContactMethod() == Constants.broadcast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
 
             // We can use multicast socket for broadcasting - it works
             MulticastSocket socket = new MulticastSocket();    //IOEx
@@ -401,15 +393,11 @@ public class SystemOpen {
             catch (SocketException ex) {
             }
 
-            sendIt[index++] = new send(config.broadcastIP, socket, config.getUdpPort());
+            sendList.add(new send(config.broadcastIP, socket, config.getUdpPort()));
             if (debug >= Constants.debugInfo) {
                 System.out.println("findServerPort: broadcasting to " + config.broadcastIP +
                 " on port " + config.getUdpPort());
             }
-            numBroadcastAddrs = 1;
-        }
-        else {
-            numBroadcastAddrs = 0;
         }
 
         // setup multicast sockets & packets next
@@ -428,16 +416,12 @@ public class SystemOpen {
                     socket.setTimeToLive(config.getTTL());        //IOEx
                 }
 
-                sendIt[index++] = new send(addr, socket, config.getMulticastPort());
+                sendList.add(new send(addr, socket, config.getMulticastPort()));
                 if (debug >= Constants.debugInfo) {
                     System.out.println("findServerPort: multicasting to " + addr + " on port " + config.getMulticastPort());
                 }
             }
         }
-        else {
-            numMulticastAddrs = 0;
-        }
-        numAddrs = numBroadcastAddrs + numMulticastAddrs;
     }
 
       /** Class to help receive a packet on a socket. */
@@ -447,7 +431,7 @@ public class SystemOpen {
           // but give us a bit of extra room for lots of names with 4k bytes
           byte[] buffer = new byte[4096];
           DatagramReceive thread;
-          DatagramPacket packet;
+          DatagramPacket  packet;
           MulticastSocket socket;
 
           get(MulticastSocket sock) {
@@ -463,26 +447,27 @@ public class SystemOpen {
       }
 
       // store things here
-      get[] receiveIt = new get[numAddrs];
+      LinkedList<get> receiveList = new LinkedList<get>();
 
       // start reply collecting threads
-      for (int i = 0; i < numAddrs; i++) {
-          receiveIt[i] = new get(sendIt[i].socket);
+      for (send sender : sendList) {
+          get receiver = new get(sender.socket);
+          receiveList.add(receiver);
           // start single thread
           if (debug >= Constants.debugInfo) {
-              System.out.println("findServerPort: starting thread to socket " + sendIt[i].socket);
+              System.out.println("findServerPort: starting thread to socket " + sender.socket);
           }
-          receiveIt[i].start();
+          receiver.start();
       }
 
       Thread.yield();
 
-      send:
+      sendPoint:
       // set a limit on the total # of packet groups sent out to find a server
       while (totalPacketsSent < sendPacketLimit) {
           // send packets out on all sockets
-          for (int i = 0; i < numAddrs; i++) {
-              sendIt[i].socket.send(sendIt[i].packet); //IOException
+          for (send sender : sendList) {
+              sender.socket.send(sender.packet); //IOException
           }
           // set time to wait for reply (gets longer with each round)
           waitTime = timeOuts[totalPacketsSent++];
@@ -500,10 +485,10 @@ public class SystemOpen {
               }
 
               // check for replies on all sockets
-              for (int i = 0; i < numAddrs; i++) {
-                  status = receiveIt[i].thread.waitForReply(10);
+              for (get receiver : receiveList) {
+                  status = receiver.thread.waitForReply(10);
                   if (debug >= Constants.debugInfo) {
-                      System.out.println("findServerPort: receive on socket " + receiveIt[i].socket +
+                      System.out.println("findServerPort: receive on socket " + receiver.socket +
                               ", status = " + status);
                   }
 
@@ -517,7 +502,7 @@ public class SystemOpen {
                       // Analyze packet to see it matches the ET system we were
                       // looking for; if not, try to get another packet. If it
                       // is a match, store it in a HashMap (responders).
-                      if (replyMatch(receiveIt[i].packet)) { // IOEx, UnknownHostEx
+                      if (replyMatch(receiver.packet)) { // IOEx, UnknownHostEx
                           if (debug >= Constants.debugInfo) {
                               System.out.println("findServerPort: found match");
                           }
@@ -532,12 +517,14 @@ public class SystemOpen {
                       // but don't wait too long. The thread we
                       // started is ended so start another up again.
                       waitTime = 50;
-                      receiveIt[i].start();
+                      receiver.start();
                       Thread.yield();
 
                       continue get;
                   }
+
               }
+
 
               // if we don't have a match, try again
               if (!match) {
@@ -547,11 +534,11 @@ public class SystemOpen {
                       if (debug >= Constants.debugInfo) {
                           System.out.println("findServerPort: timedout, try again with longer wait");
                       }
-                      continue send;
+                      continue sendPoint;
                   }
               }
 
-              break send;
+              break sendPoint;
 
           } // while (true)
       } // while (totalPacketsSent < sendPacketLimit)
@@ -950,21 +937,46 @@ public class SystemOpen {
       // However, in cases where there is a local C-based, ET system, an attempt is also
       // made to memory map it and access events through JNI (header) and a memory mapped
       // buffer (data).
-      
       mapLocalSharedMemory = false;
 
-      // if forced to connect by network or host name not known but is remote ...
-      if (config.isConnectRemotely() || config.getHost().equals(Constants.hostRemote)) {
-          // use only network connection
+      // make socket connection
+      if (config.getNetworkContactMethod() == Constants.direct) {
+          // if making direct connection, we have host & port
+          if (debug >= Constants.debugInfo) {
+              System.out.println("connect: make a direct connection");
+          }
+          tcpPort = config.getTcpPort();
+
+          // if "local" specified, find actual hostname
+          if (config.getHost().equals(Constants.hostLocal) || config.getHost().equals("localhost")) {
+              host = InetAddress.getLocalHost().getCanonicalHostName();
+              mapLocalSharedMemory = true;
+          }
+          else {
+              // We prefer a fully qualifed host name. If there are no "."'s
+              // in it, try getHostName even though that is not guaranteed
+              // to return a fully qualified name.
+              if (config.getHost().indexOf(".") < 0) {
+                  if (debug >= Constants.debugInfo) {
+                      System.out.println("connect: try to make " + config.getHost() + " a fully qualified name");
+                  }
+                  host = InetAddress.getByName(config.getHost()).getHostName();
+              }
+              else {
+                  host = config.getHost();
+              }
+
+              // if host is local, try to map memory
+              if (isHostLocal(host)) {
+                  mapLocalSharedMemory = true;
+              }
+          }
       }
-      // else if ET system is on local host ...
-      else if (config.getHost().equals(Constants.hostLocal) || config.getHost().equals("localhost")) {
-          host = InetAddress.getLocalHost().getCanonicalHostName();
-          mapLocalSharedMemory = true;
-      }
-      // else if ET system host name is unknown and maybe anywhere ...
-      else if (config.getHost().equals(Constants.hostAnywhere)) {
-          // find ET system host & port
+      else {
+          if (debug >= Constants.debugInfo) {
+              System.out.println("connect: try to find server port");
+          }
+          // send a UDP broad or multicast packet to find ET TCP server & port
           if (!findServerPort()) {    // IOEx, UnknownHostEx, EtTooMany
               throw new EtException("Cannot find ET system");
           }
@@ -974,11 +986,46 @@ public class SystemOpen {
               mapLocalSharedMemory = true;
           }
       }
-      // else ET system host name is given ...
-      else {
-          // if host is local, try to map memory
-          if (isHostLocal(config.getHost())) {
-              mapLocalSharedMemory = true;
+
+      // If user only wants to use sockets, don't map memory
+      if (config.isConnectRemotely()) {
+          mapLocalSharedMemory = false;
+      }
+
+      // Open our connection to an ET system TCP Server
+      sock = new Socket(host, tcpPort);        // IOEx
+      try {
+          // Set NoDelay option for fast response
+          sock.setTcpNoDelay(true);
+          // Set reading timeout to 2 second so dead ET sys
+          // can be found by reading on a socket.
+          sock.setSoTimeout(2000);
+          // Set KeepAlive so we can tell if ET system is dead
+          sock.setKeepAlive(true);
+          // set buffer size
+          sock.setReceiveBufferSize(65535);
+          sock.setSendBufferSize(65535);
+      }
+      catch (SocketException ex) {
+      }
+
+      
+      // open the ET system, waiting if requested & necessary
+      if (debug >= Constants.debugInfo) {
+          System.out.println("connect: try to open ET system");
+      }
+
+      long t1, t2;
+      t1 = t2 = System.currentTimeMillis();
+      while (t2 <= (t1 + config.getWaitTime())) {
+          try {
+              open();    // IOEx if no ET, EtEx if incompatible ET
+              break;
+          }
+          catch (IOException e) {
+              try {Thread.sleep(200);}
+              catch (InterruptedException e1) {}
+              t2 = System.currentTimeMillis();
           }
       }
 
@@ -1039,65 +1086,7 @@ public class SystemOpen {
           }
       }
 
-      // make socket connection
-      if (config.getNetworkContactMethod() == Constants.direct) {
-          // if making direct connection, we have host & port
-          if (debug >= Constants.debugInfo) {
-              System.out.println("connect: make a direct connection");
-          }
-          tcpPort = config.getTcpPort();
 
-          // if "local" specified, find actual hostname
-          if (config.getHost().equals(Constants.hostLocal)) {
-              host = InetAddress.getLocalHost().getHostName();
-          }
-          else {
-              // We prefer a fully qualifed host name. If there are no "."'s
-              // in it, try getHostName even though that is not guaranteed
-              // to return a fully qualified name.
-              if (config.getHost().indexOf(".") < 0) {
-                  if (debug >= Constants.debugInfo) {
-                      System.out.println("connect: try to make " + config.getHost() + " a fully qualified name");
-                  }
-                  host = InetAddress.getByName(config.getHost()).getHostName();
-              }
-              else {
-                  host = config.getHost();
-              }
-          }
-      }
-      else {
-          if (debug >= Constants.debugInfo) {
-              System.out.println("connect: try to find server port");
-          }
-          // send a UDP broad or multicast packet to find ET TCP server & port
-          if (!findServerPort()) {    // IOEx, UnknownHostEx, EtTooMany
-              throw new EtException("Cannot find ET system");
-          }
-      }
-
-      // Open our connection to an ET system TCP Server
-      sock = new Socket(host, tcpPort);        // IOEx
-      try {
-          // Set NoDelay option for fast response
-          sock.setTcpNoDelay(true);
-          // Set reading timeout to 2 second so dead ET sys
-          // can be found by reading on a socket.
-          sock.setSoTimeout(2000);
-          // Set KeepAlive so we can tell if ET system is dead
-          sock.setKeepAlive(true);
-          // set buffer size
-          sock.setReceiveBufferSize(65535);
-          sock.setSendBufferSize(65535);
-      }
-      catch (SocketException ex) {
-      }
-
-      // open the ET system
-      if (debug >= Constants.debugInfo) {
-          System.out.println("connect: try to open ET system");
-      }
-      open();    // IOEx, EtEx
   }
 
 

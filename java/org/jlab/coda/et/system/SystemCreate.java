@@ -18,6 +18,10 @@ import java.lang.*;
 import java.util.*;
 import java.io.*;
 import java.net.*;
+import java.nio.channels.FileChannel;
+import java.nio.MappedByteBuffer;
+import java.nio.ByteOrder;
+
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
 
@@ -54,7 +58,7 @@ public class SystemCreate {
     private HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
 
     /** Map of all ET system events. */
-    private HashMap<Long, EventImpl> events;
+    private HashMap<Integer, EventImpl> events;
 
     /** All local IP addresses */
     private InetAddress[]netAddresses;
@@ -104,7 +108,72 @@ public class SystemCreate {
      *     if the file already exists or cannot be created
      */
     public SystemCreate(String name) throws EtException {
-        this(name, new SystemConfig());
+        // The ET name is a file (which is really irrelevant in Java)
+        // but is a convenient way to make all system names unique.
+        File etFile = new File(name);
+
+        if (!etFile.canRead() || !etFile.canWrite()) {
+            throw new EtException("Trying to map ET file which we cannot read or cannot write to");
+        }
+
+        try {
+            RandomAccessFile file = new RandomAccessFile(name, "rw");
+            FileChannel fc = file.getChannel();
+            // First, map only the first part of the file which contains some
+            // important data in 5 ints and 5 longs. Once that info is read,
+            // remap the file properly to get at the data.
+            MappedByteBuffer buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, 5*4+5*8);
+            int byteOrder = buffer.getInt();
+            System.out.println("byteOrder = " + Integer.toHexString(byteOrder));
+            if (byteOrder != 0x01020304) {
+                buffer.order(ByteOrder.LITTLE_ENDIAN);
+            }
+            int next = buffer.getInt();
+            System.out.println("systemType = " + next);
+            next = buffer.getInt();
+            System.out.println("major version = " + next);
+            next = buffer.getInt();
+            System.out.println("minor version = " + next);
+            next = buffer.getInt();
+            System.out.println("head byte size = " + next);
+            long nextLong = buffer.getLong();
+            System.out.println("event byte size = " + nextLong);
+            nextLong = buffer.getLong();
+            System.out.println("header position = " + nextLong);
+            long dataPosition = nextLong = buffer.getLong();
+            System.out.println("data position = " + nextLong);
+            long totalFileSize = nextLong = buffer.getLong();
+            System.out.println("total file size = " + nextLong + ", but is really " + fc.size());
+            long usedFileSize = nextLong = buffer.getLong();
+            System.out.println("used file size = " + nextLong);
+
+            // look at data - map whole file
+            fc.position(0L);
+            buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, usedFileSize+60);
+            if (byteOrder != 0x01020304) {
+                buffer.order(ByteOrder.LITTLE_ENDIAN);
+            }
+
+            // try to print out data values
+            for (int i=((int)usedFileSize+60)/4 - 10; i<(usedFileSize+60)/4; i++) {
+                System.out.println("val" + i + " = " + (buffer.getInt(i*4)));
+            }
+
+            // write some junk at the end and see if it stays there
+//            for (int i= ((int)usedFileSize+60)/4 - 10; i < (usedFileSize+60)/4; i++) {
+//                buffer.putInt(i*4, i*10);
+//                //System.out.println("val" + i + " = " + (buffer.getInt(i*4)));
+//            }
+//
+            fc.close();
+
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        //this(name, new SystemConfig());
     }
 
 
@@ -129,7 +198,7 @@ public class SystemCreate {
         this.name = name;
         this.config = new SystemConfig(config);
         attachments = new HashMap<Integer, AttachmentLocal>(Constants.attachmentsMax + 1);
-        events = new HashMap<Long, EventImpl>(config.getNumEvents() + 1);
+        events = new HashMap<Integer, EventImpl>(config.getNumEvents() + 1);
         stations = new LinkedList<StationLocal>();
         // netAddresses will be set in SystemUdpServer
         systemLock  = new byte[0];
@@ -215,7 +284,7 @@ public class SystemCreate {
 
     /** Get map holding all ET system's events.
      * @return map holding all ET system's events */
-    public HashMap<Long, EventImpl> getEvents() { return events; }
+    public HashMap<Integer, EventImpl> getEvents() { return events; }
 
     /** Gets the list of all network addresses.
      *  @return list of all network addresses */
@@ -252,7 +321,7 @@ public class SystemCreate {
         int index = 0, count = 0;
         ArrayList<EventImpl> eventList = new ArrayList<EventImpl>(config.getNumEvents());
 
-        for (long i=0; i < config.getNumEvents(); i++) {
+        for (int i=0; i < config.getNumEvents(); i++) {
             ev = new EventImpl(config.getEventSize());
             ev.setId(i);
 
@@ -264,7 +333,7 @@ public class SystemCreate {
 
             eventList.add(ev);
             // add to hashTable for future easy access
-            events.put(ev.getId(), ev);
+            events.put(i, ev);
         }
 
         // synchronization not necessary here as we're just starting up

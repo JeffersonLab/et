@@ -2,6 +2,8 @@ package org.jlab.coda.et;
 
 import org.jlab.coda.et.exception.EtException;
 
+import java.nio.ByteBuffer;
+
 /**
  * Created by IntelliJ IDEA.
  * User: timmer
@@ -16,7 +18,7 @@ public interface Event {
 
     /** Gets the event's id number.
      *  @return event's id number */
-    long   getId();
+    int   getId();
 
     /** Gets the age of the event, either {@link org.jlab.coda.et.Constants#eventNew} if a new event or
      *  {@link org.jlab.coda.et.Constants#eventUsed} otherwise.
@@ -59,6 +61,10 @@ public interface Event {
     /** Gets the event's data array.
      *  @return event's data array */
     byte[] getData();
+
+    /** Gets the event's data buffer.
+     *  @return event's data buffer */
+    ByteBuffer getDataBuffer();
 
     /** Gets the event's data array.
      *  @return a clone of the event's data array */

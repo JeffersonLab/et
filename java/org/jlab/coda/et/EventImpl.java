@@ -16,6 +16,7 @@ package org.jlab.coda.et;
 
 import java.lang.*;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 
 import org.jlab.coda.et.exception.*;
 
@@ -37,8 +38,8 @@ public class EventImpl implements Event {
     private static final int   low = Constants.low;
     private static final int   ok = Constants.dataOk;
 
-    /** Unique id number (pointer to event if C system). */
-    private long id;
+    /** Unique id number (place of event if C system). */
+    private int id;
 
     /** Specifies whether the event was obtained as a new event (through
      *  {@link SystemUse#newEvents}), or as a "used" event (through  {@link SystemUse#getEvents}).
@@ -89,6 +90,9 @@ public class EventImpl implements Event {
 
     /** The event data is stored here. */
     private byte[] data;
+
+    /** Store data in a ByteBuffer object for maximum flexibility. */
+    private ByteBuffer dataBuffer;
     
     /** Flag specifying whether the ET system process is Java based or not. */
     private boolean isJava;
@@ -101,26 +105,57 @@ public class EventImpl implements Event {
      *  @param size size of the data array in bytes
      */
     public EventImpl(int size) {
-        memSize = size;
-        isJava  = true;
-        data    = new byte[memSize];
-        control = new int[numSelectInts];
+        memSize    = size;
+        isJava     = true;
+        data       = new byte[size];
+        control    = new int[numSelectInts];
+        dataBuffer = ByteBuffer.wrap(data);
         init();
     }
 
-    /** Creates an event object for ET system users.
+    /**
+     * Creates an event object for ET system users when connecting to C-based ET systems.
+     *
      *  @param size size of the data array in bytes.
      *  @param limit limit on the size of the data array in bytes. Only used
      *         for C-based ET systems.
      *  @param isJavaSystem is ET system Java based?
      */
     EventImpl(int size, int limit, boolean isJavaSystem) {
-        memSize   = size;
-        sizeLimit = limit;
-        isJava    = isJavaSystem;
-        data      = new byte[memSize];
-        control   = new int[numSelectInts];
+        memSize    = size;
+        sizeLimit  = limit;
+        isJava     = isJavaSystem;
+        data       = new byte[size];
+        control    = new int[numSelectInts];
+        dataBuffer = ByteBuffer.wrap(data);
         init();
+    }
+
+    /**
+     * Creates an event object for ET system users when connecting to C-based ET systems
+     * and using native methods. No data array or buffer are created since we will be using shared
+     * memory and it will be taken care of later. Tons of args since it's a lot easier in
+     * JNI to call one method with lots of args then to call lots of set methods on one object.
+     *
+     *  @param size size of the data array in bytes.
+     *  @param limit limit on the size of the data array in bytes. Only used
+     *         for C-based ET systems.
+     */
+    EventImpl(int size, int limit, int status, int id, int age, int owner,
+              int modify, int length, int priority, int byteOrder, int[] control) {
+
+        isJava         = false;
+        memSize        = size;
+        sizeLimit      = limit;
+        dataStatus     = status;
+        this.id        = id;
+        this.age       = age;
+        this.owner     = owner;
+        this.modify    = modify;
+        this.length    = length;
+        this.priority  = priority;
+        this.byteOrder = byteOrder;
+        this.control   = control.clone();
     }
 
     /** Initialize an event's fields. Called for an event each time it passes
@@ -140,7 +175,7 @@ public class EventImpl implements Event {
 
     /** Gets the event's id number.
      *  @return event's id number */
-    public long   getId()   {return id;}
+    public int    getId()   {return id;}
     /** Gets the age of the event, either {@link Constants#eventNew} if a new event or
      *  {@link Constants#eventUsed} otherwise.
      *  @return age of the event. */
@@ -173,6 +208,12 @@ public class EventImpl implements Event {
     /** Gets the event's data array.
      *  @return event's data array */
     public byte[] getData()       {return data;}
+
+    public ByteBuffer getDataBuffer() {
+        return dataBuffer;
+    }
+
+
     /** Gets the event's data array.
      *  @return a clone of the event's data array */
     public byte[] copyData()      {return data.clone();}
@@ -194,7 +235,7 @@ public class EventImpl implements Event {
     public void setMemSize(int memSize) {
         this.memSize = memSize;
     }
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
     public void setGroup(int group) {
@@ -205,6 +246,9 @@ public class EventImpl implements Event {
     }
     public void setAge(int age) {
         this.age = age;
+    }
+    public void setDataBuffer(ByteBuffer dataBuffer) {
+        this.dataBuffer = dataBuffer;
     }
 
 

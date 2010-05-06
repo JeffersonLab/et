@@ -79,6 +79,9 @@ public class SystemOpenConfig {
      */
     private int responsePolicy;
 
+    /** If no ET system is available, how many milliseconds do we wait while trying to open it? */
+    private long waitTime;
+
 
     // TODO: get exceptions right
     /**
@@ -371,6 +374,8 @@ public class SystemOpenConfig {
      *  @return <code>true</code> if connecting to ET system remotely only, else <code>false</code> */
     public boolean isConnectRemotely() {return connectRemotely;}
 
+    public long getWaitTime() {return waitTime;}
+
 
     // Setters
 
@@ -388,6 +393,13 @@ public class SystemOpenConfig {
      *  we will try to use memory mapping and JNI with local C-based ET systems.
      *  @param connectRemotely <code>true</code> if connecting to ET system remotely only, else <code>false</code> */
     public void setConnectRemotely(boolean connectRemotely) {this.connectRemotely = connectRemotely;}
+
+    public void setWaitTime(long waitTime) {
+        if (waitTime < 0) {
+            waitTime = 0;
+        }
+        this.waitTime = waitTime;
+    }
 
 
 
