@@ -372,7 +372,7 @@ public class MonitorConfiguration extends DefaultHandler {
                         mAddrs[index++] = tok.nextToken();
                     }
                     config = new SystemOpenConfig(etSystem, host, true,
-                                                  Arrays.asList(mAddrs),
+                                                  Arrays.asList(mAddrs), true,
                                                   Constants.broadAndMulticast,
                                                   dummy, broadcastPort, multicastPort, ttl,
                                                   Constants.policyError);
@@ -583,7 +583,7 @@ public class MonitorConfiguration extends DefaultHandler {
 	  text.append("</fileName>\n");
 	  
 	  // Method of finding ET system.
-	  int method = config.getContactMethod();
+	  int method = config.getNetworkContactMethod();
 	  if (method == Constants.broadcast) {
 	      text.append("    <broadcasting>\n");
 	      // Location or host?

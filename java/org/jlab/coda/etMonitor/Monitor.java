@@ -1605,7 +1605,7 @@ public class Monitor extends JFrame {
                 int ttlval = ttl.getValue();
 
                 config = new SystemOpenConfig(etSystem, host, true,
-                                              Arrays.asList(mAddresses),
+                                              Arrays.asList(mAddresses), true,
                                               Constants.broadAndMulticast,
                                               tPort, uPort, mPort, ttlval,
                                               Constants.policyError);
@@ -1711,7 +1711,7 @@ public class Monitor extends JFrame {
                 try {
                     config.setHost(host);
                     config.setTcpPort(port);
-                    config.setContactMethod(Constants.direct);
+                    config.setNetworkContactMethod(Constants.direct);
                     open.connect();
                 }
                 catch (Exception except) {
@@ -1816,7 +1816,7 @@ public class Monitor extends JFrame {
                         }
 
                         // select contact method
-                        int method = config.getContactMethod();
+                        int method = config.getNetworkContactMethod();
                         if (method == Constants.broadcast) {
                             cast.setSelectedItem("broadcasting");
                             // set broadcast addresses
