@@ -31,12 +31,13 @@ public class Producer {
 
 
   private static void usage() {
-    System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-h <host>]\n\n" +
+    System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-host <host>]\n\n" +
 	               "       -f  ET system's name\n" +
-	               "       -p  port number for a udp broadcast\n" +
-                   "       -h  host the ET system resides on (defaults to anywhere)\n" +
+                   "       -s  size in bytes for requested events\n" +
+                   "       -p  port number for a udp broadcast\n" +
                    "       -d  delay in millisec between getting and putting events\n" +
                    "       -g  group number of events\n" +
+                   "       -host  host the ET system resides on (defaults to anywhere)\n" +
 	               "        This consumer works by making a direct connection to the\n" +
 		       "        ET system's tcp server port.\n");
   }
@@ -49,13 +50,14 @@ public class Producer {
         int port = Constants.broadcastPort;
         int group = 0;
         int delay = 0;
+        int size = 32;
 
         try {
             for (int i = 0; i < args.length; i++) {
                 if (args[i].equalsIgnoreCase("-f")) {
                     etName = args[++i];
                 }
-                else if (args[i].equalsIgnoreCase("-h")) {
+                else if (args[i].equalsIgnoreCase("-host")) {
                     host = args[++i];
                 }
                 else if (args[i].equalsIgnoreCase("-p")) {
@@ -69,6 +71,21 @@ public class Producer {
                     }
                     catch (NumberFormatException ex) {
                         System.out.println("Did not specify a proper port number.");
+                        usage();
+                        return;
+                    }
+                }
+                else if (args[i].equalsIgnoreCase("-s")) {
+                    try {
+                        size = Integer.parseInt(args[++i]);
+                        if (size < 1) {
+                            System.out.println("Size needs to be positive int.");
+                            usage();
+                            return;
+                        }
+                    }
+                    catch (NumberFormatException ex) {
+                        System.out.println("Did not specify a proper size.");
                         usage();
                         return;
                     }
@@ -133,6 +150,8 @@ public class Producer {
 
             // broadcast to ET system's tcp server
             SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
+            config.setConnectRemotely(true);
+            
 
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);
@@ -148,7 +167,7 @@ public class Producer {
             // array of events
             Event[] mevs;
 
-            int chunk = 100, count = 0;
+            int chunk = 10, count = 0, startingVal=0;
             long t1, t2;
             int[] con = {-1, -1, -1, -1};
 
@@ -159,27 +178,31 @@ public class Producer {
                 while (count < 300000L) {
                     // get array of new events
                     //mevs = sys.newEvents(att, Constants.sleep, 0, chunk, 32, group);
-                    mevs = sys.newEvents(att, Constants.sleep, 0, chunk, 32);
+                    mevs = sys.newEvents(att, Constants.sleep, 0, chunk, size, 1);
 
                     if (delay > 0) Thread.sleep(delay);
 
                     // example of how to manipulate events
-                    if (false) {
+                    if (true) {
                         for (int j = 0; j < mevs.length; j++) {
                             // put integer (j) into front of data buffer
-                            Utils.intToBytes(j, mevs[j].getData(), 0);
+                            mevs[j].getDataBuffer().putInt(j+startingVal);
+                            //Utils.intToBytes(j+startingVal, mevs[j].getData(), 0);
+                            System.out.println("Put " + (j+startingVal) + " into event's data buffer");
                             // set data length to be 4 bytes (1 integer)
                             mevs[j].setLength(4);
                             // set every other event's priority as high
-                            if (j % 2 == 0) mevs[j].setPriority(Constants.high);
+                            //if (j % 2 == 0) mevs[j].setPriority(Constants.high);
                             // set event's control array
-                            mevs[j].setControl(con);
+                            //mevs[j].setControl(con);
                         }
                     }
 
                     // put events back into ET system
                     sys.putEvents(att, mevs);
                     count += mevs.length;
+                    
+                    startingVal++;
                 }
 
                 // calculate the event rate

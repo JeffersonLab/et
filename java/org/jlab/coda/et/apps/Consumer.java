@@ -29,16 +29,16 @@ public class Consumer {
   public Consumer() {
   }
 
-  
+
   
   private static void usage() {
-    System.out.println("\nUsage: java Consumer -f <et name> -s <station> [-p <server port>] [-h <host>]\n\n" +
+    System.out.println("\nUsage: java Consumer -f <et name> -s <station> [-p <server port>] [-host <host>]\n\n" +
                         "       -f  ET system's name\n" +
                         "       -s  station name\n" +
                         "       -p  port number for a udp broadcast\n" +
                         "       -pos  position in station list (GC=0)\n" +
                         "       -ppos position in group of parallel staton (-1=end, -2=head)\n" +
-                        "       -h  host the ET system resides on (defaults to anywhere)\n" +
+                        "       -host  host the ET system resides on (defaults to anywhere)\n" +
                         "       -a  # of attachments\n" +
                         "       -nb make station non-blocking\n" +
                         "        This consumer works by making a direct connection to the\n" +
@@ -58,7 +58,7 @@ public class Consumer {
               if (args[i].equalsIgnoreCase("-f")) {
                   etName = args[++i];
               }
-              else if (args[i].equalsIgnoreCase("-h")) {
+              else if (args[i].equalsIgnoreCase("-host")) {
                   host = args[++i];
               }
               else if (args[i].equalsIgnoreCase("-nb")) {
@@ -144,9 +144,12 @@ public class Consumer {
 
       // broadcast to ET system's tcp server
       SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
+          //config.setConnectRemotely(false);
+          config.setHost(Constants.hostLocal);
       
       // create ET system object with verbose debugging output
       SystemUse sys = new SystemUse(config, Constants.debugInfo);
+System.out.println("Created SystemUse object");
       // configuration of a new station
       StationConfig statConfig = new StationConfig();
       //statConfig.setFlowMode(Constants.stationParallel);
@@ -175,7 +178,7 @@ System.out.println("Station attachment = " + att.getId());
       // array of events
       Event[] mevs;
       
-      int chunk = 100, count = 0;
+      int chunk = 10, count = 0;
       long t1, t2;
       int num;
       
@@ -192,17 +195,20 @@ System.out.println("Station attachment = " + att.getId());
           if (count == 0) t1 = System.currentTimeMillis();
 
            // example of reading & printing event data
-           /*
-           if (false) {
+
+           if (true) {
             for (int j=0; j < mevs.length; j++) {
               // get one integer's worth of data
-               num = bytesToInt(mevs[j].getData(), 0);
+                System.out.println("remaining amount of data = " + mevs[j].getDataBuffer().remaining());
+              num = mevs[j].getDataBuffer().getInt(0);
               System.out.println("data = " + num);
             }
            }
-           */
+
+            Thread.sleep(3000);
+
            // put events back into ET system
-          sys.putEvents(att, mevs);
+           sys.putEvents(att, mevs);
            count += mevs.length;
         }
 
