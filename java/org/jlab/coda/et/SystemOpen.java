@@ -949,7 +949,7 @@ public class SystemOpen {
 
           // if "local" specified, find actual hostname
           if (config.getHost().equals(Constants.hostLocal) || config.getHost().equals("localhost")) {
-              host = InetAddress.getLocalHost().getCanonicalHostName();
+              host = InetAddress.getLocalHost().getHostName();
               mapLocalSharedMemory = true;
           }
           else {
@@ -1075,6 +1075,10 @@ public class SystemOpen {
               jni = new JniAccess();
 
               jni.openLocalEtSystem(config.getEtName());
+          }
+          catch (EtTimeoutException e) {
+              // cannot open an ET system through JNI, so use sockets only to connect to ET system
+              mapLocalSharedMemory = false;
           }
           catch (EtException e) {
               // cannot open an ET system through JNI, so use sockets only to connect to ET system

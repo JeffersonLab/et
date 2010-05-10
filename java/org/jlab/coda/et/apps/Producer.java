@@ -38,8 +38,8 @@ public class Producer {
                    "       -d  delay in millisec between getting and putting events\n" +
                    "       -g  group number of events\n" +
                    "       -host  host the ET system resides on (defaults to anywhere)\n" +
-	               "        This consumer works by making a direct connection to the\n" +
-		       "        ET system's tcp server port.\n");
+	               "        This consumer works by making a connection to the\n" +
+		           "        ET system's tcp server port.\n");
   }
 
 
@@ -149,9 +149,13 @@ public class Producer {
             //SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
 
             // broadcast to ET system's tcp server
-            SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
-            config.setConnectRemotely(true);
+           // SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
+           // config.setConnectRemotely(true);
             
+            // direct to ET system's tcp server
+            SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+                config.setConnectRemotely(false);
+                config.setHost(Constants.hostLocal);
 
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);

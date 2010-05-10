@@ -142,9 +142,9 @@ public class Consumer {
       // make a direct connection to ET system's tcp server
       //SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
 
-      // broadcast to ET system's tcp server
-      SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
-          //config.setConnectRemotely(false);
+      // direct to ET system's tcp server
+      SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+          config.setConnectRemotely(false);
           config.setHost(Constants.hostLocal);
       
       // create ET system object with verbose debugging output
@@ -199,7 +199,7 @@ System.out.println("Station attachment = " + att.getId());
            if (true) {
             for (int j=0; j < mevs.length; j++) {
               // get one integer's worth of data
-                System.out.println("remaining amount of data = " + mevs[j].getDataBuffer().remaining());
+              //System.out.println("remaining amount of data = " + mevs[j].getDataBuffer().remaining());
               num = mevs[j].getDataBuffer().getInt(0);
               System.out.println("data = " + num);
             }
