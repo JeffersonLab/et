@@ -52,8 +52,14 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     /* open ET system */
     et_open_config_init(&openconfig);
     et_open_config_sethost(openconfig, ET_HOST_LOCAL); /* must be local host */
-    if (et_open(&id, mappedFile, openconfig) != ET_OK) {
-        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+    err = e;t_open(&id, mappedFile, openconfig)
+    if (err != ET_OK) {
+        if (err == ET_ERROR_TIMEOUT) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
         (*env)->ThrowNew(env, clazz, "openLocalEtSystem: cannot open ET system in native code");
         return;
     }
@@ -110,7 +116,7 @@ printf("getEvents (native) : will attempt to get events\n");
 
     /* fill array */
     for (i=0; i < numread; i++) {
-        printf("getEvents (native) : data for event %d = %d\n", i, *((int *)pe[i]->pdata));
+        /*printf("getEvents (native) : data for event %d = %d\n", i, *((int *)pe[i]->pdata));*/
 
         /* create control int array */
         controlInts   = (*env)->NewIntArray(env, ET_STATION_SELECT_INTS);
@@ -292,7 +298,25 @@ printf("newEvents (native) : will attempt to get new events\n");
     status = et_events_new_group((et_sys_id)etId, (et_att_id)attId, pe, mode,
                                   &deltaTime, size, count, group, &numread);
     if (status != ET_OK) {
-        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else if (status == ET_ERROR_WAKEUP) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
+        }
+        else if (status == ET_ERROR_TIMEOUT) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+        }
+        else if (status == ET_ERROR_BUSY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
+        }
+        else if (status == ET_ERROR_EMPTY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        
         (*env)->ThrowNew(env, clazz, "getEvents: cannot get events in native code");
         return;
     }
@@ -301,7 +325,7 @@ printf("newEvents (native) : will attempt to get new events\n");
     clazz      = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
     eventArray = (*env)->NewObjectArray(env, numread, clazz, NULL);
     /* get appropriate constructor for them */
-    methodId = (*env)->GetMethodID(env, clazz, "<init>", "(IIIIIIIIII[I)V");
+    methodId = (*env)->GetMethodID(env, clazz, "<init>", "(III)V");
 
     /* fill array */
     for (i=0; i < numread; i++) {
