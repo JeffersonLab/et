@@ -25,6 +25,12 @@
 #include "et_private.h"
 #include "org_jlab_coda_et_JniAccess.h"
 
+static int debug = 0;
+/* cache some frequently used values */
+static jclass eventImplClass;
+static jfieldID fid[6];
+static jmethodID constrMethodId1,constrMethodId2;
+
 
 /*
  * Class:     org_jlab_coda_et_JniAccess
@@ -38,7 +44,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     const char* mappedFile;
     et_sys_id id; // void *
     et_openconfig openconfig;
-    jclass clazz;
+    jclass clazz, class1, classEventImpl;
     jmethodID mid;
 
     /* get C string from java arg */
@@ -52,7 +58,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     /* open ET system */
     et_open_config_init(&openconfig);
     et_open_config_sethost(openconfig, ET_HOST_LOCAL); /* must be local host */
-    err = e;t_open(&id, mappedFile, openconfig)
+    err = et_open(&id, mappedFile, openconfig);
     if (err != ET_OK) {
         if (err == ET_ERROR_TIMEOUT) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
@@ -66,11 +72,29 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     et_open_config_destroy(openconfig);
 
     /* store et id in object by calling this native method */
-    clazz = (*env)->GetObjectClass(env, thisObj);
-    mid   = (*env)->GetMethodID(env, clazz, "setLocalEtId", "(J)V");
+    class1 = (*env)->GetObjectClass(env, thisObj);
+    mid    = (*env)->GetMethodID(env, class1, "setLocalEtId", "(J)V");
     (*env)->CallVoidMethod(env, thisObj, mid, (jlong)id);
+
+    /*******************************************/
+    /* cache objects for efficient, future use */
+    /*******************************************/
+    classEventImpl = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
+    eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);
     
-printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
+    /* find id's of all the fields that we'll read/write to */
+    fid[0] = (*env)->GetFieldID(env, classEventImpl, "id",         "I");
+    fid[1] = (*env)->GetFieldID(env, classEventImpl, "priority",   "I");
+    fid[2] = (*env)->GetFieldID(env, classEventImpl, "length",     "I");
+    fid[3] = (*env)->GetFieldID(env, classEventImpl, "dataStatus", "I");
+    fid[4] = (*env)->GetFieldID(env, classEventImpl, "byteOrder",  "I");
+    fid[5] = (*env)->GetFieldID(env, classEventImpl, "control",    "[I");
+
+    /* get id's of a couple different constructors */
+    constrMethodId1 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(III)V");
+    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[I)V");
+  
+if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
 
 
@@ -87,7 +111,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_getEvents
     int i, j, numread, status;
     et_event *pe[count];
     jclass clazz;
-    jmethodID methodId;
     jboolean isCopy;
     jint* intArrayElems;
     jintArray controlInts;
@@ -98,7 +121,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_getEvents
     struct timespec deltaTime;
     deltaTime.tv_sec  = sec;
     deltaTime.tv_nsec = nsec;
-printf("getEvents (native) : will attempt to get events\n");
+
+if (debug) printf("getEvents (native) : will attempt to get events\n");
 
     /* reading array of up to "count" events */
     status = et_events_get((et_sys_id)etId, (et_att_id)attId, pe, mode, &deltaTime, count, &numread);
@@ -109,10 +133,7 @@ printf("getEvents (native) : will attempt to get events\n");
     }
 
     /* create array of EventImpl objects */
-    clazz      = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
-    eventArray = (*env)->NewObjectArray(env, numread, clazz, NULL);
-    /* get appropriate constructor for them */
-    methodId = (*env)->GetMethodID(env, clazz, "<init>", "(IIIIIIIIII[I)V");
+    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
 
     /* fill array */
     for (i=0; i < numread; i++) {
@@ -129,7 +150,7 @@ printf("getEvents (native) : will attempt to get events\n");
         }
 
         /* create event object */
-        event = (*env)->NewObject(env, clazz, methodId, /* constructor args ... */
+        event = (*env)->NewObject(env, eventImplClass, constrMethodId2, /* constructor args ... */
         (jint)pe[i]->memsize, (jint)pe[i]->memsize, (jint)pe[i]->datastatus,
         (jint)pe[i]->place,   (jint)pe[i]->age,     (jint)pe[i]->owner,
         (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
@@ -139,7 +160,8 @@ printf("getEvents (native) : will attempt to get events\n");
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
         (*env)->DeleteLocalRef(env, event);
     }
-printf("getEvents (native) : filled array!\n");
+
+if (debug) printf("getEvents (native) : filled array!\n");
    
     /* return the array */
     return eventArray;
@@ -158,28 +180,15 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_putEvents
     int i, j, status, place;
     et_event *pe[length];
     jclass clazz = NULL;
-    jfieldID fid[6];
     jobject event;
     jboolean isCopy;
     jint *controlElements;
     jintArray controlInts;
     et_id *etid = (et_id *) etId;
     
-printf("putEvents (native) : put 'em back\n");
+if (debug) printf("putEvents (native) : put 'em back\n");
 
-    /* look up class object */
-    event = (*env)->GetObjectArrayElement(env, events, 0);
-    clazz = (*env)->GetObjectClass(env, event);
-
-    /* find id's of all the fields that might have changed */
-    fid[0] = (*env)->GetFieldID(env, clazz, "id",         "I");
-    fid[1] = (*env)->GetFieldID(env, clazz, "priority",   "I");
-    fid[2] = (*env)->GetFieldID(env, clazz, "length",     "I");
-    fid[3] = (*env)->GetFieldID(env, clazz, "dataStatus", "I");
-    fid[4] = (*env)->GetFieldID(env, clazz, "byteOrder",  "I");
-    fid[5] = (*env)->GetFieldID(env, clazz, "control",    "[I");
-
-    /* create array of (pointers to) events */
+     /* create array of (pointers to) events */
     for (i=0; i<length; i++) {
         /* get event object from Java array of events */
         event = (*env)->GetObjectArrayElement(env, events, i);
@@ -197,7 +206,6 @@ printf("putEvents (native) : put 'em back\n");
         /* set control ints */
         controlInts     = (*env)->GetObjectField(env, event, fid[5]);
         controlElements = (*env)->GetIntArrayElements(env, controlInts, &isCopy);
-
         for (j=0; j<ET_STATION_SELECT_INTS; j++) {
             pe[i]->control[j] = controlElements[j];
         }
@@ -233,18 +241,10 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_dumpEvents
     int i, j, status, place;
     et_event *pe[length];
     jclass clazz = NULL;
-    jfieldID fid;
     jobject event;
     et_id *etid = (et_id *) etId;
     
-printf("dumpEvents (native) : dump 'em\n");
-
-    /* look up class object */
-    event = (*env)->GetObjectArrayElement(env, events, 0);
-    clazz = (*env)->GetObjectClass(env, event);
-
-    /* find id's of all the fields that might have changed */
-    fid = (*env)->GetFieldID(env, clazz, "id", "I");
+if (debug) printf("dumpEvents (native) : dump 'em\n");
 
     /* create array of (pointers to) events */
     for (i=0; i<length; i++) {
@@ -252,7 +252,7 @@ printf("dumpEvents (native) : dump 'em\n");
         event = (*env)->GetObjectArrayElement(env, events, i);
         
         /* find ptr to event in C world */
-        place = (*env)->GetIntField(env, event, fid);
+        place = (*env)->GetIntField(env, event, fid[0]);
         pe[i] = ET_P2EVENT(etid, place);
         
         (*env)->DeleteLocalRef(env, event);
@@ -281,10 +281,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_newEvents
     int i, j, numread, status;
     et_event *pe[count];
     jclass clazz;
-    jmethodID methodId;
     jboolean isCopy;
-    jint* intArrayElems;
-    jintArray controlInts;
     jobjectArray eventArray;
     jobject event;
 
@@ -292,7 +289,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_newEvents
     struct timespec deltaTime;
     deltaTime.tv_sec  = sec;
     deltaTime.tv_nsec = nsec;
-printf("newEvents (native) : will attempt to get new events\n");
+
+if (debug) printf("newEvents (native) : will attempt to get new events\n");
     
     /* reading array of up to "count" events */
     status = et_events_new_group((et_sys_id)etId, (et_att_id)attId, pe, mode,
@@ -322,34 +320,20 @@ printf("newEvents (native) : will attempt to get new events\n");
     }
 
     /* create array of EventImpl objects */
-    clazz      = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
-    eventArray = (*env)->NewObjectArray(env, numread, clazz, NULL);
-    /* get appropriate constructor for them */
-    methodId = (*env)->GetMethodID(env, clazz, "<init>", "(III)V");
+    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
 
     /* fill array */
     for (i=0; i < numread; i++) {
-        /* create control int array */
-        controlInts   = (*env)->NewIntArray(env, ET_STATION_SELECT_INTS);
-        intArrayElems = (*env)->GetIntArrayElements(env, controlInts, &isCopy);
-        for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-            intArrayElems[j] = pe[i]->control[j];
-        }
-        if (isCopy == JNI_TRUE) {
-            (*env)->ReleaseIntArrayElements(env, controlInts, intArrayElems, 0);
-        }
-
         /* create event object */
-
-        // TODO: use a simpler constructor since many fields are initialized ...
-        event = (*env)->NewObject(env, clazz, methodId, /* constructor args ... */
+        event = (*env)->NewObject(env, eventImplClass, constrMethodId1, /* constructor args ... */
                                   (jint)pe[i]->memsize, (jint)pe[i]->place, (jint)pe[i]->owner);
 
         /* put event in array */
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
         (*env)->DeleteLocalRef(env, event);
     }
-printf("newEvents (native) : filled array!\n");
+
+if (debug) printf("newEvents (native) : filled array!\n");
 
     /* return the array */
     return eventArray;
