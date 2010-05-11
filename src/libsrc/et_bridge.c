@@ -270,9 +270,9 @@ int et_bridge_CODAswap(et_event *src_ev, et_event *dest_ev, int bytes, int same_
 /*****************************************************/
 
 int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridgeconfig bconfig,
-		     int num, int *ntransferred)
+		             et_att_id att_from, et_att_id att_to,
+		             et_bridgeconfig bconfig,
+		             int num, int *ntransferred)
 {
 
   et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
