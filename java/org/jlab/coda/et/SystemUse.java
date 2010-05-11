@@ -47,9 +47,6 @@ public class SystemUse {
     /** Debug level. */
     private int debug;
 
-    /** Default event group number. Initially this is zero meaning groups are ignored. */
-    private int group;
-
     /** Tcp socket connected to ET system's server. */
     private Socket sock;
 
@@ -987,15 +984,10 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public Event[] newEvents(Attachment att, int mode,  int microSec,
-                                                          int count, int size)
+    public Event[] newEvents(Attachment att, int mode, int microSec, int count, int size)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
-
-        if (group > 0) {
-            return newEvents(att, mode, microSec, count, size, group);
-        }
 
         return newEvents(att, mode, microSec, count, size, 1);
     }
@@ -1096,343 +1088,156 @@ public class SystemUse {
      */
     synchronized public Event[] newEvents(Attachment att, int mode, int microSec,
                                           int count, int size, int group)
-                        throws IOException, EtException, EtDeadException,
-                               EtEmptyException, EtBusyException,
-                               EtTimeoutException, EtWakeUpException  {
+            throws IOException, EtException, EtDeadException,
+                   EtEmptyException,   EtBusyException,
+                   EtTimeoutException, EtWakeUpException  {
 
-      if (!att.usable || att.sys != this) {
-        throw new EtException("Invalid attachment");
-      }
-
-      if (count == 0) {
-        // bug bug can array have zero length ???
-        return new Event[0];
-      }
-
-      int wait = mode & Constants.waitMask;
-      if ((wait != Constants.sleep) &&
-          (wait != Constants.timed) &&
-          (wait != Constants.async))  {
-        throw new EtException("bad mode argument");
-      }
-      else if ((microSec < 0) && (wait == Constants.timed)) {
-        throw new EtException("bad microSec argument");
-      }
-      else if (size < 1) {
-        throw new EtException("bad size argument");
-      }
-      else if (count < 0) {
-        throw new EtException("bad count argument");
-      }
-      else if (att == null) {
-        throw new EtException("bad attachment argument");
-      }
-      else if (group < 1) {
-        throw new EtException("group number must be > 0");
-      }
-
-      int sec  = 0;
-      int nsec = 0;
-      if (microSec > 0) {
-        sec = microSec/1000000;
-        nsec = (microSec - sec*1000000) * 1000;
-      }
-
-      // Do we get things locally through JNI?
-      if (sys.isMapLocalSharedMemory()) {
-          return newEventsJNI(att.getId(), mode, sec, nsec, count, size, group);
-      }
-
-      byte[] buffer = new byte[36];
-      Utils.intToBytes(Constants.netEvsNewGrp, buffer, 0);
-      Utils.intToBytes(att.id, buffer, 4);
-      Utils.intToBytes(mode,   buffer, 8);
-      Utils.longToBytes((long)size,   buffer, 12);
-      Utils.intToBytes(count,  buffer, 20);
-      Utils.intToBytes(group,  buffer, 24);
-      Utils.intToBytes(sec,    buffer, 28);
-      Utils.intToBytes(nsec,   buffer, 32);
-      out.write(buffer);
-      out.flush();
-
-      // ET system clients are liable to get stuck here if the ET
-      // system crashes. So use the 2 second socket timeout to try
-      // to read again. If the socket connection has been broken,
-      // an IOException will be generated.
-      int err;
-      while (true) {
-        try {
-          err = in.readInt();
-          break;
+        if (att == null || !att.usable || att.sys != this) {
+            throw new EtException("Invalid attachment");
         }
-        // If there's an interrupted ex, socket is OK, try again.
-        catch (InterruptedIOException ex) {
-        }
-      }
 
-      if (err < Constants.ok) {
-        if (debug >= Constants.error) {
-          System.out.println("error in ET system");
+        if (count == 0) {
+            return new Event[0];
         }
-        // throw some exceptions
-        if (err == Constants.error) {
-          throw new EtException("bad mode value" );
-        }
-        else if (err == Constants.errorBusy) {
-          throw new EtBusyException("input list is busy");
-        }
-        else if (err == Constants.errorEmpty) {
-          throw new EtEmptyException("no events in list");
-        }
-        else if (err == Constants.errorWakeUp) {
-          throw new EtWakeUpException("attachment " + att.id + " woken up");
-        }
-        else if (err == Constants.errorTimeout) {
-          throw new EtTimeoutException("timed out");
-        }
-      }
 
-      // number of events to expect
-      int numEvents = err;
+        int wait = mode & Constants.waitMask;
+        if ((wait != Constants.sleep) &&
+            (wait != Constants.timed) &&
+            (wait != Constants.async))  {
+            throw new EtException("bad mode argument");
+        }
+        else if ((microSec < 0) && (wait == Constants.timed)) {
+            throw new EtException("bad microSec argument");
+        }
+        else if (size < 1) {
+            throw new EtException("bad size argument");
+        }
+        else if (count < 0) {
+            throw new EtException("bad count argument");
+        }
+        else if (group < 1) {
+            throw new EtException("group number must be > 0");
+        }
 
-      // list of events to return
-      EventImpl[] evs = new EventImpl[numEvents];
-      buffer = new byte[4*numEvents];
-      in.readFully(buffer, 0, 4*numEvents);
+        int sec  = 0;
+        int nsec = 0;
+        if (microSec > 0) {
+            sec = microSec/1000000;
+            nsec = (microSec - sec*1000000) * 1000;
+        }
 
-      int index=-4;
-      long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
-      final int modify = Constants.modify;
+        // Do we get things locally through JNI?
+        if (sys.isMapLocalSharedMemory()) {
+            return newEventsJNI(att.getId(), mode, sec, nsec, count, size, group);
+        }
+
+        byte[] buffer = new byte[36];
+        Utils.intToBytes(Constants.netEvsNewGrp, buffer, 0);
+        Utils.intToBytes(att.id,      buffer, 4);
+        Utils.intToBytes(mode,        buffer, 8);
+        Utils.longToBytes((long)size, buffer, 12);
+        Utils.intToBytes(count,       buffer, 20);
+        Utils.intToBytes(group,       buffer, 24);
+        Utils.intToBytes(sec,         buffer, 28);
+        Utils.intToBytes(nsec,        buffer, 32);
+        out.write(buffer);
+        out.flush();
+
+        // ET system clients are liable to get stuck here if the ET
+        // system crashes. So use the 2 second socket timeout to try
+        // to read again. If the socket connection has been broken,
+        // an IOException will be generated.
+        int err;
+        while (true) {
+            try {
+                err = in.readInt();
+                break;
+            }
+            // If there's an interrupted ex, socket is OK, try again.
+            catch (InterruptedIOException ex) {
+            }
+        }
+
+        if (err < Constants.ok) {
+            if (debug >= Constants.error) {
+                System.out.println("error in ET system");
+            }
+
+            // throw some exceptions
+            if (err == Constants.error) {
+                throw new EtException("bad mode value" );
+            }
+            else if (err == Constants.errorBusy) {
+                throw new EtBusyException("input list is busy");
+            }
+            else if (err == Constants.errorEmpty) {
+                throw new EtEmptyException("no events in list");
+            }
+            else if (err == Constants.errorWakeUp) {
+                throw new EtWakeUpException("attachment " + att.id + " woken up");
+            }
+            else if (err == Constants.errorTimeout) {
+                throw new EtTimeoutException("timed out");
+            }
+        }
+
+        // number of events to expect
+        int numEvents = err;
+
+        // list of events to return
+        EventImpl[] evs = new EventImpl[numEvents];
+        buffer = new byte[4*numEvents];
+        in.readFully(buffer, 0, 4*numEvents);
+
+        int index=-4;
+        long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
+        final int modify = Constants.modify;
 
         // Java limits array sizes to an integer. Thus we're limited to
         // 2G byte arrays. Essentially Java is a 32 bit system in this
         // regard even though the JVM might be 64 bits.
         // So set limits on the size accordingly.
 
-          // if C ET system we are connected to is 64 bits ...
-          if (!isJava && sys.isBit64()) {
+        // if C ET system we are connected to is 64 bits ...
+        if (!isJava && sys.isBit64()) {
             // if events size > ~1G, only allocate what's asked for
             if ((long)numEvents*sys.getEventSize() > Integer.MAX_VALUE/2) {
-              sizeLimit = size;
+                sizeLimit = size;
             }
-          }
+        }
 
-      for (int j=0; j < numEvents; j++) {
-        evs[j] = new EventImpl(size, (int)sizeLimit, isJava);
-        evs[j].setId(Utils.bytesToInt(buffer, index+=4));
-        evs[j].setModify(modify);
-        evs[j].setOwner(att.getId());
-      }
+        for (int j=0; j < numEvents; j++) {
+            evs[j] = new EventImpl(size, (int)sizeLimit, isJava);
+            evs[j].setId(Utils.bytesToInt(buffer, index+=4));
+            evs[j].setModify(modify);
+            evs[j].setOwner(att.getId());
+        }
 
-      return evs;
+        return evs;
     }
-
-
-
-  /**
-   * Get events from an ET system.
-   *
-   * @param att      attachment object
-   * @param mode     if there are no events available, this parameter specifies
-   *                 whether to wait for some by sleeping, by waiting for a set
-   *                 time, or by returning immediately
-   * @param microSec the number of microseconds to wait if a timed wait is
-   *                 specified
-   * @param count    the number of events desired
-   *
-   * @return an array of events
-   *
-   * @exception java.io.IOException
-   *     if problems with network comunications
-   * @exception EtException
-   *     if arguments have bad values, the attachment's station is
-   *     GRAND_CENTRAL, or the attachment object is invalid
-   * @exception EtEmptyException
-   *     if the mode is asynchronous and the station's input list is empty
-   * @exception EtBusyException
-   *     if the mode is asynchronous and the station's input list is being used
-   *     (the mutex is locked)
-   * @exception EtTimeoutException
-   *     if the mode is timed wait and the time has expired
-   * @exception EtWakeUpException
-   *     if the attachment has been commanded to wakeup,
-   *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
-   */
-  synchronized public Event[] getEvents(Attachment att, int mode, int microSec, int count)
-                      throws IOException, EtException,
-                             EtEmptyException, EtBusyException,
-                             EtTimeoutException, EtWakeUpException  {
-
-    if (!att.usable || att.sys != this) {
-      throw new EtException("Invalid attachment");
-    }
-
-    // may not get events from GrandCentral
-    if (att.station.id == 0) {
-      throw new EtException("may not get events from GRAND_CENTRAL");
-    }
-
-    if (count == 0) {
-      return new Event[0];
-    }
-
-    int wait = mode & Constants.waitMask;
-    if ((wait != Constants.sleep) &&
-        (wait != Constants.timed) &&
-        (wait != Constants.async))  {
-      throw new EtException("bad mode argument");
-    }
-    else if ((microSec < 0) && (wait == Constants.timed)) {
-      throw new EtException("bad microSec argument");
-    }
-    else if (count < 0) {
-      throw new EtException("bad count argument");
-    }
-    else if (att == null) {
-      throw new EtException("bad attachment argument");
-    }
-
-    // Modifying the whole event has precedence over modifying
-    // only the header should the user specify both.
-    int modify = mode & Constants.modify;
-    if (modify == 0) {
-      modify = mode & Constants.modifyHeader;
-    }
-
-    int sec  = 0;
-    int nsec = 0;
-    if (microSec > 0) {
-      sec = microSec/1000000;
-      nsec = (microSec - sec*1000000) * 1000;
-    }
-
-    // Do we get things locally through JNI?
-    if (sys.isMapLocalSharedMemory()) {
-        return getEventsJNI(att.getId(), mode, sec, nsec, count);
-    }
-
-    // Or do we go through the network?
-    byte[] buffer = new byte[28];
-    Utils.intToBytes(Constants.netEvsGet, buffer, 0);
-    Utils.intToBytes(att.id, buffer, 4);
-    Utils.intToBytes(wait,   buffer, 8);
-    Utils.intToBytes(modify, buffer, 12);
-    Utils.intToBytes(count,  buffer, 16);
-    Utils.intToBytes(sec,    buffer, 20);
-    Utils.intToBytes(nsec,   buffer, 24);
-    out.write(buffer);
-    out.flush();
-
-    // ET system clients are liable to get stuck here if the ET
-    // system crashes. So use the 2 second socket timeout to try
-    // to read again. If the socket connection has been broken,
-    // an IOException will be generated.
-    int err;
-    while (true) {
-      try {
-	    err = in.readInt();
-	    break;
-      }
-      // If there's an interrupted ex, socket is OK, try again.
-      catch (InterruptedIOException ex) {
-      }
-    }
-
-    if (err < Constants.ok) {
-      if (debug >= Constants.error) {
-	    System.out.println("error in ET system");
-      }
-      if (err == Constants.error) {
-        throw new EtException("bad mode value" );
-      }
-      else if (err == Constants.errorBusy) {
-        throw new EtBusyException("input list is busy");
-      }
-      else if (err == Constants.errorEmpty) {
-        throw new EtEmptyException("no events in list");
-      }
-      else if (err == Constants.errorWakeUp) {
-        throw new EtWakeUpException("attachment " + att.id + " woken up");
-      }
-      else if (err == Constants.errorTimeout) {
-        throw new EtTimeoutException("timed out");
-      }
-    }
-
-    // skip reading total size (long)
-    in.skipBytes(8);
-
-    final int selectInts   = Constants.stationSelectInts;
-    final int dataShift    = Constants.dataShift;
-    final int dataMask     = Constants.dataMask;
-    final int priorityMask = Constants.priorityMask;
-
-    int numEvents = err;
-    EventImpl[] evs = new EventImpl[numEvents];
-    int byteChunk = 4*(9+Constants.stationSelectInts);
-    buffer = new byte[byteChunk];
-    int index;
-
-    long  length, memSize;
-    int   priAndStat;
-
-    for (int j=0; j < numEvents; j++) {
-      in.readFully(buffer, 0, byteChunk);
-
-      length  = Utils.bytesToLong(buffer, 0);
-      memSize = Utils.bytesToLong(buffer, 8);
-
-      // Note that the server will not send events too big for us,
-      // we'll get an error above.
-
-      // if C ET system we are connected to is 64 bits ...
-      if (!isJava && sys.isBit64()) {
-          // if event size > ~1G, only allocate enough to hold data
-          if (memSize > Integer.MAX_VALUE/2) {
-              memSize = length;
-          }
-      }
-      evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
-      evs[j].setLength((int)length);
-      priAndStat = Utils.bytesToInt(buffer, 16);
-      evs[j].setPriority(priAndStat & priorityMask);
-      evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
-      evs[j].setId(Utils.bytesToInt(buffer, 20));
-      // skip unused int here
-      evs[j].setByteOrder(Utils.bytesToInt(buffer, 28));
-      index = 32;   // skip unused int
-      int[] control = new int[selectInts];
-      for (int i=0; i < selectInts; i++) {
-	    control[i] = Utils.bytesToInt(buffer, index+=4);
-      }
-      evs[j].setControl(control);
-      evs[j].setModify(modify);
-      evs[j].setOwner(att.getId());
-
-      in.readFully(evs[j].getData(), 0, (int)length);
-    }
-
-    return evs;
-  }
 
 
 
     /**
      * Get events from an ET system.
+     * This method uses JNI to call ET routines in the C library. Event memory is
+     * directly accessed shared memory.
      *
      * @param attId    attachment id number
      * @param mode     if there are no events available, this parameter specifies
      *                 whether to wait for some by sleeping, by waiting for a set
      *                 time, or by returning immediately
-     * @param sec  the number of seconds to wait if a timed wait is specified
-     * @param nsec the number of nanoseconds to wait if a timed wait is specified
+     * @param sec      the number of seconds to wait if a timed wait is specified
+     * @param nsec     the number of nanoseconds to wait if a timed wait is specified
      * @param count    the number of events desired
      *
      * @return an array of events
      *
      * @exception EtException
      *     if arguments have bad values, the attachment's station is
-     *     GRAND_CENTRAL, or the attachment object is invalid
+     *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      * @exception EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @exception EtBusyException
@@ -1445,7 +1250,7 @@ public class SystemUse {
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private Event[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
-                        throws EtException  {
+            throws EtException  {
 
         EventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
@@ -1469,7 +1274,199 @@ public class SystemUse {
 
 
     /**
+     * Get events from an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att      attachment object
+     * @param mode     if there are no events available, this parameter specifies
+     *                 whether to wait for some by sleeping, by waiting for a set
+     *                 time, or by returning immediately
+     * @param microSec the number of microseconds to wait if a timed wait is
+     *                 specified
+     * @param count    the number of events desired
+     *
+     * @return an array of events
+     *
+     * @exception java.io.IOException
+     *     if problems with network comunications
+     * @exception EtException
+     *     if arguments have bad values, the attachment's station is
+     *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
+     * @exception EtDeadException
+     *     if the ET system processes are dead
+     * @exception EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @exception EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @exception EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @exception EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     */
+    synchronized public Event[] getEvents(Attachment att, int mode, int microSec, int count)
+            throws IOException, EtException,
+                   EtEmptyException, EtBusyException,
+                   EtTimeoutException, EtWakeUpException  {
+
+        if (att == null|| !att.usable || att.sys != this) {
+            throw new EtException("Invalid attachment");
+        }
+
+        // may not get events from GrandCentral
+        if (att.station.id == 0) {
+            throw new EtException("may not get events from GRAND_CENTRAL");
+        }
+
+        if (count == 0) {
+            return new Event[0];
+        }
+
+        int wait = mode & Constants.waitMask;
+        if ((wait != Constants.sleep) &&
+            (wait != Constants.timed) &&
+            (wait != Constants.async))  {
+            throw new EtException("bad mode argument");
+        }
+        else if ((microSec < 0) && (wait == Constants.timed)) {
+            throw new EtException("bad microSec argument");
+        }
+        else if (count < 0) {
+            throw new EtException("bad count argument");
+        }
+
+        // Modifying the whole event has precedence over modifying
+        // only the header should the user specify both.
+        int modify = mode & Constants.modify;
+        if (modify == 0) {
+            modify = mode & Constants.modifyHeader;
+        }
+
+        int sec  = 0;
+        int nsec = 0;
+        if (microSec > 0) {
+            sec = microSec/1000000;
+            nsec = (microSec - sec*1000000) * 1000;
+        }
+
+        // Do we get things locally through JNI?
+        if (sys.isMapLocalSharedMemory()) {
+            return getEventsJNI(att.getId(), mode, sec, nsec, count);
+        }
+
+        // Or do we go through the network?
+        byte[] buffer = new byte[28];
+        Utils.intToBytes(Constants.netEvsGet, buffer, 0);
+        Utils.intToBytes(att.id, buffer, 4);
+        Utils.intToBytes(wait,   buffer, 8);
+        Utils.intToBytes(modify, buffer, 12);
+        Utils.intToBytes(count,  buffer, 16);
+        Utils.intToBytes(sec,    buffer, 20);
+        Utils.intToBytes(nsec,   buffer, 24);
+        out.write(buffer);
+        out.flush();
+
+        // ET system clients are liable to get stuck here if the ET
+        // system crashes. So use the 2 second socket timeout to try
+        // to read again. If the socket connection has been broken,
+        // an IOException will be generated.
+        int err;
+        while (true) {
+            try {
+                err = in.readInt();
+                break;
+            }
+            // If there's an interrupted ex, socket is OK, try again.
+            catch (InterruptedIOException ex) {
+            }
+        }
+
+        if (err < Constants.ok) {
+            if (debug >= Constants.error) {
+                System.out.println("error in ET system");
+            }
+
+            if (err == Constants.error) {
+                throw new EtException("bad mode value" );
+            }
+            else if (err == Constants.errorBusy) {
+                throw new EtBusyException("input list is busy");
+            }
+            else if (err == Constants.errorEmpty) {
+                throw new EtEmptyException("no events in list");
+            }
+            else if (err == Constants.errorWakeUp) {
+                throw new EtWakeUpException("attachment " + att.id + " woken up");
+            }
+            else if (err == Constants.errorTimeout) {
+                throw new EtTimeoutException("timed out");
+            }
+        }
+
+        // skip reading total size (long)
+        in.skipBytes(8);
+
+        final int selectInts   = Constants.stationSelectInts;
+        final int dataShift    = Constants.dataShift;
+        final int dataMask     = Constants.dataMask;
+        final int priorityMask = Constants.priorityMask;
+
+        int numEvents = err;
+        EventImpl[] evs = new EventImpl[numEvents];
+        int byteChunk = 4*(9+Constants.stationSelectInts);
+        buffer = new byte[byteChunk];
+        int index;
+
+        long  length, memSize;
+        int   priAndStat;
+
+        for (int j=0; j < numEvents; j++) {
+            in.readFully(buffer, 0, byteChunk);
+
+            length  = Utils.bytesToLong(buffer, 0);
+            memSize = Utils.bytesToLong(buffer, 8);
+
+            // Note that the server will not send events too big for us,
+            // we'll get an error above.
+
+            // if C ET system we are connected to is 64 bits ...
+            if (!isJava && sys.isBit64()) {
+                // if event size > ~1G, only allocate enough to hold data
+                if (memSize > Integer.MAX_VALUE/2) {
+                    memSize = length;
+                }
+            }
+            evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
+            evs[j].setLength((int)length);
+            priAndStat = Utils.bytesToInt(buffer, 16);
+            evs[j].setPriority(priAndStat & priorityMask);
+            evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
+            evs[j].setId(Utils.bytesToInt(buffer, 20));
+            // skip unused int here
+            evs[j].setByteOrder(Utils.bytesToInt(buffer, 28));
+            index = 32;   // skip unused int
+            int[] control = new int[selectInts];
+            for (int i=0; i < selectInts; i++) {
+                control[i] = Utils.bytesToInt(buffer, index+=4);
+            }
+            evs[j].setControl(control);
+            evs[j].setModify(modify);
+            evs[j].setOwner(att.getId());
+
+            in.readFully(evs[j].getData(), 0, (int)length);
+        }
+
+        return evs;
+    }
+
+
+
+    /**
      * Put events into an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
      *
      * @param att         attachment object
      * @param eventList   list of event objects
@@ -1478,9 +1475,11 @@ public class SystemUse {
      *     if problems with network comunications
      * @exception EtException
      *     if events are not owned by this attachment or the attachment object
-     *     is invalid
+     *     is invalid; if offset and/or length arg is not valid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      */
-    synchronized public void putEvents(Attachment att, List<Event> eventList)
+    public void putEvents(Attachment att, List<Event> eventList)
             throws IOException, EtException {
         putEvents(att, eventList.toArray(new Event[eventList.size()]));
     }
@@ -1488,6 +1487,8 @@ public class SystemUse {
 
     /**
      * Put events into an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
      *
      * @param att   attachment object
      * @param evs   array of event objects
@@ -1496,17 +1497,49 @@ public class SystemUse {
      *     if problems with network comunications
      * @exception EtException
      *     if events are not owned by this attachment or the attachment object
-     *     is invalid
+     *     is invalid; if offset and/or length arg is not valid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      */
     public void putEvents(Attachment att, Event[] evs)
-                        throws IOException, EtException {
+            throws IOException, EtException {
         putEvents(att, evs, 0, evs.length);
     }
 
 
+    /**
+     * Put events into an ET system.
+     * This method uses JNI to call ET routines in the C library. Since event memory, in
+     * this case, is directly accessed shared memory, none of it is copied.
+     *
+     * @param attId  attachment ID
+     * @param evs    array of event objects
+     * @param offset offset into array
+     * @param length number of array elements to put
+     *
+     * @exception EtException
+     *     if events are not owned by this attachment or the attachment object
+     *     is invalid; if offset and/or length arg is not valid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
+     */
+    private void putEventsJNI(int attId, Event[] evs, int offset, int length)
+            throws EtException {
+
+        // C interface has no offset (why did I do that again?), so compensate for that
+        EventImpl[] events = new EventImpl[length];
+        for (int i=0; i<length; i++) {
+            events[i] = (EventImpl) evs[offset + i];
+        }
+
+        sys.getJni().putEvents(sys.getJni().getLocalEtId(), attId, events, length);
+    }
+
 
     /**
      * Put events into an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
      *
      * @param att    attachment object
      * @param evs    array of event objects
@@ -1518,16 +1551,18 @@ public class SystemUse {
      * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      */
-    public void putEvents(Attachment att, Event[] evs, int offset, int length)
-                        throws IOException, EtException {
+    synchronized public void putEvents(Attachment att, Event[] evs, int offset, int length)
+            throws IOException, EtException {
 
         if (offset < 0 || length < 0 || offset + length > evs.length) {
             throw new EtException("Bad offset or length argument(s)");
         }
 
-        if (!att.usable || att.sys != this) {
-          throw new EtException("Invalid attachment");
+        if (att == null || !att.usable || att.sys != this) {
+            throw new EtException("Invalid attachment");
         }
 
         final int selectInts = Constants.stationSelectInts;
@@ -1541,25 +1576,25 @@ public class SystemUse {
         for (int i=offset; i < length; i++) {
             // each event must be registered as owned by this attachment
             if (evs[i].getOwner() != att.id) {
-              throw new EtException("may not put event(s), not owner");
+                throw new EtException("may not put event(s), not owner");
             }
             // if modifying header only or header & data ...
             if (evs[i].getModify() > 0) {
-              numEvents++;
-              bytes += headerSize;
-              // if modifying data as well ...
-              if (evs[i].getModify() == modify) {
-                bytes += evs[i].getLength();
-              }
+                numEvents++;
+                bytes += headerSize;
+                // if modifying data as well ...
+                if (evs[i].getModify() == modify) {
+                    bytes += evs[i].getLength();
+                }
             }
         }
 
 
-          // Did we get things locally through JNI?
-          if (sys.isMapLocalSharedMemory()) {
-              putEventsJNI(att.getId(), evs, offset, length);
-              return;
-          }
+        // Did we get things locally through JNI?
+        if (sys.isMapLocalSharedMemory()) {
+            putEventsJNI(att.getId(), evs, offset, length);
+            return;
+        }
 
 
         out.writeInt(Constants.netEvsPut);
@@ -1611,7 +1646,8 @@ public class SystemUse {
 
 
     /**
-     * Put events into an ET system.
+     * Dump events into an ET system.
+     * This method uses JNI to call ET routines in the C library.
      *
      * @param attId  attachment ID
      * @param evs    array of event objects
@@ -1621,8 +1657,10 @@ public class SystemUse {
      * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      */
-    synchronized public void putEventsJNI(int attId, Event[] evs, int offset, int length)
+    private void dumpEventsJNI(int attId, Event[] evs, int offset, int length)
             throws EtException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
@@ -1630,39 +1668,16 @@ public class SystemUse {
         for (int i=0; i<length; i++) {
             events[i] = (EventImpl) evs[offset + i];
         }
-        
-        sys.getJni().putEvents(sys.getJni().getLocalEtId(), attId, events, length);
+
+        sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), attId, events, length);
     }
-
-
-     /**
-      * Put events into an ET system.
-      *
-      * @param attId  attachment ID
-      * @param evs    array of event objects
-      * @param offset offset into array
-      * @param length number of array elements to put
-      *
-      * @exception EtException
-      *     if events are not owned by this attachment or the attachment object
-      *     is invalid
-      */
-     synchronized public void dumpEventsJNI(int attId, Event[] evs, int offset, int length)
-             throws EtException {
-
-         // C interface has no offset (why did I do that again?), so compensate for that
-         EventImpl[] events = new EventImpl[length];
-         for (int i=0; i<length; i++) {
-             events[i] = (EventImpl) evs[offset + i];
-         }
-
-         sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), attId, events, length);
-     }
 
 
     /**
      * Dispose of unwanted events in an ET system. The events are recycled and not
      * made available to any other user.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
      *
      * @param att   attachment object
      * @param evs   array of event objects
@@ -1672,37 +1687,44 @@ public class SystemUse {
      * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      */
     public void dumpEvents(Attachment att, Event[] evs)
-                        throws IOException, EtException {
+            throws IOException, EtException {
         dumpEvents(att, evs, 0, evs.length);
     }
 
 
 
-  /**
-   * Dispose of unwanted events in an ET system. The events are recycled and not
-   * made available to any other user.
-   *
-   * @param att         attachment object
-   * @param eventList   list of event objects
-   *
-   * @exception java.io.IOException
-   *     if problems with network comunications
-   * @exception EtException
-   *     if events are not owned by this attachment or the attachment object
-   *     is invalid
-   */
-  synchronized public void dumpEvents(Attachment att, List<Event> eventList)
-                      throws IOException, EtException {
-
-      putEvents(att, eventList.toArray(new Event[eventList.size()]));
-  }
+    /**
+     * Dispose of unwanted events in an ET system. The events are recycled and not
+     * made available to any other user.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att         attachment object
+     * @param eventList   list of event objects
+     *
+     * @exception java.io.IOException
+     *     if problems with network comunications
+     * @exception EtException
+     *     if events are not owned by this attachment or the attachment object
+     *     is invalid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
+     */
+    public void dumpEvents(Attachment att, List<Event> eventList)
+            throws IOException, EtException {
+        dumpEvents(att, eventList.toArray(new Event[eventList.size()]));
+    }
 
 
     /**
      * Dispose of unwanted events in an ET system. The events are recycled and not
      * made available to any other user.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
      *
      * @param att         attachment object
      *
@@ -1711,23 +1733,25 @@ public class SystemUse {
      * @exception EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
+     * @exception EtDeadException
+     *     if the ET system processes are dead
      */
     synchronized public void dumpEvents(Attachment att, Event[] evs, int offset, int length)
-                        throws IOException, EtException {
+            throws IOException, EtException {
 
-      if (!att.usable || att.sys != this) {
-        throw new EtException("Invalid attachment");
-      }
-
-      // find out how many we're sending
-      int numEvents = 0;
-      for (int i=offset; i<offset+length; i++) {
-        // each event must be registered as owned by this attachment
-        if (evs[i].getOwner() != att.id) {
-          throw new EtException("may not put event(s), not owner");
+        if (att == null || !att.usable || att.sys != this) {
+            throw new EtException("Invalid attachment");
         }
-        if (evs[i].getModify() > 0) numEvents++;
-      }
+
+        // find out how many we're sending
+        int numEvents = 0;
+        for (int i=offset; i<offset+length; i++) {
+            // each event must be registered as owned by this attachment
+            if (evs[i].getOwner() != att.id) {
+                throw new EtException("may not put event(s), not owner");
+            }
+            if (evs[i].getModify() > 0) numEvents++;
+        }
 
         // Did we get things locally through JNI?
         if (sys.isMapLocalSharedMemory()) {
@@ -1735,350 +1759,357 @@ public class SystemUse {
             return;
         }
 
-      out.writeInt(Constants.netEvsDump);
-      out.writeInt(att.id);
-      out.writeInt(numEvents);
+        out.writeInt(Constants.netEvsDump);
+        out.writeInt(att.id);
+        out.writeInt(numEvents);
 
-      for (int i=offset; i<offset+length; i++) {
-        // send only if modifying an event (data or header) ...
-        if (evs[i].getModify() > 0) {
-          out.writeInt(evs[i].getId());
+        for (int i=offset; i<offset+length; i++) {
+            // send only if modifying an event (data or header) ...
+            if (evs[i].getModify() > 0) {
+                out.writeInt(evs[i].getId());
+            }
         }
-      }
-      out.flush();
+        out.flush();
 
-      // err should always be = Constants.ok
-      // skip reading error
-      in.skipBytes(4);
+        // err should always be = Constants.ok
+        // skip reading error
+        in.skipBytes(4);
 
-      return;
+        return;
     }
 
 
-  /**
-   * Gets "integer" format ET system data over the network.
-   *
-   * @param cmd coded command to send to the TCP server thread.
-   * @return integer value
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  synchronized private int getIntValue(int cmd) throws IOException {
-    out.writeInt(cmd);
-    out.flush();
-    // err should always be = Constants.ok
-    // skip reading error
-    in.skipBytes(4);
-    // return val (next readInt)
-    return in.readInt();
-  }
+    //****************************************
+    //                Getters                *
+    //****************************************
 
-
-  /**
-   * Gets the group number of new events obtained from ET system.
-   * If the group number is zero, group number is ignored when getting
-   * new events from the ET system.
-   *
-   * @return group number of new events
-   */
-  public int getGroup() {
-    return group;
-  }
-
-
-  /**
-   * Sets the group number of new events obtained from ET system.
-   * If the group number is set to zero, group number is ignored when getting
-   * new events from the ET system.
-   *
-   * @param val group number of new events obtained
-   * @exception EtException
-   *     if argument is improper value
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public void setGroup(int val) throws IOException, EtException {
-
-    if (val < 0)    {
-      throw new EtException("group argument negative");
-    }
-    else if (val > 0) {
-      int groupMax = getIntValue(Constants.netSysGrp);
-
-      if (val > groupMax) {
-        throw new EtException("group argument too large");
-      }
+    /**
+     * Gets "integer" format ET system data over the network.
+     *
+     * @param cmd coded command to send to the TCP server thread.
+     * @return integer value
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    synchronized private int getIntValue(int cmd) throws IOException {
+        out.writeInt(cmd);
+        out.flush();
+        // err should always be = Constants.ok
+        // skip reading error
+        in.skipBytes(4);
+        // return val (next readInt)
+        return in.readInt();
     }
 
-    group = val;
-  }
 
-
-  /**
-   * Gets the number of stations in the ET system.
-   *
-   * @return number of stations in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getNumStations() throws IOException {
-    return getIntValue(Constants.netSysStat);
-  }
-
-
-  /**
-   * Gets the maximum number of stations allowed in the ET system.
-   *
-   * @return maximum number of stations allowed in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getStationsMax() throws IOException {
-    return getIntValue(Constants.netSysStatMax);
-  }
-
-
-  /**
-   * Gets the number of attachments in the ET system.
-   *
-   * @return number of attachments in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getNumAttachments() throws IOException {
-    return getIntValue(Constants.netSysAtt);
-  }
-
-
-  /**
-   * Gets the maximum number of attachments allowed in the ET system.
-   *
-   * @return maximum number of attachments allowed in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getAttachmentsMax() throws IOException {
-    return getIntValue(Constants.netSysAttMax);
-  }
-
-  /**
-   * Gets the number of local processes in the ET system.
-   * This is only relevant in C-language, Solaris systems.
-   *
-   * @return number of processes in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getNumProcesses() throws IOException {
-    return getIntValue(Constants.netSysProc);
-  }
-
-
-  /**
-   * Gets the maximum number of local processes allowed in the ET system.
-   * This is only relevant in C-language, Solaris systems.
-   *
-   * @return maximum number of processes allowed in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getProcessesMax() throws IOException {
-    return getIntValue(Constants.netSysProcMax);
-  }
-
-
-  /**
-   * Gets the number of temp events in the ET system.
-   * This is only relevant in C-language systems.
-   *
-   * @return number of temp events in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getNumTemps() throws IOException {
-    return getIntValue(Constants.netSysTmp);
-  }
-
-
-  /**
-   * Gets the maximum number of temp events allowed in the ET system.
-   * This is only relevant in C-language systems.
-   *
-   * @return maximum number of temp events in the ET system
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getTempsMax() throws IOException {
-    return getIntValue(Constants.netSysTmpMax);
-  }
-
-
-  /**
-   * Gets the ET system heartbeat. This is only relevant in
-   * C-language systems.
-   *
-   * @return ET system heartbeat
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getHeartbeat() throws IOException {
-    return getIntValue(Constants.netSysHBeat);
-  }
-
-
-  /**
-   * Gets the UNIX pid of the ET system process.
-   * This is only relevant in C-language systems.
-   *
-   * @return UNIX pid of the ET system process
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  public int getPid() throws IOException {
-    return getIntValue(Constants.netSysPid);
-  }
-
-
-  /** Gets the number of events in the ET system.
-   *  @return number of events in the ET system */
-  public int  getNumEvents() {return sys.getNumEvents();}
-  /** Gets the "normal" event size in bytes.
-   *  @return normal event size in bytes */
-  public long  getEventSize() {return sys.getEventSize();}
-  /** Gets the ET system's implementation language.
-   *  @return ET system's implementation language */
-  public int  getLanguage()   {return sys.getLanguage();}
-  /** Gets the ET system's host name.
-   *  @return ET system's host name */
-  public String  getHost()   {return sys.getHost();}
-  /** Gets the tcp server port number.
-   *  @return tcp server port number */
-  public int  getTcpPort()   {return sys.getTcpPort();}
-  /** Gets the debug output level.
-   *  @return debug output level */
-  public int  getDebug()     {return debug;}
-  /** Sets the debug output level. Must be either {@link Constants#debugNone},
-   *  {@link Constants#debugSevere}, {@link Constants#debugError},
-   *  {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
-   *  @param val debug level
-   *  @exception EtException
-   *     if bad argument value
-   */
-  public void setDebug(int val) throws EtException {
-    if ((val != Constants.debugNone)   &&
-        (val != Constants.debugSevere) &&
-        (val != Constants.debugError)  &&
-        (val != Constants.debugWarn)   &&
-        (val != Constants.debugInfo))    {
-      throw new EtException("bad debug argument");
+    /**
+     * Gets the number of stations in the ET system.
+     *
+     * @return number of stations in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getNumStations() throws IOException {
+        return getIntValue(Constants.netSysStat);
     }
-    debug = val;
-  }
-  /** Gets a copy of the configuration used to specify how to open the ET
-   *  system.
-   *  @return SystemOpenConfig object used to specify how to open the ET
-   *  system.
-   */
-  public SystemOpenConfig  getConfig() {return new SystemOpenConfig(openConfig);}
 
 
-
-  /**
-   * Gets all information about the ET system.
-   *
-   * @return object containing ET system information
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  synchronized public AllData getData() throws EtException, IOException {
-
-    AllData data = new AllData();
-    out.writeInt(Constants.netSysData);
-    out.flush();
-
-    // receive error
-    int error = in.readInt();
-    if (error != Constants.ok) {
-      throw new EtException("error getting ET system data");
+    /**
+     * Gets the maximum number of stations allowed in the ET system.
+     *
+     * @return maximum number of stations allowed in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getStationsMax() throws IOException {
+        return getIntValue(Constants.netSysStatMax);
     }
-    
-    // receive incoming data
 
-    // skip reading total size
-    in.skipBytes(4);
 
-    // read everything at once (4X faster that way),
-    // put it into a byte array, and read from that
-    // byte[] bytes = new byte[dataSize];
-    // ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-    // DataInputStream dis2 = new DataInputStream(bis);
-    // in.readFully(bytes);
+    /**
+     * Gets the number of attachments in the ET system.
+     *
+     * @return number of attachments in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getNumAttachments() throws IOException {
+        return getIntValue(Constants.netSysAtt);
+    }
 
-    // system data
-    // data.sysData.read(dis2);
-    data.sysData.read(in);
+
+    /**
+     * Gets the maximum number of attachments allowed in the ET system.
+     *
+     * @return maximum number of attachments allowed in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getAttachmentsMax() throws IOException {
+        return getIntValue(Constants.netSysAttMax);
+    }
+
+
+    /**
+     * Gets the number of local processes in the ET system.
+     * This is only relevant in C-language, Solaris systems.
+     *
+     * @return number of processes in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getNumProcesses() throws IOException {
+        return getIntValue(Constants.netSysProc);
+    }
+
+
+    /**
+     * Gets the maximum number of local processes allowed in the ET system.
+     * This is only relevant in C-language, Solaris systems.
+     *
+     * @return maximum number of processes allowed in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getProcessesMax() throws IOException {
+        return getIntValue(Constants.netSysProcMax);
+    }
+
+
+    /**
+     * Gets the number of temp events in the ET system.
+     * This is only relevant in C-language systems.
+     *
+     * @return number of temp events in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getNumTemps() throws IOException {
+        return getIntValue(Constants.netSysTmp);
+    }
+
+
+    /**
+     * Gets the maximum number of temp events allowed in the ET system.
+     * This is only relevant in C-language systems.
+     *
+     * @return maximum number of temp events in the ET system
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getTempsMax() throws IOException {
+        return getIntValue(Constants.netSysTmpMax);
+    }
+
+
+    /**
+     * Gets the ET system heartbeat. This is only relevant in
+     * C-language systems.
+     *
+     * @return ET system heartbeat
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getHeartbeat() throws IOException {
+        return getIntValue(Constants.netSysHBeat);
+    }
+
+
+    /**
+     * Gets the UNIX pid of the ET system process.
+     * This is only relevant in C-language systems.
+     *
+     * @return UNIX pid of the ET system process
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    public int getPid() throws IOException {
+        return getIntValue(Constants.netSysPid);
+    }
+
+
+    /**
+     * Gets the number of events in the ET system.
+     * @return number of events in the ET system
+     */
+    public int getNumEvents() {
+        return sys.getNumEvents();
+    }
+
+
+    /**
+     * Gets the "normal" event size in bytes.
+     * @return normal event size in bytes
+     */
+    public long getEventSize() {
+        return sys.getEventSize();
+    }
+
+
+    /**
+     * Gets the ET system's implementation language.
+     * @return ET system's implementation language
+     */
+    public int getLanguage() {
+        return sys.getLanguage();
+    }
+
+
+    /**
+     * Gets the ET system's host name.
+     * @return ET system's host name
+     */
+    public String getHost() {
+        return sys.getHost();
+    }
+
+
+    /**
+     * Gets the tcp server port number.
+     * @return tcp server port number
+     */
+    public int getTcpPort() {
+        return sys.getTcpPort();
+    }
+
+
+    /**
+     * Gets the debug output level.
+     * @return debug output level
+     */
+    public int getDebug() {
+        return debug;
+    }
+
+
+    /**
+     * Sets the debug output level. Must be either {@link Constants#debugNone},
+     * {@link Constants#debugSevere}, {@link Constants#debugError},
+     * {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
+     *
+     * @param val debug level
+     * @throws EtException if bad argument value
+     */
+    public void setDebug(int val) throws EtException {
+        if ((val != Constants.debugNone) &&
+                (val != Constants.debugSevere) &&
+                (val != Constants.debugError) &&
+                (val != Constants.debugWarn) &&
+                (val != Constants.debugInfo)) {
+            throw new EtException("bad debug argument");
+        }
+        debug = val;
+    }
+
+
+    /**
+     * Gets a copy of the configuration used to specify how to open the ET
+     * system.
+     *
+     * @return SystemOpenConfig object used to specify how to open the ET
+     *         system.
+     */
+    public SystemOpenConfig getConfig() {
+        return new SystemOpenConfig(openConfig);
+    }
+
+
+    /**
+     * Gets all information about the ET system.
+     *
+     * @return object containing ET system information
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    synchronized public AllData getData() throws EtException, IOException {
+
+        AllData data = new AllData();
+        out.writeInt(Constants.netSysData);
+        out.flush();
+
+        // receive error
+        int error = in.readInt();
+        if (error != Constants.ok) {
+            throw new EtException("error getting ET system data");
+        }
+
+        // receive incoming data
+
+        // skip reading total size
+        in.skipBytes(4);
+
+        // read everything at once (4X faster that way),
+        // put it into a byte array, and read from that
+        // byte[] bytes = new byte[dataSize];
+        // ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        // DataInputStream dis2 = new DataInputStream(bis);
+        // in.readFully(bytes);
+
+        // system data
+        // data.sysData.read(dis2);
+        data.sysData.read(in);
 //System.out.println("getData:  read in system data");
 
-    // station data
-    int count = in.readInt();
+        // station data
+        int count = in.readInt();
 //System.out.println("getData:  # of stations = " + count);
-    data.statData = new StationData[count];
-    for (int i=0; i < count; i++) {
-      data.statData[i] = new StationData();
-      data.statData[i].read(in);
-    }
+        data.statData = new StationData[count];
+        for (int i=0; i < count; i++) {
+            data.statData[i] = new StationData();
+            data.statData[i].read(in);
+        }
 //System.out.println("getData:  read in station data");
 
-    // attachment data
-    count = in.readInt();
+        // attachment data
+        count = in.readInt();
 //System.out.println("getData:  # of attachments = " + count);
-    data.attData = new AttachmentData[count];
-    for (int i=0; i < count; i++) {
-      data.attData[i] = new AttachmentData();
-      data.attData[i].read(in);
-    }
+        data.attData = new AttachmentData[count];
+        for (int i=0; i < count; i++) {
+            data.attData[i] = new AttachmentData();
+            data.attData[i].read(in);
+        }
 //System.out.println("getData:  read in attachment data");
 
-    // process data
-    count = in.readInt();
+        // process data
+        count = in.readInt();
 //System.out.println("getData:  # of processes = " + count);
-    data.procData = new ProcessData[count];
-    for (int i=0; i < count; i++) {
-      data.procData[i] = new ProcessData();
-      data.procData[i].read(in);
-    }
+        data.procData = new ProcessData[count];
+        for (int i=0; i < count; i++) {
+            data.procData[i] = new ProcessData();
+            data.procData[i].read(in);
+        }
 //System.out.println("getData:  read in process data");
 
-    return data;
-  }
-
-
-  /**
-   * Gets histogram containing data showing how many events in GRAND_CENTRAL's
-   * input list when new events are requested by users. This feature is not
-   * available on Java ET systems.
-   *
-   * @return integer array containing histogram
-   * @exception java.io.IOException
-   *     if there are problems with network communication
-   */
-  synchronized public int[] getHistogram() throws IOException, EtException {
-    byte[] data = new byte[4*(sys.getNumEvents()+1)];
-    int[]  hist = new int[sys.getNumEvents()+1];
-
-    out.writeInt(Constants.netSysHist);
-    out.flush();
-
-    // receive error code
-    if (in.readInt() != Constants.ok) {
-      throw new EtException("cannot get histogram");
+        return data;
     }
 
-    in.readFully(data);
-    for (int i=0; i < sys.getNumEvents()+1; i++) {
-      hist[i] = Utils.bytesToInt(data, i*4);
+
+    /**
+     * Gets histogram containing data showing how many events in GRAND_CENTRAL's
+     * input list when new events are requested by users. This feature is not
+     * available on Java ET systems.
+     *
+     * @return integer array containing histogram
+     * @exception java.io.IOException
+     *     if there are problems with network communication
+     */
+    synchronized public int[] getHistogram() throws IOException, EtException {
+        byte[] data = new byte[4*(sys.getNumEvents()+1)];
+        int[]  hist = new int[sys.getNumEvents()+1];
+
+        out.writeInt(Constants.netSysHist);
+        out.flush();
+
+        // receive error code
+        if (in.readInt() != Constants.ok) {
+            throw new EtException("cannot get histogram");
+        }
+
+        in.readFully(data);
+        for (int i=0; i < sys.getNumEvents()+1; i++) {
+            hist[i] = Utils.bytesToInt(data, i*4);
+        }
+        return hist;
     }
-    return hist;
-  }
 }
 
