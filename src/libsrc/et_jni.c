@@ -127,8 +127,26 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
     /* reading array of up to "count" events */
     status = et_events_get((et_sys_id)etId, (et_att_id)attId, pe, mode, &deltaTime, count, &numread);
     if (status != ET_OK) {
-        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
-        (*env)->ThrowNew(env, clazz, "getEvents: cannot get events in native code");
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else if (status == ET_ERROR_WAKEUP) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
+        }
+        else if (status == ET_ERROR_TIMEOUT) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+        }
+        else if (status == ET_ERROR_BUSY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
+        }
+        else if (status == ET_ERROR_EMPTY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        
+        (*env)->ThrowNew(env, clazz, "getEvents (native): cannot get events");
         return;
     }
 
@@ -221,8 +239,14 @@ if (debug) printf("putEvents (native) : put 'em back\n");
     /* put back array of events (pointers) */
     status = et_events_put((et_sys_id)etId, (et_att_id)attId, pe, length);
     if (status != ET_OK) {
-        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
-        (*env)->ThrowNew(env, clazz, "putEvents: cannot put events in native code");
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        
+        (*env)->ThrowNew(env, clazz, "putEvents (native): cannot put events");
         return;
     }
 
@@ -315,7 +339,7 @@ if (debug) printf("newEvents (native) : will attempt to get new events\n");
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         }
         
-        (*env)->ThrowNew(env, clazz, "getEvents: cannot get events in native code");
+        (*env)->ThrowNew(env, clazz, "newEvents (native): cannot get new events");
         return;
     }
 
