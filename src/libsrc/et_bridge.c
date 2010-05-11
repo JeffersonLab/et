@@ -31,19 +31,19 @@
 
 
 static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridge_config *config,
-		     int num, int *ntransferred);
+		                     et_att_id att_from, et_att_id att_to,
+                             et_bridge_config *config,
+                             int num, int *ntransferred);
 
 static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridge_config *config,
-		     int num, int *ntransferred);
+                         et_att_id att_from, et_att_id att_to,
+                         et_bridge_config *config,
+                         int num, int *ntransferred);
 
 static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridge_config *config,
-		     int num, int *ntransferred);
+                         et_att_id att_from, et_att_id att_to,
+                         et_bridge_config *config,
+                         int num, int *ntransferred);
 
 /*****************************************************/
 /*               BRIDGE CONFIGURATION                */
@@ -51,27 +51,27 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
 
 int et_bridge_config_init(et_bridgeconfig *config)
 {
-  et_bridge_config *bc;
+    et_bridge_config *bc;
   
-  bc = (et_bridge_config *) malloc(sizeof(et_bridge_config));
-  if (bc == NULL) {
-    return ET_ERROR;
-  }
+    bc = (et_bridge_config *) malloc(sizeof(et_bridge_config));
+    if (bc == NULL) {
+        return ET_ERROR;
+    }
   
-  /* default configuration for a station */
-  bc->mode_from            = ET_SLEEP;
-  bc->mode_to              = ET_SLEEP;
-  bc->chunk_from           = 100;
-  bc->chunk_to             = 100;
-  bc->timeout_from.tv_sec  = 0;
-  bc->timeout_from.tv_nsec = 0;
-  bc->timeout_to.tv_sec    = 0;
-  bc->timeout_to.tv_nsec   = 0;
-  bc->func                 = NULL;
-  bc->init                 = ET_STRUCT_OK;
+    /* default configuration for a station */
+    bc->mode_from            = ET_SLEEP;
+    bc->mode_to              = ET_SLEEP;
+    bc->chunk_from           = 100;
+    bc->chunk_to             = 100;
+    bc->timeout_from.tv_sec  = 0;
+    bc->timeout_from.tv_nsec = 0;
+    bc->timeout_to.tv_sec    = 0;
+    bc->timeout_to.tv_nsec   = 0;
+    bc->func                 = NULL;
+    bc->init                 = ET_STRUCT_OK;
   
-  *config = (et_bridgeconfig) bc;
-  return ET_OK;
+    *config = (et_bridgeconfig) bc;
+    return ET_OK;
 }
 
 /*****************************************************/
@@ -304,12 +304,12 @@ int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
   /* if we have a local ET to local ET transfer ... */
   if ((idfrom->locality != ET_REMOTE) && (idto->locality != ET_REMOTE)) {
     status = localET_2_localET(id_from, id_to, att_from, att_to,
-    				config, num, ntransferred);
+    				           config, num, ntransferred);
   }
   /* else if getting events from remote ET and sending to local ET ... */
   else if ((idfrom->locality == ET_REMOTE) && (idto->locality != ET_REMOTE)) {
     status = remoteET_2_ET(id_from, id_to, att_from, att_to,
-    				config, num, ntransferred);
+    				       config, num, ntransferred);
   }
   /* else if getting events from local ET and sending to remote ET or
    * else going from remote to remote systems.
@@ -319,7 +319,7 @@ int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
    */
   else {
     status = ET_2_remoteET(id_from, id_to, att_from, att_to,
-    				config, num, ntransferred);
+    				       config, num, ntransferred);
   }
   
   if (auto_config) {
@@ -331,9 +331,9 @@ int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
 
 /******************************************************/
 static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridge_config *config,
-		     int num, int *ntransferred)
+		                     et_att_id att_from, et_att_id att_to,
+		                     et_bridge_config *config,
+		                     int num, int *ntransferred)
 {
   et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
   et_event **get, **put, **dump;
@@ -380,11 +380,11 @@ static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
     /* first, get events from the "from" ET system */
     num_2get = (num - total_read < config->chunk_from) ? (num - total_read) : config->chunk_from;
     status = et_events_get(id_from, att_from, get, config->mode_from,
-			&config->timeout_from, num_2get, &num_read);
+			               &config->timeout_from, num_2get, &num_read);
     if (status != ET_OK) {
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting events from \"from\" ET system\n",
-			status);
+	    et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting events from \"from\" ET system\n",
+			      status);
       }
       goto end;
     }
@@ -409,123 +409,123 @@ static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
       /* get new events from the "to" ET system */
       num_2get = (num_read - total_new < config->chunk_to) ? (num_read - total_new) : config->chunk_to;
       status = et_events_new(id_to, att_to, put, config->mode_to, &config->timeout_to,
-				 idfrom->esize, num_2get, &num_new);
+                             idfrom->esize, num_2get, &num_new);
       if (status != ET_OK) {
-	if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	  et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting new events from \"to\" ET system\n",
-			  status);
-	}
-	/* put back those read in last et_events_get call */
+        if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+          et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting new events from \"to\" ET system\n",
+                    status);
+        }
+      
+        /* put back those read in last et_events_get call */
         et_events_put(id_from, att_from, get, num_read);
-	goto end;
+        goto end;
       }
       
       total_new += num_new;
       num_dump = 0;
       
       for (i=0; i < num_new; i++) {
-	/* If data is larger than new event's memory size,
-	 * make a larger temp event and use it instead.
-	 * Dump the original new event that was too small.
-	 */
-	j = i + num_new_prev;
-	if (get[j]->length > put[i]->memsize) {
+        /* If data is larger than new event's memory size,
+         * make a larger temp event and use it instead.
+         * Dump the original new event that was too small.
+         */
+        j = i + num_new_prev;
+        if (get[j]->length > put[i]->memsize) {
           dump[num_dump++] = put[i];
-	  status = et_event_new(id_to, att_to, &put[i], config->mode_to,
-				&config->timeout_to, get[j]->length);
-	  if (status != ET_OK) {
-	    if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	      et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting a large event from \"to\" ET system\n",
-			      status);
-	    }
-	    /* put back those read in last et_events_get call */
+          status = et_event_new(id_to, att_to, &put[i], config->mode_to,
+                                &config->timeout_to, get[j]->length);
+          if (status != ET_OK) {
+            if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+              et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting a large event from \"to\" ET system\n",
+                        status);
+            }
+            /* put back those read in last et_events_get call */
             et_events_put(id_from, att_from, get, num_read);
             /* put new events into the "to" ET system */
-	    if (et_events_put(id_to, att_to, put, i) == ET_OK) {
-	      /* we succeeded in transferring some events, record this */
-	      total_put += i;
-	    }
+            if (et_events_put(id_to, att_to, put, i) == ET_OK) {
+              /* we succeeded in transferring some events, record this */
+              total_put += i;
+            }
             /* dump the rest of the new events read in last et_events_new */
             et_events_dump(id_to, att_to, &put[i], num_new-i);
             /* dump other unwanted new events into the "to" ET system */
             et_events_dump(id_to, att_to, dump, --num_dump);
-	    
-	    goto end;
-	  }
-	}
-	
-	/* copy relevant event data */
-	put[i]->length    = get[j]->length;
-	put[i]->priority  = get[j]->priority;
-	put[i]->byteorder = get[j]->byteorder;
-	for (k=0; k < idto->nselects; k++) {
-	  put[i]->control[k] = get[j]->control[k];
-	}
-	
-	/* if not swapping data, just copy it */
-	if (!swap) {
-	  memcpy(put[i]->pdata, get[j]->pdata, get[j]->length);
-	}
-	/* swap the data only if necessary */
-	else {
-	  /* if event's byteorder is different than "to" system's, swap */
-	  if (put[i]->byteorder != byteordershouldbe) {
-	    /* event's data was written on same endian machine as this host? */
-	    same_endian = (put[i]->byteorder == 0x04030201) ? 1 : 0;
+        
+            goto end;
+          }
+        }
+    
+        /* copy relevant event data */
+        put[i]->length    = get[j]->length;
+        put[i]->priority  = get[j]->priority;
+        put[i]->byteorder = get[j]->byteorder;
+        for (k=0; k < idto->nselects; k++) {
+          put[i]->control[k] = get[j]->control[k];
+        }
+    
+        /* if not swapping data, just copy it */
+        if (!swap) {
+          memcpy(put[i]->pdata, get[j]->pdata, get[j]->length);
+        }
+        /* swap the data only if necessary */
+        else {
+          /* if event's byteorder is different than "to" system's, swap */
+          if (put[i]->byteorder != byteordershouldbe) {
+            /* event's data was written on same endian machine as this host? */
+            same_endian = (put[i]->byteorder == 0x04030201) ? 1 : 0;
 
-	    if ((*config->func) (get[j], put[i], get[j]->length, same_endian) != ET_OK) {
-	      /* put back those read in last et_events_get call */
+            if ((*config->func) (get[j], put[i], get[j]->length, same_endian) != ET_OK) {
+              /* put back those read in last et_events_get call */
               et_events_put(id_from, att_from, get, num_read);
               /* put new events into the "to" ET system */
-	      if (et_events_put(id_to, att_to, put, i) == ET_OK) {
-		/* we succeeded in transferring some events, record this */
-		total_put += i;
-	      }
+              if (et_events_put(id_to, att_to, put, i) == ET_OK) {
+               /* we succeeded in transferring some events, record this */
+                total_put += i;
+              }
               /* dump the rest of the new events read in last et_events_new */
               et_events_dump(id_to, att_to, &put[i], num_new-i);
               /* dump other unwanted new events into the "to" ET system */
               et_events_dump(id_to, att_to, dump, num_dump);
-	      goto end;
-	    }
-	    
-	    put[i]->byteorder = ET_SWAP32(put[i]->byteorder);
-	  }
-          else {
-	    memcpy(put[i]->pdata, get[j]->pdata, get[j]->length);
+              goto end;
+            }
+        
+            put[i]->byteorder = ET_SWAP32(put[i]->byteorder);
           }
-	}
-
+          else {
+            memcpy(put[i]->pdata, get[j]->pdata, get[j]->length);
+          }
+        }
       }
       
       if (num_new) {
         /* put new events into the "to" ET system */
         status = et_events_put(id_to, att_to, put, num_new);
-	if (status != ET_OK) {
-	  if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting new events to \"to\" ET system\n",
-			    status);
-	  }
+        if (status != ET_OK) {
+          if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+            et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting new events to \"to\" ET system\n",
+                      status);
+          }
           /* dump unused events into the "to" ET system */
           et_events_dump(id_to, att_to, dump, num_dump);
-	  /* put back those read in last et_events_get call */
+          /* put back those read in last et_events_get call */
           et_events_put(id_from, att_from, get, num_read);
-	  goto end;
-	}
-	total_put += num_new;
+          goto end;
+        }
+        total_put += num_new;
       }
       
       if (num_dump) {
         /* dump unused events into the "to" ET system */
         status = et_events_dump(id_to, att_to, dump, num_dump);
-	if (status != ET_OK) {
-	  if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, error (status = %d) dumping unused events in \"to\" ET system\n",
-			    status);
-	  }
-	  /* put back those read in last et_events_get call */
+        if (status != ET_OK) {
+          if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+            et_logmsg("ERROR", "et_events_bridge, error (status = %d) dumping unused events in \"to\" ET system\n",
+                      status);
+          }
+          /* put back those read in last et_events_get call */
           et_events_put(id_from, att_from, get, num_read);
-	  goto end;
-	}
+          goto end;
+        }
       }
       
       num_new_prev = num_new;
@@ -535,8 +535,8 @@ static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
     status = et_events_put(id_from, att_from, get, num_read);
     if (status != ET_OK) {
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting events into \"from\" ET system\n",
-			status);
+        et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting events into \"from\" ET system\n",
+                  status);
       }
       goto end;
     }
@@ -551,9 +551,9 @@ end:
 
 /******************************************************/
 static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridge_config *config,
-		     int num, int *ntransferred)
+                         et_att_id att_from, et_att_id att_to,
+                         et_bridge_config *config,
+                         int num, int *ntransferred)
 {
   et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
   et_event **put, **dump;
@@ -615,7 +615,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
     if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
       et_tcp_unlock(idfrom);
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, write error\n");
+        et_logmsg("ERROR", "et_events_bridge, write error\n");
       }
       free(dump); free(put);
       return ET_ERROR_WRITE;
@@ -624,7 +624,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
     if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
       et_tcp_unlock(idfrom);
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, read error\n");
+        et_logmsg("ERROR", "et_events_bridge, read error\n");
       }
       free(dump); free(put);
       return ET_ERROR_READ;
@@ -641,7 +641,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
     if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
       et_tcp_unlock(idfrom);
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, read error\n");
+        et_logmsg("ERROR", "et_events_bridge, read error\n");
       }
       free(dump); free(put);
       return ET_ERROR_READ;
@@ -658,111 +658,111 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
     while (total_new < num_read) {
       num_2get = (num_read - total_new < config->chunk_to) ? (num_read - total_new) : config->chunk_to;
       status = et_events_new(id_to, att_to, put, config->mode_to, &config->timeout_to,
-			idfrom->esize, num_2get, &num_new);      
+                             idfrom->esize, num_2get, &num_new);
       if (status != ET_OK) {
-	if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	  et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting new events from \"to\" ET system\n",
-			  status);
-	  et_logmsg("ERROR", "et_events_bridge, connection to \"from\" ET system will be broken, close & reopen system\n");
-	}
-	goto end;
+        if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+          et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting new events from \"to\" ET system\n",
+                    status);
+          et_logmsg("ERROR", "et_events_bridge, connection to \"from\" ET system will be broken, close & reopen system\n");
+        }
+        goto end;
       }
 
       total_new += num_new;
       num_dump = 0;
       
       for (i=0; i < num_new; i++) {
-	/* Read in the event's header info */
-	if (et_tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header)) {
+        /* Read in the event's header info */
+        if (et_tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header)) {
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, reading event header error\n");
-	  }
-	  write_events = 1;
-	  status = ET_ERROR_READ;
-	  goto end;
-	}
-	
-	/* data length in bytes */
+          }
+          write_events = 1;
+          status = ET_ERROR_READ;
+          goto end;
+        }
+    
+        /* data length in bytes */
         len = ET_64BIT_UINT(ntohl(header[0]),ntohl(header[1]));
-	
-	/* If data is larger than new event's memory size ... */
-	if (len > put[i]->memsize) {
+    
+        /* If data is larger than new event's memory size ... */
+        if (len > put[i]->memsize) {
           dump[num_dump++] = put[i];
-	  status = et_event_new(id_to, att_to, &put[i], config->mode_to,
-				&config->timeout_to, len);
-	  if (status != ET_OK) {
-	    if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	      et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting a large event from \"to\" ET system\n",
-			      status);
-	      et_logmsg("ERROR", "et_events_bridge, connection to \"from\" ET system will be broken, close & reopen system\n");
-	    }
-	    write_events = 1;
-	    num_dump--;
-	    goto end;
-	  }
-	}
-	
-	/* copy/read relevant event data */
-	put[i]->length     = len;
+          status = et_event_new(id_to, att_to, &put[i], config->mode_to,
+                                &config->timeout_to, len);
+          if (status != ET_OK) {
+            if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+              et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting a large event from \"to\" ET system\n",
+                        status);
+              et_logmsg("ERROR", "et_events_bridge, connection to \"from\" ET system will be broken, close & reopen system\n");
+            }
+            write_events = 1;
+            num_dump--;
+            goto end;
+          }
+        }
+    
+        /* copy/read relevant event data */
+        put[i]->length     = len;
         put[i]->priority   = ntohl(header[4]) & ET_PRIORITY_MASK;
         put[i]->datastatus =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
-	put[i]->byteorder  = header[7];
-	for (k=0; k < idto->nselects; k++) {
-	  put[i]->control[k] = ntohl(header[k+9]);
-	}
-	
-	if (et_tcp_read(sockfd, put[i]->pdata, len) != len) {
+        put[i]->byteorder  = header[7];
+        for (k=0; k < idto->nselects; k++) {
+          put[i]->control[k] = ntohl(header[k+9]);
+        }
+    
+        if (et_tcp_read(sockfd, put[i]->pdata, len) != len) {
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, reading event data error\n");
-	  }
-	  write_events = 1;
-	  status = ET_ERROR_READ;
-	  goto end;
-	}
-	
-	/* swap the data if desired & necessary */
-	if (swap) {
-	  /* if event's byteorder is different than "to" system's, swap */
-	  if (put[i]->byteorder != byteordershouldbe) {
-	    /* event's data was written on same endian machine as this host */
-	    same_endian = (put[i]->byteorder == 0x04030201) ? 1 : 0;
+          }
+          write_events = 1;
+          status = ET_ERROR_READ;
+          goto end;
+        }
+    
+        /* swap the data if desired & necessary */
+        if (swap) {
+          /* if event's byteorder is different than "to" system's, swap */
+          if (put[i]->byteorder != byteordershouldbe) {
+            /* event's data was written on same endian machine as this host */
+            same_endian = (put[i]->byteorder == 0x04030201) ? 1 : 0;
 
-	    if ((*config->func) (put[i], put[i], put[i]->length, same_endian) != ET_OK) {
-	      write_events = 1;
-	      status = ET_ERROR;
-	      goto end;
-	    }
-	    put[i]->byteorder = ET_SWAP32(put[i]->byteorder);
-	  }
-	}
-	
+            if ((*config->func) (put[i], put[i], put[i]->length, same_endian) != ET_OK) {
+              write_events = 1;
+              status = ET_ERROR;
+              goto end;
+            }
+            put[i]->byteorder = ET_SWAP32(put[i]->byteorder);
+          }
+        }
       }
             
       if (num_new) {
         /* put new events into the "to" ET system */
         status = et_events_put(id_to, att_to, put, num_new);
-	if (status != ET_OK) {
-	  if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting new events to \"to\" ET system\n",
-			    status);
+        if (status != ET_OK) {
+          if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+            et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting new events to \"to\" ET system\n",
+                      status);
             et_logmsg("ERROR", "et_events_bridge, connection to \"from\" ET system may be broken, close & reopen system\n");
-	  }
+          }
           et_events_dump(id_to, att_to, dump, num_dump);
-	  goto end;
-	}
-	total_put += num_new;
+          goto end;
+        }
+        total_put += num_new;
       }
+      
       if (num_dump) {
         /* dump unused events into the "to" ET system */
         status = et_events_dump(id_to, att_to, dump, num_dump);
-	if (status != ET_OK) {
-	  if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, error (status = %d) dumping unused events in \"to\" ET system\n",
-			    status);
+        if (status != ET_OK) {
+          if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+            et_logmsg("ERROR", "et_events_bridge, error (status = %d) dumping unused events in \"to\" ET system\n",
+                      status);
             et_logmsg("ERROR", "et_events_bridge, connection to \"from\" ET system may be broken, close & reopen system\n");
-	  }
-	  goto end;
-	}
+          }
+          goto end;
+        }
       }
       
       num_new_prev = num_new;
@@ -795,9 +795,9 @@ end:
 
 /******************************************************/
 static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
-		     et_att_id att_from, et_att_id att_to,
-		     et_bridge_config *config,
-		     int num, int *ntransferred)
+                         et_att_id att_from, et_att_id att_to,
+                         et_bridge_config *config,
+                         int num, int *ntransferred)
 {
   et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
   et_event **get=NULL, **put=NULL, **dump=NULL;
@@ -880,11 +880,11 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
     /* first, get events from the "from" ET system */
     num_2get = (num - total_read < config->chunk_from) ? (num - total_read) : config->chunk_from;
     status = et_events_get(id_from, att_from, get, config->mode_from,
-			&config->timeout_from, num_2get, &num_read);
+                           &config->timeout_from, num_2get, &num_read);
     if (status != ET_OK) {
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting events from \"from\" ET system\n",
-			status);
+        et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting events from \"from\" ET system\n",
+                  status);
       }
       goto end;
     }
@@ -900,15 +900,15 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
       /* get new events from the "to" ET system (remote) */
       num_2get = (num_read - total_new < config->chunk_to) ? (num_read - total_new) : config->chunk_to;
       status = et_events_new(id_to, att_to, put, config->mode_to, &config->timeout_to,
-			idfrom->esize, num_2get, &num_new);
+                             idfrom->esize, num_2get, &num_new);
       if (status != ET_OK) {
-	if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	  et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting new events from \"to\" ET system\n",
-			  status);
-	}
-	/* put back those read in last et_events_get call */
+        if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+          et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting new events from \"to\" ET system\n",
+                    status);
+        }
+        /* put back those read in last et_events_get call */
         et_events_put(id_from, att_from, get, num_read);
-	goto end;
+        goto end;
       }
       
       total_new += num_new;
@@ -918,159 +918,158 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
       bytes = 0ULL;
       
       for (i=0; i < num_new; i++) {
-	/* If data is larger than new event's memory size,
-	 * make a larger temp event and use it instead.
-	 * Dump the original new event that was too small.
-	 */
-	j = i + num_new_prev;
-	if (get[j]->length > put[i]->memsize) {
+        /* If data is larger than new event's memory size,
+         * make a larger temp event and use it instead.
+         * Dump the original new event that was too small.
+         */
+        j = i + num_new_prev;
+        if (get[j]->length > put[i]->memsize) {
           dump[num_dump++] = put[i];
-	  status = et_event_new(id_to, att_to, &put[i], config->mode_to,
-				&config->timeout_to, get[j]->length);
-	  if (status != ET_OK) {
-	    if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	      et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting a large event from \"to\" ET system\n",
-			      status);
-	    }
-	    /* put back those read in last et_events_get call */
+          status = et_event_new(id_to, att_to, &put[i], config->mode_to,
+                                &config->timeout_to, get[j]->length);
+          if (status != ET_OK) {
+            if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+              et_logmsg("ERROR", "et_events_bridge, error (status = %d) getting a large event from \"to\" ET system\n",
+                        status);
+            }
+            /* put back those read in last et_events_get call */
             et_events_put(id_from, att_from, get, num_read);
             /* dump the useful new events into the "to" ET system */
             et_events_dump(id_to, att_to, put, num_new);
             /* dump the unwanted new events into the "to" ET system */
             et_events_dump(id_to, att_to, dump, --num_dump);
 
-	    goto end;
-	  }
-	}
-	
-	/* here's where the data usually is */
-	databuf   = get[j]->pdata;
+            goto end;
+          }
+        }
+    
+        /* here's where the data usually is */
+        databuf   = get[j]->pdata;
         byteorder = get[j]->byteorder;
-	
-	/* Do NOT copy data into the locally allocated buffers
-	 * given by a remote et_events_new. Instead, when doing
-	 * the across-network put, make the pointers to the
-	 * the local event data buffers arguments to put's
-	 * "iov" buffers.
-	 */
-	 
-	/* swap the data if desired & necessary */
-	if (swap) {
-	  /* if event's byteorder is different than "to" system's, swap */
-	  if (get[j]->byteorder != byteordershouldbe) {
-	    /* event's data was written on same endian machine as this host */
-	    same_endian = (get[j]->byteorder == 0x04030201) ? 1 : 0;
-	    
-	    /* Use the buffers of the remote "new" events to put swapped
-	     * data in since we do not want to swap the data in the
-	     * get[j]->pdata buffer if it is part of the local ET system.
-	     * We would be changing the original data and not a copy.
-	     * The "new" event buffers are normally not used.
-	     */
-	    databuf = put[i]->pdata;
-	    
-	    if ((*config->func) (get[j], put[i], get[j]->length, same_endian) != ET_OK) {
-	      status = ET_ERROR;
-	      goto end;
-	    }
+    
+        /* Do NOT copy data into the locally allocated buffers
+         * given by a remote et_events_new. Instead, when doing
+         * the across-network put, make the pointers to the
+         * the local event data buffers arguments to put's
+         * "iov" buffers.
+         */
+     
+        /* swap the data if desired & necessary */
+        if (swap) {
+          /* if event's byteorder is different than "to" system's, swap */
+          if (get[j]->byteorder != byteordershouldbe) {
+            /* event's data was written on same endian machine as this host */
+            same_endian = (get[j]->byteorder == 0x04030201) ? 1 : 0;
+            
+            /* Use the buffers of the remote "new" events to put swapped
+             * data in since we do not want to swap the data in the
+             * get[j]->pdata buffer if it is part of the local ET system.
+             * We would be changing the original data and not a copy.
+             * The "new" event buffers are normally not used.
+             */
+            databuf = put[i]->pdata;
+            
+            if ((*config->func) (get[j], put[i], get[j]->length, same_endian) != ET_OK) {
+              status = ET_ERROR;
+              goto end;
+            }
             /* bug, we don't want to swap byte order of original event */
-	    /* get[j]->byteorder = ET_SWAP32(get[j]->byteorder); */
+            /* get[j]->byteorder = ET_SWAP32(get[j]->byteorder); */
             byteorder = ET_SWAP32(get[j]->byteorder);
-	  }
-	}
-	
-        header[index]   = htonl(ET_HIGHINT((uint64_t) put[i]->pointer));
-        header[index+1] = htonl(ET_LOWINT((uint64_t) put[i]->pointer));
+          }
+        }
+    
+        header[index]   = htonl(put[i]->place);
+        header[index+1] = 0; /* not used */
         header[index+2] = htonl(ET_HIGHINT(get[j]->length));
         header[index+3] = htonl(ET_LOWINT(get[j]->length));
-        header[index+4] = htonl(get[j]->priority |
-			        get[j]->datastatus << ET_DATA_SHIFT);
+        header[index+4] = htonl(get[j]->priority | get[j]->datastatus << ET_DATA_SHIFT);
         header[index+5] = byteorder;
         header[index+6] = 0; /* not used */
 
-	for (k=0; k < ET_STATION_SELECT_INTS; k++) {
-	  header[index+7+k] = htonl(get[j]->control[k]);
-	}
-
-	iov[iov_bufs].iov_base = (void *) &header[index];
-	iov[iov_bufs].iov_len  = headersize;
-	iov_bufs++;
-	iov[iov_bufs].iov_base = databuf;
-	iov[iov_bufs].iov_len  = get[j]->length;
-	iov_bufs++;
+        for (k=0; k < ET_STATION_SELECT_INTS; k++) {
+          header[index+7+k] = htonl(get[j]->control[k]);
+        }
+    
+        iov[iov_bufs].iov_base = (void *) &header[index];
+        iov[iov_bufs].iov_len  = headersize;
+        iov_bufs++;
+        iov[iov_bufs].iov_base = databuf;
+        iov[iov_bufs].iov_len  = get[j]->length;
+        iov_bufs++;
         bytes += headersize + get[j]->length;
-	index += (7+ET_STATION_SELECT_INTS);
+        index += (7+ET_STATION_SELECT_INTS);
       }
       
       if (num_new) {
         /* put the new events into the "to" ET system */
-	transfer[2] = htonl(num_new);
+        transfer[2] = htonl(num_new);
         transfer[3] = htonl(ET_HIGHINT(bytes));
         transfer[4] = htonl(ET_LOWINT(bytes));
 
         et_tcp_lock(idto);
-	if (et_tcp_writev(sockfd, iov, iov_bufs, 16) == -1) {
+        if (et_tcp_writev(sockfd, iov, iov_bufs, 16) == -1) {
           et_tcp_unlock(idto);
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, write error\n");
-	  }
-	  /* put back those read in last et_events_get call */
+            et_logmsg("ERROR", "et_events_bridge, write error\n");
+          }
+          /* put back those read in last et_events_get call */
           et_events_put(id_from, att_from, get, num_read);
           /* dump the useful new events (the ones we just tried to write) */
           et_events_dump(id_to, att_to, put, num_new);
           /* dump the unwanted new events into the "to" ET system */
           et_events_dump(id_to, att_to, dump, num_dump);
-	  
-	  status = ET_ERROR_WRITE;
-	  goto end;
-	}
+      
+          status = ET_ERROR_WRITE;
+          goto end;
+        }
 
-	if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+        if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
           et_tcp_unlock(idto);
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, read error\n");
-	  }
+            et_logmsg("ERROR", "et_events_bridge, read error\n");
+          }
           /* do NOT try to dump events we just wrote & failed to read the return err */
-	  /* put back those read in last et_events_get call */
+          /* put back those read in last et_events_get call */
           et_events_put(id_from, att_from, get, num_read);
           /* dump the unwanted new events into the "to" ET system */
           et_events_dump(id_to, att_to, dump, num_dump);
-	  
-	  status = ET_ERROR_READ;
-	  goto end;
-	}
-	else if ( (status = ntohl(err)) != ET_OK) {
+      
+          status = ET_ERROR_READ;
+          goto end;
+        }
+        else if ( (status = ntohl(err)) != ET_OK) {
           et_tcp_unlock(idto);
           /* do NOT try to dump events we just wrote & failed */
-	  /* put back those read in last et_events_get call */
+          /* put back those read in last et_events_get call */
           et_events_put(id_from, att_from, get, num_read);
           /* dump the unwanted new events into the "to" ET system */
           et_events_dump(id_to, att_to, dump, num_dump);
-	  
-	  goto end;
-	}
+      
+          goto end;
+        }
         et_tcp_unlock(idto);
-	total_put += num_new;
-	
-	/* free up memory allocated for the remote new events */
-	for (i=0; i < num_new; i++) {
-	  free(put[i]->pdata);
-	  free(put[i]);
-	}
+        total_put += num_new;
+    
+        /* free up memory allocated for the remote new events */
+        for (i=0; i < num_new; i++) {
+         free(put[i]->pdata);
+         free(put[i]);
+        }
       }
        
       if (num_dump) {
         /* dump unused events into the "to" ET system */
         status = et_events_dump(id_to, att_to, dump, num_dump);
-	if (status != ET_OK) {
-	  if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	    et_logmsg("ERROR", "et_events_bridge, error (status = %d) dumping unused events in \"to\" ET system\n",
-			    status);
-	  }
-	  /* put back those read in last et_events_get call */
+        if (status != ET_OK) {
+          if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+            et_logmsg("ERROR", "et_events_bridge, error (status = %d) dumping unused events in \"to\" ET system\n",
+                      status);
+          }
+          /* put back those read in last et_events_get call */
           et_events_put(id_from, att_from, get, num_read);
-	  goto end;
-	}
+          goto end;
+        }
       }
       
       num_new_prev = num_new;
@@ -1080,8 +1079,8 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
     status = et_events_put(id_from, att_from, get, num_read);
     if (status != ET_OK) {
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-	et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting events into \"from\" ET system\n",
-			status);
+        et_logmsg("ERROR", "et_events_bridge, error (status = %d) putting events into \"from\" ET system\n",
+                  status);
       }
       goto end;
     }
