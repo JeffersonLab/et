@@ -285,8 +285,13 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
     /* dump array of events (pointers) */
     status = et_events_dump((et_sys_id)etId, (et_att_id)attId, pe, length);
     if (status != ET_OK) {
-        clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
-        (*env)->ThrowNew(env, clazz, "dumpEvents: cannot dump events in native code");
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "dumpEvents (native): cannot dump events");
         return;
     }
 
