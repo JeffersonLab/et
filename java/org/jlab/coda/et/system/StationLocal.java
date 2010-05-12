@@ -83,7 +83,7 @@ public class StationLocal extends Thread implements EventSelectable {
      * @param name station name
      * @param config station configuration
      * @param id unique station id number
-     * @exception EtException
+     * @throws EtException
      *     if the station cannot load the selectClass
      */
     public StationLocal(SystemCreate sys, String name, StationConfig config, int id)

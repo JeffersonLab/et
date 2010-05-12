@@ -177,7 +177,7 @@ public class SystemConfig {
     /**
      * Adds a multicast address to the set.
      * @param mCastAddr multicast address
-     * @exception EtException
+     * @throws EtException
      *     if the argument is not a multicast address
      */
     public void addMulticastAddr(String mCastAddr) throws EtException {
@@ -216,7 +216,7 @@ public class SystemConfig {
     /**
      * Sets the total number of events.
      * @param num total number of events
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 1
      */
     public void setNumEvents(int num) throws EtException {
@@ -231,7 +231,7 @@ public class SystemConfig {
     /**
      * Sets the event size in bytes.
      * @param size event size in bytes
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 1 byte
      */
     public void setEventSize(int size) throws EtException {
@@ -247,7 +247,7 @@ public class SystemConfig {
      * guarantee available events for each producer.
      *
      * @param groups array defining number of events in each group
-     * @exception EtException
+     * @throws EtException
      *     if the groups array has length < 1 or values are not positive ints
      */
     public void setGroups(int[] groups) throws EtException {
@@ -266,7 +266,7 @@ public class SystemConfig {
     /**
      * Sets the maximum number of stations.
      * @param num maximum number of stations
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 2
      */
     public void setStationsMax(int num) throws EtException {
@@ -280,7 +280,7 @@ public class SystemConfig {
     /**
      * Sets the maximum number of attachments.
      * @param num maximum number of attachments
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 1
      */
     public void setAttachmentsMax(int num) throws EtException {
@@ -294,7 +294,7 @@ public class SystemConfig {
     /**
      * Sets the debug level.
      * @param level debug level
-     * @exception EtException
+     * @throws EtException
      *     if the argument has a bad value
      */
     public void setDebug(int level) throws EtException {
@@ -312,7 +312,7 @@ public class SystemConfig {
     /**
      * Sets the udp port number.
      * @param port udp port number
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 1024
      */
     public void setUdpPort(int port) throws EtException {
@@ -326,7 +326,7 @@ public class SystemConfig {
     /**
      * Sets the tcp server port number.
      * @param port tcp server port number
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 1024
      */
     public void setServerPort(int port) throws EtException {
@@ -340,7 +340,7 @@ public class SystemConfig {
     /**
      * Sets the multicast port number.
      * @param port multicast port number
-     * @exception EtException
+     * @throws EtException
      *     if the argument is less than 1024
      */
     public void setMulticastPort(int port) throws EtException {

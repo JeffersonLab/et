@@ -364,11 +364,11 @@ class EventList {
      * @param microSec time in microseconds to wait if timed wait mode
      * @param quantity number of events desired
      *
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      */
     synchronized EventImpl[] get(AttachmentLocal att, int mode, int microSec, int quantity)
@@ -474,11 +474,11 @@ class EventList {
      * @param quantity number of events desired
      * @param group group number of events desired
      *
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      */
     synchronized List<EventImpl> get(AttachmentLocal att, int mode, int microSec, int quantity, int group)

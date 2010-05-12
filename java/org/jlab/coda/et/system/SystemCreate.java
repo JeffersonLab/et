@@ -104,7 +104,7 @@ public class SystemCreate {
      *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}
      *
      * @param name ET system file name
-     * @exception EtException
+     * @throws EtException
      *     if the file already exists or cannot be created
      */
     public SystemCreate(String name) throws EtException {
@@ -182,7 +182,7 @@ public class SystemCreate {
      *
      * @param name     file name
      * @param config   ET system configuration
-     * @exception EtException
+     * @throws EtException
      *     if the file already exists or cannot be created
      */
     public SystemCreate (String name, SystemConfig config) throws EtException {
@@ -429,7 +429,7 @@ public class SystemCreate {
      * @param position the desired position in the main linked list of stations
      * @param parallelPosition the desired position of a parallel station in the
      *      group of parallel stations it's being added to
-     * @exception EtException
+     * @throws EtException
      *     if trying to add an incompatible parallel station to an existing group
      *     of parallel stations or to the head of an existing group of parallel
      *     stations.
@@ -553,7 +553,7 @@ public class SystemCreate {
      * @param position the desired position in the main linked list of stations
      * @param parallelPosition the desired position of a parallel station in the
      *     group of parallel stations it's being added to
-     * @exception EtException
+     * @throws EtException
      *     if trying to add an incompatible parallel station to an existing group
      *     of parallel stations or to the head of an existing group of parallel
      *     stations.
@@ -600,7 +600,7 @@ public class SystemCreate {
      * @param position the desired position in the main linked list of stations
      * @param parallelPosition the desired position of a parallel station in the
      *      group of parallel stations it's being added to
-     * @exception EtException
+     * @throws EtException
      *     if trying to move an incompatible parallel station to an existing group
      *     of parallel stations or to the head of an existing group of parallel
      *     stations.
@@ -648,11 +648,11 @@ public class SystemCreate {
      *
      * @return the new station object
      *
-     * @exception EtException
+     * @throws EtException
      *     if the select method's class cannot be loaded
-     * @exception EtExistsException
+     * @throws EtExistsException
      *     if the station already exists but with a different configuration
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     StationLocal createStation(StationConfig stationConfig, String name)
@@ -673,11 +673,11 @@ public class SystemCreate {
      *
      * @return                the new station object
      *
-     * @exception EtException
+     * @throws EtException
      *     if the select method's class cannot be loaded
-     * @exception EtExistsException
+     * @throws EtExistsException
      *     if the station already exists but with a different configuration
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     StationLocal createStation(StationConfig stationConfig, String name,
@@ -812,7 +812,7 @@ public class SystemCreate {
      * Removes an existing station.
      *
      * @param   statId station id
-     * @exception EtException
+     * @throws EtException
      *     if attachments to the station still exist or the station does not exist
      */
     void removeStation(int statId) throws EtException {
@@ -849,7 +849,7 @@ public class SystemCreate {
      * @param position   position in the main linked list of stations (starting at 0)
      * @param parallelPosition position of a parallel station in a group of
      *     parallel stations (starting at 0)
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist, or
      *     if trying to move an incompatible parallel station to an existing group
      *     of parallel stations or to the head of an existing group of parallel
@@ -870,7 +870,7 @@ public class SystemCreate {
      *
      * @param statId   station id
      * @return         the position of a station in the linked list of stations
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
      */
     int getStationPosition(int statId) throws EtException {
@@ -904,7 +904,7 @@ public class SystemCreate {
      * @param statId   station id
      * @return         the position of a parallel station in its linked list
      *      of parallel stations, or zero if station is serial
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
      */
     int getStationParallelPosition(int statId) throws EtException {
@@ -939,7 +939,7 @@ public class SystemCreate {
      * @param attId    attachment id
      * @return         <code>true</code> if an attachment is attached to a station
      *                 and <code>false</code> otherwise
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
      */
     boolean stationAttached(int statId, int attId) throws EtException {
@@ -1003,7 +1003,7 @@ public class SystemCreate {
      *
      * @param    name station name
      * @return   a station's object
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
      */
     StationLocal stationNameToObject(String name) throws EtException {
@@ -1031,7 +1031,7 @@ public class SystemCreate {
      *
      * @param     statId station id
      * @return    the station's object
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
      */
     StationLocal stationIdToObject(int statId) throws EtException {
@@ -1063,9 +1063,9 @@ public class SystemCreate {
      *
      * @param statId   station id
      * @return         an attachment object
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if station does not exist, or
      *     if no more attachments are allowed to the station, or
      *     if no more attachments are allowed to ET system
@@ -1309,14 +1309,14 @@ public class SystemCreate {
      *
      * @return an array of events
      *
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
@@ -1368,16 +1368,16 @@ public class SystemCreate {
      *
      * @return a list of events
      *
-     * @exception EtException
+     * @throws EtException
      *     if the group number is not meaningful
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
@@ -1428,14 +1428,14 @@ public class SystemCreate {
      *
      * @return an array of events
      *
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
