@@ -304,7 +304,7 @@ public class EventImpl implements Event {
   /** Set the event's data by copying it in. The event's length member
    *  is set to the length of the argument array.
    *  @param dat data array
-   *  @exception EtException
+   *  @throws EtException
    *     if the data array is the wrong size
    */
   public void copyDataIn(byte[] dat) throws EtException {
@@ -322,7 +322,7 @@ public class EventImpl implements Event {
    *  @param srcOff offset in "dat" byte array
    *  @param destOff offset in the event's byte array
    *  @param len bytes of data to copy
-   *  @exception EtException
+   *  @throws EtException
    *     if the data array is the wrong size
    */
   public void copyDataIn(byte[] dat, int srcOff, int destOff, int len) throws EtException {
@@ -334,7 +334,7 @@ public class EventImpl implements Event {
 
   /** Sets the event's priority.
    *  @param pri event priority
-   *  @exception EtException
+   *  @throws EtException
    *     if argument is a bad value
    */
   public void setPriority(int pri) throws EtException {
@@ -346,7 +346,7 @@ public class EventImpl implements Event {
 
   /** Sets the event's data length in bytes.
    *  @param len data length
-   *  @exception EtException
+   *  @throws EtException
    *     if length is less than zero
    */
   public void setLength(int len) throws EtException {
@@ -358,7 +358,7 @@ public class EventImpl implements Event {
 
   /** Sets the event's control array by copying it in.
    *  @param con control array
-   *  @exception EtException
+   *  @throws EtException
    *     if control array has the wrong number of elements
    */
   public void setControl(int[] con) throws EtException {
@@ -370,7 +370,7 @@ public class EventImpl implements Event {
 
   /** Sets the event's data status.
    *  @param status data status
-   *  @exception EtException
+   *  @throws EtException
    *     if argument is a bad value
    */
   public void setDataStatus(int status) throws EtException {
@@ -396,7 +396,7 @@ public class EventImpl implements Event {
      *  {@link Constants#endianLittle}, {@link Constants#endianLocal},
      *  {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}
      *  @param endian endian value
-     *  @exception EtException
+     *  @throws EtException
      *     if argument is a bad value
      */
     public void setByteOrder(int endian) throws EtException {
@@ -424,7 +424,7 @@ public class EventImpl implements Event {
     /** Tells caller if the event data needs to be swapped in order to be the
      *  correct byte order.
      *  @return <code>true</code> if swapping is needed, otherwise <code>false</code>
-     *  @exception EtException
+     *  @throws EtException
      *     if the byte order has a bad value
      */
     public boolean needToSwap() throws EtException {

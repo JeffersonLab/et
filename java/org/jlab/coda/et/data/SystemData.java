@@ -244,7 +244,7 @@ public class SystemData {
    *  Reads the system level information from a data stream which is sent out by
    *  an ET system over the network.
    *  @param dis data input stream
-   *  @exception java.io.IOException
+   *  @throws java.io.IOException
    *     if data stream read error
    */
   public void read(DataInputStream dis) throws IOException {

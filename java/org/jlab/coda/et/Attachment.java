@@ -81,9 +81,9 @@ public class Attachment {
    * @see Constants
    * @return value of requested parameter
    *
-   * @exception IOException
+   * @throws IOException
    *     if there are network communication problems
-   * @exception EtException
+   * @throws EtException
    *     if the station no longer exists
    */
   private long getLongValue(int cmd) throws IOException, EtException {

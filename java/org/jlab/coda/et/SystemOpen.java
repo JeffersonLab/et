@@ -117,7 +117,7 @@ public class SystemOpen {
      * {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
      *
      * @param debug debug level
-     * @exception EtException
+     * @throws EtException
      *     if bad argument value
      */
     public void setDebug(int debug) throws EtException {
@@ -249,11 +249,11 @@ public class SystemOpen {
      *
      * @return <code>true</code> if server found, else <code>false</code>
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
      *     {@link Constants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
@@ -648,9 +648,9 @@ public class SystemOpen {
      * Analyze a received UDP packet & see if it matches the ET system we're looking for.
      *
      * @param packet responding UDP packet
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the replied host address(es) is(are) unknown
      */
     private boolean replyMatch(DatagramPacket packet)
@@ -855,9 +855,9 @@ public class SystemOpen {
     /**
      * Connect to ET system's server.
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the responing ET system has the wrong name, runs a different version
      *     of ET, or has a different value for {@link Constants#stationSelectInts}
      */
@@ -948,15 +948,15 @@ public class SystemOpen {
     /**
      * Creates a connection to an ET system.
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
-     * @exception EtException
+     * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
      *     {@link Constants#stationSelectInts}
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
      *     {@link Constants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.

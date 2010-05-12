@@ -70,15 +70,15 @@ public class SystemUse {
      *               system of interest (copy is stored & used)
      * @param debug  debug level (e.g. {@link Constants#debugInfo})
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
-     * @exception EtException
+     * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
      *     {@link Constants#stationSelectInts}
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
      *     {@link Constants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
@@ -112,15 +112,15 @@ public class SystemUse {
      * @param config SystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
-     * @exception EtException
+     * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
      *     {@link Constants#stationSelectInts}
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
      *     {@link Constants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
@@ -142,15 +142,15 @@ public class SystemUse {
      *              system of interest
      * @param debug debug level (e.g. {@link Constants#debugInfo})
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
-     * @exception EtException
+     * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
      *     {@link Constants#stationSelectInts}
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
      *     {@link Constants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
@@ -247,15 +247,15 @@ public class SystemUse {
     /**
      * Open the ET system and set up buffered communication.
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception java.net.UnknownHostException
+     * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
-     * @exception EtException
+     * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
      *     {@link Constants#stationSelectInts}
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
      *     {@link Constants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
@@ -341,9 +341,9 @@ public class SystemUse {
      * empty input list.
      *
      * @param att attachment to wake up
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the attachment object is invalid
      */
     synchronized public void wakeUpAttachment(Attachment att) throws IOException, EtException {
@@ -362,18 +362,18 @@ public class SystemUse {
      * empty input list.
      *
      * @param station station whose attachments are to wake up
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the station object is invalid
      */
     synchronized public void wakeUpAll(Station station) throws IOException, EtException {
-        if (!station.usable || station.sys != this) {
+        if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
         out.writeInt(Constants.netWakeAll);
-        out.writeInt(station.id);
+        out.writeInt(station.getId());
         out.flush();
     }
 
@@ -388,7 +388,7 @@ public class SystemUse {
      *
      * @param config station configuration
      *
-     * @exception EtException
+     * @throws EtException
      *     if the station configuration is not self-consistent
      */
     private void configCheck(StationConfig config) throws EtException {
@@ -434,16 +434,16 @@ public class SystemUse {
      *
      * @return new station object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the select method's class cannot be loaded, the position is less
      *     than 1 (GRAND_CENTRAL's spot), the name is GRAND_CENTRAL (already
      *     taken), the configuration's cue size is too big, or the configuration
      *     needs a select class name
-     * @exception EtExistsException
+     * @throws EtExistsException
      *     if the station already exists but with a different configuration
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     public Station createStation(StationConfig config, String name)
@@ -465,16 +465,16 @@ public class SystemUse {
      *
      * @return new station object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the select method's class cannot be loaded, the position is less
      *     than 1 (GRAND_CENTRAL's spot), the name is GRAND_CENTRAL (already
      *     taken), the configuration's cue size is too big, or the configuration
      *     needs a select class name
-     * @exception EtExistsException
+     * @throws EtExistsException
      *     if the station already exists but with a different configuration
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     public Station createStation(StationConfig config, String name, int position)
@@ -497,16 +497,16 @@ public class SystemUse {
      *
      * @return new station object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the select method's class cannot be loaded, the position is less
      *     than 1 (GRAND_CENTRAL's spot), the name is GRAND_CENTRAL (already
      *     taken), the configuration's cue size is too big, or the configuration
      *     needs a select class name
-     * @exception EtExistsException
+     * @throws EtExistsException
      *     if the station already exists but with a different configuration
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     synchronized public Station createStation(StationConfig config, String name,
@@ -613,7 +613,7 @@ public class SystemUse {
 
         // create station
         Station station = new Station(name, statId, this);
-        station.usable = true;
+        station.setUsable(true);
         if (debug >= Constants.debugInfo) {
             System.out.println("creating station " + name + " is done");
         }
@@ -627,9 +627,9 @@ public class SystemUse {
      *
      * @param station station object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if attachments to the station still exist, the station is GRAND_CENTRAL
      *     (which must always exist), the station does not exist, or the
      *     station object is invalid
@@ -637,17 +637,17 @@ public class SystemUse {
     synchronized public void removeStation(Station station) throws IOException, EtException {
 
         // cannot remove GrandCentral
-        if (station.id == 0) {
+        if (station.getId() == 0) {
             throw new EtException("Cannot remove GRAND_CENTRAL station");
         }
 
         // station object invalid
-        if (!station.usable || station.sys != this) {
+        if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
         out.writeInt(Constants.netStatRm);
-        out.writeInt(station.id);
+        out.writeInt(station.getId());
         out.flush();
 
         int err = in.readInt();
@@ -656,7 +656,7 @@ public class SystemUse {
                                   "or remove all attachments before removing station");
         }
         
-        station.usable = false;
+        station.setUsable(false);
     }
 
 
@@ -667,9 +667,9 @@ public class SystemUse {
    * @param position  position in the main station list (starting at 0)
    * @param parallelPosition  position in list of parallel stations (starting at 0)
    *
-   * @exception java.io.IOException
+   * @throws java.io.IOException
    *     if problems with network comunications
-   * @exception EtException
+   * @throws EtException
    *     if the station does not exist, trying to move GRAND_CENTRAL, position
    *     is < 1 (GRAND_CENTRAL is always first), parallelPosition < 0, 
    *     station object is invalid,
@@ -682,7 +682,7 @@ public class SystemUse {
           throws IOException, EtException {
 
       // cannot move GrandCentral
-      if (station.id == 0) {
+      if (station.getId() == 0) {
           throw new EtException("Cannot move GRAND_CENTRAL station");
       }
 
@@ -699,19 +699,19 @@ public class SystemUse {
           throw new EtException("bad value for parallelPosition");
       }
 
-      if (!station.usable || station.sys != this) {
+      if (!station.isUsable() || station.getSys() != this) {
           throw new EtException("Invalid station");
       }
 
       out.writeInt(Constants.netStatSPos);
-      out.writeInt(station.id);
+      out.writeInt(station.getId());
       out.writeInt(position);
       out.writeInt(parallelPosition);
       out.flush();
 
       int err = in.readInt();
       if (err ==  Constants.error) {
-          station.usable = false;
+          station.setUsable(false);
           throw new EtException("station does not exist");
       }
   }
@@ -723,25 +723,25 @@ public class SystemUse {
      * @param station station object
      * @return position of a station in the main linked list of stations
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist, or station object is invalid
      */
     synchronized public int getStationPosition(Station station)
             throws IOException, EtException {
 
         // GrandCentral is always first
-        if (station.id == 0) {
+        if (station.getId() == 0) {
             return 0;
         }
 
-        if (!station.usable || station.sys != this) {
+        if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
         out.writeInt(Constants.netStatGPos);
-        out.writeInt(station.id);
+        out.writeInt(station.getId());
         out.flush();
 
         int err = in.readInt();
@@ -749,7 +749,7 @@ public class SystemUse {
         // skip parallel position info
         in.skipBytes(4);
         if (err ==  Constants.error) {
-            station.usable = false;
+            station.setUsable(false);
             throw new EtException("station does not exist");
         }
         
@@ -764,25 +764,25 @@ public class SystemUse {
      * @param station station object
      * @return position of a station in the linked list of stations
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist, or station object is invalid
      */
     synchronized public int getStationParallelPosition(Station station)
             throws IOException, EtException {
 
         // parallel position is 0 for serial stations (like GrandCentral)
-        if (station.id == 0) {
+        if (station.getId() == 0) {
             return 0;
         }
 
-        if (!station.usable || station.sys != this) {
+        if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
         out.writeInt(Constants.netStatGPos);
-        out.writeInt(station.id);
+        out.writeInt(station.getId());
         out.flush();
 
         int err = in.readInt();
@@ -790,7 +790,7 @@ public class SystemUse {
         in.skipBytes(4);
         int pPosition = in.readInt();
         if (err ==  Constants.error) {
-            station.usable = false;
+            station.setUsable(false);
             throw new EtException("station does not exist");
         }
 
@@ -804,18 +804,18 @@ public class SystemUse {
      * @param station station object
      * @return an attachment object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist, or station object is invalid
-     * @exception EtTooManyException
+     * @throws EtTooManyException
      *     if no more attachments are allowed to the station, or
      *     if no more attachments are allowed to ET system
      */
     synchronized public Attachment attach(Station station)
             throws IOException, EtException, EtTooManyException {
 
-        if (!station.usable || station.sys != this) {
+        if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
@@ -825,7 +825,7 @@ public class SystemUse {
         catch (UnknownHostException ex) { /* host = "unknown" */ }
 
         out.writeInt(Constants.netStatAtt);
-        out.writeInt(station.id);
+        out.writeInt(station.getId());
         out.writeInt(-1); // no pid in Java
         out.writeInt(host.length() + 1);
 
@@ -840,7 +840,7 @@ public class SystemUse {
         int err = in.readInt();
         int attId = in.readInt();
         if (err ==  Constants.error) {
-            station.usable = false;
+            station.setUsable(false);
             throw new EtException("station does not exist");
         }
         else if (err ==  Constants.errorTooMany) {
@@ -858,9 +858,9 @@ public class SystemUse {
      * Remove an attachment from a station.
      *
      * @param att attachment object
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the attachment object is invalid
      */
     synchronized public void detach(Attachment att)
@@ -893,16 +893,16 @@ public class SystemUse {
      * @return <code>true</code> if an attachment is attached to a station,
      *         and <code>false</code> otherwise
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist, station object is invalid, or attachment
      *     object is invalid
      */
     synchronized public boolean stationAttached(Station station, Attachment att)
             throws IOException, EtException {
 
-        if (!station.usable || station.sys != this) {
+        if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
@@ -911,12 +911,12 @@ public class SystemUse {
         }
 
         out.writeInt(Constants.netStatIsAt);
-        out.writeInt(station.id);
+        out.writeInt(station.getId());
         out.writeInt(att.id);
         out.flush();
         int err = in.readInt();
         if (err == Constants.error) {
-            station.usable = false;
+            station.setUsable(false);
             throw new EtException("station does not exist");
         }
         
@@ -930,7 +930,7 @@ public class SystemUse {
      * @param name station name
      * @return <code>true</code> if a station exists, and
      *         <code>false</code> otherwise
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
      */
     synchronized public boolean stationExists(String name)
@@ -958,9 +958,9 @@ public class SystemUse {
      * @param name station name
      * @return station object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if the station does not exist
      */
     synchronized public Station stationNameToObject(String name)
@@ -979,7 +979,7 @@ public class SystemUse {
         int statId = in.readInt();
         if (err == 1) {
             Station stat = new Station(name, statId, this);
-            stat.usable = true;
+            stat.setUsable(true);
             return stat;
         }
         throw new EtException("station " + name + " does not exist");
@@ -1005,20 +1005,20 @@ public class SystemUse {
      *
      * @return an array of new events
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if arguments have bad values, attachment object is invalid, or other general errors
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
@@ -1048,18 +1048,18 @@ public class SystemUse {
      *
      * @return an array of new events
      *
-     * @exception EtException
+     * @throws EtException
      *     if arguments have bad values, attachment object is invalid, or other general errors
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
@@ -1107,20 +1107,20 @@ public class SystemUse {
      *
      * @return an array of events
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if arguments have bad values, attachment object is invalid, or other general errors
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
@@ -1271,19 +1271,19 @@ public class SystemUse {
      *
      * @return an array of events
      *
-     * @exception EtException
+     * @throws EtException
      *     if arguments have bad values, the attachment's station is
      *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
@@ -1326,21 +1326,21 @@ public class SystemUse {
      *
      * @return an array of events
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if arguments have bad values, the attachment's station is
      *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
-     * @exception EtEmptyException
+     * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
-     * @exception EtBusyException
+     * @throws EtBusyException
      *     if the mode is asynchronous and the station's input list is being used
      *     (the mutex is locked)
-     * @exception EtTimeoutException
+     * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
-     * @exception EtWakeUpException
+     * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
@@ -1354,7 +1354,7 @@ public class SystemUse {
         }
 
         // may not get events from GrandCentral
-        if (att.station.id == 0) {
+        if (att.station.getId() == 0) {
             throw new EtException("may not get events from GRAND_CENTRAL");
         }
 
@@ -1509,12 +1509,12 @@ public class SystemUse {
      * @param att         attachment object
      * @param eventList   list of event objects
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     public void putEvents(Attachment att, List<Event> eventList)
@@ -1531,12 +1531,12 @@ public class SystemUse {
      * @param att   attachment object
      * @param evs   array of event objects
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     public void putEvents(Attachment att, Event[] evs)
@@ -1555,10 +1555,10 @@ public class SystemUse {
      * @param offset offset into array
      * @param length number of array elements to put
      *
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     private void putEventsJNI(int attId, Event[] evs, int offset, int length)
@@ -1584,12 +1584,12 @@ public class SystemUse {
      * @param offset offset into array
      * @param length number of array elements to put
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid; if offset and/or length arg is not valid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     synchronized public void putEvents(Attachment att, Event[] evs, int offset, int length)
@@ -1692,10 +1692,10 @@ public class SystemUse {
      * @param offset offset into array
      * @param length number of array elements to put
      *
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     private void dumpEventsJNI(int attId, Event[] evs, int offset, int length)
@@ -1720,12 +1720,12 @@ public class SystemUse {
      * @param att   attachment object
      * @param evs   array of event objects
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     public void dumpEvents(Attachment att, Event[] evs)
@@ -1744,12 +1744,12 @@ public class SystemUse {
      * @param att         attachment object
      * @param eventList   list of event objects
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     public void dumpEvents(Attachment att, List<Event> eventList)
@@ -1766,12 +1766,12 @@ public class SystemUse {
      *
      * @param att         attachment object
      *
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if problems with network comunications
-     * @exception EtException
+     * @throws EtException
      *     if events are not owned by this attachment or the attachment object
      *     is invalid
-     * @exception EtDeadException
+     * @throws EtDeadException
      *     if the ET system processes are dead
      */
     synchronized public void dumpEvents(Attachment att, Event[] evs, int offset, int length)
@@ -1826,7 +1826,7 @@ public class SystemUse {
      *
      * @param cmd coded command to send to the TCP server thread.
      * @return integer value
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     synchronized private int getIntValue(int cmd) throws IOException {
@@ -1844,7 +1844,7 @@ public class SystemUse {
      * Gets the number of stations in the ET system.
      *
      * @return number of stations in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getNumStations() throws IOException {
@@ -1856,7 +1856,7 @@ public class SystemUse {
      * Gets the maximum number of stations allowed in the ET system.
      *
      * @return maximum number of stations allowed in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getStationsMax() throws IOException {
@@ -1868,7 +1868,7 @@ public class SystemUse {
      * Gets the number of attachments in the ET system.
      *
      * @return number of attachments in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getNumAttachments() throws IOException {
@@ -1880,7 +1880,7 @@ public class SystemUse {
      * Gets the maximum number of attachments allowed in the ET system.
      *
      * @return maximum number of attachments allowed in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getAttachmentsMax() throws IOException {
@@ -1893,7 +1893,7 @@ public class SystemUse {
      * This is only relevant in C-language, Solaris systems.
      *
      * @return number of processes in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getNumProcesses() throws IOException {
@@ -1906,7 +1906,7 @@ public class SystemUse {
      * This is only relevant in C-language, Solaris systems.
      *
      * @return maximum number of processes allowed in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getProcessesMax() throws IOException {
@@ -1919,7 +1919,7 @@ public class SystemUse {
      * This is only relevant in C-language systems.
      *
      * @return number of temp events in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getNumTemps() throws IOException {
@@ -1932,7 +1932,7 @@ public class SystemUse {
      * This is only relevant in C-language systems.
      *
      * @return maximum number of temp events in the ET system
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getTempsMax() throws IOException {
@@ -1945,7 +1945,7 @@ public class SystemUse {
      * C-language systems.
      *
      * @return ET system heartbeat
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getHeartbeat() throws IOException {
@@ -1958,7 +1958,7 @@ public class SystemUse {
      * This is only relevant in C-language systems.
      *
      * @return UNIX pid of the ET system process
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     public int getPid() throws IOException {
@@ -2015,7 +2015,7 @@ public class SystemUse {
      * Gets all information about the ET system.
      *
      * @return object containing ET system information
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     synchronized public AllData getData() throws EtException, IOException {
@@ -2087,7 +2087,7 @@ public class SystemUse {
      * available on Java ET systems.
      *
      * @return integer array containing histogram
-     * @exception java.io.IOException
+     * @throws java.io.IOException
      *     if there are problems with network communication
      */
     synchronized public int[] getHistogram() throws IOException, EtException {

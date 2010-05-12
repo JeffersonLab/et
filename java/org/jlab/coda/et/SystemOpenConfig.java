@@ -110,7 +110,7 @@ public class SystemOpenConfig {
      *               a broadcast or multicast: {@link Constants#policyFirst},
      *               {@link Constants#policyLocal}, or {@link Constants#policyError}
      *
-     * @exception EtException
+     * @throws EtException
      *     if method value is not valid;
      *     if method is not direct and no broad/multicast addresses were specified;
      *     if method is direct and no actual host name was specified;
@@ -221,7 +221,7 @@ public class SystemOpenConfig {
      *                 3) general location of ET system such as {@link Constants#hostAnywhere},
      *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
      *
-     * @exception EtException
+     * @throws EtException
      *     if no broadcast addresses were specified;
      *     if port number is < 1024 or > 65535
      */
@@ -244,7 +244,7 @@ public class SystemOpenConfig {
      *                 3) general location of ET system such as {@link Constants#hostAnywhere},
      *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
      *
-     * @exception EtException
+     * @throws EtException
      *     if no broadcast addresses were specified;
      *     if port number is < 1024 or > 65535
      */
@@ -269,7 +269,7 @@ public class SystemOpenConfig {
      * @param mPort  multicasting port number
      * @param ttlNum multicasting time-to_live value 
      *
-     * @exception EtException
+     * @throws EtException
      *     if no multicast addresses were specified;
      *     if port number is < 1024 or > 65535, or ttl is < 0 or > 254
      */
@@ -296,7 +296,7 @@ public class SystemOpenConfig {
      * @param mPort  multicasting port number
      * @param ttlNum multicasting time-to_live value
      *
-     * @exception EtException
+     * @throws EtException
      *     if no multicast addresses were specified;
      *     if port numbers are < 1024 or > 65535, or ttl is < 0 or > 254
      */
@@ -317,7 +317,7 @@ public class SystemOpenConfig {
      * @param hostName ET system host name
      * @param tPort TCP server port number of the ET system
      *
-     * @exception EtException
+     * @throws EtException
      *     if no actual host name was specified;
      *     if port number is < 1024 or > 65535
      */
@@ -443,7 +443,7 @@ public class SystemOpenConfig {
      *  Adds a multicast address to the set.
      *
      *  @param addr multicast address to be added
-     *  @exception EtException
+     *  @throws EtException
      *     if the address is not a multicast address
      */
     public void addMulticastAddr(String addr) throws EtException {
@@ -464,7 +464,7 @@ public class SystemOpenConfig {
      *  Adds a collection of multicast addresses to the set.
      *
      *  @param addrs collection of multicast addresses to be added (as Strings)
-     *  @exception EtException
+     *  @throws EtException
      *     if one of the addresses is not a multicast address
      */
     public void setMulticastAddrs(Collection<String> addrs) throws EtException {
@@ -490,7 +490,7 @@ public class SystemOpenConfig {
      *  broadcasting and multicasting.
      *
      *  @param method means or method of contacting an ET system
-     *  @exception EtException
+     *  @throws EtException
      *     if the argument has a bad value
      */
     public void setNetworkContactMethod(int method) throws EtException {
@@ -514,7 +514,7 @@ public class SystemOpenConfig {
      *  exception.
      *
      *  @param policy policy on what to do about multiple responding ET systems
-     *  @exception EtException
+     *  @throws EtException
      *     if the argument has a bad value or if the policy says to choose a local
      *     ET system but the host is set to chose a remote system.
      */
@@ -538,7 +538,7 @@ public class SystemOpenConfig {
      *  Sets the UDP port number for broadcasting and sending udp packets to known hosts.
      *
      *  @param port UDP port number for broadcasting and sending udp packets to known hosts
-     *  @exception EtException
+     *  @throws EtException
      *     if the port number is < 1024 or > 65535
      */
     public void setUdpPort(int port) throws EtException {
@@ -553,7 +553,7 @@ public class SystemOpenConfig {
      *  Sets the TCP server port number of the ET system.
      *
      *  @param port TCP server port number of the ET system
-     *  @exception EtException
+     *  @throws EtException
      *     if the port number is < 1024 or > 65535
      */
     public void setTcpPort(int port) throws EtException {
@@ -568,7 +568,7 @@ public class SystemOpenConfig {
      *  Sets the port number to multicast to.
      *
      *  @param port port number to multicast to
-     *  @exception EtException
+     *  @throws EtException
      *     if the port number is < 1024 or > 65535
      */
     public void setMulticastPort(int port) throws EtException {
@@ -583,7 +583,7 @@ public class SystemOpenConfig {
      *  Sets the time-to-live value for multicasting.
      *
      *  @param ttlNum time-to_live value for multicasting
-     *  @exception EtException
+     *  @throws EtException
      *     if the port number is < 0 or > 254
      */
     public void setTTL(int ttlNum) throws EtException {

@@ -87,7 +87,7 @@ public interface Event {
     /** Set the event's data by copying it in. The event's length member
      *  is set to the length of the argument array.
      *  @param dat data array
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if the data array is the wrong size
      */
     void copyDataIn(byte[] dat) throws EtException;
@@ -98,35 +98,35 @@ public interface Event {
      *  @param srcOff offset in "dat" byte array
      *  @param destOff offset in the event's byte array
      *  @param len bytes of data to copy
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if the data array is the wrong size
      */
     void copyDataIn(byte[] dat, int srcOff, int destOff, int len) throws EtException;
 
     /** Sets the event's priority.
      *  @param pri event priority
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if argument is a bad value
      */
     void setPriority(int pri) throws EtException;
 
     /** Sets the event's data length in bytes.
      *  @param len data length
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if length is less than zero
      */
     void setLength(int len) throws EtException;
 
     /** Sets the event's control array by copying it in.
      *  @param con control array
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if control array has the wrong number of elements
      */
     void setControl(int[] con) throws EtException;
 
     /** Sets the event's data status.
      *  @param status data status
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if argument is a bad value
      */
     void setDataStatus(int status) throws EtException;
@@ -140,7 +140,7 @@ public interface Event {
      *  {@link org.jlab.coda.et.Constants#endianLittle}, {@link org.jlab.coda.et.Constants#endianLocal},
      *  {@link org.jlab.coda.et.Constants#endianNotLocal}, or {@link org.jlab.coda.et.Constants#endianSwitch}
      *  @param endian endian value
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if argument is a bad value
      */
     void setByteOrder(int endian) throws EtException;
@@ -148,7 +148,7 @@ public interface Event {
     /** Tells caller if the event data needs to be swapped in order to be the
      *  correct byte order.
      *  @return <code>true</code> if swapping is needed, otherwise <code>false</code>
-     *  @exception org.jlab.coda.et.exception.EtException
+     *  @throws org.jlab.coda.et.exception.EtException
      *     if the byte order has a bad value
      */
     boolean needToSwap() throws EtException;
