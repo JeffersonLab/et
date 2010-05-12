@@ -6,9 +6,9 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
@@ -27,15 +27,15 @@ import org.jlab.coda.et.system.SystemCreate;
 
 public class StationSelection implements EventSelectable {
 
-  public StationSelection() {
-  }
-
-  public boolean select(SystemCreate sys, StationLocal st, Event ev) {
-    if (ev.getId()%2 == 0) {
-      //System.out.println("  Select Func: accept ev.id = " + ev.id);
-      return true;
+    public StationSelection() {
     }
-    //System.out.println("  Select Func: reject ev.id = " + ev.id);
-    return false;
-  }
+
+    public boolean select(SystemCreate sys, StationLocal st, Event ev) {
+        if (ev.getId()%2 == 0) {
+            //System.out.println("  Select Func: accept ev.id = " + ev.id);
+            return true;
+        }
+        //System.out.println("  Select Func: reject ev.id = " + ev.id);
+        return false;
+    }
 }
