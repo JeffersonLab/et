@@ -13,13 +13,14 @@
  *----------------------------------------------------------------------------*/
 
 package org.jlab.coda.et;
+
 import java.lang.*;
 import java.util.*;
 import java.net.*;
 import org.jlab.coda.et.exception.*;
 
 /**
- * This class defines parameters used to open an ET system.
+ * This class defines a set of configuration parameters used to open an ET system.
  *
  * @author Carl Timmer
  */
@@ -83,42 +84,45 @@ public class SystemOpenConfig {
     private long waitTime;
 
 
-    // TODO: get exceptions right
     /**
      * Most general constructor for creating a new SystemOpenConfig object.
      *
      * @param etName ET system name
-     * @param hostName ET system host name or destination of broad/multicasts
+     * @param hostName may open an ET system on the given host which could be the:
+     *                 1) actual ET system's host name,
+     *                 2) dotted decimal address of ET system's host, or
+     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
+     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
      * @param broadcasting do we UDP broadcast to find ET system?
-     * @param mAddrs Collection of multicast addresses (as Strings)
-     * @param method Means used to contact an ET system
-     * @param tPort TCP server port number of the ET system
-     * @param uPort UDP port number for broadcasting or sending udp packets to known hosts
-     * @param mPort Port number to multicast to
+     * @param mAddrs collection of multicast addresses (as Strings) to mulitcast to in order to
+     *               find ET system
+     * @param remoteOnly <code>true</code> if talking to ET system only through sockets
+     *                   (as if remote), or <code>false</code> if also using JNI/shared memory
+     *                   for talking to local C-based ET systems
+     * @param method means used to contact an ET system over the network:
+     *               {@link Constants#broadcast}, {@link Constants#multicast},
+     *               {@link Constants#direct}, or {@link Constants#broadAndMulticast}
+     * @param tPort  TCP server port number of the ET system
+     * @param uPort  UDP port number for broadcasting or sending udp packets to known hosts
+     * @param mPort  Port number to multicast to
      * @param ttlNum Time-to_live value for multicasting
-     * @param policy Policy on what to do about multiple responding ET systems to
-     *               a broadcast or multicast
+     * @param policy policy on what to do about multiple responding ET systems to
+     *               a broadcast or multicast: {@link Constants#policyFirst},
+     *               {@link Constants#policyLocal}, or {@link Constants#policyError}
      *
      * @exception EtException
-     *     if method is not {@link Constants#broadcast},
-     *     {@link Constants#multicast}, {@link Constants#direct}, or
-     *     {@link Constants#broadAndMulticast}.
-     * @exception EtException
-     *     if method is not direct and no broad/multicast addresses were
-     *     specified, or if method is direct and no actual host name was
-     *     specified.
-     * @exception EtException
-     *     if port numbers are < 1024 or > 65535
-     * @exception EtException
-     *     if ttl is < 0 or > 254
-     * @exception EtException
-     *     if policy is not {@link Constants#policyFirst},
-     *     {@link Constants#policyLocal}, or {@link Constants#policyError}
+     *     if method value is not valid;
+     *     if method is not direct and no broad/multicast addresses were specified;
+     *     if method is direct and no actual host name was specified;
+     *     if port numbers are < 1024 or > 65535;
+     *     if ttl is < 0 or > 254;
+     *     if string args are null or blank;
+     *     if policy value is not valid
      */
     public SystemOpenConfig (String etName, String hostName,
                              boolean broadcasting, Collection<String> mAddrs,
-                             boolean remoteOnly, int method, int tPort, int uPort, int mPort,
-                             int ttlNum, int policy)
+                             boolean remoteOnly, int method, int tPort, int uPort,
+                             int mPort, int ttlNum, int policy)
             throws EtException {
 
         name = etName;
@@ -147,9 +151,9 @@ public class SystemOpenConfig {
         connectRemotely = remoteOnly;
         
         if ((method != Constants.multicast) &&
-                (method != Constants.broadcast) &&
-                (method != Constants.broadAndMulticast) &&
-                (method != Constants.direct))     {
+            (method != Constants.broadcast) &&
+            (method != Constants.broadAndMulticast) &&
+            (method != Constants.direct))     {
             throw new EtException("Bad contact method value");
         }
         else {
@@ -193,13 +197,13 @@ public class SystemOpenConfig {
 
 
         if ((policy != Constants.policyFirst) &&
-                (policy != Constants.policyLocal) &&
-                (policy != Constants.policyError))  {
+            (policy != Constants.policyLocal) &&
+            (policy != Constants.policyError))  {
             throw new EtException("Bad policy value");
         }
 
         if ((host.equals(Constants.hostRemote)) &&
-                (policy == Constants.policyLocal)) {
+            (policy == Constants.policyLocal)) {
             // stupid combination of settings
             throw new EtException("Policy value cannot be local if host is remote");
         }
@@ -211,16 +215,19 @@ public class SystemOpenConfig {
      * Constructor for broadcasting. First responder is chosen.
      *
      * @param etName ET system name
-     * @param destination  destination of broadcasts
+     * @param hostName may open an ET system on the given host which could be the:
+     *                 1) actual ET system's host name,
+     *                 2) dotted decimal address of ET system's host, or
+     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
+     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
      *
      * @exception EtException
-     *     if no broadcast addresses were specified
-     * @exception EtException
+     *     if no broadcast addresses were specified;
      *     if port number is < 1024 or > 65535
      */
-    public SystemOpenConfig (String etName, String destination)
+    public SystemOpenConfig (String etName, String hostName)
             throws EtException {
-        this (etName, destination, true, null, false, Constants.broadcast,
+        this (etName, hostName, true, null, false, Constants.broadcast,
               Constants.serverPort, Constants.broadcastPort, Constants.multicastPort,
               Constants.multicastTTL, Constants.policyFirst);
     }
@@ -231,16 +238,19 @@ public class SystemOpenConfig {
      *
      * @param etName ET system name
      * @param uPort UDP port number to broadcast to
-     * @param destination  destination of broadcasts
+     * @param hostName may open an ET system on the given host which could be the:
+     *                 1) actual ET system's host name,
+     *                 2) dotted decimal address of ET system's host, or
+     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
+     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
      *
      * @exception EtException
-     *     if no broadcast addresses were specified
-     * @exception EtException
+     *     if no broadcast addresses were specified;
      *     if port number is < 1024 or > 65535
      */
-    public SystemOpenConfig (String etName, int uPort, String destination)
+    public SystemOpenConfig (String etName, int uPort, String hostName)
             throws EtException {
-        this (etName, destination, true, null, false, Constants.broadcast,
+        this (etName, hostName, true, null, false, Constants.broadcast,
               Constants.serverPort, uPort, Constants.multicastPort,
               Constants.multicastTTL, Constants.policyFirst);
     }
@@ -250,14 +260,17 @@ public class SystemOpenConfig {
      * Constructor for multicasting. First responder is chosen.
      *
      * @param etName ET system name
-     * @param hostName ET system host name or destination of multicasts
-     * @param mAddrs Collection of multicast addresses (as Strings)
-     * @param mPort Port number to multicast to
-     * @param ttlNum Time-to_live value for multicasting
+     * @param hostName may open an ET system on the given host which could be the:
+     *                 1) actual ET system's host name,
+     *                 2) dotted decimal address of ET system's host, or
+     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
+     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     * @param mAddrs collection of multicast addresses (as Strings)
+     * @param mPort  multicasting port number
+     * @param ttlNum multicasting time-to_live value 
      *
      * @exception EtException
-     *     if no multicast addresses were specified
-     * @exception EtException
+     *     if no multicast addresses were specified;
      *     if port number is < 1024 or > 65535, or ttl is < 0 or > 254
      */
     public SystemOpenConfig (String etName, String hostName,
@@ -273,15 +286,18 @@ public class SystemOpenConfig {
      * Constructor for multicasting. First responder is chosen.
      *
      * @param etName ET system name
-     * @param hostName ET system host name or destination of multicasts
-     * @param mAddrs Collection of multicast addresses (as Strings)
-     * @param uPort Port number to send direct udp packet to
-     * @param mPort Port number to multicast to
-     * @param ttlNum Time-to_live value for multicasting
+     * @param hostName may open an ET system on the given host which could be the:
+     *                 1) actual ET system's host name,
+     *                 2) dotted decimal address of ET system's host, or
+     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
+     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     * @param mAddrs collection of multicast addresses (as Strings)
+     * @param uPort  port number to send direct udp packet to
+     * @param mPort  multicasting port number
+     * @param ttlNum multicasting time-to_live value
      *
      * @exception EtException
-     *     if no multicast addresses were specified
-     * @exception EtException
+     *     if no multicast addresses were specified;
      *     if port numbers are < 1024 or > 65535, or ttl is < 0 or > 254
      */
     public SystemOpenConfig (String etName, String hostName,
@@ -302,8 +318,7 @@ public class SystemOpenConfig {
      * @param tPort TCP server port number of the ET system
      *
      * @exception EtException
-     *     if no actual host name was specified.
-     * @exception EtException
+     *     if no actual host name was specified;
      *     if port number is < 1024 or > 65535
      */
     public SystemOpenConfig (String etName, String hostName, int tPort)
@@ -314,7 +329,10 @@ public class SystemOpenConfig {
     }
 
 
-    /** Constructor to create a new SystemOpenConfig object from another. */
+    /**
+     * Constructor to create a new SystemOpenConfig object from another.
+     * @param config SystemOpenConfig object from which to create a new configuration
+     */
     public SystemOpenConfig (SystemOpenConfig config) {
         name                 = config.name;
         host                 = config.host;
@@ -335,45 +353,58 @@ public class SystemOpenConfig {
     /** Gets the ET system name.
      *  @return ET system name */
     public String getEtName() {return name;}
-    /** Gets the ET system host name or broad/multicast destination.
-     *  @return ET system host name or broad/multicast destination */
+
+    /** Gets the ET system host name or general location of ET system.
+     *  @return ET system host name or general location of ET system */
     public String getHost() {return host;}
-    /** Gets multicast addresses (as set of Strings).
-     *  @return multicast addresses (as set of Strings) */
+
+    /** Gets multicast addresses.
+     *  @return multicast addresses */
     public HashSet<String> getMulticastAddrs() {return (HashSet<String>) multicastAddrs.clone();}
+
     /** Gets the means used to contact an ET system.
      *  @return means used to contact an ET system */
     public int getNetworkContactMethod() {return networkContactMethod;}
+
     /** Gets policy on what to do about multiple responding ET systems to a
      *  broadcast or multicast.
      *  @return policy on what to do about multiple responding ET systems to a broadcast or multicast */
     public int getResponsePolicy() {return responsePolicy;}
+
     /** Gets UDP port number for broadcasting or sending udp packets to known hosts.
      *  @return UDP port number for broadcast or sending udp packets to known hosts */
     public int getUdpPort() {return udpPort;}
+
     /** Gets TCP server port number of the ET system.
      *  @return TCP server port number of the ET system */
     public int getTcpPort() {return tcpPort;}
+
     /** Gets port number to multicast to.
      *  @return port number to multicast to */
     public int getMulticastPort() {return multicastPort;}
+
     /** Gets time-to_live value for multicasting.
      *  @return time-to_live value for multicasting */
     public int getTTL() {return ttl;}
+
     /** Gets the number of multicast addresses.
      *  @return the number of multicast addresses */
     public int getNumMulticastAddrs() {return multicastAddrs.size();}
 
-    /** Are we listening for broadcasts?
-     *  @return boolean indicating wether we are listening for broadcasts */
+    /** Are we broadcasting to find ET system?
+     *  @return boolean indicating wether we are broadcasting to find ET system */
     public boolean isBroadcasting() {return broadcasting;}
-    /** Set true if we're listening for broadcasts. */
+
+    /** Set true if we're broadcasting to find ET system. */
     public void broadcasting(boolean on) {broadcasting = on;}
+
     /** Are we going to connect to an ET system remotely only (=true), or will
-     *  we try to use memory mapping and JNI with local C-based ET systems?
+     *  we also try to use memory mapping and JNI with local C-based ET systems?
      *  @return <code>true</code> if connecting to ET system remotely only, else <code>false</code> */
     public boolean isConnectRemotely() {return connectRemotely;}
 
+    /** If no ET system is available, the number of milliseconds we wait while trying to open it.
+     *  @return the number of milliseconds we wait while trying to open ET system */
     public long getWaitTime() {return waitTime;}
 
 
@@ -383,17 +414,22 @@ public class SystemOpenConfig {
     /** Sets the ET system name.
      *  @param etName ET system name  */
     public void setEtName(String etName) {name = etName;}
+
     /** Sets the ET system host name or broad/multicast destination.
      *  @param hostName system host name or broad/multicast destination */
     public void setHost(String hostName) {host = hostName;}
+
     /** Removes a multicast address from the set.
      *  @param addr multicast address to be removed */
     public void removeMulticastAddr(String addr) {multicastAddrs.remove(addr);}
+
     /** Sets whether we going to connect to an ET system remotely only (=true), or whether
      *  we will try to use memory mapping and JNI with local C-based ET systems.
      *  @param connectRemotely <code>true</code> if connecting to ET system remotely only, else <code>false</code> */
     public void setConnectRemotely(boolean connectRemotely) {this.connectRemotely = connectRemotely;}
 
+    /** If no ET system is available, set the number of milliseconds we wait while trying to open it.
+     *  @param waitTime  the number of milliseconds we wait while trying to open ET system */
     public void setWaitTime(long waitTime) {
         if (waitTime < 0) {
             waitTime = 0;
@@ -459,9 +495,9 @@ public class SystemOpenConfig {
      */
     public void setNetworkContactMethod(int method) throws EtException {
         if ((method != Constants.multicast) &&
-                (method != Constants.broadcast) &&
-                (method != Constants.broadAndMulticast) &&
-                (method != Constants.direct))     {
+            (method != Constants.broadcast) &&
+            (method != Constants.broadAndMulticast) &&
+            (method != Constants.direct))     {
             throw new EtException("bad contact method value");
         }
         networkContactMethod = method;
@@ -484,12 +520,13 @@ public class SystemOpenConfig {
      */
     public void setResponsePolicy(int policy) throws EtException {
         if ((policy != Constants.policyFirst) &&
-                (policy != Constants.policyLocal) &&
-                (policy != Constants.policyError))  {
+            (policy != Constants.policyLocal) &&
+            (policy != Constants.policyError))  {
             throw new EtException("bad policy value");
         }
+        
         if ((host.equals(Constants.hostRemote)) &&
-                (policy == Constants.policyLocal)) {
+            (policy == Constants.policyLocal)) {
             // stupid combination of settings
             throw new EtException("policy value cannot be local if host is remote");
         }
@@ -498,7 +535,7 @@ public class SystemOpenConfig {
 
 
     /**
-     *  Sets the UDP port number for broadcastiong and sending udp packets to known hosts.
+     *  Sets the UDP port number for broadcasting and sending udp packets to known hosts.
      *
      *  @param port UDP port number for broadcasting and sending udp packets to known hosts
      *  @exception EtException
@@ -543,7 +580,7 @@ public class SystemOpenConfig {
 
 
     /**
-     *  Sets the Time-to_live value for multicasting.
+     *  Sets the time-to-live value for multicasting.
      *
      *  @param ttlNum time-to_live value for multicasting
      *  @exception EtException

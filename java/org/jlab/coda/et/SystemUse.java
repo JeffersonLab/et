@@ -64,27 +64,10 @@ public class SystemUse {
 
 
     /**
-     * Get the data input stream to talk to ET system server.
-     * @return data input stream to talk to ET system server
-     */
-    public DataInputStream getInputStream() {
-        return in;
-    }
-
-    /**
-     * Get the data output stream to receive from the ET system server.
-     * @return data output stream to receive from the ET system server
-     */
-    public DataOutputStream getOutputStream() {
-        return out;
-    }
-
-
-    /**
      * Construct a new SystemUse object.
      *
      * @param config SystemOpenConfig object to specify how to open the ET
-     *               system of interest
+     *               system of interest (copy is stored & used)
      * @param debug  debug level (e.g. {@link Constants#debugInfo})
      *
      * @exception java.io.IOException
@@ -127,7 +110,7 @@ public class SystemUse {
      * Construct a new SystemUse object. Debug level set to print only errors.
      *
      * @param config SystemOpenConfig object to specify how to open the ET
-     *               system of interest
+     *               system of interest (copy is stored & used)
      *
      * @exception java.io.IOException
      *     if problems with network comunications
@@ -175,7 +158,7 @@ public class SystemUse {
     public SystemUse(SystemOpen sys, int debug)  throws
             IOException, EtException, EtTooManyException {
 
-        this.sys = sys;
+        this.sys   = sys;
         openConfig = sys.getConfig();
 
         if ((debug != Constants.debugNone)   &&
@@ -203,6 +186,61 @@ public class SystemUse {
             open();
         }
 
+    }
+
+
+    // Local getters & setters
+
+    
+    /**
+     * Get the data input stream to talk to ET system server.
+     * @return data input stream to talk to ET system server
+     */
+    public DataInputStream getInputStream() {
+        return in;
+    }
+
+    /**
+     * Get the data output stream to receive from the ET system server.
+     * @return data output stream to receive from the ET system server
+     */
+    public DataOutputStream getOutputStream() {
+        return out;
+    }
+
+    /**
+     * Gets the debug output level.
+     * @return debug output level
+     */
+    public int getDebug() {
+        return debug;
+    }
+
+    /**
+     * Sets the debug output level. Must be either {@link Constants#debugNone},
+     * {@link Constants#debugSevere}, {@link Constants#debugError},
+     * {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
+     *
+     * @param val debug level
+     * @throws EtException if bad argument value
+     */
+    public void setDebug(int val) throws EtException {
+        if ((val != Constants.debugNone)   &&
+            (val != Constants.debugSevere) &&
+            (val != Constants.debugError)  &&
+            (val != Constants.debugWarn)   &&
+            (val != Constants.debugInfo)) {
+            throw new EtException("bad debug argument");
+        }
+        debug = val;
+    }
+
+    /**
+     * Gets a copy of the configuration used to specify how to open the ET system.
+     * @return SystemOpenConfig object used to specify how to open the ET system.
+     */
+    public SystemOpenConfig getConfig() {
+        return new SystemOpenConfig(openConfig);
     }
 
 
@@ -1970,47 +2008,6 @@ public class SystemUse {
      */
     public int getTcpPort() {
         return sys.getTcpPort();
-    }
-
-
-    /**
-     * Gets the debug output level.
-     * @return debug output level
-     */
-    public int getDebug() {
-        return debug;
-    }
-
-
-    /**
-     * Sets the debug output level. Must be either {@link Constants#debugNone},
-     * {@link Constants#debugSevere}, {@link Constants#debugError},
-     * {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
-     *
-     * @param val debug level
-     * @throws EtException if bad argument value
-     */
-    public void setDebug(int val) throws EtException {
-        if ((val != Constants.debugNone) &&
-                (val != Constants.debugSevere) &&
-                (val != Constants.debugError) &&
-                (val != Constants.debugWarn) &&
-                (val != Constants.debugInfo)) {
-            throw new EtException("bad debug argument");
-        }
-        debug = val;
-    }
-
-
-    /**
-     * Gets a copy of the configuration used to specify how to open the ET
-     * system.
-     *
-     * @return SystemOpenConfig object used to specify how to open the ET
-     *         system.
-     */
-    public SystemOpenConfig getConfig() {
-        return new SystemOpenConfig(openConfig);
     }
 
 
