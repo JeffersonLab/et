@@ -5,7 +5,7 @@ import org.jlab.coda.et.exception.*;
 
 /**
  * This class handles all calls to native methods which, in turn,
- * makes calls to the C ET library routines to get, put, and dump events.
+ * makes calls to the C ET library routines to get, new, put, and dump events.
  */
 class JniAccess {
 
