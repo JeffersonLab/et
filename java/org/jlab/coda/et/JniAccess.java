@@ -21,8 +21,10 @@ class JniAccess {
         }
     }
 
+
     /** Place to store id (pointer) returned from et_open in C code. */
     private long localEtId;
+
 
     /**
      * Get the et id.
@@ -31,6 +33,7 @@ class JniAccess {
     long getLocalEtId() {
         return localEtId;
     }
+
 
     /**
      * Set the et id. Used inside native method {@link #openLocalEtSystem(String)}.
@@ -42,32 +45,96 @@ class JniAccess {
 
 
     /**
-     * Open a local, C-based ET system and store it's id.
+     * Open a local, C-based ET system and store it's id in {@link #localEtId}.
      *
      * @param etName name of ET system to open
-     * @throws EtException for any failure to open ET system except timeout
+     *
+     * @throws EtException        for any failure to open ET system except timeout
      * @throws EtTimeoutException for failure to open ET system within the specified time limit
      */
-    native void openLocalEtSystem(String etName) throws EtException, EtTimeoutException;
+    native void openLocalEtSystem(String etName)
+            throws EtException, EtTimeoutException;
 
 
     /**
+     * Put the given array of events back into the local, C-based ET system.
      *
-     * @param etId
-     * @param attId
-     * @param evs
-     * @param length
-     * @throws EtException
+     * @param etId   ET system id
+     * @param attId  attachment id
+     * @param evs    array of events
+     * @param length number of events to be put (starting at index of 0)
+     * 
+     * @throws EtException     for variety of general errors
+     * @throws EtDeadException if ET system is dead
      */
-    native void putEvents(long etId, int attId, EventImpl[] evs, int length) throws EtException;
+    native void putEvents(long etId, int attId, EventImpl[] evs, int length)
+            throws EtException, EtDeadException;
 
 
-    native void dumpEvents(long etId, int attId, EventImpl[] evs, int length) throws EtException;
+    /**
+     * Dump (dispose of) the given array of unwanted events back into the local, C-based ET system.
+     *
+     * @param etId   ET system id
+     * @param attId  attachment id
+     * @param evs    array of event objects
+     * @param length number of events to be dumped (starting at index of 0)
+     *
+     * @throws EtException for variety of general errors
+     * @throws EtDeadException if ET system is dead
+     */
+    native void dumpEvents(long etId, int attId, EventImpl[] evs, int length)
+            throws EtException, EtDeadException;
 
 
-    native EventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count) throws EtException;
+    /**
+     * Get events from the local, C-based ET system.
+     *
+     * @param etId   ET system id
+     * @param attId  attachment id
+     * @param mode   if there are no events available, this parameter specifies
+     *               whether to wait for some by sleeping {@link Constants#sleep},
+     *               to wait for a set time {@link Constants#timed},
+     *               or to return immediately {@link Constants#async}.
+     * @param sec    the number of seconds to wait if a timed wait is specified
+     * @param nsec   the number of nanoseconds to wait if a timed wait is specified
+     * @param count  number of events desired. Size may be different from that requested.
+     *
+     * @return array of events obtained from ET system. Count may be different from that requested.
+     *
+     * @throws EtException     for variety of general errors
+     * @throws EtDeadException if ET system is dead
+     */
+    native EventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count)
+            throws EtException, EtDeadException;
 
-    
+
+    /**
+     * Get new (unused) events from a specified group of such events from the local, C-based ET system.
+     *
+     * @param etId   ET system id
+     * @param attId  attachment id
+     * @param mode   if there are no new events available, this parameter specifies
+     *               whether to wait for some by sleeping {@link Constants#sleep},
+     *               to wait for a set time {@link Constants#timed},
+     *               or to return immediately {@link Constants#async}.
+     * @param sec    the number of seconds to wait if a timed wait is specified
+     * @param nsec   the number of nanoseconds to wait if a timed wait is specified
+     * @param count  number of events desired
+     * @param size   the size in bytes of the events desired
+     * @param group  group number from which to draw new events. Some ET systems have
+     *               unused events divided into groups whose numbering starts at 1.
+     *               For ET system not so divided, all events belong to group 1.
+     *
+     * @return array of unused events obtained from ET system. Count may be different from that requested.
+     *
+     * @throws EtException        for variety of general errors
+     * @throws EtDeadException    if ET system is dead
+     * @throws EtWakeUpException  if told to stop sleeping (before timeout) while trying to get events
+     * @throws EtTimeoutException if timed out on {@link Constants#timed} option
+     * @throws EtEmptyException   if no events available in {@link Constants#async} mode
+     * @throws EtBusyException    if cannot get access to events due to activity of other
+     *                            processes when in {@link Constants#async} mode
+     */
     native EventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException,        EtDeadException, EtWakeUpException,
                    EtTimeoutException, EtBusyException, EtEmptyException;

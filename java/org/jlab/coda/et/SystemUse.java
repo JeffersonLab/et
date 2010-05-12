@@ -994,16 +994,17 @@ public class SystemUse {
     /**
      * Get new (unused) events from an ET system.
      *
-     * @param att       attachment object
-     * @param mode      if there are no events available, this parameter specifies
-     *                  whether to wait for some by sleeping, by waiting for a set
-     *                  time, or by returning immediately
-     * @param microSec  the number of microseconds to wait if a timed wait is
-     *                  specified
-     * @param count     the number of events desired
-     * @param size      the size of events in bytes
+     * @param att      attachment object
+     * @param mode     if there are no new events available, this parameter specifies
+     *                 whether to wait for some by sleeping {@link Constants#sleep},
+     *                 to wait for a set time {@link Constants#timed},
+     *                 or to return immediately {@link Constants#async}.
+     * @param microSec the number of microseconds to wait if a timed wait is
+     *                 specified
+     * @param count    the number of events desired
+     * @param size     the size of events in bytes
      *
-     * @return an array of new events
+     * @return an array of new events obtained from ET system. Count may be different from that requested.
      *
      * @throws java.io.IOException
      *     if problems with network comunications
@@ -1037,16 +1038,19 @@ public class SystemUse {
      * directly accessed shared memory.
      *
      * @param attId    attachment id number
-     * @param mode     if there are no events available, this parameter specifies
-     *                 whether to wait for some by sleeping, by waiting for a set
-     *                 time, or by returning immediately
+     * @param mode     if there are no new events available, this parameter specifies
+     *                 whether to wait for some by sleeping {@link Constants#sleep},
+     *                 to wait for a set time {@link Constants#timed},
+     *                 or to return immediately {@link Constants#async}.
      * @param sec      the number of seconds to wait if a timed wait is specified
      * @param nsec     the number of nanoseconds to wait if a timed wait is specified
      * @param count    the number of events desired
      * @param size     the size of events in bytes
-     * @param group    the group number of events
+     * @param group    group number from which to draw new events. Some ET systems have
+     *                 unused events divided into groups whose numbering starts at 1.
+     *                 For ET system not so divided, all events belong to group 1.
      *
-     * @return an array of new events
+     * @return an array of new events obtained from ET system. Count may be different from that requested.
      *
      * @throws EtException
      *     if arguments have bad values, attachment object is invalid, or other general errors
@@ -1096,16 +1100,19 @@ public class SystemUse {
      * systems through sockets.
      *
      * @param att       attachment object
-     * @param mode      if there are no events available, this parameter specifies
-     *                  whether to wait for some by sleeping, by waiting for a set
-     *                  time, or by returning immediately
+     * @param mode      if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link Constants#sleep},
+     *                  to wait for a set time {@link Constants#timed},
+     *                  or to return immediately {@link Constants#async}.
      * @param microSec  the number of microseconds to wait if a timed wait is
      *                  specified
      * @param count     the number of events desired
      * @param size      the size of events in bytes
-     * @param group     the group number of events
+     * @param group     group number from which to draw new events. Some ET systems have
+     *                  unused events divided into groups whose numbering starts at 1.
+     *                  For ET system not so divided, all events belong to group 1.
      *
-     * @return an array of events
+     * @return an array of new events obtained from ET system. Count may be different from that requested.
      *
      * @throws java.io.IOException
      *     if problems with network comunications
@@ -1263,13 +1270,14 @@ public class SystemUse {
      *
      * @param attId    attachment id number
      * @param mode     if there are no events available, this parameter specifies
-     *                 whether to wait for some by sleeping, by waiting for a set
-     *                 time, or by returning immediately
+     *                 whether to wait for some by sleeping {@link Constants#sleep},
+     *                 to wait for a set time {@link Constants#timed},
+     *                 or to return immediately {@link Constants#async}.
      * @param sec      the number of seconds to wait if a timed wait is specified
      * @param nsec     the number of nanoseconds to wait if a timed wait is specified
      * @param count    the number of events desired
      *
-     * @return an array of events
+     * @return an array of events obtained from ET system. Count may be different from that requested.
      *
      * @throws EtException
      *     if arguments have bad values, the attachment's station is
@@ -1288,7 +1296,7 @@ public class SystemUse {
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private Event[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
-            throws EtException  {
+            throws EtException, EtDeadException {
 
         EventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
@@ -1318,13 +1326,20 @@ public class SystemUse {
      *
      * @param att      attachment object
      * @param mode     if there are no events available, this parameter specifies
-     *                 whether to wait for some by sleeping, by waiting for a set
-     *                 time, or by returning immediately
+     *                 whether to wait for some by sleeping {@link Constants#sleep},
+     *                 to wait for a set time {@link Constants#timed},
+     *                 or to return immediately {@link Constants#async}.
+     *                 This may be ORed with a flag that specifies whether this application plans
+     *                 on modifying the data in events obtained {@link Constants#modify}, or
+     *                 only modifying headers {@link Constants#modifyHeader}. The default assumed
+     *                 is that the no values are modified resulting in the events being put back into
+     *                 the ET system (by remote server) immediately upon being copied and that copy
+     *                 sent to this method's caller.
      * @param microSec the number of microseconds to wait if a timed wait is
      *                 specified
      * @param count    the number of events desired
      *
-     * @return an array of events
+     * @return an array of events obtained from ET system. Count may be different from that requested.
      *
      * @throws java.io.IOException
      *     if problems with network comunications
@@ -1345,7 +1360,7 @@ public class SystemUse {
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     synchronized public Event[] getEvents(Attachment att, int mode, int microSec, int count)
-            throws IOException, EtException,
+            throws IOException, EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
 
@@ -1518,7 +1533,7 @@ public class SystemUse {
      *     if the ET system processes are dead
      */
     public void putEvents(Attachment att, List<Event> eventList)
-            throws IOException, EtException {
+            throws IOException, EtException, EtDeadException {
         putEvents(att, eventList.toArray(new Event[eventList.size()]));
     }
 
@@ -1540,7 +1555,7 @@ public class SystemUse {
      *     if the ET system processes are dead
      */
     public void putEvents(Attachment att, Event[] evs)
-            throws IOException, EtException {
+            throws IOException, EtException, EtDeadException {
         putEvents(att, evs, 0, evs.length);
     }
 
@@ -1556,13 +1571,13 @@ public class SystemUse {
      * @param length number of array elements to put
      *
      * @throws EtException
-     *     if events are not owned by this attachment or the attachment object
-     *     is invalid; if offset and/or length arg is not valid
+     *     if events are not owned by this attachment or the attachment object is invalid;
+     *     if offset and/or length arg is not valid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
     private void putEventsJNI(int attId, Event[] evs, int offset, int length)
-            throws EtException {
+            throws EtException, EtDeadException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
         EventImpl[] events = new EventImpl[length];
@@ -1587,13 +1602,13 @@ public class SystemUse {
      * @throws java.io.IOException
      *     if problems with network comunications
      * @throws EtException
-     *     if events are not owned by this attachment or the attachment object
-     *     is invalid; if offset and/or length arg is not valid
+     *     if events are not owned by this attachment or the attachment object is invalid;
+     *     if offset and/or length arg is not valid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
     synchronized public void putEvents(Attachment att, Event[] evs, int offset, int length)
-            throws IOException, EtException {
+            throws IOException, EtException, EtDeadException {
 
         if (offset < 0 || length < 0 || offset + length > evs.length) {
             throw new EtException("Bad offset or length argument(s)");
@@ -1699,7 +1714,7 @@ public class SystemUse {
      *     if the ET system processes are dead
      */
     private void dumpEventsJNI(int attId, Event[] evs, int offset, int length)
-            throws EtException {
+            throws EtException, EtDeadException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
         EventImpl[] events = new EventImpl[length];
@@ -1729,7 +1744,7 @@ public class SystemUse {
      *     if the ET system processes are dead
      */
     public void dumpEvents(Attachment att, Event[] evs)
-            throws IOException, EtException {
+            throws IOException, EtException, EtDeadException {
         dumpEvents(att, evs, 0, evs.length);
     }
 
@@ -1753,7 +1768,7 @@ public class SystemUse {
      *     if the ET system processes are dead
      */
     public void dumpEvents(Attachment att, List<Event> eventList)
-            throws IOException, EtException {
+            throws IOException, EtException, EtDeadException {
         dumpEvents(att, eventList.toArray(new Event[eventList.size()]));
     }
 
@@ -1775,7 +1790,7 @@ public class SystemUse {
      *     if the ET system processes are dead
      */
     synchronized public void dumpEvents(Attachment att, Event[] evs, int offset, int length)
-            throws IOException, EtException {
+            throws IOException, EtException, EtDeadException {
 
         if (att == null || !att.usable || att.sys != this) {
             throw new EtException("Invalid attachment");
