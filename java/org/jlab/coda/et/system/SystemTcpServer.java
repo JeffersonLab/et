@@ -22,6 +22,8 @@ import java.net.*;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
 
@@ -434,8 +436,10 @@ class ClientThread extends Thread {
                             Utils.longToBytes((long)ev.getLength(),  buf,  4);
                             Utils.longToBytes((long)ev.getMemSize(), buf, 12);
                             Utils.intToBytes(ev.getPriority() | ev.getDataStatus() << dataShift, buf, 20);
-                            Utils.longToBytes(ev.getId(), buf, 24);
-                            Utils.intToBytes(ev.getByteOrder(), buf, 32);
+                            Utils.intToBytes(ev.getId(), buf, 24);  // skip 4 bytes here
+                            Utils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
+                                             Constants.endianLittle : Constants.endianBig,
+                                             buf, 32);
                             // arrays are initialized to zero so skip 0 values elements
                             int index = 36;
                             int[] control = ev.getControl();
@@ -583,8 +587,10 @@ class ClientThread extends Thread {
                                 Utils.longToBytes((long)length, buffer, index);
                                 Utils.longToBytes((long)ev.getMemSize(), buffer, index += 8);
                                 Utils.intToBytes(ev.getPriority() | ev.getDataStatus() << dataShift, buffer, index += 8);
-                                Utils.longToBytes(ev.getId(), buffer, index += 4);
-                                Utils.intToBytes(ev.getByteOrder(), buffer, index += 8);
+                                Utils.intToBytes(ev.getId(), buffer, index += 4); // skip 4 bytes here
+                                Utils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
+                                                 Constants.endianLittle : Constants.endianBig,
+                                                 buffer, index += 8);
                                 Utils.intToBytes(0, buffer, index += 4);
                                 int[] control = ev.getControl();
                                 for (int i = 0; i < selectInts; i++) {
@@ -624,8 +630,9 @@ class ClientThread extends Thread {
                             int attId = Utils.bytesToInt(params, 0);
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
-                            long id = Utils.bytesToLong(params, 4);
-                            EventImpl ev = sys.getEvents().get(new Long(id));
+                            int id = Utils.bytesToInt(params, 4);
+                            EventImpl ev = sys.getEvents().get(id);
+                            // skip 4 bytes here
 
                             long len = Utils.bytesToLong(params, 12);
                             if (len > Integer.MAX_VALUE) {
@@ -668,17 +675,18 @@ class ClientThread extends Thread {
                             int numEvents       = Utils.bytesToInt(params,  4);
                             long size           = Utils.bytesToLong(params, 8);
 
-                            long id, len;
-                            int  priAndStat, index;
+                            long len;
+                            int  id, priAndStat, index;
                             int  byteChunk = 28 + 4 * selectInts;
                             evs = new EventImpl[numEvents];
 
                             for (int j = 0; j < numEvents; j++) {
                                 in.readFully(params, 0, byteChunk);
 
-                                id = Utils.bytesToLong(params, 0);
-                                evs[j] = sys.getEvents().get(new Long(id));
-
+                                id = Utils.bytesToInt(params, 0);
+                                evs[j] = sys.getEvents().get(id);
+                                // skip 4 bytes here
+                             
                                 len = Utils.bytesToLong(params, 8);
                                 if (len > Integer.MAX_VALUE) {
                                     throw new EtException("Event is too long for this (java) ET system");
@@ -809,7 +817,8 @@ class ClientThread extends Thread {
                             evs[0].setModify(modify);
 
                             out.writeInt(err);
-                            out.writeLong(evs[0].getId());
+                            out.writeInt(evs[0].getId());
+                            out.writeInt(0); // unused
                             out.flush();
                             evs = null;
                         }
@@ -911,14 +920,14 @@ class ClientThread extends Thread {
                             }
 
                             // handle buffering by hand
-                            int index = -4;
-                            byte[] buf = new byte[4 + 8 * evs.length];
+                            int index = 0;
+                            byte[] buf = new byte[4 + 4 * evs.length];
 
                             // first send number of events
                             Utils.intToBytes(evs.length, buf, 0);
                             for (EventImpl ev : evs) {
                                 ev.setModify(modify);
-                                Utils.longToBytes(ev.getId(), buf, index += 8);
+                                Utils.intToBytes(ev.getId(), buf, index += 4);
                             }
                             out.write(buf);
                             out.flush();
@@ -930,7 +939,7 @@ class ClientThread extends Thread {
 
                         case Constants.netEvDump: {
                             int  attId = in.readInt();
-                            long id    = in.readLong();
+                            int  id    = in.readInt();
 
                             AttachmentLocal att = attachments.get(new Integer(attId));
                             EventImpl ev = sys.getEvents().get(id);
@@ -950,14 +959,14 @@ class ClientThread extends Thread {
                             evs = new EventImpl[numEvents];
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
-                            long id;
-                            byte[] buf = new byte[8 * numEvents];
-                            in.readFully(buf, 0, 8 * numEvents);
-                            int index = -8;
+                            int id;
+                            byte[] buf = new byte[4 * numEvents];
+                            in.readFully(buf, 0, 4 * numEvents);
+                            int index = -4;
 
                             for (int j = 0; j < numEvents; j++) {
-                                id = Utils.bytesToLong(buf, index += 8);
-                                evs[j] = sys.getEvents().get(new Long(id));
+                                id = Utils.bytesToInt(buf, index += 4);
+                                evs[j] = sys.getEvents().get(id);
                             }
 
                             sys.dumpEvents(att, evs);
@@ -1084,14 +1093,14 @@ class ClientThread extends Thread {
                             }
 
                             // handle buffering by hand
-                            int index = -4;
-                            byte[] buf = new byte[4 + 8 * evList.size()];
+                            int index = 0;
+                            byte[] buf = new byte[4 + 4 * evList.size()];
 
                             // first send number of events
                             Utils.intToBytes(evList.size(), buf, 0);
                             for (EventImpl ev : evList) {
                                 ev.setModify(modify);
-                                Utils.longToBytes(ev.getId(), buf, index += 8);
+                                Utils.intToBytes(ev.getId(), buf, index += 4);
                             }
                             out.write(buf);
                             out.flush();
