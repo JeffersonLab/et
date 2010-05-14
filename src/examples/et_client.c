@@ -28,7 +28,7 @@
 #endif
 #include "et.h"
 
-#define NUMEVENTS 40000
+#define NUMEVENTS 400000
 #define CHUNK 10
 
 /* prototype */
@@ -86,7 +86,7 @@ int main(int argc,char **argv) {
   
   /* open ET system */
   et_open_config_init(&openconfig);
-  et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+  /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
   /* et_open_config_setwait(openconfig, ET_OPEN_WAIT);*/
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("et_client: et_open problems\n");
@@ -182,12 +182,12 @@ int main(int argc,char **argv) {
       /* status = et_event_get(id, attach1, &pe[0], ET_ASYNC, NULL);*/
   
       /* example of reading array of up to "CHUNK" events */
-      /* status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, CHUNK, &numread);*/
+        status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, CHUNK, &numread);
       
       /* example of array, timeout read */
       /* status = et_events_get(id, attach1, pe, ET_TIMED, &timeout, CHUNK, &numread);*/
 
-        status = et_event_get(id, attach1, &pe[0], ET_SLEEP, NULL);
+      /*status = et_event_get(id, attach1, &pe[0], ET_SLEEP, NULL);*/
         if (status == ET_OK) {
         ;
       }
@@ -220,30 +220,30 @@ int main(int argc,char **argv) {
         goto error;
       }
 
-      numread = 1;
+      /*numread = 1;*/
       
       /**************/
       /* print data */
       /**************/
-      if (0) {
-        int pri;
-        size_t len;
-	int *data;
-	/* char *data; */
-	
-        for (j=0; j< numread; j++) {
-	  et_event_getdata(pe[j], (void **) &data);
-	  et_event_getpriority(pe[j], &pri);
-	  et_event_getlength(pe[j], &len);
-          et_event_getcontrol(pe[j], con);
-          /* printf("et_client data = %s, pri = %d, len = %d\n", data, pri, len); */
-          printf("et_client data = %d, pri = %d, len = %d\n", *data, pri, len);
+      if (1) {
+          int pri;
+          size_t len;
+          int *data;
+          /* char *data; */
+    
+          for (j=0; j< numread; j++) {
+              et_event_getdata(pe[j], (void **) &data);
+              et_event_getpriority(pe[j], &pri);
+              et_event_getlength(pe[j], &len);
+              et_event_getcontrol(pe[j], con);
+              /* printf("et_client data = %s, pri = %d, len = %d\n", data, pri, len); */
+              printf("et_client data = %d\n", ET_SWAP32(*((int *)data)));
           /*
-          for (i=0; i < ET_STATION_SELECT_INTS; i++) {
-            printf("          con[%d] = %d\n", i, con[i]);
-	  }
+              for (i=0; i < ET_STATION_SELECT_INTS; i++) {
+              printf("          con[%d] = %d\n", i, con[i]);
+          }
           */
-        }
+          }
       }
       /**************/
       /* put events */
@@ -251,11 +251,9 @@ int main(int argc,char **argv) {
 
       /* example of putting single event */
       /* status = et_event_put(id, attach1, pe[0]);*/
-      //status = et_event_put(id, attach1, pe[0]);
 
       /* example of putting array of events */
-      //status = et_events_dump(id, attach1, pe, numread);
-      status = et_event_dump(id, attach1, pe[0]);
+      status = et_events_dump(id, attach1, pe, numread);
       if (status == ET_ERROR_DEAD) {
         printf("et_client: ET is dead\n");
         goto end;
