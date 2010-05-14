@@ -33,8 +33,8 @@
 /* recent versions of linux put float.h (and DBL_MAX) in a strange place */
 #define DOUBLE_MAX   1.7976931348623157E+308
 
-#define NUMLOOPS 100000
-#define CHUNK 10
+#define NUMLOOPS 10000
+#define CHUNK 100
 #define DBL_MAX   1.e+100
 
 /* prototype */
@@ -100,7 +100,7 @@ int main(int argc,char **argv)
 restartLinux:
   /* open ET system */
   et_open_config_init(&openconfig);
-   et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+   /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
    et_open_config_setwait(openconfig, ET_OPEN_WAIT);
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("%s: et_open problems\n", argv[0]);
@@ -128,10 +128,11 @@ restartLinux:
       totalCount = 0;
       /* loop NUMLOOPS times before printing out statistics */
       for (j=0; j < NUMLOOPS ; j++) {
-          //status = et_events_new_group(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, 1, &count);
-        status = et_event_new_group(id, attach1, &pe[0], ET_SLEEP, NULL, size, 1);
+          /*status = et_events_new_group(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, 1, &count);*/
+          status = et_events_new(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, &count);
+          /*status = et_event_new_group(id, attach1, &pe[0], ET_SLEEP, NULL, size, 1);*/
 
-        //status = et_event_new(id, attach1, &pe[0], ET_SLEEP, NULL, size);
+          /*status = et_event_new(id, attach1, &pe[0], ET_SLEEP, NULL, size);*/
 
         if (status == ET_OK) {
           ;
@@ -165,29 +166,29 @@ restartLinux:
           goto error;
         }
 
-        count = 1;
+        /*count = 1;*/
 
         /* write data, set priority, set control values here */
-        if (1) {
-	  char *pdata;
-    	  for (i=0; i < count; i++) {
-            /* the following line will allow et_client modes 3 & 4 to work */
-            /* et_event_setcontrol(pe[i], control, 4); */
-	    et_event_getdata(pe[i], (void **) &pdata);
-            /*
-	    strcpy(pdata, stuff[i]);
-            et_event_setlength(pe[i], strlen(stuff[i])+1);
-	    */
+        if (0) {
+	      char *pdata;
+    	    for (i=0; i < count; i++) {
+              /* the following line will allow et_client modes 3 & 4 to work */
+              /* et_event_setcontrol(pe[i], control, 4); */
+	          et_event_getdata(pe[i], (void **) &pdata);
+              /*
+	          strcpy(pdata, stuff[i]);
+              et_event_setlength(pe[i], strlen(stuff[i])+1);
+	          */
 	    
-	    memcpy((void *)pdata, (const void *) &numbers[i%10], sizeof(int));
-            et_event_setlength(pe[i], sizeof(int));
+	          memcpy((void *)pdata, (const void *) &numbers[i%10], sizeof(int));
+              et_event_setlength(pe[i], sizeof(int));
 	    
-	  }
+	       }
         }
 	  
         /* put events back into the ET system */
-        //status = et_events_put(id, attach1, pe, count);
-        status = et_event_put(id, attach1, pe[0]);
+        status = et_events_put(id, attach1, pe, count);
+        /*status = et_event_put(id, attach1, pe[0]);*/
         if (status == ET_OK) {
           ;
         }
@@ -217,8 +218,8 @@ restartLinux:
 #endif
       freq = totalCount/time;
       if ((DOUBLE_MAX - freq_tot) < freq) {
-        freq_tot   = 0.0;
-	iterations = 1;
+          freq_tot   = 0.0;
+          iterations = 1;
       }
       freq_tot += freq;
       freq_avg = freq_tot/iterations;
@@ -227,17 +228,17 @@ restartLinux:
 
       /* if ET system is dead, wait here until it comes back */
       if (!et_alive(id)) {
-        status = et_wait_for_alive(id);
-	if (status == ET_OK) {
-	  int locality;
-	  et_system_getlocality(id, &locality);
-	  /* if Linux, re-establish connection to ET system since socket broken */
-	  if (locality == ET_LOCAL_NOSHARE) {
-            printf("%s: try to reconnect Linux client\n", argv[0]);
-	    et_forcedclose(id);
-	    goto restartLinux;
-	  }
-	}
+          status = et_wait_for_alive(id);
+          if (status == ET_OK) {
+              int locality;
+              et_system_getlocality(id, &locality);
+              /* if Linux, re-establish connection to ET system since socket broken */
+              if (locality == ET_LOCAL_NOSHARE) {
+                  printf("%s: try to reconnect Linux client\n", argv[0]);
+                  et_forcedclose(id);
+                  goto restartLinux;
+              }
+          }
       }
       
   } /* while(alive) */
