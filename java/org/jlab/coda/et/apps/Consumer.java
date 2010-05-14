@@ -16,6 +16,7 @@ package org.jlab.coda.et.apps;
 
 import java.lang.*;
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.enums.Mode;
 
 
 /**
@@ -138,7 +139,8 @@ public class Consumer {
         usage();
         return;
       }
-      
+       Mode mode = Mode.ASYNC;
+          System.out.println("Mode async = " + mode);
       // make a direct connection to ET system's tcp server
       //SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
 
@@ -185,10 +187,10 @@ System.out.println("Station attachment = " + att.getId());
       // initialize
       t1 = System.currentTimeMillis();
       
-      for(int i=0; i < 10; i++) {
+      for(int i=0; i < 50; i++) {
         while (count < 300000L) {
           // get events from ET system
-           mevs = sys.getEvents(att, Constants.sleep, 0, chunk);
+           mevs = sys.getEvents(att, Mode.SLEEP, null, 0, chunk);
            //Thread.sleep(10000);
           // start keeping track of time here since getEvents
            // may sleep for a while
@@ -205,7 +207,7 @@ System.out.println("Station attachment = " + att.getId());
             }
            }
 
-            Thread.sleep(3000);
+           //Thread.sleep(3000);
 
            // put events back into ET system
            sys.putEvents(att, mevs);

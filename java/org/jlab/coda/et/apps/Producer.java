@@ -17,6 +17,7 @@ package org.jlab.coda.et.apps;
 
 import java.lang.*;
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.enums.Mode;
 
 /**
  * This class is an example of an event producer for an ET system.
@@ -48,7 +49,7 @@ public class Producer {
         String etName = null, host = null;
         //int port = Constants.serverPort;
         int port = Constants.broadcastPort;
-        int group = 0;
+        int group = 1;
         int delay = 0;
         int size = 32;
 
@@ -93,7 +94,7 @@ public class Producer {
                 else if (args[i].equalsIgnoreCase("-g")) {
                     try {
                         group = Integer.parseInt(args[++i]);
-                        if ((group < 0) || (group > 10)) {
+                        if ((group < 1) || (group > 10)) {
                             System.out.println("Group number must be between 0 and 10.");
                             usage();
                             return;
@@ -160,8 +161,6 @@ public class Producer {
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);
 
-            sys.setGroup(group);
-
             // get GRAND_CENTRAL station object
             Station gc = sys.stationNameToObject("GRAND_CENTRAL");
 
@@ -178,11 +177,10 @@ public class Producer {
             // keep track of time for event rate calculations
             t1 = System.currentTimeMillis();
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 50; i++) {
                 while (count < 300000L) {
                     // get array of new events
-                    //mevs = sys.newEvents(att, Constants.sleep, 0, chunk, 32, group);
-                    mevs = sys.newEvents(att, Constants.sleep, 0, chunk, size, 1);
+                    mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
 
                     if (delay > 0) Thread.sleep(delay);
 
@@ -192,7 +190,7 @@ public class Producer {
                             // put integer (j) into front of data buffer
                             mevs[j].getDataBuffer().putInt(j+startingVal);
                             //Utils.intToBytes(j+startingVal, mevs[j].getData(), 0);
-                            System.out.println("Put " + (j+startingVal) + " into event's data buffer");
+//System.out.println("Put " + (j+startingVal) + " into event's data buffer");
                             // set data length to be 4 bytes (1 integer)
                             mevs[j].setLength(4);
                             // set every other event's priority as high
