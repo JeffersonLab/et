@@ -6,19 +6,23 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
 package org.jlab.coda.et;
 
 import java.lang.*;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.enums.Age;
+import org.jlab.coda.et.enums.Priority;
+import org.jlab.coda.et.enums.DataStatus;
+import org.jlab.coda.et.enums.Modify;
 
 /**
  * This class defines an ET event.
@@ -28,33 +32,32 @@ import org.jlab.coda.et.exception.*;
 
 public class EventImpl implements Event {
 
-    // For efficiency in initializing event headers when passing
-    // through GrandCentral, define some static final variables.
+    // convenience variables
     private static final int   numSelectInts = Constants.stationSelectInts;
     private static final int[] controlInitValues = new int[numSelectInts];
-    private static final int   newAge = Constants.eventNew;
     private static final int   system = Constants.system;
-    private static final int   high = Constants.high;
-    private static final int   low = Constants.low;
-    private static final int   ok = Constants.dataOk;
 
-    /** Unique id number (place of event if C system). */
+    /** Unique id number (place of event in C-based ET system). */
     private int id;
 
-    /** Specifies whether the event was obtained as a new event (through
-     *  {@link SystemUse#newEvents}), or as a "used" event (through  {@link SystemUse#getEvents}).
-     *  If the event is new, its value is {@link Constants#eventNew} otherwise
-     *  {@link Constants#eventUsed}. */
-    private int age;
+    /**
+     * Specifies whether the event was obtained as a new event (through
+     * {@link SystemUse#newEvents}), or as a "used" event (through {@link SystemUse#getEvents}).
+     * If the event is new, its value is {@link Age#NEW} otherwise {@link Age#USED}.
+     */
+    private Age age;
 
-    /** Group to which this event belongs. Used for multiple producers. */
+    /** Group to which this event belongs (1, 2, ...) if ET system events are divided into groups.
+     *  If not, group = 1. Used so some producers don't hog events from others. */
     private int group;
 
-    /** Event priority which is either high {@link Constants#high} or low {@link Constants#low}. */
-    private int priority;
+    /** Event priority which is either {@link Priority#HIGH} or {@link Priority#LOW}. */
+    private Priority priority;
 
-    /** The attachment id which owns or got the event. If it's owned by the
-     *  system its value is {@link Constants#system}. */
+    /**
+     * The attachment id which owns or got the event. If it's owned by the
+     * system its value is {@link Constants#system}.
+     */
     private int owner;
 
     /** Length of the valid data in bytes. */
@@ -63,46 +66,63 @@ public class EventImpl implements Event {
     /** Size of the data buffer in bytes. */
     private int memSize;
 
-    /** Size limit of events' data buffers in bytes. This is important to
-     *  know when Java users connect to C-based ET systems. The C-based ET
-     *  systems cannot allow users to increase an event's data size beyond
-     *  what was originally allocated. In Java systems there is no size
-     *  limit besides computer and JVM limits.
+    /**
+     * Size limit of events' data buffers in bytes. This is important to
+     * know when Java users connect to C-based ET systems. The C-based ET
+     * systems cannot allow users to increase an event's data size beyond
+     * what was originally allocated. In Java systems there is no size
+     * limit besides computer and JVM limits.
      */
     private int sizeLimit;
 
-    /** Status of the data. It can be ok {@link Constants#dataOk}, corrupted
-     *  {@link Constants#dataCorrupt}, or possibly corrupted
-     *  {@link Constants#dataPossiblyCorrupt}. */
-    private int dataStatus;
+    /**
+     * Status of the data. It can be ok {@link DataStatus#OK}, corrupted
+     * {@link DataStatus#CORRUPT}, or possibly corrupted
+     * {@link DataStatus#POSSIBLYCORRUPT}.
+     */
+    private DataStatus dataStatus;
 
-    /** An integer used to keep track of the data's byte ordering. */
+    /**
+     * Specifies whether the user wants to read the event only, will modify only the event header
+     * (everything except the data), or will modify the data and/or header.
+     * Modifying the data and/or header is {@link Modify#ANYTHING}, modifying only the header
+     * is {@link Modify#HEADER}, else the default assumed, {@link Modify#NOTHING},
+     * is that nothing is modified resulting in this event being put back into
+     * the ET system (by remote server) immediately upon being copied and that copy
+     * sent to the user.
+     */
+    private Modify modify;
+
+    /**
+     * An integer used to keep track of the data's byte ordering.
+     * Values can be 0x04030201 (local endian) or 0x01020304 (not local endian).
+     */
     private int byteOrder;
 
-    /** Specifies whether the user wants to read the event only, will modify
-     *  only the event header, or will modify the data. */
-    private int modify;
-
-    /** An array of integers normally used by stations to filter events out of
-     *  their input lists. It is used to control the flow of events through
-     *  the ET system. */
+    /**
+     * An array of integers normally used by stations to filter events out of
+     * their input lists. It is used to control the flow of events through
+     * the ET system.
+     */
     private int[] control;
 
     /** The event data is stored here. */
     private byte[] data;
 
-    /** Store data in a ByteBuffer object for maximum flexibility. */
+    /** This ByteBuffer object is a wrapper for the data byte array for convenience. */
     private ByteBuffer dataBuffer;
-    
+
     /** Flag specifying whether the ET system process is Java based or not. */
     private boolean isJava;
 
 
     
-    /** Creates an event object for users of Java-based ET systems or by the
-     *  system itself. Event objects are only created once in the ET
-     *  system process - when the ET system is started up.
-     *  @param size size of the data array in bytes
+    /**
+     * Creates an event object for users of Java-based ET systems or by the
+     * system itself. Event objects are only created once in the ET
+     * system process - when the ET system is started up.
+     *
+     * @param size size of the data array in bytes
      */
     public EventImpl(int size) {
         memSize    = size;
@@ -116,31 +136,39 @@ public class EventImpl implements Event {
     /**
      * Creates an event object for ET system users when connecting to C-based ET systems.
      *
-     *  @param size size of the data array in bytes.
-     *  @param limit limit on the size of the data array in bytes. Only used
-     *         for C-based ET systems.
-     *  @param isJavaSystem is ET system Java based?
+     * @param size   size of the data array in bytes.
+     * @param limit  limit on the size of the data array in bytes. Only used
+     *               for C-based ET systems.
+     * @param isJava is ET system Java based?
      */
-    EventImpl(int size, int limit, boolean isJavaSystem) {
-        memSize    = size;
-        sizeLimit  = limit;
-        isJava     = isJavaSystem;
-        data       = new byte[size];
-        control    = new int[numSelectInts];
-        dataBuffer = ByteBuffer.wrap(data);
+    EventImpl(int size, int limit, boolean isJava) {
+        memSize     = size;
+        sizeLimit   = limit;
+        this.isJava = isJava;
+        data        = new byte[size];
+        control     = new int[numSelectInts];
+        dataBuffer  = ByteBuffer.wrap(data);
         init();
     }
 
     /**
-     * Creates an event object for ET system users when connecting to C-based ET systems
+     * Creates an event object for ET system users when connecting to local, C-based ET systems
      * and using native methods to call et_events_get.
      * No data array or buffer are created since we will be using shared
      * memory and it will be taken care of later. Tons of args since it's a lot easier in
      * JNI to call one method with lots of args then to call lots of set methods on one object.
      *
-     *  @param size size of the data array in bytes.
-     *  @param limit limit on the size of the data array in bytes. Only used
-     *         for C-based ET systems.
+     * @param size      {@link #memSize}
+     * @param limit     {@link #sizeLimit}
+     * @param status    {@link #dataStatus}
+     * @param id        {@link #id}
+     * @param age       {@link #age}
+     * @param owner     {@link #owner}
+     * @param modify    {@link #modify}
+     * @param length    {@link #length}
+     * @param priority  {@link #modify}
+     * @param byteOrder {@link #byteOrder}
+     * @param control   {@link #control}
      */
     EventImpl(int size, int limit, int status, int id, int age, int owner,
               int modify, int length, int priority, int byteOrder, int[] control) {
@@ -148,35 +176,36 @@ public class EventImpl implements Event {
         isJava         = false;
         memSize        = size;
         sizeLimit      = limit;
-        dataStatus     = status;
+        dataStatus     = DataStatus.getStatus(status);
         this.id        = id;
-        this.age       = age;
+        this.age       = Age.getAge(age);
         this.owner     = owner;
-        this.modify    = modify;
+        this.modify    = Modify.getModify(modify);
         this.length    = length;
-        this.priority  = priority;
+        this.priority  = Priority.getPriority(priority);
         this.byteOrder = byteOrder;
         this.control   = control.clone();
     }
 
     /**
-     * Creates an event object for ET system users when connecting to C-based ET systems
+     * Creates an event object for ET system users when connecting to local, C-based ET systems
      * and using native methods to call et_events_new_group.
      * No data array or buffer are created since we will be using shared
      * memory and it will be taken care of later.
      *
-     *  @param limit limit on the size of the data array in bytes. Only used
-     *         for C-based ET systems.
+     * @param limit {@link #sizeLimit}, {@link #memSize}
+     * @param id    {@link #id}
+     * @param owner {@link #owner}
      */
     EventImpl(int limit, int id, int owner) {
 
-        age        = newAge;
-        priority   = low;
+        age        = Age.NEW;
+        priority   = Priority.LOW;
         isJava     = false;
         byteOrder  = 0x04030201;
         length     = 0;
-        modify     = 0;
-        dataStatus = ok;
+        modify     = Modify.NOTHING;
+        dataStatus = DataStatus.OK;
         control    = new int[numSelectInts];
 
         memSize    = limit;
@@ -188,216 +217,218 @@ public class EventImpl implements Event {
     /** Initialize an event's fields. Called for an event each time it passes
      *  through GRAND_CENTRAL station. */
     public void init() {
-        age        = newAge;
-        priority   = low;
+        age        = Age.NEW;
+        priority   = Priority.LOW;
         owner      = system;
         length     = 0;
-        modify     = 0;
+        modify     = Modify.NOTHING;
         byteOrder  = 0x04030201;
-        dataStatus = ok;
+        dataStatus = DataStatus.OK;
         System.arraycopy(controlInitValues, 0, control, 0, numSelectInts);
     }
 
-    // public gets
 
-    /** Gets the event's id number.
-     *  @return event's id number */
-    public int    getId()   {return id;}
-    /** Gets the age of the event, either {@link Constants#eventNew} if a new event or
-     *  {@link Constants#eventUsed} otherwise.
-     *  @return age of the event. */
-    public int    getAge()        {return age;}
-    /** Gets the group the event belongs to.
-     *  @return the group the event belongs to. */
-    public int    getGroup()      {return group;}
-    /** Gets the event's priority.
-     *  @return event's priority */
-    public int    getPriority()   {return priority;}
-    /** Gets the length of the data in bytes.
-     *  @return length of the data in bytes */
-    public int    getLength()     {return length;}
-    /** Gets the size of the data buffer in bytes.
-     *  @return size of the data buffer in bytes */
-    public int    getMemSize()    {return memSize;}
-    /** Gets the size limit of the data buffer in bytes when using a
-     *  C-based ET system.
-     *  @return size size limit of the data buffer in bytes */
-    public int    getSizeLimit()   {return sizeLimit;}
-    /** Gets the status of the data.
-     *  @return status of the data */
-    public int    getDataStatus() {return dataStatus;}
-    /** Gets the event's modify value.
-     *  @return event's modify value */
-    public int    getModify()     {return modify;}
-    /** Gets the event's control array.
-     *  @return event's control array */
-    public int[]  getControl()    {return control.clone();}
-    /** Gets the event's data array.
-     *  @return event's data array */
-    public byte[] getData()       {return data;}
+    // getters
 
+    
+    /**
+     * {@inheritDoc}
+     */
+    public int getId() {
+        return id;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public Age getAge() {
+        return age;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getGroup() {
+        return group;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public Priority getPriority() {
+        return priority;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getOwner() {
+        return owner;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getLength() {
+        return length;
+    }
+
+    /**
+     * Gets the size of the data buffer in bytes.
+     * @return size of the data buffer in bytes
+     */
+    public int getMemSize() {
+        return memSize;
+    }
+
+    /**
+     * Gets the size limit of the data buffer in bytes when using a C-based ET system.
+     * @return size size limit of the data buffer in bytes
+     */
+    public int getSizeLimit() {
+        return sizeLimit;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public DataStatus getDataStatus() {
+        return dataStatus;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public Modify getModify() {
+        return modify;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ByteOrder getByteOrder() {
+        // java is always big endian
+        return ((byteOrder == 0x04030201) ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int[] getControl() {
+        return control.clone();
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public byte[] getData() {
+        return data;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public ByteBuffer getDataBuffer() {
         return dataBuffer;
     }
 
 
-    /** Gets the event's data array.
-     *  @return a clone of the event's data array */
-    public byte[] copyData()      {return data.clone();}
 
+    // setters
+
+    // TODO: error checking?
 
     /**
-     *
-     * @return
+     * Sets the event's id number.
+     * @param id event's id number
      */
-    public int    getOwner() {return owner;}
-
-
-    // public sets
-
-    // TODO: error checking
-    public void setModify(int modify) {
-        this.modify = modify;
-    }
-    public void setMemSize(int memSize) {
-        this.memSize = memSize;
-    }
     public void setId(int id) {
         this.id = id;
     }
+
+    /**
+     * Gets the age of the event.
+     * @param age age of the event
+     */
+    public void setAge(Age age) {
+        this.age = age;
+    }
+
+    /**
+     * Sets the group the event belongs to.
+     * @param group group the event belongs to
+     */
     public void setGroup(int group) {
         this.group = group;
     }
+
+    /**
+     * Sets the event's priority.
+     * @param pri event priority
+     */
+    public void setPriority(Priority pri) {
+        priority = pri;
+    }
+
+    /**
+     * Sets the owner (attachment using event or system) of event.
+     * @param owner owner (attachment using event or system) of event
+     */
     public void setOwner(int owner) {
         this.owner = owner;
     }
-    public void setAge(int age) {
-        this.age = age;
+
+    /**
+     * Sets the event's data length in bytes.
+     *
+     * @param len data length
+     * @throws EtException if length is less than zero
+     */
+    public void setLength(int len) throws EtException {
+        if (len < 0) {
+            throw new EtException("bad value for event data length");
+        }
+        length = len;
     }
-    public void setDataBuffer(ByteBuffer dataBuffer) {
-        this.dataBuffer = dataBuffer;
+
+    /**
+     * Sets the size of the data buffer in bytes.
+     * @param memSize size of the data buffer in bytes
+     */
+    public void setMemSize(int memSize) {
+        this.memSize = memSize;
     }
 
-
-
-
-
-
-    /** Sets the event's data without copying. The length and memSize members of
-   *  the event are automatically set to the data array's length.
-   *  @param dat data array
-   */
-  public void setData(byte[] dat) throws EtException {
-    if (!isJava) {
-      // In C-based ET systems, user cannot increase data size beyond
-      // what was initially allocated.
-      if (dat.length > sizeLimit) {
-        throw new EtException("data array is too big, limit is "
-				+ sizeLimit + " bytes");
-      }
-    }
-    data    = dat;
-    length  = dat.length;
-    memSize = dat.length;
+    /**
+     * Sets the event's data status.
+     *
+     * @param status data status
+     * @throws EtException if argument is a bad value
+     */
+    public void setDataStatus(DataStatus status) {
+        dataStatus = status;
   }
 
-  /** Set the event's data by copying it in. The event's length member
-   *  is set to the length of the argument array.
-   *  @param dat data array
-   *  @throws EtException
-   *     if the data array is the wrong size
-   */
-  public void copyDataIn(byte[] dat) throws EtException {
-    if (dat.length > memSize) {
-      throw new EtException("data array is too big, limit is "
-				+ memSize + " bytes");
-    }
-    System.arraycopy(dat, 0, data, 0, dat.length);
-    length = dat.length;
-  }
-
-  /** Set the event's data by copying it in. The event's length member
-   *  is not changed.
-   *  @param dat data array
-   *  @param srcOff offset in "dat" byte array
-   *  @param destOff offset in the event's byte array
-   *  @param len bytes of data to copy
-   *  @throws EtException
-   *     if the data array is the wrong size
-   */
-  public void copyDataIn(byte[] dat, int srcOff, int destOff, int len) throws EtException {
-    if (len > data.length) {
-      throw new EtException("too much data, try using \"setData\" method");
-    }
-    System.arraycopy(dat, srcOff, data, destOff, len);
-  }
-
-  /** Sets the event's priority.
-   *  @param pri event priority
-   *  @throws EtException
-   *     if argument is a bad value
-   */
-  public void setPriority(int pri) throws EtException {
-    if (pri != low && pri != high) {
-      throw new EtException("bad value for event priority");
-    }
-    priority = pri;
-  }
-
-  /** Sets the event's data length in bytes.
-   *  @param len data length
-   *  @throws EtException
-   *     if length is less than zero
-   */
-  public void setLength(int len) throws EtException {
-    if (len < 0) {
-      throw new EtException("bad value for event data length");
-    }
-    length = len;
-  }
-
-  /** Sets the event's control array by copying it in.
-   *  @param con control array
-   *  @throws EtException
-   *     if control array has the wrong number of elements
-   */
-  public void setControl(int[] con) throws EtException {
-    if (con.length != numSelectInts) {
-      throw new EtException("wrong number of elements in control array");
-    }
-    System.arraycopy(con, 0, control, 0, numSelectInts);
-  }
-
-  /** Sets the event's data status.
-   *  @param status data status
-   *  @throws EtException
-   *     if argument is a bad value
-   */
-  public void setDataStatus(int status) throws EtException {
-      if ((status != Constants.dataOk) &&
-          (status != Constants.dataCorrupt) &&
-          (status != Constants.dataPossiblyCorrupt)) {
-          throw new EtException("bad value for data status");
-      }
-      dataStatus = status;
-  }
-
-    // byte order stuff
-
-    /** Gets the event's byte order - either {@link Constants#endianBig} or
-     *  {@link Constants#endianLittle}.
-     *  @return event's byte order */
-    public int getByteOrder() {
-        // java is always big endian
-        return ((byteOrder == 0x04030201) ? Constants.endianBig : Constants.endianLittle);
+    /**
+     * Sets whether the user wants to read the event only (default, 0), will modify
+     * only the event header {@link Constants#modifyHeader}, or will modify anything
+     * including the data {@link Constants#modify}. This is only relevant when talking
+     * to the Et system over the network.
+     *
+     * @param modify
+     */
+    public void setModify(Modify modify) {
+        this.modify = modify;
     }
 
-    /** Set the event's byte order. Values can be {@link Constants#endianBig},
-     *  {@link Constants#endianLittle}, {@link Constants#endianLocal},
-     *  {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}
-     *  @param endian endian value
-     *  @throws EtException
-     *     if argument is a bad value
+    /**
+     * Set the event's byte order. Values can be {@link Constants#endianBig},
+     * {@link Constants#endianLittle}, {@link Constants#endianLocal},
+     * {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}
+     *
+     * @param endian endian value
+     * @throws EtException if argument is a bad value
      */
     public void setByteOrder(int endian) throws EtException {
         if (endian == Constants.endianBig) {
@@ -420,6 +451,62 @@ public class EventImpl implements Event {
         }
         return;
     }
+
+    /**
+     * Set the event's byte order.
+     *
+     * @param order endian value
+     */
+    public void setByteOrder(ByteOrder order) {
+        if (order == ByteOrder.BIG_ENDIAN) {
+            byteOrder = 0x04030201;
+        }
+        else {
+            byteOrder = 0x01020304;
+        }
+        return;
+    }
+
+    /**
+     * Sets the event's control array by copying it in.
+     *
+     * @param con control array
+     * @throws EtException if control array has the wrong number of elements
+     */
+    public void setControl(int[] con) throws EtException {
+        if (con.length != numSelectInts) {
+            throw new EtException("wrong number of elements in control array");
+        }
+        System.arraycopy(con, 0, control, 0, numSelectInts);
+    }
+
+    /**
+     * Sets the event's data without copying. The length and memSize members of
+     * the event are automatically set to the data array's length.
+     * Used only by local Java ET system in newEvents to increase data array size.
+     *
+     * @param data data array
+     */
+    public void setData(byte[] data) {
+        // In C-based ET systems, user cannot increase data size beyond
+        // what was initially allocated, but this is only used by local Java ET system.
+        this.data = data;
+        length    = data.length;
+        memSize   = data.length;
+    }
+
+
+    /**
+     * Sets the event's data buffer (backed by data array).
+     * @param dataBuffer event's data buffer
+     */
+    public void setDataBuffer(ByteBuffer dataBuffer) {
+        this.dataBuffer = dataBuffer;
+    }
+
+
+    // miscellaneous
+
 
     /** Tells caller if the event data needs to be swapped in order to be the
      *  correct byte order.

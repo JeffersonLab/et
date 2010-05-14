@@ -24,6 +24,8 @@ import java.nio.ByteOrder;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.enums.Priority;
+import org.jlab.coda.et.enums.Age;
 
 /**
  * This class creates an ET system.
@@ -1200,7 +1202,7 @@ public class SystemCreate {
         for (EventImpl ev : events.values()) {
             // find those owned by this attachment
             if (ev.getOwner() == att.getId()) {
-                if (ev.getAge() == Constants.eventNew) {
+                if (ev.getAge().getValue() == Constants.eventNew) {
 //System.out.println("found new ev " + ev.id + " owned by attachment " + att.id);
                     newEvs.add(ev);
                 }
@@ -1208,7 +1210,7 @@ public class SystemCreate {
                     // Put high priority events first.
                     // Original order may get messed up here.
 //System.out.println("found used ev " + ev.id + " owned by attachment " + att.id);
-                    if (ev.getPriority() == Constants.high) {
+                    if (ev.getPriority() == Priority.HIGH) {
                         usedEvs.add(0, ev);
                     }
                     else {
@@ -1337,10 +1339,7 @@ public class SystemCreate {
             ev.setOwner(att.getId());
             // if size is too small make it larger
             if (ev.getMemSize() < size) {
-                try {
-                    ev.setData(new byte[size]);
-                }
-                catch (EtException e) { }  // TODO: is this kosher??
+                ev.setData(new byte[size]);
                 ev.setMemSize(size);
             }
 //System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize);
@@ -1467,7 +1466,7 @@ public class SystemCreate {
     private void moveEvents(EventList list, List<EventImpl> eventList) {
         // mark events as used and as owned by system
         for (EventImpl ev : eventList) {
-            ev.setAge(Constants.eventUsed);
+            ev.setAge(Age.USED);
             ev.setOwner(Constants.system);
         }
 
@@ -1487,7 +1486,7 @@ public class SystemCreate {
         // mark events as used and as owned by system
         for (EventImpl ev : eventArray) {
 //System.out.println("putEvents: set age & owner of event " + i);
-            ev.setAge(Constants.eventUsed);
+            ev.setAge(Age.USED);
             ev.setOwner(Constants.system);
         }
 
@@ -1510,7 +1509,7 @@ public class SystemCreate {
         // mark events as used and as owned by system
         for (EventImpl ev : eventList) {
 //System.out.println("putEvents: set age & owner of event " + i);
-            ev.setAge(Constants.eventUsed);
+            ev.setAge(Age.USED);
             ev.setOwner(Constants.system);
         }
 

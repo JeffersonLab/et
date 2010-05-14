@@ -20,9 +20,14 @@ import java.io.*;
 import java.net.*;
 import java.nio.MappedByteBuffer;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import org.jlab.coda.et.data.*;
 import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.enums.Modify;
+import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.et.enums.Priority;
+import org.jlab.coda.et.enums.DataStatus;
 
 
 /**
@@ -995,10 +1000,10 @@ public class SystemUse {
      * Get new (unused) events from an ET system.
      *
      * @param att      attachment object
-     * @param mode     if there are no new events available, this parameter specifies
-     *                 whether to wait for some by sleeping {@link Constants#sleep},
-     *                 to wait for a set time {@link Constants#timed},
-     *                 or to return immediately {@link Constants#async}.
+     * @param mode      if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                  to wait for a set time {@link Mode#TIMED},
+     *                  or to return immediately {@link Mode#ASYNC}.
      * @param microSec the number of microseconds to wait if a timed wait is
      *                 specified
      * @param count    the number of events desired
@@ -1023,7 +1028,7 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    public Event[] newEvents(Attachment att, int mode, int microSec, int count, int size)
+    public Event[] newEvents(Attachment att, Mode mode, int microSec, int count, int size)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
@@ -1101,9 +1106,9 @@ public class SystemUse {
      *
      * @param att       attachment object
      * @param mode      if there are no new events available, this parameter specifies
-     *                  whether to wait for some by sleeping {@link Constants#sleep},
-     *                  to wait for a set time {@link Constants#timed},
-     *                  or to return immediately {@link Constants#async}.
+     *                  whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                  to wait for a set time {@link Mode#TIMED},
+     *                  or to return immediately {@link Mode#ASYNC}.
      * @param microSec  the number of microseconds to wait if a timed wait is
      *                  specified
      * @param count     the number of events desired
@@ -1131,11 +1136,15 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public Event[] newEvents(Attachment att, int mode, int microSec,
+    synchronized public Event[] newEvents(Attachment att, Mode mode, int microSec,
                                           int count, int size, int group)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException,   EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
+
+        if (mode == null) {
+            throw new EtException("Invalid mode");
+        }
 
         if (att == null || !att.usable || att.sys != this) {
             throw new EtException("Invalid attachment");
@@ -1145,13 +1154,7 @@ public class SystemUse {
             return new Event[0];
         }
 
-        int wait = mode & Constants.waitMask;
-        if ((wait != Constants.sleep) &&
-            (wait != Constants.timed) &&
-            (wait != Constants.async))  {
-            throw new EtException("bad mode argument");
-        }
-        else if ((microSec < 0) && (wait == Constants.timed)) {
+        if ((microSec < 0) && (mode == Mode.TIMED)) {
             throw new EtException("bad microSec argument");
         }
         else if (size < 1) {
@@ -1173,18 +1176,18 @@ public class SystemUse {
 
         // Do we get things locally through JNI?
         if (sys.isMapLocalSharedMemory()) {
-            return newEventsJNI(att.getId(), mode, sec, nsec, count, size, group);
+            return newEventsJNI(att.getId(), mode.getValue(), sec, nsec, count, size, group);
         }
 
         byte[] buffer = new byte[36];
         Utils.intToBytes(Constants.netEvsNewGrp, buffer, 0);
-        Utils.intToBytes(att.id,      buffer, 4);
-        Utils.intToBytes(mode,        buffer, 8);
-        Utils.longToBytes((long)size, buffer, 12);
-        Utils.intToBytes(count,       buffer, 20);
-        Utils.intToBytes(group,       buffer, 24);
-        Utils.intToBytes(sec,         buffer, 28);
-        Utils.intToBytes(nsec,        buffer, 32);
+        Utils.intToBytes(att.id,          buffer, 4);
+        Utils.intToBytes(mode.getValue(), buffer, 8);
+        Utils.longToBytes((long)size,     buffer, 12);
+        Utils.intToBytes(count,           buffer, 20);
+        Utils.intToBytes(group,           buffer, 24);
+        Utils.intToBytes(sec,             buffer, 28);
+        Utils.intToBytes(nsec,            buffer, 32);
         out.write(buffer);
         out.flush();
 
@@ -1236,7 +1239,6 @@ public class SystemUse {
 
         int index=-4;
         long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
-        final int modify = Constants.modify;
 
         // Java limits array sizes to an integer. Thus we're limited to
         // 2G byte arrays. Essentially Java is a 32 bit system in this
@@ -1254,7 +1256,7 @@ public class SystemUse {
         for (int j=0; j < numEvents; j++) {
             evs[j] = new EventImpl(size, (int)sizeLimit, isJava);
             evs[j].setId(Utils.bytesToInt(buffer, index+=4));
-            evs[j].setModify(modify);
+            evs[j].setModify(Modify.ANYTHING);
             evs[j].setOwner(att.getId());
         }
 
@@ -1325,14 +1327,14 @@ public class SystemUse {
      * systems through sockets.
      *
      * @param att      attachment object
-     * @param mode     if there are no events available, this parameter specifies
-     *                 whether to wait for some by sleeping {@link Constants#sleep},
-     *                 to wait for a set time {@link Constants#timed},
-     *                 or to return immediately {@link Constants#async}.
-     *                 This may be ORed with a flag that specifies whether this application plans
-     *                 on modifying the data in events obtained {@link Constants#modify}, or
-     *                 only modifying headers {@link Constants#modifyHeader}. The default assumed
-     *                 is that the no values are modified resulting in the events being put back into
+     * @param mode     if there are no new events available, this parameter specifies
+     *                 whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                 to wait for a set time {@link Mode#TIMED},
+     *                 or to return immediately {@link Mode#ASYNC}.
+     * @param modify   this specifies whether this application plans
+     *                 on modifying the data in events obtained {@link Modify#ANYTHING}, or
+     *                 only modifying headers {@link Modify#HEADER}. The default assumed ,{@link Modify#NOTHING},
+     *                 is that no values are modified resulting in the events being put back into
      *                 the ET system (by remote server) immediately upon being copied and that copy
      *                 sent to this method's caller.
      * @param microSec the number of microseconds to wait if a timed wait is
@@ -1359,13 +1361,21 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public Event[] getEvents(Attachment att, int mode, int microSec, int count)
+    synchronized public Event[] getEvents(Attachment att, Mode mode, Modify modify, int microSec, int count)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
 
+        if (mode == null) {
+            throw new EtException("Invalid mode");
+        }
+
         if (att == null|| !att.usable || att.sys != this) {
             throw new EtException("Invalid attachment");
+        }
+        
+        if (modify == null) {
+            modify = Modify.NOTHING;
         }
 
         // may not get events from GrandCentral
@@ -1377,24 +1387,11 @@ public class SystemUse {
             return new Event[0];
         }
 
-        int wait = mode & Constants.waitMask;
-        if ((wait != Constants.sleep) &&
-            (wait != Constants.timed) &&
-            (wait != Constants.async))  {
-            throw new EtException("bad mode argument");
-        }
-        else if ((microSec < 0) && (wait == Constants.timed)) {
+        if ((microSec < 0) && (mode == Mode.TIMED)) {
             throw new EtException("bad microSec argument");
         }
         else if (count < 0) {
             throw new EtException("bad count argument");
-        }
-
-        // Modifying the whole event has precedence over modifying
-        // only the header should the user specify both.
-        int modify = mode & Constants.modify;
-        if (modify == 0) {
-            modify = mode & Constants.modifyHeader;
         }
 
         int sec  = 0;
@@ -1406,18 +1403,18 @@ public class SystemUse {
 
         // Do we get things locally through JNI?
         if (sys.isMapLocalSharedMemory()) {
-            return getEventsJNI(att.getId(), mode, sec, nsec, count);
+            return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
         }
 
         // Or do we go through the network?
         byte[] buffer = new byte[28];
         Utils.intToBytes(Constants.netEvsGet, buffer, 0);
-        Utils.intToBytes(att.id, buffer, 4);
-        Utils.intToBytes(wait,   buffer, 8);
-        Utils.intToBytes(modify, buffer, 12);
-        Utils.intToBytes(count,  buffer, 16);
-        Utils.intToBytes(sec,    buffer, 20);
-        Utils.intToBytes(nsec,   buffer, 24);
+        Utils.intToBytes(att.id,              buffer, 4);
+        Utils.intToBytes(mode.getValue(),     buffer, 8);
+        Utils.intToBytes(modify.getValue(),   buffer, 12);
+        Utils.intToBytes(count,               buffer, 16);
+        Utils.intToBytes(sec,                 buffer, 20);
+        Utils.intToBytes(nsec,                buffer, 24);
         out.write(buffer);
         out.flush();
 
@@ -1494,8 +1491,8 @@ public class SystemUse {
             evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
             evs[j].setLength((int)length);
             priAndStat = Utils.bytesToInt(buffer, 16);
-            evs[j].setPriority(priAndStat & priorityMask);
-            evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
+            evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
+            evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
             evs[j].setId(Utils.bytesToInt(buffer, 20));
             // skip unused int here
             evs[j].setByteOrder(Utils.bytesToInt(buffer, 28));
@@ -1620,7 +1617,6 @@ public class SystemUse {
 
         final int selectInts = Constants.stationSelectInts;
         final int dataShift  = Constants.dataShift;
-        final int modify     = Constants.modify;
 
         // find out how many events we're sending & total # bytes
         int bytes = 0, numEvents = 0;
@@ -1632,11 +1628,11 @@ public class SystemUse {
                 throw new EtException("may not put event(s), not owner");
             }
             // if modifying header only or header & data ...
-            if (evs[i].getModify() > 0) {
+            if (evs[i].getModify() != Modify.NOTHING) {
                 numEvents++;
                 bytes += headerSize;
                 // if modifying data as well ...
-                if (evs[i].getModify() == modify) {
+                if (evs[i].getModify() == Modify.ANYTHING) {
                     bytes += evs[i].getLength();
                 }
             }
@@ -1657,12 +1653,12 @@ public class SystemUse {
 
         for (int i=offset; i < length; i++) {
             // send only if modifying an event (data or header) ...
-            if (evs[i].getModify() > 0) {
+            if (evs[i].getModify() != Modify.NOTHING) {
                 out.writeInt(evs[i].getId());
                 out.writeInt(0); // not used
                 out.writeLong((long)evs[i].getLength());
-                out.writeInt(evs[i].getPriority() | evs[i].getDataStatus() << dataShift);
-                out.writeInt(evs[i].getByteOrder());
+                out.writeInt(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift);
+                out.writeInt(evs[i].getByteOrder() == ByteOrder.LITTLE_ENDIAN ? Constants.endianLittle : Constants.endianBig);
                 out.writeInt(0); // not used
                 int[] control = evs[i].getControl();
                 for (int j=0; j < selectInts; j++) {
@@ -1670,7 +1666,7 @@ public class SystemUse {
                 }
 
                 // send data only if modifying whole event
-                if (evs[i].getModify() == modify) {
+                if (evs[i].getModify() == Modify.ANYTHING) {
 //System.out.println("Sending data = " + Utils.bytesToInt(evs[i].getData(),0) + ", len = " + evs[i].getLength());
                     ByteBuffer buf = evs[i].getDataBuffer();
                     // buf should never be null
@@ -1803,7 +1799,7 @@ public class SystemUse {
             if (evs[i].getOwner() != att.id) {
                 throw new EtException("may not put event(s), not owner");
             }
-            if (evs[i].getModify() > 0) numEvents++;
+            if (evs[i].getModify() != Modify.NOTHING) numEvents++;
         }
 
         // Did we get things locally through JNI?
@@ -1818,7 +1814,7 @@ public class SystemUse {
 
         for (int i=offset; i<offset+length; i++) {
             // send only if modifying an event (data or header) ...
-            if (evs[i].getModify() > 0) {
+            if (evs[i].getModify() != Modify.NOTHING) {
                 out.writeInt(evs[i].getId());
             }
         }

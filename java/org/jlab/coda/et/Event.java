@@ -15,6 +15,10 @@
 package org.jlab.coda.et;
 
 import org.jlab.coda.et.exception.EtException;
+import org.jlab.coda.et.enums.Modify;
+import org.jlab.coda.et.enums.Priority;
+import org.jlab.coda.et.enums.DataStatus;
+import org.jlab.coda.et.enums.Age;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -41,23 +45,30 @@ public interface Event {
     public int getId();
 
     /**
-     * Gets the age of the event, either {@link org.jlab.coda.et.Constants#eventNew}
-     * if a new event or {@link org.jlab.coda.et.Constants#eventUsed} otherwise.
+     * Gets the age of the event, either {@link Age#NEW} if a new event obtained through
+     * calling {@link SystemUse#newEvents} or {@link Age#USED} if obtained through calling
+     * {@link SystemUse#getEvents}.
+     *
      * @return age of the event.
      */
-    public int getAge();
+    public Age getAge();
 
     /**
-     * Gets the group the event belongs to.
+     * Gets the group the event belongs to (1, 2, ...) if ET system events are divided into groups.
+     * If not, group = 1. Used so some producers don't hog events from others.
+     *
      * @return the group the event belongs to.
      */
     public int getGroup();
 
     /**
-     * Gets the event's priority, either high {@link Constants#high} or low {@link Constants#low}.
+     * Gets the event's priority, either high {@link Priority#HIGH} or low {@link Priority#LOW}.
+     * Low priority is normal while high priority events get placed at the front of stations'
+     * input and output event lists.
+     * 
      * @return event's priority.
      */
-    public int getPriority();
+    public Priority getPriority();
 
     /**
      * Gets the length of the data in bytes.
@@ -66,41 +77,34 @@ public interface Event {
     public int getLength();
 
     /**
-     * Gets the size of the data buffer in bytes.
-     * @return size of the data buffer in bytes.
-     */
-    public int getMemSize();
-
-    /**
-     * Gets the size limit of the data buffer in bytes when using a C-based ET system.
-     * @return size size limit of the data buffer in bytes when using a C-based ET system.
-     */
-    public int getSizeLimit();
-
-    /**
-     * Gets the status of the data.
-     * It can be ok {@link Constants#dataOk}, corrupted
-     * {@link Constants#dataCorrupt}, or possibly corrupted
-     * {@link Constants#dataPossiblyCorrupt}.
-     * 
+     * Gets the status of the data (set by the system), which can be OK {@link DataStatus#OK},
+     * corrupted {@link DataStatus#CORRUPT}, or possibly corrupted
+     * {@link DataStatus#POSSIBLYCORRUPT}. Data is OK by default, it is never labeled
+     * as corrupt but can be labeled as possible corrupt if the process owning an
+     * event crashes and the system recovers it.
+     *
      * @return status of the data.
      */
-    public int getDataStatus();
+    public DataStatus getDataStatus();
 
     /**
-     * Gets the event's modify value. This specifies whether the user which
-     * obtained the event over the network plans on modifying the data {@link Constants#modify}, or
-     * only modifying the header {@link Constants#modifyHeader}. The default assumed (0)
-     * is that the no values are modified resulting in this event being put back into
+     * Gets the event's modify value when receiving it over the network.
+     * This specifies whether the user wants to read the event only, will modify only
+     * the event header (everything except the data), or will modify the data and/or header.
+     * Modifying the data and/or header is {@link Modify#ANYTHING}, modifying only the header
+     * is {@link Modify#HEADER}, else the default assumed, {@link Modify#NOTHING},
+     * is that nothing is modified resulting in this event being put back into
      * the ET system (by remote server) immediately upon being copied and that copy
-     * sent to this user.
-     * 
+     * sent to the user.
+     *
      * @return event's modify value.
      */
-    public int getModify();
+    public Modify getModify();
 
     /**
      * Gets the event's control array.
+     * This is an array of integers which can be used for any purpose by the user.
+     * 
      * @return event's control array.
      */
     public int[] getControl();
@@ -120,27 +124,29 @@ public interface Event {
     /**
      * Gets the attachment id of the attachment which owns or got the event.
      * If it's owned by the system its value is {@link Constants#system}.
+     *
      * @return id of owning attachment or {@link Constants#system} if system owns it
      */
     public int getOwner();
 
     /**
-     * Gets the event's byte order.
-     * @return event's byte order
+     * Gets the event data's byte order.
+     * @return event data's byte order
      */
-    ByteOrder getByteOrder();
+    ByteOrder getByteOrder();     // TODO: this info can be obtained through ByteBuffer
 
 
     // setters
 
 
     /**
-     * Sets the event's priority.
+     * Sets the event's priority, either high {@link Priority#HIGH} or low {@link Priority#LOW}.
+     * Low priority is normal while high priority events get placed at the front of stations'
+     * input and output event lists.
      *
      * @param pri event priority
-     * @throws EtException if argument is a bad value
      */
-    void setPriority(int pri) throws EtException;
+    void setPriority(Priority pri);
 
     /**
      * Sets the event's data length in bytes.
@@ -151,7 +157,7 @@ public interface Event {
     void setLength(int len) throws EtException;
 
     /**
-     * Sets the event's control array by copying it in.
+     * Sets the event's control array by copying it into the event.
      *
      * @param con control array
      * @throws EtException if control array has the wrong number of elements
@@ -159,17 +165,15 @@ public interface Event {
     void setControl(int[] con) throws EtException;
 
     /**
-     * Sets the event's data status.
-     *
-     * @param status data status
-     * @throws EtException if argument is a bad value
+     * Set the event data's byte order.
+     * @param order data's byte order
      */
-    void setDataStatus(int status) throws EtException;
+    void setByteOrder(ByteOrder order);
 
     /**
-     * Set the event's byte order. Values can be {@link org.jlab.coda.et.Constants#endianBig},
-     * {@link org.jlab.coda.et.Constants#endianLittle}, {@link org.jlab.coda.et.Constants#endianLocal},
-     * {@link org.jlab.coda.et.Constants#endianNotLocal}, or {@link org.jlab.coda.et.Constants#endianSwitch}
+     * Set the event's byte order. Values can be {@link Constants#endianBig},
+     * {@link Constants#endianLittle}, {@link Constants#endianLocal},
+     * {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}.
      *
      * @param endian endian value
      * @throws EtException if argument is a bad value

@@ -26,6 +26,9 @@ import java.nio.ByteOrder;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
+import org.jlab.coda.et.enums.Modify;
+import org.jlab.coda.et.enums.Priority;
+import org.jlab.coda.et.enums.DataStatus;
 
 /**
  * This class implements a thread which listens for users trying to connect to
@@ -435,7 +438,8 @@ class ClientThread extends Thread {
                             Utils.intToBytes(err, buf, 0);
                             Utils.longToBytes((long)ev.getLength(),  buf,  4);
                             Utils.longToBytes((long)ev.getMemSize(), buf, 12);
-                            Utils.intToBytes(ev.getPriority() | ev.getDataStatus() << dataShift, buf, 20);
+                            Utils.intToBytes(ev.getPriority().getValue() |
+                                             ev.getDataStatus().getValue() << dataShift, buf, 20);
                             Utils.intToBytes(ev.getId(), buf, 24);  // skip 4 bytes here
                             Utils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
                                              Constants.endianLittle : Constants.endianBig,
@@ -451,7 +455,7 @@ class ClientThread extends Thread {
                             out.write(buf);
                             out.flush();
 
-                            ev.setModify(mod);
+                            ev.setModify(Modify.getModify(mod));
                             if (mod == 0) {
                                 sys.putEvents(att, evs);
                             }
@@ -581,12 +585,15 @@ class ClientThread extends Thread {
 
                             Utils.intToBytes(evs.length, buffer, 0);
                             Utils.longToBytes((long)size, buffer, 4);
+
+                            Modify mfy = Modify.getModify(mod);
                             for (EventImpl ev : evs) {
-                                ev.setModify(mod);
+                                ev.setModify(mfy);
                                 length = ev.getLength();
                                 Utils.longToBytes((long)length, buffer, index);
                                 Utils.longToBytes((long)ev.getMemSize(), buffer, index += 8);
-                                Utils.intToBytes(ev.getPriority() | ev.getDataStatus() << dataShift, buffer, index += 8);
+                                Utils.intToBytes(ev.getPriority().getValue() |
+                                                 ev.getDataStatus().getValue() << dataShift, buffer, index += 8);
                                 Utils.intToBytes(ev.getId(), buffer, index += 4); // skip 4 bytes here
                                 Utils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
                                                  Constants.endianLittle : Constants.endianBig,
@@ -641,8 +648,8 @@ class ClientThread extends Thread {
                             ev.setLength((int) len);
 
                             int priAndStat = Utils.bytesToInt(params, 20);
-                            ev.setPriority(priAndStat & priorityMask);
-                            ev.setDataStatus((priAndStat & dataMask) >> dataShift);
+                            ev.setPriority(Priority.getPriority(priAndStat & priorityMask));
+                            ev.setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
                             ev.setByteOrder(Utils.bytesToInt(params, 24));
                             // last parameter is ignored
 
@@ -653,7 +660,7 @@ class ClientThread extends Thread {
                             }
                             ev.setControl(control);
                             // only read data if modifying everything
-                            if (ev.getModify() == modify) {
+                            if (ev.getModify() == Modify.ANYTHING) {
                                 in.readFully(ev.getData(), 0, ev.getLength());
                             }
 
@@ -694,8 +701,8 @@ class ClientThread extends Thread {
                                 evs[j].setLength((int) len);
 
                                 priAndStat        = Utils.bytesToInt(params, 16);
-                                evs[j].setPriority(priAndStat & priorityMask);
-                                evs[j].setDataStatus((priAndStat & dataMask) >> dataShift);
+                                evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
+                                evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
                                 evs[j].setByteOrder(Utils.bytesToInt(params, 20));
                                 index = 24;
                                 int[] control = new int[selectInts];
@@ -703,7 +710,7 @@ class ClientThread extends Thread {
                                     control[i] = Utils.bytesToInt(params, index += 4);
                                 }
                                 evs[j].setControl(control);
-                                if (evs[j].getModify() == modify) {
+                                if (evs[j].getModify() == Modify.ANYTHING) {
                                     // If user increased data length beyond memSize,
                                     // use more memory.
                                     if (evs[j].getLength() > evs[j].getMemSize()) {
@@ -814,7 +821,7 @@ class ClientThread extends Thread {
                                 break;
                             }
 
-                            evs[0].setModify(modify);
+                            evs[0].setModify(Modify.ANYTHING);
 
                             out.writeInt(err);
                             out.writeInt(evs[0].getId());
@@ -926,7 +933,7 @@ class ClientThread extends Thread {
                             // first send number of events
                             Utils.intToBytes(evs.length, buf, 0);
                             for (EventImpl ev : evs) {
-                                ev.setModify(modify);
+                                ev.setModify(Modify.ANYTHING);
                                 Utils.intToBytes(ev.getId(), buf, index += 4);
                             }
                             out.write(buf);
@@ -1099,7 +1106,7 @@ class ClientThread extends Thread {
                             // first send number of events
                             Utils.intToBytes(evList.size(), buf, 0);
                             for (EventImpl ev : evList) {
-                                ev.setModify(modify);
+                                ev.setModify(Modify.ANYTHING);
                                 Utils.intToBytes(ev.getId(), buf, index += 4);
                             }
                             out.write(buf);

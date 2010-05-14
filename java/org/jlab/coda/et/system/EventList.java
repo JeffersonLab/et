@@ -20,6 +20,7 @@ import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.Event;
 import org.jlab.coda.et.Constants;
 import org.jlab.coda.et.EventImpl;
+import org.jlab.coda.et.enums.Priority;
 
 /**
  * This class defines a linked list of events for use as either a station's
@@ -195,7 +196,7 @@ class EventList {
         int num = newEvents.size();
 
         // all incoming events' priorities are low or no events in this EventList
-        if ((events.size() == 0) || ((newEvents.get(0)).getPriority() == Constants.low))  {
+        if ((events.size() == 0) || ((newEvents.get(0)).getPriority() == Priority.LOW))  {
             // adds new events to the end
             events.addAll(newEvents);
             /*
@@ -213,7 +214,7 @@ class EventList {
             // find last high priority event already in list
             int highCount = 0;
             for (Event ev : events) {
-                if (ev.getPriority() != Constants.high) {
+                if (ev.getPriority() != Priority.HIGH) {
                     break;
                 }
                 highCount++;
@@ -223,7 +224,7 @@ class EventList {
             // add new high pri items
             int newHighCount = 0;
             for (EventImpl ev : newEvents) {
-                if (ev.getPriority() != Constants.high) {
+                if (ev.getPriority() != Priority.HIGH) {
                     break;
                 }
 //System.out.println("  putAll add high " + ev.id + " at " + (highCount + newHighCount));
@@ -256,7 +257,7 @@ class EventList {
         // put events in one-by-one - with place depending on priority
         for (EventImpl ev : newEvents) {
             // if low priority event, add to the list end
-            if (ev.getPriority() == Constants.low) {
+            if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
                 events.addLast(ev);
             }
@@ -285,7 +286,7 @@ class EventList {
         // put events in one-by-one - with place depending on priority
         for (EventImpl ev : newEvents) {
             // if low priority event, add to the list end
-            if (ev.getPriority() == Constants.low) {
+            if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
                 events.addLast(ev);
             }
@@ -317,7 +318,7 @@ class EventList {
             // it here since this method can be used for input lists.
             int highCount = 0;
             for (Event ev : events) {
-                if (ev.getPriority() != Constants.high) {
+                if (ev.getPriority() != Priority.HIGH) {
                     break;
                 }
                 highCount++;
@@ -328,7 +329,7 @@ class EventList {
         // put events in one-by-one - with place depending on priority
         for (EventImpl ev : newEvents) {
             // if low priority event, add below last high priority but above low priority events
-            if (ev.getPriority() == Constants.low) {
+            if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
                 events.add(lastHigh, ev);
             }
