@@ -171,8 +171,8 @@ public interface Event {
     void setByteOrder(ByteOrder order);
 
     /**
-     * Set the event's byte order. Values can be {@link Constants#endianBig},
-     * {@link Constants#endianLittle}, {@link Constants#endianLocal},
+     * Set the event's byte order by using values consistent with C-based ET systems,
+     * {@link Constants#endianBig}, {@link Constants#endianLittle}, {@link Constants#endianLocal},
      * {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}.
      *
      * @param endian endian value
@@ -186,10 +186,9 @@ public interface Event {
     
     /**
      * Tells caller if the event data needs to be swapped in order to be the
-     * correct byte order.
+     * same byte order as the local JVM.
      *
      * @return <code>true</code> if swapping is needed, otherwise <code>false</code>
-     * @throws EtException if the byte order has a bad value
      */
-    boolean needToSwap() throws EtException;
+    boolean needToSwap();
 }

@@ -35,7 +35,6 @@ public class EventImpl implements Event {
     // convenience variables
     private static final int   numSelectInts = Constants.stationSelectInts;
     private static final int[] controlInitValues = new int[numSelectInts];
-    private static final int   system = Constants.system;
 
     /** Unique id number (place of event in C-based ET system). */
     private int id;
@@ -219,7 +218,7 @@ public class EventImpl implements Event {
     public void init() {
         age        = Age.NEW;
         priority   = Priority.LOW;
-        owner      = system;
+        owner      = Constants.system;
         length     = 0;
         modify     = Modify.NOTHING;
         byteOrder  = 0x04030201;
@@ -348,7 +347,10 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Gets the age of the event.
+     * Gets the age of the event which is {@link Age#NEW} for new events obtained by calling
+     * {@link SystemUse#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
+     * {@link SystemUse#getEvents}).
+     *
      * @param age age of the event
      */
     public void setAge(Age age) {
@@ -356,7 +358,9 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Sets the group the event belongs to.
+     * Sets the group the event belongs to: (1, 2, ...) if ET system events are divided into groups,
+     * or group = 1 if not.
+     *
      * @param group group the event belongs to
      */
     public void setGroup(int group) {
@@ -364,29 +368,25 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Sets the event's priority.
-     * @param pri event priority
+     * {@inheritDoc}
      */
     public void setPriority(Priority pri) {
         priority = pri;
     }
 
     /**
-     * Sets the owner (attachment using event or system) of event.
-     * @param owner owner (attachment using event or system) of event
+     * Sets the owner of the event (attachment using event or system).
+     * @param owner owner of event (attachment using event or system)
      */
     public void setOwner(int owner) {
         this.owner = owner;
     }
 
     /**
-     * Sets the event's data length in bytes.
-     *
-     * @param len data length
-     * @throws EtException if length is less than zero
+     * {@inheritDoc}
      */
     public void setLength(int len) throws EtException {
-        if (len < 0) {
+        if (len < 0 || len > sizeLimit) {
             throw new EtException("bad value for event data length");
         }
         length = len;
@@ -401,21 +401,26 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Sets the event's data status.
+     * Sets the event's data status. It can be ok {@link DataStatus#OK} which is the default,
+     * corrupted {@link DataStatus#CORRUPT} which is never used actually, or possibly corrupted
+     * {@link DataStatus#POSSIBLYCORRUPT} which occurs when a process holding the event crashes
+     * and the system recovers it.
      *
      * @param status data status
-     * @throws EtException if argument is a bad value
      */
     public void setDataStatus(DataStatus status) {
         dataStatus = status;
-  }
+    }
 
     /**
-     * Sets whether the user wants to read the event only (default, 0), will modify
-     * only the event header {@link Constants#modifyHeader}, or will modify anything
-     * including the data {@link Constants#modify}. This is only relevant when talking
-     * to the Et system over the network.
-     *
+     * Sets whether the user wants to read the event only, will modify only the event header
+     * (everything except the data), or will modify the data and/or header.
+     * Modifying the data and/or header is {@link Modify#ANYTHING}, modifying only the header
+     * is {@link Modify#HEADER}, else the default assumed, {@link Modify#NOTHING},
+     * is that nothing is modified resulting in this event being put back into
+     * the ET system (by remote server) immediately upon being copied and that copy
+     * sent to the user.
+     * 
      * @param modify
      */
     public void setModify(Modify modify) {
@@ -423,12 +428,7 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Set the event's byte order. Values can be {@link Constants#endianBig},
-     * {@link Constants#endianLittle}, {@link Constants#endianLocal},
-     * {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}
-     *
-     * @param endian endian value
-     * @throws EtException if argument is a bad value
+     * {@inheritDoc}
      */
     public void setByteOrder(int endian) throws EtException {
         if (endian == Constants.endianBig) {
@@ -453,9 +453,7 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Set the event's byte order.
-     *
-     * @param order endian value
+     * {@inheritDoc}
      */
     public void setByteOrder(ByteOrder order) {
         if (order == ByteOrder.BIG_ENDIAN) {
@@ -468,10 +466,7 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Sets the event's control array by copying it in.
-     *
-     * @param con control array
-     * @throws EtException if control array has the wrong number of elements
+     * {@inheritDoc}
      */
     public void setControl(int[] con) throws EtException {
         if (con.length != numSelectInts) {
@@ -508,19 +503,11 @@ public class EventImpl implements Event {
     // miscellaneous
 
 
-    /** Tells caller if the event data needs to be swapped in order to be the
-     *  correct byte order.
-     *  @return <code>true</code> if swapping is needed, otherwise <code>false</code>
-     *  @throws EtException
-     *     if the byte order has a bad value
+    /**
+     * {@inheritDoc}
      */
-    public boolean needToSwap() throws EtException {
-        if (byteOrder == 0x04030201)
-            return false;
-        else if (byteOrder == 0x01020304) {
-            return true;
-        }
-        throw new EtException("byteOrder member has bad value");
+    public boolean needToSwap() {
+        return byteOrder != 0x04030201;
     }
 
 }
