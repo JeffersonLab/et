@@ -2010,10 +2010,6 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
                 break;
             }
 
-            /* If we're on a 32 bit machine, we need to translate these
-             * 32 bit pointers to 64 bit ints and send over the wire in
-             * order to be compatible with 64 bit ET systems.
-             */
             for (i=0; i < nevents; i++) {
                 /* keep track of how this event is to be modified */
                 events[i]->modify = ET_MODIFY;
@@ -2165,15 +2161,6 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
 
           att = ntohl(incoming[0]);
-          /* Pointers (may be 64 bits) are in ET system space and must be translated.
-           * The following ifdef avoids compiler warnings.
-           */
-/*#ifdef _LP64
-          pe  = (et_event *) ET_64BIT_P(ntohl(incoming[1]),ntohl(incoming[2]));
-#else
-          pe  = (et_event *)ntohl(incoming[2]);
-#endif*/
-
           pe  = ET_P2EVENT(etid, ntohl(incoming[1]));
           err = et_event_dump(id, att, pe);
 
