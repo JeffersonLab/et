@@ -6,136 +6,158 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
 package org.jlab.coda.et;
 
-import java.lang.*;
 import java.io.*;
 import org.jlab.coda.et.exception.*;
 
 /**
  * This class defines an ET system user's attachment to a station.
- * Attachments can only be created by an ET system's
- * {@link SystemUse#attach} method. Attachments are means of designating the
+ * Attachments can only be created by an ET system's {@link SystemUse#attach}
+ * method. Attachments are means of designating the
  * ownership of events and keeping track of events.
  *
  * @author Carl Timmer
  */
-
 public class Attachment {
 
-  // keep a list or set of events we currently have out?
+    // TODO: keep a list or set of events we currently have out?
 
-  /** Unique id number */
-  int       id;
-  /** Station the attachment is associated with */
-  Station   station;
-  /** Flag telling whether this attachment object is usable or the attachment it
-   *  represents has been detached. Set by the user's ET system object. */
-  boolean   usable;
-  /** ET system the attachment is associated with */
-  SystemUse sys;
+    /** Unique id number. */
+    private int id;
+
+    /** ET system the attachment is associated with. */
+    private SystemUse sys;
+
+    /** Station the attachment is associated with. */
+    private Station station;
+
+    /**
+     * Flag telling whether this attachment object is usable or the attachment it
+     * represents has been detached. Set by the user's ET system object.
+     */
+    private boolean usable;
 
 
-  /**
-   * Creates an attachment to a specific ET system and station. Attachments can
-   * only be created by an ET system's {@link SystemUse#attach} method.
-   *
-   * @param _station   station object
-   * @param _id        unique attachment id number
-   * @param _sys       ET system object
-   */
-  Attachment(Station _station, int _id, SystemUse _sys) {
-    id         = _id;
-    station    = _station;
-    sys        = _sys;
-  }
-
-  /**
-   * Gets the object of the station attached to.
-   * @return object of station attached to
-   */
-  public Station getStation() {return station;}
-  /**
-   * Gets the id number of this attachment.
-   * @return id number of this attachment
-   */
-  public int getId() {return id;}
-  /**
-   * Tells if this attachment object is usable.
-   * @return <code>true</code> if attachment object is usable and <code>false
-   * </code> otherwise
-   */
-  public boolean usable()     {return usable;}
-
-  /**
-   * Gets the value of an attachment's eventsPut, eventsGet, eventsDump, or
-   * eventsMake by network communication with the ET system.
-   *
-   * @param cmd command number
-   * @see Constants
-   * @return value of requested parameter
-   *
-   * @throws IOException
-   *     if there are network communication problems
-   * @throws EtException
-   *     if the station no longer exists
-   */
-  private long getLongValue(int cmd) throws IOException, EtException {
-    int  err = 0;
-    long val = 0;
-
-    synchronized(sys) {
-      sys.getOutputStream().writeInt(cmd);
-      sys.getOutputStream().writeInt(id);
-      sys.getOutputStream().flush();
-      err = sys.getInputStream().readInt();
-      val = sys.getInputStream().readLong();
+    /**
+     * Constructor for creating an attachment to a specific ET system and station.
+     * Attachments can only be created by an ET system's {@link SystemUse#attach} method.
+     *
+     * @param station  station object
+     * @param id       unique attachment id number
+     * @param sys      ET system object
+     */
+    Attachment(Station station, int id, SystemUse sys) {
+        this.id      = id;
+        this.sys     = sys;
+        this.station = station;
     }
 
-    if (err != Constants.ok) {
-      throw new EtException("this station has been revmoved from ET system");
+
+    // Getters/Setters
+
+
+    /**
+     * Gets the object of the station attached to.
+     * @return object of station attached to
+     */
+    public Station getStation() {return station;}
+
+    /**
+     * Gets the id number of this attachment.
+     * @return id number of this attachment
+     */
+    public int getId() {return id;}
+
+    /**
+     * Tells if this attachment object is usable.
+     * @return <code>true</code> if attachment object is usable and <code>false
+     * </code> otherwise
+     */
+    public boolean isUsable() {return usable;}
+
+    /**
+     * Sets whether this attachment object is usable or not.
+     * @param usable <code>true</code> if this attachment object is usable and <code>false otherwise
+     */
+    void setUsable(boolean usable) {
+        this.usable = usable;
     }
 
-    return val;
-  }
+    /**
+     * Sets the SystemUse object for using the ET system.
+     * @return the SystemUse object for using the ET system
+     */
+    public SystemUse getSys() {
+        return sys;
+    }
 
-  /**
-   * Gets the number of events put into the ET system by the attachment
-   * @return number of events put into the ET system by the attachment
-   */
-  public long getEventsPut() throws IOException, EtException {
-    return getLongValue(Constants.netAttPut);
-  }
+    /**
+     * Gets the value of an attachment's eventsPut, eventsGet, eventsDump, or
+     * eventsMake by network communication with the ET system.
+     *
+     * @param cmd command number
+     * @return value of requested parameter
+     * @throws IOException if there are network communication problems
+     * @throws EtException if the station no longer exists
+     */
+    private long getLongValue(int cmd) throws IOException, EtException {
+        int  err = 0;
+        long val = 0;
 
-  /**
-   * Gets the number of events gotten from the ET system by the attachment
-   * @return number of events gotten from the ET system by the attachment
-   */
-  public long getEventsGet() throws IOException, EtException {
-    return getLongValue(Constants.netAttGet);
-  }
+        synchronized (sys) {
+            sys.getOutputStream().writeInt(cmd);
+            sys.getOutputStream().writeInt(id);
+            sys.getOutputStream().flush();
+            err = sys.getInputStream().readInt();
+            val = sys.getInputStream().readLong();
+        }
 
-  /**
-   * Gets the number of events dumped (recycled by returning to GRAND_CENTRAL
-   * station) through the attachment
-   * @return number of events dumped into the ET system by this attachment
-   */
-  public long getEventsDump() throws IOException, EtException {
-    return getLongValue(Constants.netAttDump);
-  }
+        if (err != Constants.ok) {
+            throw new EtException("this station has been revmoved from ET system");
+        }
 
-  /**
-   * Gets the number of new events gotten from the ET system by the attachment
-   * @return number of new events gotten from the ET system by the attachment
-   */
-  public long getEventsMake() throws IOException, EtException {
-    return getLongValue(Constants.netAttMake);
+        return val;
+    }
+
+    /**
+     * Gets the number of events put into the ET system by this attachment.
+     * @return number of events put into the ET system by this attachment
+     */
+    public long getEventsPut() throws IOException, EtException {
+        return getLongValue(Constants.netAttPut);
+    }
+
+    /**
+     * Gets the number of events gotten from the ET system by this attachment.
+     * @return number of events gotten from the ET system by this attachment
+     */
+    public long getEventsGet() throws IOException, EtException {
+        return getLongValue(Constants.netAttGet);
+    }
+
+    /**
+     * Gets the number of events dumped (recycled by returning to GRAND_CENTRAL
+     * station) through this attachment.
+     *
+     * @return number of events dumped into the ET system by this attachment
+     */
+    public long getEventsDump() throws IOException, EtException {
+        return getLongValue(Constants.netAttDump);
+    }
+
+    /**
+     * Gets the number of new events gotten from the ET system by this attachment.
+     * @return number of new events gotten from the ET system by this attachment
+     */
+    public long getEventsMake() throws IOException, EtException {
+        return getLongValue(Constants.netAttMake);
   }
 }
 

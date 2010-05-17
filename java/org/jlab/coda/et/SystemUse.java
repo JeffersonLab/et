@@ -352,12 +352,12 @@ public class SystemUse {
      *     if the attachment object is invalid
      */
     synchronized public void wakeUpAttachment(Attachment att) throws IOException, EtException {
-        if (!att.usable || att.sys != this) {
+        if (!att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
         out.writeInt(Constants.netWakeAtt);
-        out.writeInt(att.id);
+        out.writeInt(att.getId());
         out.flush();
     }
 
@@ -853,7 +853,7 @@ public class SystemUse {
         }
 
         Attachment att = new Attachment(station, attId, this);
-        att.usable = true;
+        att.setUsable(true);
         return att;
     }
 
@@ -871,16 +871,16 @@ public class SystemUse {
     synchronized public void detach(Attachment att)
             throws IOException, EtException {
 
-        if (!att.usable || att.sys != this) {
+        if (!att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
         out.writeInt(Constants.netStatDet);
-        out.writeInt(att.id);
+        out.writeInt(att.getId());
         out.flush();
         // always returns ok
         in.readInt();
-        att.usable = false;
+        att.setUsable(false);
     }
 
 
@@ -911,13 +911,13 @@ public class SystemUse {
             throw new EtException("Invalid station");
         }
 
-        if (!att.usable || att.sys != this) {
+        if (!att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
         out.writeInt(Constants.netStatIsAt);
         out.writeInt(station.getId());
-        out.writeInt(att.id);
+        out.writeInt(att.getId());
         out.flush();
         int err = in.readInt();
         if (err == Constants.error) {
@@ -1146,7 +1146,7 @@ public class SystemUse {
             throw new EtException("Invalid mode");
         }
 
-        if (att == null || !att.usable || att.sys != this) {
+        if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
@@ -1181,7 +1181,7 @@ public class SystemUse {
 
         byte[] buffer = new byte[36];
         Utils.intToBytes(Constants.netEvsNewGrp, buffer, 0);
-        Utils.intToBytes(att.id,          buffer, 4);
+        Utils.intToBytes(att.getId(),     buffer, 4);
         Utils.intToBytes(mode.getValue(), buffer, 8);
         Utils.longToBytes((long)size,     buffer, 12);
         Utils.intToBytes(count,           buffer, 20);
@@ -1222,7 +1222,7 @@ public class SystemUse {
                 throw new EtEmptyException("no events in list");
             }
             else if (err == Constants.errorWakeUp) {
-                throw new EtWakeUpException("attachment " + att.id + " woken up");
+                throw new EtWakeUpException("attachment " + att.getId() + " woken up");
             }
             else if (err == Constants.errorTimeout) {
                 throw new EtTimeoutException("timed out");
@@ -1370,7 +1370,7 @@ public class SystemUse {
             throw new EtException("Invalid mode");
         }
 
-        if (att == null|| !att.usable || att.sys != this) {
+        if (att == null|| !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
         
@@ -1379,7 +1379,7 @@ public class SystemUse {
         }
 
         // may not get events from GrandCentral
-        if (att.station.getId() == 0) {
+        if (att.getStation().getId() == 0) {
             throw new EtException("may not get events from GRAND_CENTRAL");
         }
 
@@ -1409,7 +1409,7 @@ public class SystemUse {
         // Or do we go through the network?
         byte[] buffer = new byte[28];
         Utils.intToBytes(Constants.netEvsGet, buffer, 0);
-        Utils.intToBytes(att.id,              buffer, 4);
+        Utils.intToBytes(att.getId(),         buffer, 4);
         Utils.intToBytes(mode.getValue(),     buffer, 8);
         Utils.intToBytes(modify.getValue(),   buffer, 12);
         Utils.intToBytes(count,               buffer, 16);
@@ -1448,7 +1448,7 @@ public class SystemUse {
                 throw new EtEmptyException("no events in list");
             }
             else if (err == Constants.errorWakeUp) {
-                throw new EtWakeUpException("attachment " + att.id + " woken up");
+                throw new EtWakeUpException("attachment " + att.getId() + " woken up");
             }
             else if (err == Constants.errorTimeout) {
                 throw new EtTimeoutException("timed out");
@@ -1611,7 +1611,7 @@ public class SystemUse {
             throw new EtException("Bad offset or length argument(s)");
         }
 
-        if (att == null || !att.usable || att.sys != this) {
+        if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
@@ -1624,7 +1624,7 @@ public class SystemUse {
 
         for (int i=offset; i < length; i++) {
             // each event must be registered as owned by this attachment
-            if (evs[i].getOwner() != att.id) {
+            if (evs[i].getOwner() != att.getId()) {
                 throw new EtException("may not put event(s), not owner");
             }
             // if modifying header only or header & data ...
@@ -1647,7 +1647,7 @@ public class SystemUse {
 
 
         out.writeInt(Constants.netEvsPut);
-        out.writeInt(att.id);
+        out.writeInt(att.getId());
         out.writeInt(numEvents);
         out.writeLong((long)bytes);
 
@@ -1788,7 +1788,7 @@ public class SystemUse {
     synchronized public void dumpEvents(Attachment att, Event[] evs, int offset, int length)
             throws IOException, EtException, EtDeadException {
 
-        if (att == null || !att.usable || att.sys != this) {
+        if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
@@ -1796,7 +1796,7 @@ public class SystemUse {
         int numEvents = 0;
         for (int i=offset; i<offset+length; i++) {
             // each event must be registered as owned by this attachment
-            if (evs[i].getOwner() != att.id) {
+            if (evs[i].getOwner() != att.getId()) {
                 throw new EtException("may not put event(s), not owner");
             }
             if (evs[i].getModify() != Modify.NOTHING) numEvents++;
@@ -1809,7 +1809,7 @@ public class SystemUse {
         }
 
         out.writeInt(Constants.netEvsDump);
-        out.writeInt(att.id);
+        out.writeInt(att.getId());
         out.writeInt(numEvents);
 
         for (int i=offset; i<offset+length; i++) {
@@ -1832,6 +1832,7 @@ public class SystemUse {
     //                Getters                *
     //****************************************
 
+    
     /**
      * Gets "integer" format ET system data over the network.
      *
