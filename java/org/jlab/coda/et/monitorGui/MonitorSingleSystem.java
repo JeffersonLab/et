@@ -12,19 +12,15 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.etMonitor;
+package org.jlab.coda.et.monitorGui;
 
 import java.lang.*;
-import java.net.*;
 import java.io.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.awt.geom.*;
 import java.util.*;
-import java.util.Map.*;
 import javax.swing.*;
 import javax.swing.tree.*;
-import javax.swing.event.*;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.data.*;
