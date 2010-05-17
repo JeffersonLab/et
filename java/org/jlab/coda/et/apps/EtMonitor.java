@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et;
+package org.jlab.coda.et.apps;
 
 import java.lang.*;
 import java.io.*;
@@ -20,6 +20,9 @@ import java.net.*;
 
 import org.jlab.coda.et.data.*;
 import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.SystemOpenConfig;
+import org.jlab.coda.et.SystemUse;
 
 /**
  * This class implements a monitor of an ET system. It opens the system,
