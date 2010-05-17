@@ -108,8 +108,8 @@ public class Attachment {
      * @throws EtException if the station no longer exists
      */
     private long getLongValue(int cmd) throws IOException, EtException {
-        int  err = 0;
-        long val = 0;
+        int  err;
+        long val;
 
         synchronized (sys) {
             sys.getOutputStream().writeInt(cmd);
