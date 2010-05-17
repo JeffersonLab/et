@@ -6,9 +6,9 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
@@ -16,7 +16,6 @@ package org.jlab.coda.et.data;
 
 import org.jlab.coda.et.Constants;
 
-import java.lang.*;
 import java.io.*;
 
 /**
@@ -26,50 +25,85 @@ import java.io.*;
  *
  * @author Carl Timmer
  */
-
 public class ProcessData {
 
-  /** Unique id number. */
-  int num;
-  /** Heartbeat count. */
-  int heartbeat;
-  /** Unix process id. */
-  int pid;
-  /** Number of attachments this process created. */
-  int attachments;
-  /** An array of attachment id numbers. Only the first "attachments" 
-    * number of elements are meaningful. */
-  int attIds[] = new int[Constants.attachmentsMax];
+    /** Unique id number. */
+    private int num;
 
-  // get methods
+    /** Heartbeat count. */
+    private int heartbeat;
 
-  /** Get the process' unique id number. */
-  public int getId() {return num;}
-  /** Get the heartbeat count. */
-  public int getHeartbeat() {return heartbeat;}
-  /** Get the Unix process id. */
-  public int getPid() {return pid;}
-  /** Get the number of attachments this process created. */
-  public int getAttachments() {return attachments;}
-  /** Get the array of attachment id numbers. */
-  public int[] getAttachmentIds() {return attIds.clone();}
+    /** Unix process id. */
+    private int pid;
 
-  /**
-   *  Reads the process information from a data stream which is sent out by
-   *  an ET system over the network.
-   *  @param dis data input stream
-   *  @throws java.io.IOException
-   *     if data stream read error
-   */
-  public void read(DataInputStream dis) throws IOException {
-    attachments = dis.readInt();
-    num         = dis.readInt();
-    heartbeat   = dis.readInt();
-    pid         = dis.readInt();
-    for (int i=0; i < attachments; i++) {
-      attIds[i] = dis.readInt();
+    /** Number of attachments this process created. */
+    private int attachments;
+
+    /**
+     * An array of attachment id numbers. Only the first "attachments"
+     * number of elements are meaningful.
+     */
+    private int attIds[] = new int[Constants.attachmentsMax];
+
+
+    // get methods
+
+
+    /**
+     * Get the process' unique id number.
+     * @return process' unique id number
+     */
+    public int getId() {
+        return num;
     }
-  }
+
+    /**
+     * Get the heartbeat count.
+     * @return heartbeat count
+     */
+    public int getHeartbeat() {
+        return heartbeat;
+    }
+
+    /**
+     * Get the Unix process id.
+     * @return Unix process id
+     */
+    public int getPid() {
+        return pid;
+    }
+
+    /**
+     * Get the number of attachments this process created.
+     * @return number of attachments this process created
+     */
+    public int getAttachments() {
+        return attachments;
+    }
+
+    /**
+     * Get the array of attachment id numbers.
+     * @return array of attachment id numbers
+     */
+    public int[] getAttachmentIds() {
+        return attIds.clone();
+    }
+
+    /**
+     * Reads the process information from an ET system over the network.
+     *
+     * @param dis data input stream
+     * @throws java.io.IOException if data read error
+     */
+    public void read(DataInputStream dis) throws IOException {
+        attachments = dis.readInt();
+        num         = dis.readInt();
+        heartbeat   = dis.readInt();
+        pid         = dis.readInt();
+        for (int i = 0; i < attachments; i++) {
+            attIds[i] = dis.readInt();
+        }
+    }
 }
 
 
