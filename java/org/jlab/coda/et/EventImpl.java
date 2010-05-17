@@ -347,7 +347,7 @@ public class EventImpl implements Event {
     }
 
     /**
-     * Gets the age of the event which is {@link Age#NEW} for new events obtained by calling
+     * Sets the age of the event which is {@link Age#NEW} for new events obtained by calling
      * {@link SystemUse#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
      * {@link SystemUse#getEvents}).
      *
