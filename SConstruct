@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
 # For Linux 64 bit x86 machines, the "machine' variable is x86_64,
 # but for Darwin or Solaris there is no obvious check so run
 # a configure-type test.
+ccflags = ''
 is64bits = False
 if platform == 'Linux'and machine == 'x86_64':
         is64bits = True
