@@ -57,6 +57,14 @@ class JniAccess {
 
 
     /**
+     * Close the local, C-based ET system that we previously opened.
+     *
+     * @param etId ET system id
+     */
+    native void closeLocalEtSystem(long etId);
+
+
+    /**
      * Put the given array of events back into the local, C-based ET system.
      *
      * @param etId   ET system id
