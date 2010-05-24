@@ -17,6 +17,14 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
 
 /*
  * Class:     org_jlab_coda_et_JniAccess
+ * Method:    closeLocalEtSystem
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_closeLocalEtSystem
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_jlab_coda_et_JniAccess
  * Method:    putEvents
  * Signature: (JI[Lorg/jlab/coda/et/EventImpl;I)V
  */

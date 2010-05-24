@@ -32,6 +32,19 @@ static jfieldID fid[6];
 static jmethodID constrMethodId1,constrMethodId2;
 
 
+
+/*
+ * Class:     org_jlab_coda_et_JniAccess
+ * Method:    closeLocalEtSystem
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_closeLocalEtSystem
+        (JNIEnv *env, jobject thisObj, jlong etId)
+{
+    et_close((et_sys_id)etId);
+}
+
+
 /*
  * Class:     org_jlab_coda_et_JniAccess
  * Method:    openLocalEtSystem
