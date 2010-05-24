@@ -101,7 +101,7 @@ public class SystemOpen {
      * Constructor which stores copy of argument.
      * @param config SystemOpenConfig object
      */
-    public SystemOpen (SystemOpenConfig config) {
+    public SystemOpen(SystemOpenConfig config) {
         this.config = new SystemOpenConfig(config);
         debug = Constants.debugError;
         responders = new  LinkedHashMap<String, Integer>(20);
@@ -855,7 +855,7 @@ public class SystemOpen {
     /**
      * Connect to ET system's server.
      *
-     * @throws java.io.IOException
+     * @throws IOException
      *     if problems with network comunications
      * @throws EtException
      *     if the responing ET system has the wrong name, runs a different version
