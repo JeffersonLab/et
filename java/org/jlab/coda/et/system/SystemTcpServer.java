@@ -1092,7 +1092,7 @@ class ClientThread extends Thread {
                             catch (EtTimeoutException ex) {
                                 err = Constants.errorTimeout;
                             }
-
+System.out.println("newEvents ERROR = " + err);
                             if (err != ok) {
                                 out.writeInt(err);
                                 out.flush();

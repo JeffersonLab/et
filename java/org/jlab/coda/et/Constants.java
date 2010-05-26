@@ -76,7 +76,7 @@ public final class Constants {
     public static final int    stationSelectInts   = 4;
     /** A limit on the length of the ET system (or file) name's length. This limit
      *  is due to the C implementation. */
-    public static final int fileNameLengthMax = 101;
+    public static final int    fileNameLengthMax   = 101;
 
 
     /** A policy that chooses the first ET system to respond when broadcasting
@@ -357,6 +357,14 @@ public final class Constants {
     public static final int    langCpp             = 1;
     /** ET system was implemented in the Java language. */
     public static final int    langJava            = 2;
+
+    /** Shared memory layout from C language ET system. */
+    public static final int    systemTypeC         = 1;
+    /** Shared memory layout from Java language ET system. */
+    public static final int    systemTypeJava      = 2;
+
+    /** Shared memory layout from Java language ET system. */
+    public static final int    initialSharedMemBytes = 64;
 
     /** A mutex is not locked. Relevant only to C language ET systems. */
     public static final int    mutexUnlocked       = 0;

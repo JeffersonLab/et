@@ -82,10 +82,11 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
 }
 
 /***************************************************/
-/* Write 5, 32-bit ints and 5, 64-bit ints at the very
- * beginning of the ET system file. In order this includes:
+/* Write 6, 32-bit ints and 5, 64-bit ints at the very
+ * beginning of the ET system file for a total of 64 bytes.
+ * In order this includes:
  *
- * byteOrder      : when read should be 0x01020304, if not, byte order
+ * byteOrder      : when read should be 0x04030201, if not, byte order
  *                : is reversed from local order.
  * sytemType      : type of local system using the mapped memory.
  *                : Right now there are only 2 types. One is an ET
@@ -95,6 +96,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
  *                : (= ET_SYSTEM_TYPE_JAVA).
  * major version  : major version # of this ET software release
  * minor version  : minor version # of this ET software release
+ * # select ints  : # station selection integers / event
  * headerByteSize : total size of a header structure in bytes
  * eventByteSize  : total size of a single event's data memory in bytes
  * headerPosition : number of bytes past start of shared memory
@@ -111,16 +113,17 @@ void *et_mem_write_first_block(char *ptr,
                                uint64_t headerPosition, uint64_t dataPosition,
                                uint64_t totalByteSize,  uint64_t usedByteSize)
 {
-    *((uint32_t *)ptr) = 0x01020304;        ptr += sizeof(uint32_t);
-    *((uint32_t *)ptr) = ET_SYSTEM_TYPE_C;  ptr += sizeof(uint32_t);
-    *((uint32_t *)ptr) = ET_VERSION;        ptr += sizeof(uint32_t);
-    *((uint32_t *)ptr) = ET_VERSION_MINOR;  ptr += sizeof(uint32_t);
-    *((uint32_t *)ptr) = headerByteSize;    ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = 0x04030201;             ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_SYSTEM_TYPE_C;       ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_VERSION;             ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_VERSION_MINOR;       ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = ET_STATION_SELECT_INTS; ptr += sizeof(uint32_t);
+    *((uint32_t *)ptr) = headerByteSize;         ptr += sizeof(uint32_t);
 
-    *((uint64_t *)ptr) = eventByteSize;     ptr += sizeof(uint64_t);
-    *((uint64_t *)ptr) = headerPosition;    ptr += sizeof(uint64_t);
-    *((uint64_t *)ptr) = dataPosition;      ptr += sizeof(uint64_t);
-    *((uint64_t *)ptr) = totalByteSize;     ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = eventByteSize;  ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = headerPosition; ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = dataPosition;   ptr += sizeof(uint64_t);
+    *((uint64_t *)ptr) = totalByteSize;  ptr += sizeof(uint64_t);
     *((uint64_t *)ptr) = usedByteSize;
 }
 
@@ -162,6 +165,7 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
   pInfo->systemType      = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
   pInfo->majorVersion    = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
   pInfo->minorVersion    = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
+  pInfo->numSelectInts   = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
   pInfo->headerByteSize  = *((uint32_t *)ptr);  ptr += sizeof(uint32_t);
     
   pInfo->eventByteSize   = *((uint64_t *)ptr);  ptr += sizeof(uint64_t);
@@ -178,14 +182,14 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
   /* do some error checking before mapping this whole file */
 
   /* check endian */
-  if (pInfo->byteOrder != 0x01020304) {
+  if (pInfo->byteOrder != 0x04030201) {
       et_logmsg("ERROR", "et_mem_attach: cannot open ET system file - wrong endian\n");
       close(fd);
       return ET_ERROR;
   }
   
   /* check system type */   
-  if (pInfo->systemType == ET_SYSTEM_TYPE_JAVA) {
+  if (pInfo->systemType != ET_SYSTEM_TYPE_C) {
       et_logmsg("ERROR", "et_mem_attach: file is used only for Java ET systems\n");
       close(fd);
       return ET_ERROR;
@@ -195,6 +199,14 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
   if (pInfo->majorVersion != ET_VERSION) {
       et_logmsg("ERROR", "et_mem_attach, ET system file is the wrong version (%d), should be %d\n",
                 pInfo->majorVersion, ET_VERSION);
+      close(fd);
+      return ET_ERROR;
+  }
+  
+  /* check number of station selection ints */
+  if (pInfo->numSelectInts != ET_STATION_SELECT_INTS) {
+      et_logmsg("ERROR", "et_mem_attach, ET system file is the wrong number of station select ints (%d), should be %d\n",
+                pInfo->numSelectInts, ET_STATION_SELECT_INTS);
       close(fd);
       return ET_ERROR;
   }
@@ -235,7 +247,7 @@ int et_mem_size(const char *name, size_t *totalsize, size_t *usedsize)
   }
   
   /* find mapped mem's total size */
-  ptr = (char *)pmem + 5*sizeof(uint32_t) + 3*sizeof(uint64_t);
+  ptr = (char *)pmem + 6*sizeof(uint32_t) + 3*sizeof(uint64_t);
   if (totalsize != NULL) {
       *totalsize = (size_t) (*((uint64_t *)ptr));
   }

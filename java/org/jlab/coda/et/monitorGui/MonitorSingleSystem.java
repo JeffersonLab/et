@@ -257,7 +257,9 @@ public class MonitorSingleSystem {
     }
     catch (IOException ex) {
     }
-    
+    catch (EtException ex) {
+    }
+
     float loadfactor = 0.75F;
     stations         = new HashMap(size1, loadfactor);
     attachments      = new HashMap(size2, loadfactor);

@@ -110,72 +110,7 @@ public class SystemCreate {
      *     if the file already exists or cannot be created
      */
     public SystemCreate(String name) throws EtException {
-        // The ET name is a file (which is really irrelevant in Java)
-        // but is a convenient way to make all system names unique.
-        File etFile = new File(name);
-
-        if (!etFile.canRead() || !etFile.canWrite()) {
-            throw new EtException("Trying to map ET file which we cannot read or cannot write to");
-        }
-
-        try {
-            RandomAccessFile file = new RandomAccessFile(name, "rw");
-            FileChannel fc = file.getChannel();
-            // First, map only the first part of the file which contains some
-            // important data in 5 ints and 5 longs. Once that info is read,
-            // remap the file properly to get at the data.
-            MappedByteBuffer buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, 5*4+5*8);
-            int byteOrder = buffer.getInt();
-            System.out.println("byteOrder = " + Integer.toHexString(byteOrder));
-            if (byteOrder != 0x01020304) {
-                buffer.order(ByteOrder.LITTLE_ENDIAN);
-            }
-            int next = buffer.getInt();
-            System.out.println("systemType = " + next);
-            next = buffer.getInt();
-            System.out.println("major version = " + next);
-            next = buffer.getInt();
-            System.out.println("minor version = " + next);
-            next = buffer.getInt();
-            System.out.println("head byte size = " + next);
-            long nextLong = buffer.getLong();
-            System.out.println("event byte size = " + nextLong);
-            nextLong = buffer.getLong();
-            System.out.println("header position = " + nextLong);
-            long dataPosition = nextLong = buffer.getLong();
-            System.out.println("data position = " + nextLong);
-            long totalFileSize = nextLong = buffer.getLong();
-            System.out.println("total file size = " + nextLong + ", but is really " + fc.size());
-            long usedFileSize = nextLong = buffer.getLong();
-            System.out.println("used file size = " + nextLong);
-
-            // look at data - map whole file
-            fc.position(0L);
-            buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, usedFileSize+60);
-            if (byteOrder != 0x01020304) {
-                buffer.order(ByteOrder.LITTLE_ENDIAN);
-            }
-
-            // try to print out data values
-            for (int i=((int)usedFileSize+60)/4 - 10; i<(usedFileSize+60)/4; i++) {
-                System.out.println("val" + i + " = " + (buffer.getInt(i*4)));
-            }
-
-            // write some junk at the end and see if it stays there
-//            for (int i= ((int)usedFileSize+60)/4 - 10; i < (usedFileSize+60)/4; i++) {
-//                buffer.putInt(i*4, i*10);
-//                //System.out.println("val" + i + " = " + (buffer.getInt(i*4)));
-//            }
-//
-            fc.close();
-
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-        //this(name, new SystemConfig());
+        this(name, new SystemConfig());
     }
 
 
@@ -226,15 +161,26 @@ public class SystemCreate {
         }
         etFile.deleteOnExit();
 
-        // Write ascii into the file indicating a JAVA ET system
+        // Write into the file indicating a JAVA ET system
         // is creating and using it. This is for the benefit of
         // C-based ET systems which may try to open and read local
         // ET system files thinking they contain shared memory.
         try {
             FileOutputStream fos = new FileOutputStream(etFile);
-            OutputStreamWriter osw = new OutputStreamWriter(fos, "ASCII");
-            osw.write("JAVA ET SYSTEM FILE", 0, 19);
-            osw.flush();
+            DataOutputStream dos = new DataOutputStream(fos);
+            dos.writeInt(0x04030201);  // for determining byte order
+            dos.writeInt(Constants.systemTypeJava);
+            dos.writeInt(Constants.version);
+            dos.writeInt(Constants.minorVersion);
+            dos.writeInt(Constants.stationSelectInts);
+            // this & following not used in Java
+            dos.writeInt(0);
+            dos.writeLong(0L);
+            dos.writeLong(0L);
+            dos.writeLong(0L);
+            dos.writeLong(0L);
+            dos.writeLong(0L);
+            dos.flush();
         }
         catch (FileNotFoundException ex) {
         }

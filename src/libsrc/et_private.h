@@ -235,7 +235,7 @@ typedef struct et_netinfo_t {
 /* Size in bytes of the data stored at the beginning of the shared memory.
  * These data give general info necessary for Java (and C clients too) to
  * mmap this file properly.*/
-#define ET_INITIAL_SHARED_MEM_DATA_BYTES 60
+#define ET_INITIAL_SHARED_MEM_DATA_BYTES 64
 
 /*
  * STRUCTURES for the STATIONs:
@@ -813,6 +813,7 @@ typedef struct  et_id_t {
  *                : (= ET_SYSTEM_TYPE_JAVA).
  * major version  : major version # of this ET software release
  * minor version  : minor version # of this ET software release
+ * # select ints  : # station selection integers / event
  * headerByteSize : total size of a header structure in bytes
  * eventByteSize  : total size of a single event's data memory in bytes
  * headerPosition : number of bytes past start of shared memory
@@ -830,6 +831,7 @@ typedef struct  et_mem_t {
     uint32_t  systemType;
     uint32_t  majorVersion;
     uint32_t  minorVersion;
+    uint32_t  numSelectInts;
     uint32_t  headerByteSize;
     
     uint64_t  eventByteSize;

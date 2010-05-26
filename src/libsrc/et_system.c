@@ -404,7 +404,9 @@ printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %
   else if (status == ET_OK) {
     creating = 1;
 
-    /* memory has been mapped by now, fill first 60 bytes with useful data */
+    /* memory has been mapped by now, fill first
+       ET_INITIAL_SHARED_MEM_DATA_BYTES bytes with
+       useful data */
     et_mem_write_first_block(pSharedMem,
                              (uint32_t) sizeof(et_event),
                              (uint64_t) config->event_size,

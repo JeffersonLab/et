@@ -910,14 +910,13 @@ public class SystemOpen {
         connected = true;
 
         if (debug >= Constants.debugInfo) {
-            System.out.println("open: endian = " + endian +
+            System.out.println("open: endian = " + (endian == Constants.endianBig ? "big" : "little") +
                     ", nevents = " + numEvents +
                     ", event size = " + eventSize +
                     ", version = " + version +
                     ",\n      selectInts = " + stationSelectInts +
-                    ", language = " + language);
+                    ", language = " + (language == 1 ? "C" : "java"));
         }
-        return;
     }
 
 
@@ -1068,10 +1067,10 @@ public class SystemOpen {
                 // First, map only the first part of the file which contains some
                 // important data in 5 ints and 5 longs (60 bytes). Once that info is read,
                 // remap the file properly to get at the data.
-                buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, 60);
+                buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, Constants.initialSharedMemBytes);
 
                 int byteOrder = buffer.getInt();
-                if (byteOrder != 0x01020304) {
+                if (byteOrder != 0x04030201) {
                     buffer.order(ByteOrder.LITTLE_ENDIAN);
                 }
                 if (debug >= Constants.debugInfo) {
@@ -1091,6 +1090,11 @@ public class SystemOpen {
                 next = buffer.getInt();
                 if (debug >= Constants.debugInfo) {
                     System.out.println("minor version = " + next);
+                }
+
+                next = buffer.getInt();
+                if (debug >= Constants.debugInfo) {
+                    System.out.println("num select ints = " + next);
                 }
 
                 next = buffer.getInt();
@@ -1124,8 +1128,9 @@ public class SystemOpen {
                 }
                 
                 // look at data - map only data part of the file
-                buffer = fc.map(FileChannel.MapMode.READ_WRITE, dataPosition, usedFileSize+60);
-                if (byteOrder != 0x01020304) {
+                buffer = fc.map(FileChannel.MapMode.READ_WRITE, dataPosition,
+                                usedFileSize + Constants.initialSharedMemBytes);
+                if (byteOrder != 0x04030201) {
                     buffer.order(ByteOrder.LITTLE_ENDIAN);
                 }
 
@@ -1144,10 +1149,12 @@ public class SystemOpen {
             catch (EtException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
+System.out.println("Error in opening ET with jni, Et exception");
             }
             catch (IOException e) {
                 // cannot open a file, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
+System.out.println("Error in opening ET with jni, IO exception");
             }
         }
     }

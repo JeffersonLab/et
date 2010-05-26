@@ -155,7 +155,7 @@ public class Producer {
             
             // direct to ET system's tcp server
             SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
-                config.setConnectRemotely(false);
+                config.setConnectRemotely(true);
                 config.setHost(Constants.hostLocal);
 
             // create ET system object with verbose debugging output
@@ -171,7 +171,7 @@ public class Producer {
             Event[] mevs;
 
             int chunk = 10, count = 0, startingVal=0;
-            long t1, t2;
+            long t1, t2, counter=0;
             int[] con = {-1, -1, -1, -1};
 
             // keep track of time for event rate calculations
@@ -179,6 +179,7 @@ public class Producer {
 
             for (int i = 0; i < 50; i++) {
                 while (count < 300000L) {
+System.out.println("newEvents call #" + counter++);
                     // get array of new events
                     mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
 
