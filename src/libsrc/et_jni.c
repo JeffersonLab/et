@@ -29,7 +29,7 @@ static int debug = 0;
 /* cache some frequently used values */
 static jclass eventImplClass;
 static jfieldID fid[6];
-static jmethodID constrMethodId1,constrMethodId2;
+static jmethodID constrMethodId1,constrMethodId2, getPriorityVal, getDataStatusVal;
 
 
 
@@ -97,17 +97,21 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     
     /* find id's of all the fields that we'll read/write to */
     fid[0] = (*env)->GetFieldID(env, classEventImpl, "id",         "I");
-    fid[1] = (*env)->GetFieldID(env, classEventImpl, "priority",   "I");
+  //  fid[1] = (*env)->GetFieldID(env, classEventImpl, "priority",   "I");
     fid[2] = (*env)->GetFieldID(env, classEventImpl, "length",     "I");
-    fid[3] = (*env)->GetFieldID(env, classEventImpl, "dataStatus", "I");
+  //  fid[3] = (*env)->GetFieldID(env, classEventImpl, "dataStatus", "I");
     fid[4] = (*env)->GetFieldID(env, classEventImpl, "byteOrder",  "I");
     fid[5] = (*env)->GetFieldID(env, classEventImpl, "control",    "[I");
 
+    /* methods to get event's enum values */
+    getPriorityVal   = (*env)->GetMethodID(env, classEventImpl, "getPriorityValue",   "()I");
+    getDataStatusVal = (*env)->GetMethodID(env, classEventImpl, "getDataStatusValue", "()I");
+  
     /* get id's of a couple different constructors */
     constrMethodId1 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(III)V");
     constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[I)V");
   
-if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
+    if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
 
 
@@ -229,9 +233,11 @@ if (debug) printf("putEvents (native) : put 'em back\n");
         pe[i] = ET_P2EVENT(etid, place);
         
         /* set fields in event struct that may have been modified in Java */
-        pe[i]->priority   = (*env)->GetIntField(env, event, fid[1]);
+        pe[i]->priority   = (*env)->CallIntMethod(env, event, getPriorityVal);
+        //pe[i]->priority   = (*env)->GetIntField(env, event, fid[1]);
         pe[i]->length     = (uint64_t) ((*env)->GetIntField(env, event, fid[2]));
-        pe[i]->datastatus = (*env)->GetIntField(env, event, fid[3]);
+        //pe[i]->datastatus = (*env)->GetIntField(env, event, fid[3]);
+        pe[i]->datastatus = (*env)->CallIntMethod(env, event, getDataStatusVal);
         pe[i]->byteorder  = (*env)->GetIntField(env, event, fid[4]);
 
         /* set control ints */
