@@ -409,6 +409,18 @@ public class EventImpl implements Event {
     }
 
     /**
+     * Set the length of valid data from server where sizeLimit may be 0.
+     * @param len  length of valid data
+     * @throws EtException if len is negative
+     */
+    public void setLengthFromServer(int len) throws EtException {
+        if (len < 0) {
+            throw new EtException("bad value for event data length");
+        }
+        length = len;
+    }
+
+    /**
      * Sets the size of the data buffer in bytes.
      * @param memSize size of the data buffer in bytes
      */
