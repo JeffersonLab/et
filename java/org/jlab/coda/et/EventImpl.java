@@ -259,6 +259,14 @@ public class EventImpl implements Event {
     }
 
     /**
+     * Get int value associated with Priority enum.
+     * @return int value associated with Priority enum
+     */
+    public int getPriorityValue() {
+        return priority.getValue();
+    }
+
+    /**
      * {@inheritDoc}
      */
     public int getOwner() {
@@ -293,6 +301,14 @@ public class EventImpl implements Event {
      */
     public DataStatus getDataStatus() {
         return dataStatus;
+    }
+
+    /**
+     * Get int value associated with DataStatus enum.
+     * @return int value associated with DataStatus enum
+     */
+    public int getDataStatusValue() {
+        return dataStatus.getValue();
     }
 
     /**
