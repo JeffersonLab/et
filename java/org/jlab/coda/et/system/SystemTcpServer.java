@@ -645,7 +645,7 @@ class ClientThread extends Thread {
                             if (len > Integer.MAX_VALUE) {
                                 throw new EtException("Event is too long for this (java) ET system");
                             }
-                            ev.setLength((int) len);
+                            ev.setLengthFromServer((int) len);
 
                             int priAndStat = Utils.bytesToInt(params, 20);
                             ev.setPriority(Priority.getPriority(priAndStat & priorityMask));
@@ -693,14 +693,14 @@ class ClientThread extends Thread {
                                 id = Utils.bytesToInt(params, 0);
                                 evs[j] = sys.getEvents().get(id);
                                 // skip 4 bytes here
-                             
+
                                 len = Utils.bytesToLong(params, 8);
                                 if (len > Integer.MAX_VALUE) {
                                     throw new EtException("Event is too long for this (java) ET system");
                                 }
-                                evs[j].setLength((int) len);
+                                evs[j].setLengthFromServer((int) len);
 
-                                priAndStat        = Utils.bytesToInt(params, 16);
+                                priAndStat = Utils.bytesToInt(params, 16);
                                 evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
                                 evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
                                 evs[j].setByteOrder(Utils.bytesToInt(params, 20));
@@ -1092,7 +1092,7 @@ class ClientThread extends Thread {
                             catch (EtTimeoutException ex) {
                                 err = Constants.errorTimeout;
                             }
-System.out.println("newEvents ERROR = " + err);
+
                             if (err != ok) {
                                 out.writeInt(err);
                                 out.flush();
