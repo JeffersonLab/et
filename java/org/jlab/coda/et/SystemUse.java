@@ -284,7 +284,6 @@ public class SystemUse {
         sock = sys.getSocket();
 
         // buffer communication streams for efficiency
-System.out.println("CREATING in & out streams from socket");
         in   = new DataInputStream( new BufferedInputStream( sock.getInputStream(),  65535));
         out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), 65535));
         open = true;
@@ -1293,13 +1292,7 @@ System.out.println("CREATING in & out streams from socket");
         int err;
         while (true) {
             try {
-System.out.println("in available = " + in.available());
-
-                //while (in.available() > 4) {
-                //    System.out.println("get int = " + in.readInt());
-                //}
                 err = in.readInt();
-System.out.println("err = " + err + ", now break loop");
                 break;
             }
             // If there's an interrupted ex, socket is OK, try again.
@@ -1336,7 +1329,6 @@ System.out.println("err = " + err + ", now break loop");
         // list of events to return
         EventImpl[] evs = new EventImpl[numEvents];
         buffer = new byte[4*numEvents];
-System.out.println("Read " + (4*numEvents) + " number of bytes");
         in.readFully(buffer, 0, 4*numEvents);
 
         int index=-4;
@@ -1787,11 +1779,10 @@ System.out.println("Read " + (4*numEvents) + " number of bytes");
 
                 // send data only if modifying whole event
                 if (evs[i].getModify() == Modify.ANYTHING) {
-System.out.println("Sending data = " + Utils.bytesToInt(evs[i].getData(),0) + ", len = " + evs[i].getLength());
                     ByteBuffer buf = evs[i].getDataBuffer();
                     // buf should never be null
                     if (!buf.hasArray()) {
-System.out.println("Memory mapped buffer does NOT have a backing array !!!");
+//System.out.println("Memory mapped buffer does NOT have a backing array !!!");
                         for (int j=0; j<evs[i].getLength(); j++) {
                             out.write(buf.get(j));
                         }
