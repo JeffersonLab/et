@@ -29,7 +29,8 @@ static int debug = 0;
 /* cache some frequently used values */
 static jclass eventImplClass;
 static jfieldID fid[6];
-static jmethodID constrMethodId1,constrMethodId2, getPriorityVal, getDataStatusVal;
+static jmethodID constrMethodId1, constrMethodId2, setByteOrder,
+                 getPriorityVal, getDataStatusVal;
 
 
 
@@ -106,10 +107,11 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     /* methods to get event's enum values */
     getPriorityVal   = (*env)->GetMethodID(env, classEventImpl, "getPriorityValue",   "()I");
     getDataStatusVal = (*env)->GetMethodID(env, classEventImpl, "getDataStatusValue", "()I");
-  
+    setByteOrder     = (*env)->GetMethodID(env, classEventImpl, "setByteOrder", "([B)V");
+
     /* get id's of a couple different constructors */
     constrMethodId1 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(III)V");
-    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[I)V");
+    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIII[I)V");
   
     if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
@@ -126,6 +128,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_getEvents
 {
 
     int i, j, numread, status;
+    jbyteArray byteArray;
+    char bytes[4];
     et_event *pe[count];
     jclass clazz;
     jboolean isCopy;
@@ -170,6 +174,9 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
     /* create array of EventImpl objects */
     eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
 
+    /* create array of bytes */
+    byteArray = (*env)->NewByteArray(env, 4);
+
     /* fill array */
     for (i=0; i < numread; i++) {
         /*printf("getEvents (native) : data for event %d = %d\n", i, *((int *)pe[i]->pdata));*/
@@ -189,8 +196,16 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         (jint)pe[i]->memsize, (jint)pe[i]->memsize, (jint)pe[i]->datastatus,
         (jint)pe[i]->place,   (jint)pe[i]->age,     (jint)pe[i]->owner,
         (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
-        (jint)pe[i]->byteorder, controlInts);
-        
+        controlInts);
+
+        /* set byte order */
+        bytes[0] = (pe[i]->byteorder >> 24) & 0x000000FF;
+        bytes[1] = (pe[i]->byteorder >> 16) & 0x000000FF;
+        bytes[2] = (pe[i]->byteorder <<  8) & 0x000000FF;
+        bytes[3] = (pe[i]->byteorder      ) & 0x000000FF;
+        (*env)->SetByteArrayRegion(env, byteArray, 0, 4, bytes);
+        (*env)->CallVoidMethod(env, event, setByteOrder, byteArray);
+       
         /* put event in array */
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
         (*env)->DeleteLocalRef(env, event);
