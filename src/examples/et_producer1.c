@@ -34,7 +34,7 @@
 #define DOUBLE_MAX   1.7976931348623157E+308
 
 #define NUMLOOPS 10000
-#define CHUNK 100
+#define CHUNK 10
 #define DBL_MAX   1.e+100
 
 /* prototype */
@@ -42,7 +42,7 @@ static void * signal_thread (void *arg);
 
 int main(int argc,char **argv)
 {  
-  int             i, j, size, status;
+  int             i, j, size, status, startingVal=0;
   double          freq=0.0, freq_tot=0.0, freq_avg=0.0;
   int             iterations=1, count, totalCount;
   et_att_id	  attach1;
@@ -169,7 +169,7 @@ restartLinux:
         /*count = 1;*/
 
         /* write data, set priority, set control values here */
-        if (0) {
+        if (1) {
 	      char *pdata;
     	    for (i=0; i < count; i++) {
               /* the following line will allow et_client modes 3 & 4 to work */
@@ -180,9 +180,9 @@ restartLinux:
               et_event_setlength(pe[i], strlen(stuff[i])+1);
 	          */
 	    
-	          memcpy((void *)pdata, (const void *) &numbers[i%10], sizeof(int));
+	          memcpy((void *)pdata, (const void *) &startingVal, sizeof(int));
               et_event_setlength(pe[i], sizeof(int));
-	    
+              startingVal++;
 	       }
         }
 	  
@@ -206,6 +206,7 @@ restartLinux:
         }
         
         totalCount += count;
+        sleep(4);
       } /* for NUMLOOPS */
   
       /* statistics */
