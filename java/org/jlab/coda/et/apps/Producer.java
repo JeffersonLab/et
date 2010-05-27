@@ -6,9 +6,9 @@
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
+ *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
+ *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
@@ -18,37 +18,36 @@ package org.jlab.coda.et.apps;
 import java.lang.*;
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.et.enums.Priority;
 
 /**
  * This class is an example of an event producer for an ET system.
  *
  * @author Carl Timmer
- * @version 7.0
  */
 public class Producer {
 
-  public Producer() {
-  }
+    public Producer() {
+    }
 
 
-  private static void usage() {
-    System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-host <host>]\n\n" +
-	               "       -f  ET system's name\n" +
-                   "       -s  size in bytes for requested events\n" +
-                   "       -p  port number for a udp broadcast\n" +
-                   "       -d  delay in millisec between getting and putting events\n" +
-                   "       -g  group number of events\n" +
-                   "       -host  host the ET system resides on (defaults to anywhere)\n" +
-	               "        This consumer works by making a connection to the\n" +
-		           "        ET system's tcp server port.\n");
-  }
+    private static void usage() {
+        System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-host <host>]\n\n" +
+                "       -f     ET system's name\n" +
+                "       -s     size in bytes for requested events\n" +
+                "       -p     port number for a udp broadcast\n" +
+                "       -d     delay in millisec between getting and putting events\n" +
+                "       -g     group number of events\n" +
+                "       -host  host the ET system resides on (defaults to anywhere)\n\n" +
+                "        This consumer works by making a connection to the\n" +
+                "        ET system's tcp server port.\n");
+    }
 
 
     public static void main(String[] args) {
 
         String etName = null, host = null;
-        //int port = Constants.serverPort;
-        int port = Constants.broadcastPort;
+        int port = Constants.serverPort;
         int group = 1;
         int delay = 0;
         int size = 32;
@@ -147,16 +146,7 @@ public class Producer {
             }
 
             // make a direct connection to ET system's tcp server
-            //SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
-
-            // broadcast to ET system's tcp server
-           // SystemOpenConfig config = new SystemOpenConfig(etName, port, host);
-           // config.setConnectRemotely(true);
-            
-            // direct to ET system's tcp server
             SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
-                config.setConnectRemotely(true);
-                config.setHost(Constants.hostLocal);
 
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);
@@ -170,48 +160,51 @@ public class Producer {
             // array of events
             Event[] mevs;
 
-            int chunk = 10, count = 0, startingVal=0;
-            long t1, t2, counter=0;
+            int chunk = 100, count = 0, startingVal = 0;
+            long t1, t2, counter = 0, totalT = 0, totalCount = 0;
+            double rate, avgRate;
             int[] con = {-1, -1, -1, -1};
+            String s;
 
             // keep track of time for event rate calculations
             t1 = System.currentTimeMillis();
 
             for (int i = 0; i < 50; i++) {
                 while (count < 300000L) {
-System.out.println("newEvents call #" + counter++);
                     // get array of new events
                     mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
 
                     if (delay > 0) Thread.sleep(delay);
 
                     // example of how to manipulate events
-                    if (true) {
+                    if (false) {
                         for (int j = 0; j < mevs.length; j++) {
                             // put integer (j) into front of data buffer
-                            mevs[j].getDataBuffer().putInt(j+startingVal);
-                            //Utils.intToBytes(j+startingVal, mevs[j].getData(), 0);
-//System.out.println("Put " + (j+startingVal) + " into event's data buffer");
+                            mevs[j].getDataBuffer().putInt(j + startingVal);
                             // set data length to be 4 bytes (1 integer)
                             mevs[j].setLength(4);
                             // set every other event's priority as high
-                            //if (j % 2 == 0) mevs[j].setPriority(Constants.high);
+                            if (j % 2 == 0) mevs[j].setPriority(Priority.HIGH);
                             // set event's control array
-                            //mevs[j].setControl(con);
+                            mevs[j].setControl(con);
                         }
                     }
 
                     // put events back into ET system
                     sys.putEvents(att, mevs);
                     count += mevs.length;
-                    
+
                     startingVal++;
                 }
 
                 // calculate the event rate
                 t2 = System.currentTimeMillis();
-                double rate = 1000.0 * ((double) count) / ((double) (t2 - t1));
-                System.out.println("rate = " + rate + " Hz");
+                rate = 1000.0 * ((double) count) / ((double) (t2 - t1));
+                totalCount += count;
+                totalT += t2 - t1;
+                avgRate = 1000.0 * ((double) totalCount) / totalT;
+                System.out.println("rate = " + String.format("%.3g", rate) +
+                                   " Hz,   avg = " + String.format("%.3g", avgRate));
                 count = 0;
                 t1 = System.currentTimeMillis();
             }
@@ -219,9 +212,9 @@ System.out.println("newEvents call #" + counter++);
             sys.close();
         }
         catch (Exception ex) {
-            System.out.println("ERROR USING ET SYSTEM AS PRODUCER");
+            System.out.println("Error using ET system as producer");
             ex.printStackTrace();
         }
-
-    } // end of main method
+    }
+    
 }

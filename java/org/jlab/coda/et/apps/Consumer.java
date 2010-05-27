@@ -130,8 +130,6 @@ public class Consumer {
 
             // make a direct connection to ET system's tcp server
             SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
-            config.setConnectRemotely(false);
-            config.setHost(Constants.hostLocal);
 
             // create ET system object with verbose debugging output
             SystemUse sys = new SystemUse(config, Constants.debugInfo);
@@ -201,6 +199,6 @@ public class Consumer {
             System.out.println("Error using ET system as consumer");
             ex.printStackTrace();
         }
-
     }
+    
 }
