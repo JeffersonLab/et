@@ -1065,7 +1065,7 @@ public class SystemOpen {
                 RandomAccessFile file = new RandomAccessFile(config.getEtName(), "rw");
                 FileChannel fc = file.getChannel();
                 // First, map only the first part of the file which contains some
-                // important data in 5 ints and 5 longs (60 bytes). Once that info is read,
+                // important data in 6 ints and 5 longs (64 bytes). Once that info is read,
                 // remap the file properly to get at the data.
                 buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, Constants.initialSharedMemBytes);
 
