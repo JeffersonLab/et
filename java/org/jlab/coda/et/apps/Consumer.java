@@ -173,7 +173,7 @@ public class Consumer {
                         for (Event mev : mevs) {
                             // get one integer's worth of data
                             num = mev.getDataBuffer().getInt(0);
-                            //System.out.println("data = " + num);
+                            System.out.println("data = " + num);
                         }
                     }
 
