@@ -1176,6 +1176,7 @@ public class SystemUse {
 
         for (EventImpl ev : events) {
             position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
+            buffer.clear();
             buffer.position(position);
             buffer.limit(position + eventSize);
             ev.setDataBuffer(buffer.slice());
@@ -1405,6 +1406,7 @@ public class SystemUse {
 
         for (EventImpl ev : events) {
             position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
+            buffer.clear();
             buffer.position(position);
             buffer.limit(position + eventSize);
             ev.setDataBuffer(buffer.slice());
