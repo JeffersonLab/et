@@ -167,11 +167,16 @@ public class Consumer {
                     if (count == 0) t1 = System.currentTimeMillis();
 
                     // example of reading & printing event data
-                    if (false) {
+                    if (true) {
                         for (Event mev : mevs) {
                             // get one integer's worth of data
                             num = mev.getDataBuffer().getInt(0);
-                            System.out.println("data = " + num);
+                            if (mev.needToSwap()) {
+                                System.out.println("data swap = " + Integer.reverseBytes(num));
+                            }
+                            else {
+                                System.out.println("data = " + num);
+                            }
                         }
                     }
 
