@@ -129,7 +129,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_getEvents
 
     int i, j, numread, status;
     jbyteArray byteArray;
-    char bytes[4];
+    jbyte bytes[4];
     et_event *pe[count];
     jclass clazz;
     jboolean isCopy;
@@ -198,7 +198,7 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
         controlInts);
 
-        /* set byte order */
+        /* set byte order in this way so it won't be swapped */
         bytes[0] = (pe[i]->byteorder >> 24) & 0x000000FF;
         bytes[1] = (pe[i]->byteorder >> 16) & 0x000000FF;
         bytes[2] = (pe[i]->byteorder <<  8) & 0x000000FF;
