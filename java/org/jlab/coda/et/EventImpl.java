@@ -156,6 +156,9 @@ public class EventImpl implements Event {
      * No data array or buffer are created since we will be using shared
      * memory and it will be taken care of later. Tons of args since it's a lot easier in
      * JNI to call one method with lots of args then to call lots of set methods on one object.
+     * Byteorder is not set with this constructor as passing it in may swap its value. This
+     * constructor is used in conjunction with {@link #setByteOrder(byte[])} to set the byte
+     * order properly.
      *
      * @param size      {@link #memSize}
      * @param limit     {@link #sizeLimit}
@@ -166,11 +169,10 @@ public class EventImpl implements Event {
      * @param modify    {@link #modify}
      * @param length    {@link #length}
      * @param priority  {@link #modify}
-     * @param byteOrder {@link #byteOrder}
      * @param control   {@link #control}
      */
     EventImpl(int size, int limit, int status, int id, int age, int owner,
-              int modify, int length, int priority, int byteOrder, int[] control) {
+              int modify, int length, int priority, int[] control) {
 
         isJava         = false;
         memSize        = size;
@@ -182,7 +184,6 @@ public class EventImpl implements Event {
         this.modify    = Modify.getModify(modify);
         this.length    = length;
         this.priority  = Priority.getPriority(priority);
-        this.byteOrder = byteOrder;
         this.control   = control.clone();
     }
 
@@ -491,6 +492,18 @@ public class EventImpl implements Event {
             byteOrder = 0x01020304;
         }
         return;
+    }
+
+    /**
+     * Method used by native code to set the byte order integer without its value being swapped.
+     * @param order four bytes comprising int describing byte order
+     */
+    private void setByteOrder(byte[] order) {
+        int temp = Utils.bytesToInt(order, 0);
+        if (temp != 0x04030201 && temp != 0x01020304) {
+            return;
+        }
+        byteOrder = temp;
     }
 
     /**
