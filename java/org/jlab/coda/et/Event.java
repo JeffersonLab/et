@@ -110,10 +110,16 @@ public interface Event {
     public int[] getControl();
 
     /**
-     * Gets the event's data array which is backing the event's data buffer.
-     * @return event's data array.
+     * Gets the data array which is backing the event's data buffer if there is one.
+     * Any changes to the array will be reflected in the buffer.
+     * If there is no backing data array, as is the case when a user connects
+     * to a local, C-based ET system (memory mapped buffer) then an exception
+     * is thrown.
+     *
+     * @return data array which is backing the event's data buffer
+     * @throws UnsupportedOperationException if there is no backing array
      */
-    public byte[] getData();
+    public byte[] getData() throws UnsupportedOperationException;
 
     /**
      * Gets the event's data buffer.
@@ -133,7 +139,7 @@ public interface Event {
      * Gets the event data's byte order.
      * @return event data's byte order
      */
-    ByteOrder getByteOrder();     // TODO: this info can be obtained through ByteBuffer
+    public ByteOrder getByteOrder();
 
 
     // setters
