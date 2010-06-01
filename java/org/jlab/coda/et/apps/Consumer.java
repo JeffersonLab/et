@@ -15,8 +15,20 @@
 package org.jlab.coda.et.apps;
 
 import java.lang.*;
+import java.nio.ByteOrder;
+import java.nio.ByteBuffer;
+import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
+import java.io.StringWriter;
+
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.jevio.ByteParser;
+import org.jlab.coda.jevio.EvioEvent;
+import org.jlab.coda.jevio.EvioFile;
+
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.stream.XMLOutputFactory;
 
 
 /**
@@ -151,7 +163,7 @@ public class Consumer {
             // array of events
             Event[] mevs;
 
-            int num, chunk = 100, count = 0;
+            int num, chunk = 1, count = 0;
             long t1, t2, totalT = 0, totalCount = 0;
             double rate, avgRate;
 
@@ -169,14 +181,39 @@ public class Consumer {
                     // example of reading & printing event data
                     if (true) {
                         for (Event mev : mevs) {
+
+                            StringWriter sWriter;
+                            sWriter = new StringWriter();
+                            XMLStreamWriter xmlWriter =  XMLOutputFactory.newInstance().createXMLStreamWriter(sWriter);
+
                             // get one integer's worth of data
-                            num = mev.getDataBuffer().getInt(0);
-                            if (mev.needToSwap()) {
-                                System.out.println("data swap = " + Integer.reverseBytes(num));
-                            }
-                            else {
-                                System.out.println("data = " + num);
-                            }
+                            ByteBuffer buf = mev.getDataBuffer();
+                            System.out.println("buffer cap = " + buf.capacity() + ", lim = " + buf.limit() +
+                                               ", pos = " + buf.position());
+                            buf.limit(mev.getLength());
+                            ByteParser parser = new ByteParser();
+                            EvioEvent ev = parser.parseEvent(buf);
+                            ev.toXML(xmlWriter);
+                            System.out.println("Event = \n"+sWriter.toString());
+
+//                            System.out.println("buffer cap = " + buf.capacity() + ", lim = " + buf.limit() +
+//                            ", pos = " + buf.position());
+//                            num = mev.getDataBuffer().getInt(0);
+//                            System.out.println("data byte order = " + mev.getByteOrder());
+
+//                            if (mev.needToSwap()) {
+//                                System.out.println("    data swap = " + Integer.reverseBytes(num));
+//                            }
+//                            else {
+//                                System.out.println("    data = " + num);
+//                            }
+
+//                            int[] con = mev.getControl();
+//                            for (int j : con) {
+//                                System.out.print(j + " ");
+//                            }
+//
+//                            System.out.println("pri = " + mev.getPriority());
                         }
                     }
 
