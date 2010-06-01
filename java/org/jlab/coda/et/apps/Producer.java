@@ -16,6 +16,8 @@ package org.jlab.coda.et.apps;
 
 
 import java.lang.*;
+import java.nio.ByteOrder;
+
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.et.enums.Priority;
@@ -160,10 +162,10 @@ public class Producer {
             // array of events
             Event[] mevs;
 
-            int chunk = 100, count = 0, startingVal = 0;
+            int chunk = 1, count = 0, startingVal = 0;
             long t1, t2, counter = 0, totalT = 0, totalCount = 0;
             double rate, avgRate;
-            int[] con = {-1, -1, -1, -1};
+            int[] con = {1, 2, 3, 4};
             String s;
 
             // keep track of time for event rate calculations
@@ -177,10 +179,13 @@ public class Producer {
                     if (delay > 0) Thread.sleep(delay);
 
                     // example of how to manipulate events
-                    if (false) {
+                    if (true) {
                         for (int j = 0; j < mevs.length; j++) {
                             // put integer (j) into front of data buffer
-                            mevs[j].getDataBuffer().putInt(j + startingVal);
+                            int swappedData = j + startingVal;
+                            //swappedData = Integer.reverseBytes(swappedData);
+                            mevs[j].getDataBuffer().putInt(swappedData);
+                            //mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
                             // set data length to be 4 bytes (1 integer)
                             mevs[j].setLength(4);
                             // set every other event's priority as high
