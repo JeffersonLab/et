@@ -1393,7 +1393,9 @@ public class SystemUse {
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private Event[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
-            throws EtException, EtDeadException {
+            throws EtException, EtDeadException,
+                   EtEmptyException, EtBusyException,
+                   EtTimeoutException, EtWakeUpException {
 
         EventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
