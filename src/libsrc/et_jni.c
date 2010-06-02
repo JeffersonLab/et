@@ -25,13 +25,15 @@
 #include "et_private.h"
 #include "org_jlab_coda_et_JniAccess.h"
 
+
 static int debug = 0;
+static int localByteOrder;
+
 /* cache some frequently used values */
 static jclass eventImplClass;
-static jfieldID fid[6];
-static jmethodID constrMethodId1, constrMethodId2, setByteOrder,
+static jfieldID fid[4];
+static jmethodID constrMethodId1, constrMethodId2,
                  getPriorityVal, getDataStatusVal;
-
 
 
 /*
@@ -52,8 +54,8 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_closeLocalEtSystem
  * Signature: (Ljava/lang/String;)J
  */
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
-        (JNIEnv *env, jobject thisObj, jstring fileName) {
-
+        (JNIEnv *env, jobject thisObj, jstring fileName)
+{
     int err;
     const char* mappedFile;
     et_sys_id id; // void *
@@ -84,6 +86,12 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
         return;
     }
     et_open_config_destroy(openconfig);
+    
+    /* store byte order of local system */
+    localByteOrder = et_byteorder();
+    if (localByteOrder == ET_ERROR) {
+        localByteOrder = ET_ENDIAN_LITTLE;
+    }
 
     /* store et id in object by calling this native method */
     class1 = (*env)->GetObjectClass(env, thisObj);
@@ -96,22 +104,19 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     classEventImpl = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
     eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);
     
-    /* find id's of all the fields that we'll read/write to */
+    /* find id's of all the fields that we'll read/write directly to */
     fid[0] = (*env)->GetFieldID(env, classEventImpl, "id",         "I");
-  //  fid[1] = (*env)->GetFieldID(env, classEventImpl, "priority",   "I");
-    fid[2] = (*env)->GetFieldID(env, classEventImpl, "length",     "I");
-  //  fid[3] = (*env)->GetFieldID(env, classEventImpl, "dataStatus", "I");
-    fid[4] = (*env)->GetFieldID(env, classEventImpl, "byteOrder",  "I");
-    fid[5] = (*env)->GetFieldID(env, classEventImpl, "control",    "[I");
+    fid[1] = (*env)->GetFieldID(env, classEventImpl, "length",     "I");
+    fid[2] = (*env)->GetFieldID(env, classEventImpl, "byteOrder",  "I");
+    fid[3] = (*env)->GetFieldID(env, classEventImpl, "control",    "[I");
 
     /* methods to get event's enum values */
     getPriorityVal   = (*env)->GetMethodID(env, classEventImpl, "getPriorityValue",   "()I");
     getDataStatusVal = (*env)->GetMethodID(env, classEventImpl, "getDataStatusValue", "()I");
-    setByteOrder     = (*env)->GetMethodID(env, classEventImpl, "setByteOrder", "([B)V");
 
     /* get id's of a couple different constructors */
     constrMethodId1 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(III)V");
-    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIII[I)V");
+    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[I)V");
   
     if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
@@ -126,10 +131,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_getEvents
         (JNIEnv *env , jobject thisObj, jlong etId, jint attId,
          jint mode, jint sec, jint nsec, jint count)
 {
-
-    int i, j, numread, status;
-    jbyteArray byteArray;
-    jbyte bytes[4];
+    int i, j, numread, status, biteOrder;
     et_event *pe[count];
     jclass clazz;
     jboolean isCopy;
@@ -174,9 +176,6 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
     /* create array of EventImpl objects */
     eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
 
-    /* create array of bytes */
-    byteArray = (*env)->NewByteArray(env, 4);
-
     /* fill array */
     for (i=0; i < numread; i++) {
         /*printf("getEvents (native) : data for event %d = %d\n", i, *((int *)pe[i]->pdata));*/
@@ -190,21 +189,21 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         if (isCopy == JNI_TRUE) {
             (*env)->ReleaseIntArrayElements(env, controlInts, intArrayElems, 0);
         }
+        
+        /* If we're on a little endian machine, int args will be swapped as
+           they go through the jni interface. We don't want this for the int
+           designating the byte order, so swap it here to compensate. */
+        biteOrder = pe[i]->byteorder;
+        if (localByteOrder == ET_ENDIAN_LITTLE) {
+            biteOrder = ET_SWAP32(biteOrder);
+        }
 
         /* create event object */
         event = (*env)->NewObject(env, eventImplClass, constrMethodId2, /* constructor args ... */
         (jint)pe[i]->memsize, (jint)pe[i]->memsize, (jint)pe[i]->datastatus,
         (jint)pe[i]->place,   (jint)pe[i]->age,     (jint)pe[i]->owner,
         (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
-        controlInts);
-
-        /* set byte order in this way so it won't be swapped */
-        bytes[0] = (pe[i]->byteorder >> 24) & 0x000000FF;
-        bytes[1] = (pe[i]->byteorder >> 16) & 0x000000FF;
-        bytes[2] = (pe[i]->byteorder <<  8) & 0x000000FF;
-        bytes[3] = (pe[i]->byteorder      ) & 0x000000FF;
-        (*env)->SetByteArrayRegion(env, byteArray, 0, 4, bytes);
-        (*env)->CallVoidMethod(env, event, setByteOrder, byteArray);
+        (jint)biteOrder, controlInts);
        
         /* put event in array */
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
@@ -225,9 +224,9 @@ if (debug) printf("getEvents (native) : filled array!\n");
  */
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_putEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId,
-         jobjectArray events, jint length) {
-
-    int i, j, status, place;
+         jobjectArray events, jint length)
+{
+    int i, j, status, place, biteOrder;
     et_event *pe[length];
     jclass clazz = NULL;
     jobject event;
@@ -249,14 +248,19 @@ if (debug) printf("putEvents (native) : put 'em back\n");
         
         /* set fields in event struct that may have been modified in Java */
         pe[i]->priority   = (*env)->CallIntMethod(env, event, getPriorityVal);
-        //pe[i]->priority   = (*env)->GetIntField(env, event, fid[1]);
-        pe[i]->length     = (uint64_t) ((*env)->GetIntField(env, event, fid[2]));
-        //pe[i]->datastatus = (*env)->GetIntField(env, event, fid[3]);
+        pe[i]->length     = (uint64_t) ((*env)->GetIntField(env, event, fid[1]));
         pe[i]->datastatus = (*env)->CallIntMethod(env, event, getDataStatusVal);
-        pe[i]->byteorder  = (*env)->GetIntField(env, event, fid[4]);
+        
+        /* If we're on a little endian machine, ints will be swapped as
+           they go through the jni interface. We don't want this for the int
+           designating the byte order, so swap it back again to compensate. */
+        pe[i]->byteorder = (*env)->GetIntField(env, event, fid[2]);
+        if (localByteOrder == ET_ENDIAN_LITTLE) {
+            pe[i]->byteorder = ET_SWAP32(pe[i]->byteorder);
+        }
 
         /* set control ints */
-        controlInts     = (*env)->GetObjectField(env, event, fid[5]);
+        controlInts     = (*env)->GetObjectField(env, event, fid[3]);
         controlElements = (*env)->GetIntArrayElements(env, controlInts, &isCopy);
         for (j=0; j<ET_STATION_SELECT_INTS; j++) {
             pe[i]->control[j] = controlElements[j];
@@ -294,8 +298,8 @@ if (debug) printf("putEvents (native) : put 'em back\n");
  * Signature: (JI[Lorg/jlab/coda/et/EventImpl;I)V
  */
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_dumpEvents
-        (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jobjectArray events, jint length) {
-
+        (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jobjectArray events, jint length)
+{
     int i, j, status, place;
     et_event *pe[length];
     jclass clazz = NULL;
@@ -339,8 +343,8 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
  */
 JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_newEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
-         jint sec, jint nsec, jint count, jint size, jint group) {
-
+         jint sec, jint nsec, jint count, jint size, jint group)
+{
     int i, j, numread, status;
     et_event *pe[count];
     jclass clazz;
