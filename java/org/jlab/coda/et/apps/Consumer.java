@@ -180,21 +180,14 @@ public class Consumer {
 
                     // example of reading & printing event data
                     if (true) {
+
                         for (Event mev : mevs) {
-
-                            StringWriter sWriter;
-                            sWriter = new StringWriter();
-                            XMLStreamWriter xmlWriter =  XMLOutputFactory.newInstance().createXMLStreamWriter(sWriter);
-
                             // get one integer's worth of data
                             ByteBuffer buf = mev.getDataBuffer();
-                            System.out.println("buffer cap = " + buf.capacity() + ", lim = " + buf.limit() +
-                                               ", pos = " + buf.position());
                             buf.limit(mev.getLength());
                             ByteParser parser = new ByteParser();
                             EvioEvent ev = parser.parseEvent(buf);
-                            ev.toXML(xmlWriter);
-                            System.out.println("Event = \n"+sWriter.toString());
+                            System.out.println("Event = \n"+ev.toXML());
 
 //                            System.out.println("buffer cap = " + buf.capacity() + ", lim = " + buf.limit() +
 //                            ", pos = " + buf.position());
