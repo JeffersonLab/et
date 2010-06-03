@@ -182,9 +182,9 @@ public class Consumer {
                     if (true) {
 
                         for (Event mev : mevs) {
-                            // get one integer's worth of data
+                            // get event's data buffer
                             ByteBuffer buf = mev.getDataBuffer();
-                            buf.limit(mev.getLength());
+                            // buf.limit() is set to the length of the actual data (not buffer capacity)
                             ByteParser parser = new ByteParser();
                             EvioEvent ev = parser.parseEvent(buf);
                             System.out.println("Event = \n"+ev.toXML());
