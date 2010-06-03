@@ -1405,13 +1405,16 @@ public class SystemUse {
         // create smaller buffers with the SAME underlying data
         MappedByteBuffer buffer = sys.getBuffer();
         int position, eventSize = (int) sys.getEventSize();
+        ByteBuffer slice;
 
         for (EventImpl ev : events) {
             position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
             buffer.clear();
             buffer.position(position);
             buffer.limit(position + eventSize);
-            ev.setDataBuffer(buffer.slice());
+            slice = buffer.slice();
+            slice.limit(ev.getLength()); // data may not take up the whole capacity
+            ev.setDataBuffer(slice);
         }
 
         return events;
@@ -1595,6 +1598,7 @@ public class SystemUse {
             }
             evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
             evs[j].setLength((int)length);
+            evs[j].getDataBuffer().limit((int)length);
             priAndStat = Utils.bytesToInt(buffer, 16);
             evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
             evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
