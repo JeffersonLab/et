@@ -1363,7 +1363,8 @@ public class SystemUse {
     /**
      * Get events from an ET system.
      * This method uses JNI to call ET routines in the C library. Event memory is
-     * directly accessed shared memory.
+     * directly accessed shared memory. The data ByteBuffer object in each event
+     * has its limit set to the data length (not the buffer's full capacity).
      *
      * @param attId    attachment id number
      * @param mode     if there are no events available, this parameter specifies
@@ -1425,7 +1426,8 @@ public class SystemUse {
     /**
      * Get events from an ET system.
      * Will access local C-based ET systems through JNI/shared memory, but other ET
-     * systems through sockets.
+     * systems through sockets. The data ByteBuffer object in each event
+     * has its limit set to the data length (not the buffer's full capacity).
      *
      * @param att      attachment object
      * @param mode     if there are no new events available, this parameter specifies
