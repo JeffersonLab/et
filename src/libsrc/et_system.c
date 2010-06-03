@@ -891,9 +891,8 @@ static void et_init_mem_event(et_id *id)
   for (i=0; i < sys->config.nevents ; i++) {
     et_init_event(pe);
     sprintf(pe->filename, "%s%s%d", sys->config.filename, "_temp", i);
-diff = (int) (pmem - (char *) (id->pmap));
-if (diff < 0) diff = -diff;
-printf("Storing data ptr for event %d = %d bytes, %d ints\n",i, diff, diff/4);
+    diff = (int) (pmem - (char *) (id->pmap));
+    if (diff < 0) diff = -diff;
     pe->data = pmem;
     pe->place = i;
     pmem += sys->config.event_size;
