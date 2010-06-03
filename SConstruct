@@ -192,12 +192,6 @@ prefix = GetOption('prefix')
 Help('--prefix=<dir>      use base directory <dir> when doing install\n')
 
 # uninstall option
-AddOption('--uninstall',
-           dest='uninstall',
-           default=False,
-           action='store_true')
-uninstall = GetOption('uninstall')
-Help('--uninstall         uninstall libs, headers, & examples\n')
 Help('-c  install         uninstall libs, headers, examples, and remove all generated files\n')
 
 
@@ -331,9 +325,6 @@ print 'incDir = ', incDir
 # use "install" on command line to install libs & headers
 Help('install             install libs & headers\n')
 
-# use "uninstall" on command line to uninstall libs, headers, and executables
-#Help('uninstall           uninstall everything that was installed\n')
-
 # use "examples" on command line to install executable examples
 Help('examples            install executable examples\n')
 
@@ -384,13 +375,3 @@ if useVxworks:
 else:
     env.SConscript('src/libsrc/SConscript',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
     env.SConscript('src/examples/SConscript', variant_dir='src/examples/'+archDir, duplicate=0)
-
-#########################
-# Uninstall stuff
-#########################
-
-# This needs to be AFTER reading the scons files
-# since now we know what the installed files are.
-if uninstall:
-    for fileName in env.FindInstalledFiles():
-        Execute(Delete(fileName))
