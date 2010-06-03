@@ -51,8 +51,28 @@ public class EvioProducer {
 
         // add a bank of doubles
         EvioBank bank1 = new EvioBank(22, DataType.DOUBLE64, 0);
-        eventBuilder.appendDoubleData(bank1, new double[] {1.1,2.2,3.3});
+        eventBuilder.appendDoubleData(bank1, new double[] {1.1,2.2,-3.3, 1.12345678912345678912, -1.2e-99, -2.2e-11, -6.7e-10});
         eventBuilder.addChild(event2, bank1);
+
+        // add a bank of floats
+        EvioBank bank4 = new EvioBank(22, DataType.FLOAT32, 0);
+        eventBuilder.appendFloatData(bank4, new float[] {1.1F,2.2F,-3.3F, 1.12345678912345678912F, -1.2e+38F, -2.2e-38F, -6.7e-29F});
+        eventBuilder.addChild(event2, bank4);
+
+        // add a bank of longs
+        EvioBank bank5 = new EvioBank(22, DataType.LONG64, 0);
+        eventBuilder.appendLongData(bank5, new long[] {1L,2L,3L, 1000000000000000000L, -1000000000000000000L, -2L, -3L});
+        eventBuilder.addChild(event2, bank5);
+
+        // add a bank of ints
+        EvioBank bank6 = new EvioBank(22, DataType.INT32, 0);
+        eventBuilder.appendIntData(bank6, new int[] {1,2,3, 1000000000, -1000000000, -2, -3});
+        eventBuilder.addChild(event2, bank6);
+
+        // add a bank of bytes
+        EvioBank bank7 = new EvioBank(22, DataType.CHAR8, 0);
+        eventBuilder.appendByteData(bank7, new byte[] {1,2,3});
+        eventBuilder.addChild(event2, bank7);
 
         // lets modify event2
         event2.getHeader().setNumber(eventNumber++);
@@ -69,7 +89,7 @@ public class EvioProducer {
 
         EvioSegment segment1 = new EvioSegment(34, DataType.SHORT16);
         eventBuilder.addChild(subBank2, segment1);
-        eventBuilder.appendShortData(segment1, new short[] {7,8,9,10});
+        eventBuilder.appendShortData(segment1, new short[] {7,8,9,10, 10000, 20000});
 
         // now add a bank of tag segments
         EvioBank subBank3 = new EvioBank(45, DataType.TAGSEGMENT, 0);
@@ -89,6 +109,8 @@ public class EvioProducer {
 
         return buf;
     }
+
+
 
 
     public static void main(String[] args) {
@@ -229,20 +251,17 @@ public class EvioProducer {
                              // put integer (j) into front of data buffer
                              int swappedData = j + startingVal;
                              //swappedData = Integer.reverseBytes(swappedData);
-                              ByteBuffer buf = evioBytes();
-                             System.out.println("evio buf cap = " + buf.capacity());
-                             System.out.println("event buf cap = " + mevs[j].getDataBuffer().capacity());
+                             ByteBuffer buf = evioBytes();
 
                              mevs[j].getDataBuffer().put(buf);
                              int len = buf.position();
-                             System.out.println("len of evio = " + len);
                              //mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
                              // set data length to be 4 bytes (1 integer)
                              mevs[j].setLength(len);
                              // set every other event's priority as high
                              //if (j % 2 == 0) mevs[j].setPriority(Priority.HIGH);
                              // set event's control array
-                             mevs[j].setControl(con);
+                             //mevs[j].setControl(con);
                          }
                      }
 
