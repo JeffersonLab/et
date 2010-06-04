@@ -95,9 +95,13 @@ public class EvioProducer {
         EvioBank subBank3 = new EvioBank(45, DataType.TAGSEGMENT, 0);
         eventBuilder.addChild(bank2, subBank3);
 
-        EvioTagSegment tagsegment2 = new EvioTagSegment(34, DataType.CHARSTAR8);
+        // now add a tag segment of tag segments
+        EvioTagSegment tagsegment2 = new EvioTagSegment(35, DataType.TAGSEGMENT);
         eventBuilder.addChild(subBank3, tagsegment2);
-        eventBuilder.appendStringData(tagsegment2, "This is a string");
+
+        EvioTagSegment tagsegment3 = new EvioTagSegment(36, DataType.CHARSTAR8);
+        eventBuilder.addChild(tagsegment2, tagsegment3);
+        eventBuilder.appendStringData(tagsegment3, "This is a string");
 
         event2.setAllHeaderLengths();
 
@@ -107,6 +111,7 @@ public class EvioProducer {
         event2.write(buf);
         buf.flip();
 
+        //System.out.println("Event = \n"+ event2.toXML());
         return buf;
     }
 
