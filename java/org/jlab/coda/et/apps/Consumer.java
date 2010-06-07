@@ -136,7 +136,7 @@ public class Consumer {
             EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
 
             // create ET system object with verbose debugging output
-            EtSystemUse sys = new EtSystemUse(config, EtConstants.debugInfo);
+            EtSystem sys = new EtSystem(config, EtConstants.debugInfo);
 
             // configuration of a new station
             EtStationConfig statConfig = new EtStationConfig();

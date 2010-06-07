@@ -46,8 +46,8 @@ public interface EtEvent {
 
     /**
      * Gets the age of the event, either {@link Age#NEW} if a new event obtained through
-     * calling {@link EtSystemUse#newEvents} or {@link Age#USED} if obtained through calling
-     * {@link EtSystemUse#getEvents}.
+     * calling {@link EtSystem#newEvents} or {@link Age#USED} if obtained through calling
+     * {@link EtSystem#getEvents}.
      *
      * @return age of the event.
      */

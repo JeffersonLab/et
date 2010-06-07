@@ -18,8 +18,8 @@ import org.jlab.coda.et.EtConstants;
 
 /**
  * This enum indicates whether an event is a new or unused event, obtained by a call to
- * {@link org.jlab.coda.et.EtSystemUse#newEvents}, or whether it is an existing or used event, obtained by
- * a call to {@link org.jlab.coda.et.EtSystemUse#getEvents}.
+ * {@link org.jlab.coda.et.EtSystem#newEvents}, or whether it is an existing or used event, obtained by
+ * a call to {@link org.jlab.coda.et.EtSystem#getEvents}.
  *  
  * @author timmer
  */

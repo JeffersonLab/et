@@ -41,7 +41,7 @@ public class EtEventImpl implements EtEvent {
 
     /**
      * Specifies whether the event was obtained as a new event (through
-     * {@link EtSystemUse#newEvents}), or as a "used" event (through {@link EtSystemUse#getEvents}).
+     * {@link EtSystem#newEvents}), or as a "used" event (through {@link EtSystem#getEvents}).
      * If the event is new, its value is {@link Age#NEW} otherwise {@link Age#USED}.
      */
     private Age age;
@@ -139,9 +139,9 @@ public class EtEventImpl implements EtEvent {
     /**
      * Creates an event object for ET system users when connecting to ET systems
      * over the network. Called by
-     * {@link EtSystemUse#getEvents(EtAttachment , org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)},
+     * {@link EtSystem#getEvents(EtAttachment , org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)},
      * and
-     * {@link EtSystemUse#newEvents(EtAttachment , org.jlab.coda.et.enums.Mode, int, int, int, int)}.
+     * {@link EtSystem#newEvents(EtAttachment , org.jlab.coda.et.enums.Mode, int, int, int, int)}.
      *
      * @param size   size of the data array in bytes.
      * @param limit  limit on the size of the data array in bytes. Only used
@@ -369,8 +369,8 @@ public class EtEventImpl implements EtEvent {
 
     /**
      * Sets the age of the event which is {@link Age#NEW} for new events obtained by calling
-     * {@link EtSystemUse#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
-     * {@link EtSystemUse#getEvents}).
+     * {@link EtSystem#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
+     * {@link EtSystem#getEvents}).
      *
      * @param age age of the event
      */

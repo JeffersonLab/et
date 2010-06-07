@@ -40,7 +40,7 @@ public class MonitorSingleSystem {
   private int        dividerPosition, graphHeight, orientation;
   private double     attWidth, stationWidth, stationGap;
   private String     key;
-  private EtSystemUse sys;
+  private EtSystem sys;
   private AllData    data;
   private boolean    initialized, updated;
   private boolean    isSolaris, isJava, isLinux;
@@ -125,13 +125,13 @@ public class MonitorSingleSystem {
   }
   
   // Constructor
-  public MonitorSingleSystem(EtSystemUse use, JTabbedPane tabbedPane,
+  public MonitorSingleSystem(EtSystem use, JTabbedPane tabbedPane,
                              int period) {
     this(use, tabbedPane, period, tabbedPane.getWidth()/2,
          JSplitPane.HORIZONTAL_SPLIT, null);		     
   }
   
-  public MonitorSingleSystem(EtSystemUse use, JTabbedPane tabbedPane,
+  public MonitorSingleSystem(EtSystem use, JTabbedPane tabbedPane,
                              int period, int divider,
 			     int orient, Color[] colors) {
     sys  = use;

@@ -569,9 +569,9 @@ public class MonitorConfiguration extends DefaultHandler {
 
 	// Connections to ET systems
 	String key;
-	EtSystemUse use=null;
+	EtSystem use=null;
 	EtSystemOpenConfig config;
-    for (Map.Entry<String, EtSystemUse> entry : monitor.connections.entrySet()) {
+    for (Map.Entry<String, EtSystem> entry : monitor.connections.entrySet()) {
       // Get object with connection info in it.
 	  use = entry.getValue();
 	  key = entry.getKey();

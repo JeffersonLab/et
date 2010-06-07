@@ -186,7 +186,7 @@ public class EtStationConfig implements Serializable {
 
         // If group is roundrobin or equal-cue, then config's blocking & prescale must be same.
         // BlockMode is forced to be blocking and prescale is forced to be 1
-        // in the method EtSystemUse.configCheck.
+        // in the method EtSystem.configCheck.
         if (((group.selectMode == EtConstants.stationSelectRRobin) ||
              (group.selectMode == EtConstants.stationSelectEqualCue)) &&
             ((group.blockMode  != config.blockMode) ||

@@ -53,8 +53,8 @@ public class Monitor extends JFrame {
     private int defaultPeriod;
 
     // keep track of connections to & monitors of ET systems
-    public final Map<String, EtSystemUse> connections =
-            Collections.synchronizedMap(new HashMap<String, EtSystemUse>(20));
+    public final Map<String, EtSystem> connections =
+            Collections.synchronizedMap(new HashMap<String, EtSystem>(20));
     public final Map<String,MonitorSingleSystem> monitors =
             Collections.synchronizedMap(new HashMap<String,MonitorSingleSystem>(20));
 
@@ -440,7 +440,7 @@ public class Monitor extends JFrame {
                             frame.removeConnection(frame, mon, key, false);
                             // Remove single system monitor from hash table.
                             i.remove();
-                            // Remove EtSystemUse object from hash table.
+                            // Remove EtSystem object from hash table.
                             frame.connections.remove(key);
 
                             //ex.printStackTrace();
@@ -1639,13 +1639,13 @@ public class Monitor extends JFrame {
     /**
      * Make a connection to an ET system & record it.
      */
-    public EtSystemUse makeConnection(final EtSystemOpenConfig config) {
+    public EtSystem makeConnection(final EtSystemOpenConfig config) {
         if (config == null) {
             return null;
         }
 
         // Make a connection. Use EtSystemOpen object directly here
-        // instead of EtSystemUse object so we can see exactly who
+        // instead of EtSystem object so we can see exactly who
         // responded to a broad/multicast if there were multiple
         // responders.
         EtSystemOpen open = new EtSystemOpen(config);
@@ -1764,10 +1764,10 @@ public class Monitor extends JFrame {
             return null;
         }
 
-        // Return a EtSystemUse object - create from EtSystemOpen object
-        EtSystemUse use = null;
+        // Return a EtSystem object - create from EtSystemOpen object
+        EtSystem use = null;
         try {
-            use = new EtSystemUse(open, EtConstants.debugNone);
+            use = new EtSystem(open, EtConstants.debugNone);
         }
         catch (Exception ex) {
             open.disconnect();
@@ -1783,7 +1783,7 @@ public class Monitor extends JFrame {
         connections.put(key, use);
 
         // Finally, put an item into the "Load Connection Parameters" menu
-        final EtSystemUse useObject = use;
+        final EtSystem useObject = use;
         final JMenuItem menuItem = new JMenuItem(key);
         menuItem.setFont(MonitorFonts.buttonTabMenuFont);
         menuItem.setBackground(backgroundColor);
@@ -1907,7 +1907,7 @@ public class Monitor extends JFrame {
         if (notInIterator) {
             // Remove single system monitor from hash table.
             monitor.monitors.remove(key);
-            // Remove EtSystemUse object from hash table.
+            // Remove EtSystem object from hash table.
             monitor.connections.remove(key);
         }
 
@@ -1930,7 +1930,7 @@ public class Monitor extends JFrame {
     /**
      * Display a new ET system connection.
      */
-    public void displayEtSystem(final EtSystemOpenConfig config, final EtSystemUse use) {
+    public void displayEtSystem(final EtSystemOpenConfig config, final EtSystem use) {
         displayEtSystem(config, use, defaultPeriod, tabbedPane.getWidth() / 2,
                         JSplitPane.HORIZONTAL_SPLIT, null);
     }
@@ -1939,7 +1939,7 @@ public class Monitor extends JFrame {
     /**
      * Display a new ET system connection.
      */
-    public void displayEtSystem(final EtSystemOpenConfig config, final EtSystemUse use,
+    public void displayEtSystem(final EtSystemOpenConfig config, final EtSystem use,
                                 int updatePeriod, int dividerLocation,
                                 int orientation, Color[] colors) {
 
@@ -2001,12 +2001,12 @@ public class Monitor extends JFrame {
  */
 
 class ConnectionThread extends Thread {
-    private EtSystemUse use;
+    private EtSystem use;
     private final Monitor monitor;
     private final Runnable runnable;
     private final EtSystemOpenConfig config;
 
-    public EtSystemUse getSystemUse() {
+    public EtSystem getSystemUse() {
         return use;
     }
 

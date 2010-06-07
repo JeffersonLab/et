@@ -38,7 +38,7 @@ import org.jlab.coda.et.enums.DataStatus;
  * @author Carl Timmer
  */
 
-public class EtSystemUse {
+public class EtSystem {
 
     /** Object to specify how to open the ET system of interest. */
     private EtSystemOpenConfig openConfig;
@@ -88,7 +88,7 @@ public class EtSystemUse {
      *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    public EtSystemUse(EtSystemOpenConfig config, int debug) throws
+    public EtSystem(EtSystemOpenConfig config, int debug) throws
             IOException, EtException, EtTooManyException {
 
         openConfig = new EtSystemOpenConfig(config);
@@ -130,7 +130,7 @@ public class EtSystemUse {
      *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    public EtSystemUse(EtSystemOpenConfig config) throws
+    public EtSystem(EtSystemOpenConfig config) throws
             IOException, EtException, EtTooManyException {
 
         this(config, EtConstants.debugError);
@@ -157,7 +157,7 @@ public class EtSystemUse {
      *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    public EtSystemUse(EtSystemOpen sys, int debug)  throws
+    public EtSystem(EtSystemOpen sys, int debug)  throws
             IOException, EtException, EtTooManyException {
 
         this.sys   = sys;

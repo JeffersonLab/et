@@ -33,7 +33,7 @@ public class EtStation {
     private String name;
 
     /** User's ET system object. */
-    private EtSystemUse sys;
+    private EtSystem sys;
 
     /** Flag telling whether this station object is usable or the station it
      *  represents has been removed. Set by the user's ET system object. */
@@ -49,7 +49,7 @@ public class EtStation {
      * @param id   station id number
      * @param sys  user's ET system object
      */
-    EtStation(String name, int id, EtSystemUse sys) {
+    EtStation(String name, int id, EtSystem sys) {
         this.id = id;
         this.sys = sys;
         this.name = name;
@@ -82,7 +82,7 @@ public class EtStation {
 
     /** Gets the ET system object.
      * @return ET system object */
-    public EtSystemUse getSys() {return sys;}
+    public EtSystem getSys() {return sys;}
 
     /** Tells if this station object is usable.
      * @return <code>true</code> if station object is usable and <code>false</code> otherwise */

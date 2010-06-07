@@ -22,7 +22,7 @@ import org.jlab.coda.et.data.*;
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.EtConstants;
 import org.jlab.coda.et.EtSystemOpenConfig;
-import org.jlab.coda.et.EtSystemUse;
+import org.jlab.coda.et.EtSystem;
 
 /**
  * This class implements a monitor of an ET system. It opens the system,
@@ -119,7 +119,7 @@ public class EtMonitor {
           EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
 
           // create ET system object with debugging output
-          EtSystemUse sys = new EtSystemUse(config, EtConstants.debugError);
+          EtSystem sys = new EtSystem(config, EtConstants.debugError);
           AllData etData = new AllData();
 
 /*
@@ -163,7 +163,7 @@ public class EtMonitor {
   }
 
 
-    private static void display(EtSystemUse sys, AllData data)
+    private static void display(EtSystem sys, AllData data)
   {
     int           end = 499, lang;
     boolean       blocking;
