@@ -14,7 +14,7 @@
 
 package org.jlab.coda.et.data;
 
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 import java.io.*;
 
@@ -43,7 +43,7 @@ public class ProcessData {
      * An array of attachment id numbers. Only the first "attachments"
      * number of elements are meaningful.
      */
-    private int attIds[] = new int[Constants.attachmentsMax];
+    private int attIds[] = new int[EtConstants.attachmentsMax];
 
 
     // get methods

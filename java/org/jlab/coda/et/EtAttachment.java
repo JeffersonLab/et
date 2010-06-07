@@ -19,13 +19,13 @@ import org.jlab.coda.et.exception.*;
 
 /**
  * This class defines an ET system user's attachment to a station.
- * Attachments can only be created by an ET system's {@link SystemUse#attach}
+ * Attachments can only be created by an ET system's {@link EtSystemUse#attach}
  * method. Attachments are means of designating the
  * ownership of events and keeping track of events.
  *
  * @author Carl Timmer
  */
-public class Attachment {
+public class EtAttachment {
 
     // TODO: keep a list or set of events we currently have out?
 
@@ -33,10 +33,10 @@ public class Attachment {
     private int id;
 
     /** ET system the attachment is associated with. */
-    private SystemUse sys;
+    private EtSystemUse sys;
 
     /** Station the attachment is associated with. */
-    private Station station;
+    private EtStation station;
 
     /**
      * Flag telling whether this attachment object is usable or the attachment it
@@ -47,13 +47,13 @@ public class Attachment {
 
     /**
      * Constructor for creating an attachment to a specific ET system and station.
-     * Attachments can only be created by an ET system's {@link SystemUse#attach} method.
+     * Attachments can only be created by an ET system's {@link EtSystemUse#attach} method.
      *
      * @param station  station object
      * @param id       unique attachment id number
      * @param sys      ET system object
      */
-    Attachment(Station station, int id, SystemUse sys) {
+    EtAttachment(EtStation station, int id, EtSystemUse sys) {
         this.id      = id;
         this.sys     = sys;
         this.station = station;
@@ -67,7 +67,7 @@ public class Attachment {
      * Gets the object of the station attached to.
      * @return object of station attached to
      */
-    public Station getStation() {return station;}
+    public EtStation getStation() {return station;}
 
     /**
      * Gets the id number of this attachment.
@@ -91,10 +91,10 @@ public class Attachment {
     }
 
     /**
-     * Sets the SystemUse object for using the ET system.
-     * @return the SystemUse object for using the ET system
+     * Sets the EtSystemUse object for using the ET system.
+     * @return the EtSystemUse object for using the ET system
      */
-    public SystemUse getSys() {
+    public EtSystemUse getSys() {
         return sys;
     }
 
@@ -119,7 +119,7 @@ public class Attachment {
             val = sys.getInputStream().readLong();
         }
 
-        if (err != Constants.ok) {
+        if (err != EtConstants.ok) {
             throw new EtException("this station has been revmoved from ET system");
         }
 
@@ -131,7 +131,7 @@ public class Attachment {
      * @return number of events put into the ET system by this attachment
      */
     public long getEventsPut() throws IOException, EtException {
-        return getLongValue(Constants.netAttPut);
+        return getLongValue(EtConstants.netAttPut);
     }
 
     /**
@@ -139,7 +139,7 @@ public class Attachment {
      * @return number of events gotten from the ET system by this attachment
      */
     public long getEventsGet() throws IOException, EtException {
-        return getLongValue(Constants.netAttGet);
+        return getLongValue(EtConstants.netAttGet);
     }
 
     /**
@@ -149,7 +149,7 @@ public class Attachment {
      * @return number of events dumped into the ET system by this attachment
      */
     public long getEventsDump() throws IOException, EtException {
-        return getLongValue(Constants.netAttDump);
+        return getLongValue(EtConstants.netAttDump);
     }
 
     /**
@@ -157,7 +157,7 @@ public class Attachment {
      * @return number of new events gotten from the ET system by this attachment
      */
     public long getEventsMake() throws IOException, EtException {
-        return getLongValue(Constants.netAttMake);
+        return getLongValue(EtConstants.netAttMake);
   }
 }
 

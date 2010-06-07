@@ -14,7 +14,7 @@
 
 package org.jlab.coda.et.enums;
 
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 /**
  * This enum represents the 3 possible modifications a networked user can make to
@@ -31,9 +31,9 @@ public enum Modify {
     /** Network user will make no changes to data or header (non-data). Event is readonly. */
     NOTHING  (0),
     /** Network user may make changes to data and/or header (non-data). Event is read-write. */
-    ANYTHING (Constants.modify),
+    ANYTHING (EtConstants.modify),
     /** Network user may make changes to header (non-data) only. */
-    HEADER   (Constants.modifyHeader);
+    HEADER   (EtConstants.modifyHeader);
 
     private int value;
 

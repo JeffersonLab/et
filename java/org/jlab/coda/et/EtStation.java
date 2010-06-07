@@ -24,7 +24,7 @@ import org.jlab.coda.et.exception.*;
  * @author Carl Timmer
  */
 
-public class Station {
+public class EtStation {
 
     /** Unique id number. */
     private int id;
@@ -33,7 +33,7 @@ public class Station {
     private String name;
 
     /** User's ET system object. */
-    private SystemUse sys;
+    private EtSystemUse sys;
 
     /** Flag telling whether this station object is usable or the station it
      *  represents has been removed. Set by the user's ET system object. */
@@ -49,7 +49,7 @@ public class Station {
      * @param id   station id number
      * @param sys  user's ET system object
      */
-    Station(String name, int id, SystemUse sys) {
+    EtStation(String name, int id, EtSystemUse sys) {
         this.id = id;
         this.sys = sys;
         this.name = name;
@@ -82,7 +82,7 @@ public class Station {
 
     /** Gets the ET system object.
      * @return ET system object */
-    public SystemUse getSys() {return sys;}
+    public EtSystemUse getSys() {return sys;}
 
     /** Tells if this station object is usable.
      * @return <code>true</code> if station object is usable and <code>false</code> otherwise */
@@ -94,16 +94,16 @@ public class Station {
      * @return array of select integers
      * @throws EtException
      *     if the station has been removed or cannot be found
-     * @see StationConfig#select
+     * @see EtStationConfig#select
      */
     public int[] getSelectWords() throws IOException, EtException {
         if (!usable) {throw new EtException("station has been removed");}
 
         int err;
-        int[] select = new int[Constants.stationSelectInts];
+        int[] select = new int[EtConstants.stationSelectInts];
 
         synchronized(sys) {
-            sys.getOutputStream().writeInt(Constants.netStatGSw);
+            sys.getOutputStream().writeInt(EtConstants.netStatGSw);
             sys.getOutputStream().writeInt(id);
             sys.getOutputStream().flush();
 
@@ -113,7 +113,7 @@ public class Station {
             }
         }
 
-        if (err != Constants.ok) {
+        if (err != EtConstants.ok) {
             throw new EtException("cannot find station");
         }
 
@@ -127,7 +127,7 @@ public class Station {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed or cannot be found;
      *                     if wrong size array, or if the station is GRAND_CENTRAL
-     * @see StationConfig#select
+     * @see EtStationConfig#select
      */
     public void setSelectWords(int[] select) throws IOException, EtException {
         if (!usable) {
@@ -138,14 +138,14 @@ public class Station {
             throw new EtException("cannot modify GRAND_CENTRAL station");
         }
 
-        if (select.length != Constants.stationSelectInts) {
+        if (select.length != EtConstants.stationSelectInts) {
             throw new EtException("wrong number of elements in select array");
         }
 
         int err;
 
         synchronized (sys) {
-            sys.getOutputStream().writeInt(Constants.netStatSSw);
+            sys.getOutputStream().writeInt(EtConstants.netStatSSw);
             sys.getOutputStream().writeInt(id);
             for (int i = 0; i < select.length; i++) {
                 sys.getOutputStream().writeInt(select[i]);
@@ -154,7 +154,7 @@ public class Station {
             err = sys.getInputStream().readInt();
         }
 
-        if (err != Constants.ok) {
+        if (err != EtConstants.ok) {
             throw new EtException("this station has been removed from ET system");
         }
 
@@ -180,13 +180,13 @@ public class Station {
             err = sys.getInputStream().readInt();
             length = sys.getInputStream().readInt();
 
-            if (err == Constants.ok) {
+            if (err == EtConstants.ok) {
                 buf = new byte[length];
                 sys.getInputStream().readFully(buf, 0, length);
             }
         }
 
-        if (err == Constants.ok) {
+        if (err == EtConstants.ok) {
             try {
                 val = new String(buf, 0, length - 1, "ASCII");
             }
@@ -210,13 +210,13 @@ public class Station {
      * @return station's user-defined select function library
      * @throws IOException if there are problems with network communication
      * @throws EtException  if the station has been removed
-     * @see StationConfig#selectLibrary
+     * @see EtStationConfig#selectLibrary
      */
     public String getSelectLibrary() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getStringValue(Constants.netStatLib);
+        return getStringValue(EtConstants.netStatLib);
     }
 
     /**
@@ -226,13 +226,13 @@ public class Station {
      * @return station's user-defined select function
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#selectFunction
+     * @see EtStationConfig#selectFunction
      */
     public String getSelectFunction() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getStringValue(Constants.netStatFunc);
+        return getStringValue(EtConstants.netStatFunc);
     }
 
     /**
@@ -242,13 +242,13 @@ public class Station {
      * @return station's user-defined select method class
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#selectClass
+     * @see EtStationConfig#selectClass
      */
     public String getSelectClass() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getStringValue(Constants.netStatClass);
+        return getStringValue(EtConstants.netStatClass);
     }
 
 
@@ -270,7 +270,7 @@ public class Station {
             val = sys.getInputStream().readInt();
         }
         
-        if (err != Constants.ok) {
+        if (err != EtConstants.ok) {
             throw new EtException("this station has been removed from ET system");
         }
 
@@ -296,7 +296,7 @@ public class Station {
             err = sys.getInputStream().readInt();
         }
 
-        if (err != Constants.ok) {
+        if (err != EtConstants.ok) {
             throw new EtException("this station has been removed from ET system");
         }
 
@@ -314,13 +314,13 @@ public class Station {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGAtts);
+        return getIntValue(EtConstants.netStatGAtts);
     }
 
     /**
      * Gets the station's status. It may have the values
-     * {@link Constants#stationUnused}, {@link Constants#stationCreating},
-     * {@link Constants#stationIdle}, and {@link Constants#stationActive}.
+     * {@link EtConstants#stationUnused}, {@link EtConstants#stationCreating},
+     * {@link EtConstants#stationIdle}, and {@link EtConstants#stationActive}.
      *
      * @return station's status
      * @throws IOException if there are problems with network communication
@@ -330,7 +330,7 @@ public class Station {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatStatus);
+        return getIntValue(EtConstants.netStatStatus);
     }
 
     /**
@@ -344,7 +344,7 @@ public class Station {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatInCnt);
+        return getIntValue(EtConstants.netStatInCnt);
     }
 
     /**
@@ -358,7 +358,7 @@ public class Station {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatOutCnt);
+        return getIntValue(EtConstants.netStatOutCnt);
     }
 
     /**
@@ -367,13 +367,13 @@ public class Station {
      * @return station's block mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#blockMode
+     * @see EtStationConfig#blockMode
      */
     public int getBlockMode() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGBlock);
+        return getIntValue(EtConstants.netStatGBlock);
     }
 
     /**
@@ -383,7 +383,7 @@ public class Station {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad mode value, or
      *                     the station is GRAND_CENTRAL
-     * @see StationConfig#blockMode
+     * @see EtStationConfig#blockMode
      */
     public void setBlockMode(int mode) throws IOException, EtException {
         if (!usable) {
@@ -394,11 +394,11 @@ public class Station {
             throw new EtException("cannot modify GRAND_CENTRAL station");
         }
 
-        if ((mode != Constants.stationBlocking) &&
-            (mode != Constants.stationNonBlocking)) {
+        if ((mode != EtConstants.stationBlocking) &&
+            (mode != EtConstants.stationNonBlocking)) {
             throw new EtException("bad block mode value");
         }
-        setIntValue(Constants.netStatSBlock, mode);
+        setIntValue(EtConstants.netStatSBlock, mode);
         return;
   }
 
@@ -408,13 +408,13 @@ public class Station {
      * @return station's user mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#userMode
+     * @see EtStationConfig#userMode
      */
     public int getUserMode() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGUser);
+        return getIntValue(EtConstants.netStatGUser);
     }
 
     /**
@@ -424,7 +424,7 @@ public class Station {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad mode value, or
      *                     the station is GRAND_CENTRAL
-     * @see StationConfig#userMode
+     * @see EtStationConfig#userMode
      */
     public void setUserMode(int mode) throws IOException, EtException {
         if (!usable) {
@@ -439,7 +439,7 @@ public class Station {
             throw new EtException("bad user mode value");
         }
 
-        setIntValue(Constants.netStatSUser, mode);
+        setIntValue(EtConstants.netStatSUser, mode);
         return;
     }
 
@@ -449,13 +449,13 @@ public class Station {
      * @return station's restore mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#restoreMode
+     * @see EtStationConfig#restoreMode
      */
     public int getRestoreMode() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGRestore);
+        return getIntValue(EtConstants.netStatGRestore);
     }
 
     /**
@@ -465,7 +465,7 @@ public class Station {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad mode value, or
      *                     the station is GRAND_CENTRAL
-     * @see StationConfig#restoreMode
+     * @see EtStationConfig#restoreMode
      */
     public void setRestoreMode(int mode) throws IOException, EtException {
         if (!usable) {
@@ -476,13 +476,13 @@ public class Station {
             throw new EtException("cannot modify GRAND_CENTRAL station");
         }
 
-        if ((mode != Constants.stationRestoreOut) &&
-            (mode != Constants.stationRestoreIn) &&
-            (mode != Constants.stationRestoreGC)) {
+        if ((mode != EtConstants.stationRestoreOut) &&
+            (mode != EtConstants.stationRestoreIn) &&
+            (mode != EtConstants.stationRestoreGC)) {
             throw new EtException("bad restore mode value");
         }
 
-        setIntValue(Constants.netStatSRestore, mode);
+        setIntValue(EtConstants.netStatSRestore, mode);
         return;
     }
 
@@ -492,13 +492,13 @@ public class Station {
      * @return station's select mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#selectMode
+     * @see EtStationConfig#selectMode
      */
     public int getSelectMode() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGSelect);
+        return getIntValue(EtConstants.netStatGSelect);
   }
 
     /**
@@ -507,13 +507,13 @@ public class Station {
      * @return station's cue
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#cue
+     * @see EtStationConfig#cue
      */
     public int getCue() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGCue);
+        return getIntValue(EtConstants.netStatGCue);
     }
 
     /**
@@ -523,7 +523,7 @@ public class Station {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad cue value, or
      *                     the station is GRAND_CENTRAL
-     * @see StationConfig#cue
+     * @see EtStationConfig#cue
      */
     public void setCue(int cue) throws IOException, EtException {
         if (!usable) {
@@ -538,7 +538,7 @@ public class Station {
             throw new EtException("bad cue value");
         }
 
-        setIntValue(Constants.netStatSCue, cue);
+        setIntValue(EtConstants.netStatSCue, cue);
         return;
     }
 
@@ -548,13 +548,13 @@ public class Station {
      * @return station's prescale
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see StationConfig#prescale
+     * @see EtStationConfig#prescale
      */
     public int getPrescale() throws IOException, EtException {
         if (!usable) {
             throw new EtException("station has been removed");
         }
-        return getIntValue(Constants.netStatGPre);
+        return getIntValue(EtConstants.netStatGPre);
     }
 
     /**
@@ -564,7 +564,7 @@ public class Station {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad prescale value, or
      *                     the station is GRAND_CENTRAL
-     * @see StationConfig#prescale
+     * @see EtStationConfig#prescale
      */
     public void setPrescale(int prescale) throws IOException, EtException {
         if (!usable) {
@@ -579,7 +579,7 @@ public class Station {
             throw new EtException("bad prescale value");
         }
         
-        setIntValue(Constants.netStatSPre, prescale);
+        setIntValue(EtConstants.netStatSPre, prescale);
         return;
     }
 

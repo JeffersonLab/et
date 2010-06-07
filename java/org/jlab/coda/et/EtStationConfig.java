@@ -25,7 +25,7 @@ import org.jlab.coda.et.exception.*;
  * @author Carl Timmer
  */
 
-public class StationConfig implements Serializable {
+public class EtStationConfig implements Serializable {
 
     /**
      * Maximum number of events to store in this station's input list when the
@@ -44,15 +44,15 @@ public class StationConfig implements Serializable {
     /**
      * Determine whether the station is part of a single group of stations
      * through which events flow in parallel or is not. A value of
-     * {@link Constants#stationParallel} means it is a parallel station,
-     * while a value of {@link Constants#stationSerial} means it is not.
+     * {@link EtConstants#stationParallel} means it is a parallel station,
+     * while a value of {@link EtConstants#stationSerial} means it is not.
      */
     private int flowMode;
 
     /**
      * The maximum number of users permitted to attach to this station. A value
      * of 0 means any number of users may attach. It may be set to
-     * {@link Constants#stationUserMulti} or {@link Constants#stationUserSingle}
+     * {@link EtConstants#stationUserMulti} or {@link EtConstants#stationUserSingle}
      * meaning unlimited users and a single user respectively.
      */
     private int userMode;
@@ -60,10 +60,10 @@ public class StationConfig implements Serializable {
     /**
      * Determine the method of dealing with events obtained by a user through an
      * attachment, but whose process has ended before putting the events back
-     * into the system. It may have the value {@link Constants#stationRestoreIn}
+     * into the system. It may have the value {@link EtConstants#stationRestoreIn}
      * which places the events in the station's input list,
-     * {@link Constants#stationRestoreOut} which places them in the output list,
-     * or {@link Constants#stationRestoreGC} which places them in GRAND_CENTRAL
+     * {@link EtConstants#stationRestoreOut} which places them in the output list,
+     * or {@link EtConstants#stationRestoreGC} which places them in GRAND_CENTRAL
      * station.
      */
     private int restoreMode;
@@ -72,21 +72,21 @@ public class StationConfig implements Serializable {
      * Determine whether all events will pass through the station (blocking) or
      * whether events should fill a cue with additional events bypassing the
      * station and going to the next (nonblocking). The permitted values are
-     * {@link Constants#stationBlocking} and {@link Constants#stationNonBlocking}.
+     * {@link EtConstants#stationBlocking} and {@link EtConstants#stationNonBlocking}.
      */
     private int blockMode;
 
     /**
      * Determine the method of filtering events for selection into the station's
-     * input list. A value of {@link Constants#stationSelectAll} applies no
-     * filtering, {@link Constants#stationSelectMatch} applies a builtin
+     * input list. A value of {@link EtConstants#stationSelectAll} applies no
+     * filtering, {@link EtConstants#stationSelectMatch} applies a builtin
      * method for selection ({@link org.jlab.coda.et.system.StationLocal#select}), and
-     * {@link Constants#stationSelectUser} allows the user to define a selection
+     * {@link EtConstants#stationSelectUser} allows the user to define a selection
      * method. If the station is part of a single group of parallel stations, a
-     * value of {@link Constants#stationSelectRRobin} distributes events among the
+     * value of {@link EtConstants#stationSelectRRobin} distributes events among the
      * parallel stations using a round robin algorithm. Similarly, if the station
      * is part of a single group of parallel stations, a value of
-     * {@link Constants#stationSelectEqualCue} distributes events among the
+     * {@link EtConstants#stationSelectEqualCue} distributes events among the
      * parallel stations using an algorithm to keep the cues equal to eachother.
      */
     private int selectMode;
@@ -94,7 +94,7 @@ public class StationConfig implements Serializable {
     /**
      * An array of integers used in the builtin selection method and available
      * for any tasks the user desires. Its size is set by
-     * {@link Constants#stationSelectInts}.
+     * {@link EtConstants#stationSelectInts}.
      */
     private int[] select;
 
@@ -120,24 +120,24 @@ public class StationConfig implements Serializable {
     /**
      * Creates a new StationConfig object with default values for everything.
      * The default values are:
-     * cue         = {@link Constants#defaultStationCue},
-     * prescale    = {@link Constants#defaultStationPrescale},
-     * flowMode    = {@link Constants#stationSerial},
-     * userMode    = {@link Constants#stationUserMulti},
-     * restoreMode = {@link Constants#stationRestoreOut},
-     * blockMode   = {@link Constants#stationBlocking},
-     * selectMode  = {@link Constants#stationSelectAll}, and
+     * cue         = {@link EtConstants#defaultStationCue},
+     * prescale    = {@link EtConstants#defaultStationPrescale},
+     * flowMode    = {@link EtConstants#stationSerial},
+     * userMode    = {@link EtConstants#stationUserMulti},
+     * restoreMode = {@link EtConstants#stationRestoreOut},
+     * blockMode   = {@link EtConstants#stationBlocking},
+     * selectMode  = {@link EtConstants#stationSelectAll}, and
      * select      = filled with -1's
      */
-    public StationConfig() {
-        cue         = Constants.defaultStationCue;
-        prescale    = Constants.defaultStationPrescale;
-        flowMode    = Constants.stationSerial;
-        userMode    = Constants.stationUserMulti;
-        restoreMode = Constants.stationRestoreOut;
-        blockMode   = Constants.stationBlocking;
-        selectMode  = Constants.stationSelectAll;
-        select      = new int[Constants.stationSelectInts];
+    public EtStationConfig() {
+        cue         = EtConstants.defaultStationCue;
+        prescale    = EtConstants.defaultStationPrescale;
+        flowMode    = EtConstants.stationSerial;
+        userMode    = EtConstants.stationUserMulti;
+        restoreMode = EtConstants.stationRestoreOut;
+        blockMode   = EtConstants.stationBlocking;
+        selectMode  = EtConstants.stationSelectAll;
+        select      = new int[EtConstants.stationSelectInts];
         Arrays.fill(select, -1);
     }
 
@@ -146,7 +146,7 @@ public class StationConfig implements Serializable {
      * Creates a new StationConfig object from an existing one.
      * @param config config to copy
      */
-    public StationConfig(StationConfig config) {
+    public EtStationConfig(EtStationConfig config) {
         cue            = config.cue;
         prescale       = config.prescale;
         flowMode       = config.flowMode;
@@ -168,37 +168,37 @@ public class StationConfig implements Serializable {
      * @param group  station configuration of head of existing group of parallel stations
      * @param config configuration of station seeking to be added to the group
      */
-    public static boolean compatibleParallelConfigs(StationConfig group, StationConfig config) {
+    public static boolean compatibleParallelConfigs(EtStationConfig group, EtStationConfig config) {
 
         // both must be parallel stations
-        if ((group.flowMode  != Constants.stationParallel) ||
-            (config.flowMode != Constants.stationParallel))  {
+        if ((group.flowMode  != EtConstants.stationParallel) ||
+            (config.flowMode != EtConstants.stationParallel))  {
             return false;
         }
 
         // if group is roundrobin or equal-cue, then config must be same
-        if (((group.selectMode  == Constants.stationSelectRRobin) &&
-             (config.selectMode != Constants.stationSelectRRobin)) ||
-            ((group.selectMode  == Constants.stationSelectEqualCue) &&
-             (config.selectMode != Constants.stationSelectEqualCue))) {
+        if (((group.selectMode  == EtConstants.stationSelectRRobin) &&
+             (config.selectMode != EtConstants.stationSelectRRobin)) ||
+            ((group.selectMode  == EtConstants.stationSelectEqualCue) &&
+             (config.selectMode != EtConstants.stationSelectEqualCue))) {
             return false;
         }
 
         // If group is roundrobin or equal-cue, then config's blocking & prescale must be same.
         // BlockMode is forced to be blocking and prescale is forced to be 1
-        // in the method SystemUse.configCheck.
-        if (((group.selectMode == Constants.stationSelectRRobin) ||
-             (group.selectMode == Constants.stationSelectEqualCue)) &&
+        // in the method EtSystemUse.configCheck.
+        if (((group.selectMode == EtConstants.stationSelectRRobin) ||
+             (group.selectMode == EtConstants.stationSelectEqualCue)) &&
             ((group.blockMode  != config.blockMode) ||
              (group.prescale   != config.prescale))) {
             return false;
         }
 
         // if group is NOT roundrobin or equal-cue, then config's cannot be either
-        if (((group.selectMode  != Constants.stationSelectRRobin) &&
-             (group.selectMode  != Constants.stationSelectEqualCue)) &&
-            ((config.selectMode == Constants.stationSelectRRobin) ||
-             (config.selectMode == Constants.stationSelectEqualCue))) {
+        if (((group.selectMode  != EtConstants.stationSelectRRobin) &&
+             (group.selectMode  != EtConstants.stationSelectEqualCue)) &&
+            ((config.selectMode == EtConstants.stationSelectRRobin) ||
+             (config.selectMode == EtConstants.stationSelectEqualCue))) {
             return false;
         }
 
@@ -290,8 +290,8 @@ public class StationConfig implements Serializable {
      * @throws EtException if there is a bad flow mode value
      */
     public void setFlowMode(int mode) throws EtException {
-        if ((mode != Constants.stationSerial) &&
-            (mode != Constants.stationParallel)) {
+        if ((mode != EtConstants.stationSerial) &&
+            (mode != EtConstants.stationParallel)) {
             throw new EtException("bad flow mode value");
         }
         flowMode = mode;
@@ -317,10 +317,10 @@ public class StationConfig implements Serializable {
      * @throws EtException if there is a bad restore mode value
      */
     public void setRestoreMode(int mode) throws EtException {
-        if ((mode != Constants.stationRestoreOut) &&
-            (mode != Constants.stationRestoreIn) &&
-            (mode != Constants.stationRestoreGC) &&
-            (mode != Constants.stationRestoreRedist)) {
+        if ((mode != EtConstants.stationRestoreOut) &&
+            (mode != EtConstants.stationRestoreIn) &&
+            (mode != EtConstants.stationRestoreGC) &&
+            (mode != EtConstants.stationRestoreRedist)) {
             throw new EtException("bad restore mode value");
         }
         restoreMode = mode;
@@ -333,8 +333,8 @@ public class StationConfig implements Serializable {
      * @throws EtException if there is a bad block mode value
      */
     public void setBlockMode(int mode) throws EtException {
-        if ((mode != Constants.stationBlocking) &&
-            (mode != Constants.stationNonBlocking)) {
+        if ((mode != EtConstants.stationBlocking) &&
+            (mode != EtConstants.stationNonBlocking)) {
             throw new EtException("bad block mode value");
         }
         blockMode = mode;
@@ -347,11 +347,11 @@ public class StationConfig implements Serializable {
      * @throws EtException if there is a bad select mode value
      */
     public void setSelectMode(int mode) throws EtException {
-        if ((mode != Constants.stationSelectAll) &&
-            (mode != Constants.stationSelectMatch) &&
-            (mode != Constants.stationSelectUser) &&
-            (mode != Constants.stationSelectRRobin) &&
-            (mode != Constants.stationSelectEqualCue)) {
+        if ((mode != EtConstants.stationSelectAll) &&
+            (mode != EtConstants.stationSelectMatch) &&
+            (mode != EtConstants.stationSelectUser) &&
+            (mode != EtConstants.stationSelectRRobin) &&
+            (mode != EtConstants.stationSelectEqualCue)) {
             throw new EtException("bad select mode value");
         }
         selectMode = mode;
@@ -364,7 +364,7 @@ public class StationConfig implements Serializable {
      * @throws EtException if there are the wrong number of elements in the array
      */
     public void setSelect(int[] sel) throws EtException {
-        if (sel.length != Constants.stationSelectInts) {
+        if (sel.length != EtConstants.stationSelectInts) {
             throw new EtException("wrong number of elements in select array");
         }
         select = (int[]) sel.clone();

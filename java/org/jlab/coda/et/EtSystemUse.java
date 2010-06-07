@@ -38,13 +38,13 @@ import org.jlab.coda.et.enums.DataStatus;
  * @author Carl Timmer
  */
 
-public class SystemUse {
+public class EtSystemUse {
 
     /** Object to specify how to open the ET system of interest. */
-    private SystemOpenConfig openConfig;
+    private EtSystemOpenConfig openConfig;
 
     /** Object used to connect to a real ET system. */
-    private SystemOpen sys;
+    private EtSystemOpen sys;
 
     /** Flag telling whether the real ET system is currently opened or not. */
     private boolean open;
@@ -69,11 +69,11 @@ public class SystemUse {
 
 
     /**
-     * Construct a new SystemUse object.
+     * Construct a new EtSystemUse object.
      *
-     * @param config SystemOpenConfig object to specify how to open the ET
+     * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
-     * @param debug  debug level (e.g. {@link Constants#debugInfo})
+     * @param debug  debug level (e.g. {@link EtConstants#debugInfo})
      *
      * @throws java.io.IOException
      *     if problems with network comunications
@@ -82,25 +82,25 @@ public class SystemUse {
      * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
-     *     {@link Constants#stationSelectInts}
+     *     {@link EtConstants#stationSelectInts}
      * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
-     *     {@link Constants#policyError} and we are looking either
+     *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    public SystemUse(SystemOpenConfig config, int debug) throws
+    public EtSystemUse(EtSystemOpenConfig config, int debug) throws
             IOException, EtException, EtTooManyException {
 
-        openConfig = new SystemOpenConfig(config);
-        sys = new SystemOpen(openConfig);
+        openConfig = new EtSystemOpenConfig(config);
+        sys = new EtSystemOpen(openConfig);
 
-        if ((debug != Constants.debugNone)   &&
-            (debug != Constants.debugSevere) &&
-            (debug != Constants.debugError)  &&
-            (debug != Constants.debugWarn)   &&
-            (debug != Constants.debugInfo))    {
+        if ((debug != EtConstants.debugNone)   &&
+            (debug != EtConstants.debugSevere) &&
+            (debug != EtConstants.debugError)  &&
+            (debug != EtConstants.debugWarn)   &&
+            (debug != EtConstants.debugInfo))    {
 
-            this.debug = Constants.debugError;
+            this.debug = EtConstants.debugError;
         }
         else {
             this.debug = debug;
@@ -108,13 +108,13 @@ public class SystemUse {
 
         sys.setDebug(debug);
 
-        open();
+        //open();
     }
 
     /**
-     * Construct a new SystemUse object. Debug level set to print only errors.
+     * Construct a new EtSystemUse object. Debug level set to print only errors.
      *
-     * @param config SystemOpenConfig object to specify how to open the ET
+     * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
      *
      * @throws IOException
@@ -124,28 +124,25 @@ public class SystemUse {
      * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
-     *     {@link Constants#stationSelectInts}
+     *     {@link EtConstants#stationSelectInts}
      * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
-     *     {@link Constants#policyError} and we are looking either
+     *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    public SystemUse(SystemOpenConfig config) throws
+    public EtSystemUse(EtSystemOpenConfig config) throws
             IOException, EtException, EtTooManyException {
 
-        openConfig = new SystemOpenConfig(config);
-        sys        = new SystemOpen(openConfig);
-        debug      = Constants.debugError;
-        sys.setDebug(debug);
-        open();
+        this(config, EtConstants.debugError);
     }
 
     /**
-     * Construct a new SystemUse object.
+     * Construct a new EtSystemUse object. Not meant for general use.
+     * Use one of the other constructors.
      *
-     * @param sys   SystemOpen object to specify a connection to the ET
+     * @param sys   EtSystemOpen object to specify a connection to the ET
      *              system of interest
-     * @param debug debug level (e.g. {@link Constants#debugInfo})
+     * @param debug debug level (e.g. {@link EtConstants#debugInfo})
      *
      * @throws IOException
      *     if problems with network comunications
@@ -154,32 +151,32 @@ public class SystemUse {
      * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
-     *     {@link Constants#stationSelectInts}
+     *     {@link EtConstants#stationSelectInts}
      * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
-     *     {@link Constants#policyError} and we are looking either
+     *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    public SystemUse(SystemOpen sys, int debug)  throws
+    public EtSystemUse(EtSystemOpen sys, int debug)  throws
             IOException, EtException, EtTooManyException {
 
         this.sys   = sys;
         openConfig = sys.getConfig();
 
-        if ((debug != Constants.debugNone)   &&
-            (debug != Constants.debugSevere) &&
-            (debug != Constants.debugError)  &&
-            (debug != Constants.debugWarn)   &&
-            (debug != Constants.debugInfo))    {
+        if ((debug != EtConstants.debugNone)   &&
+            (debug != EtConstants.debugSevere) &&
+            (debug != EtConstants.debugError)  &&
+            (debug != EtConstants.debugWarn)   &&
+            (debug != EtConstants.debugInfo))    {
 
-            this.debug = Constants.debugError;
+            this.debug = EtConstants.debugError;
         }
         else {
             this.debug = debug;
         }
 
         if (sys.isConnected()) {
-            if (sys.getLanguage() == Constants.langJava) {isJava = true;}
+            if (sys.getLanguage() == EtConstants.langJava) {isJava = true;}
 
             // buffer communication streams for efficiency
             sock = sys.getSocket();
@@ -222,19 +219,19 @@ public class SystemUse {
     }
 
     /**
-     * Sets the debug output level. Must be either {@link Constants#debugNone},
-     * {@link Constants#debugSevere}, {@link Constants#debugError},
-     * {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
+     * Sets the debug output level. Must be either {@link EtConstants#debugNone},
+     * {@link EtConstants#debugSevere}, {@link EtConstants#debugError},
+     * {@link EtConstants#debugWarn}, or {@link EtConstants#debugInfo}.
      *
      * @param val debug level
      * @throws EtException if bad argument value
      */
     public void setDebug(int val) throws EtException {
-        if ((val != Constants.debugNone)   &&
-            (val != Constants.debugSevere) &&
-            (val != Constants.debugError)  &&
-            (val != Constants.debugWarn)   &&
-            (val != Constants.debugInfo)) {
+        if ((val != EtConstants.debugNone)   &&
+            (val != EtConstants.debugSevere) &&
+            (val != EtConstants.debugError)  &&
+            (val != EtConstants.debugWarn)   &&
+            (val != EtConstants.debugInfo)) {
             throw new EtException("bad debug argument");
         }
         debug = val;
@@ -244,8 +241,8 @@ public class SystemUse {
      * Gets a copy of the configuration object used to specify how to open the ET system.
      * @return copy of the configuration object used to specify how to open the ET system.
      */
-    public SystemOpenConfig getConfig() {
-        return new SystemOpenConfig(openConfig);
+    public EtSystemOpenConfig getConfig() {
+        return new EtSystemOpenConfig(openConfig);
     }
 
 
@@ -259,18 +256,23 @@ public class SystemUse {
      * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
-     *     {@link Constants#stationSelectInts}
+     *     {@link EtConstants#stationSelectInts}
      * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
-     *     {@link Constants#policyError} and we are looking either
+     *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    synchronized private void open() throws IOException, EtException, EtTooManyException {
+    synchronized public void open() throws IOException, EtException, EtTooManyException {
+
+        if (open) {
+            return;
+        }
+
         try {
             sys.connect();
         }
         catch (EtTooManyException ex) {
-            if (debug >= Constants.debugError) {
+            if (debug >= EtConstants.debugError) {
                 System.out.println("The following hosts responded:");
                 for (Map.Entry<String,Integer> entry : sys.getResponders().entrySet()) {
                     System.out.println("  " + entry.getKey() + " at port " + entry.getValue());
@@ -279,7 +281,7 @@ public class SystemUse {
             throw ex;
         }
 
-        if (sys.getLanguage() == Constants.langJava) {isJava = true;}
+        if (sys.getLanguage() == EtConstants.langJava) {isJava = true;}
 
         sock = sys.getSocket();
 
@@ -292,6 +294,11 @@ public class SystemUse {
 
     /** Close the ET system. */
     synchronized public void close() {
+
+        if (!open) {
+            return;
+        }
+
         // if communication with ET system fails, we've already been "closed"
         try {
             // Are we using JNI? If so, close the ET system it opened.
@@ -299,12 +306,12 @@ public class SystemUse {
                 sys.getJni().closeLocalEtSystem(sys.getJni().getLocalEtId());
             }
 
-            out.writeInt(Constants.netClose);  // close and forcedclose do the same thing in java
+            out.writeInt(EtConstants.netClose);  // close and forcedclose do the same thing in java
             out.flush();
             in.readInt();
         }
         catch (IOException ex) {
-            if (debug >= Constants.debugError) {
+            if (debug >= EtConstants.debugError) {
                 System.out.println("network communication error");
             }
         }
@@ -336,12 +343,12 @@ public class SystemUse {
         // If ET system is NOT alive, or if ET system was killed and restarted
         // (breaking tcp connection), we'll get a read or write error.
         try {
-            out.writeInt(Constants.netAlive);
+            out.writeInt(EtConstants.netAlive);
             out.flush();
             alive = in.readInt();
         }
         catch (IOException ex) {
-            if (debug >= Constants.debugError) {
+            if (debug >= EtConstants.debugError) {
                 System.out.println("network communication error");
             }
             return false;
@@ -362,7 +369,7 @@ public class SystemUse {
      *      if not connected to ET system;
      *      if the attachment object is invalid
      */
-    synchronized public void wakeUpAttachment(Attachment att) throws IOException, EtException {
+    synchronized public void wakeUpAttachment(EtAttachment att) throws IOException, EtException {
         if (!open) {
             throw new EtException("Not connected to ET system");
         }
@@ -371,7 +378,7 @@ public class SystemUse {
             throw new EtException("Invalid attachment");
         }
 
-        out.writeInt(Constants.netWakeAtt);
+        out.writeInt(EtConstants.netWakeAtt);
         out.writeInt(att.getId());
         out.flush();
     }
@@ -389,7 +396,7 @@ public class SystemUse {
      *      if not connected to ET system;
      *      if the station object is invalid
      */
-    synchronized public void wakeUpAll(Station station) throws IOException, EtException {
+    synchronized public void wakeUpAll(EtStation station) throws IOException, EtException {
         if (!open) {
             throw new EtException("Not connected to ET system");
         }
@@ -398,7 +405,7 @@ public class SystemUse {
             throw new EtException("Invalid station");
         }
 
-        out.writeInt(Constants.netWakeAll);
+        out.writeInt(EtConstants.netWakeAll);
         out.writeInt(station.getId());
         out.flush();
     }
@@ -417,29 +424,29 @@ public class SystemUse {
      * @throws EtException
      *     if the station configuration is not self-consistent
      */
-    private void configCheck(StationConfig config) throws EtException {
+    private void configCheck(EtStationConfig config) throws EtException {
 
         // USER mode means specifing a class
-        if ((config.getSelectMode()  == Constants.stationSelectUser) &&
+        if ((config.getSelectMode()  == EtConstants.stationSelectUser) &&
             (config.getSelectClass() == null)) {
 
             throw new EtException("station config needs a select class name");
         }
 
         // Must be parallel, block, not prescale, and not restore to input list if rrobin or equal cue
-        if (((config.getSelectMode()  == Constants.stationSelectRRobin) ||
-             (config.getSelectMode()  == Constants.stationSelectEqualCue)) &&
-            ((config.getFlowMode()    == Constants.stationSerial) ||
-             (config.getBlockMode()   == Constants.stationNonBlocking) ||
-             (config.getRestoreMode() == Constants.stationRestoreIn)  ||
+        if (((config.getSelectMode()  == EtConstants.stationSelectRRobin) ||
+             (config.getSelectMode()  == EtConstants.stationSelectEqualCue)) &&
+            ((config.getFlowMode()    == EtConstants.stationSerial) ||
+             (config.getBlockMode()   == EtConstants.stationNonBlocking) ||
+             (config.getRestoreMode() == EtConstants.stationRestoreIn)  ||
              (config.getPrescale()    != 1))) {
 
             throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, nonBlocking, prescale=1, & not restoreIn");
         }
 
         // If redistributing restored events, must be a parallel station
-        if ((config.getRestoreMode() == Constants.stationRestoreRedist) &&
-            (config.getFlowMode()    != Constants.stationParallel)) {
+        if ((config.getRestoreMode() == EtConstants.stationRestoreRedist) &&
+            (config.getFlowMode()    != EtConstants.stationParallel)) {
 
             throw new EtException("if restoreMode = restoreRedist, station must be parallel");
         }
@@ -474,11 +481,11 @@ public class SystemUse {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    public Station createStation(StationConfig config, String name)
+    public EtStation createStation(EtStationConfig config, String name)
             throws IOException, EtException,
                    EtExistsException, EtTooManyException {
 
-        return createStation(config, name, Constants.end, Constants.end);
+        return createStation(config, name, EtConstants.end, EtConstants.end);
     }
 
 
@@ -507,10 +514,10 @@ public class SystemUse {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    public Station createStation(StationConfig config, String name, int position)
+    public EtStation createStation(EtStationConfig config, String name, int position)
             throws IOException, EtException,
             EtExistsException, EtTooManyException {
-        return createStation(config, name, position, Constants.end);
+        return createStation(config, name, position, EtConstants.end);
     }
 
 
@@ -541,7 +548,7 @@ public class SystemUse {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    synchronized public Station createStation(StationConfig config, String name,
+    synchronized public EtStation createStation(EtStationConfig config, String name,
                                               int position, int parallelPosition)
             throws IOException, EtException,
                    EtExistsException, EtTooManyException {
@@ -556,13 +563,13 @@ public class SystemUse {
         }
 
         // check value of position
-        if (position != Constants.end && position < 1) {
+        if (position != EtConstants.end && position < 1) {
             throw new EtException("bad value for position");
         }
 
         // check value of parallel position
-        if ((parallelPosition != Constants.end) &&
-            (parallelPosition != Constants.newHead) &&
+        if ((parallelPosition != EtConstants.end) &&
+            (parallelPosition != EtConstants.newHead) &&
             (parallelPosition  < 0)) {
             throw new EtException("bad value for parallel position");
         }
@@ -571,10 +578,10 @@ public class SystemUse {
         configCheck(config);
 
         // command
-        out.writeInt(Constants.netStatCrAt);
+        out.writeInt(EtConstants.netStatCrAt);
 
         // station configuration
-        out.writeInt(Constants.structOk); // not used in Java
+        out.writeInt(EtConstants.structOk); // not used in Java
         out.writeInt(config.getFlowMode());
         out.writeInt(config.getUserMode());
         out.writeInt(config.getRestoreMode());
@@ -583,7 +590,7 @@ public class SystemUse {
         out.writeInt(config.getCue());
         out.writeInt(config.getSelectMode());
         int[] select = config.getSelect();
-        for (int i=0; i < Constants.stationSelectInts; i++) {
+        for (int i=0; i < EtConstants.stationSelectInts; i++) {
             out.writeInt(select[i]);
         }
 
@@ -635,22 +642,22 @@ public class SystemUse {
         int err = in.readInt();
         int statId = in.readInt();
 
-        if (err ==  Constants.errorTooMany) {
+        if (err ==  EtConstants.errorTooMany) {
             throw new EtTooManyException("maximum number of stations already created");
         }
-        else if (err == Constants.errorExists) {
+        else if (err == EtConstants.errorExists) {
             throw new EtExistsException("station already exists with different definition");
         }
-        else if (err ==  Constants.error) {
+        else if (err ==  EtConstants.error) {
             throw new EtException("trying to add incompatible parallel station, or\n" +
                     "trying to add parallel station to head of existing parallel group, or\n" +
                     "cannot load select class");
         }
 
         // create station
-        Station station = new Station(name, statId, this);
+        EtStation station = new EtStation(name, statId, this);
         station.setUsable(true);
-        if (debug >= Constants.debugInfo) {
+        if (debug >= EtConstants.debugInfo) {
             System.out.println("creating station " + name + " is done");
         }
         
@@ -672,7 +679,7 @@ public class SystemUse {
      *     if the station does not exist;
      *     if the station object is invalid
      */
-    synchronized public void removeStation(Station station) throws IOException, EtException {
+    synchronized public void removeStation(EtStation station) throws IOException, EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -688,12 +695,12 @@ public class SystemUse {
             throw new EtException("Invalid station");
         }
 
-        out.writeInt(Constants.netStatRm);
+        out.writeInt(EtConstants.netStatRm);
         out.writeInt(station.getId());
         out.flush();
 
         int err = in.readInt();
-        if (err ==  Constants.error) {
+        if (err ==  EtConstants.error) {
             throw new EtException("Either no such station exists " +
                                   "or remove all attachments before removing station");
         }
@@ -722,7 +729,7 @@ public class SystemUse {
    *        of parallel stations or to the head of an existing group of parallel
    *        stations.
    */
-  synchronized public void setStationPosition(Station station, int position,
+  synchronized public void setStationPosition(EtStation station, int position,
                                               int parallelPosition)
           throws IOException, EtException {
 
@@ -735,15 +742,15 @@ public class SystemUse {
           throw new EtException("Cannot move GRAND_CENTRAL station");
       }
 
-      if ((position != Constants.end) && (position < 0)) {
+      if ((position != EtConstants.end) && (position < 0)) {
           throw new EtException("bad value for position");
       }
       else if (position == 0) {
           throw new EtException("GRAND_CENTRAL station is always first");
       }
 
-      if ((parallelPosition != Constants.end) &&
-          (parallelPosition != Constants.newHead) &&
+      if ((parallelPosition != EtConstants.end) &&
+          (parallelPosition != EtConstants.newHead) &&
           (parallelPosition < 0)) {
           throw new EtException("bad value for parallelPosition");
       }
@@ -752,14 +759,14 @@ public class SystemUse {
           throw new EtException("Invalid station");
       }
 
-      out.writeInt(Constants.netStatSPos);
+      out.writeInt(EtConstants.netStatSPos);
       out.writeInt(station.getId());
       out.writeInt(position);
       out.writeInt(parallelPosition);
       out.flush();
 
       int err = in.readInt();
-      if (err ==  Constants.error) {
+      if (err ==  EtConstants.error) {
           station.setUsable(false);
           throw new EtException("station does not exist");
       }
@@ -779,7 +786,7 @@ public class SystemUse {
      *     if the station does not exist;
      *     if station object is invalid
      */
-    synchronized public int getStationPosition(Station station)
+    synchronized public int getStationPosition(EtStation station)
             throws IOException, EtException {
 
         // GrandCentral is always first
@@ -795,7 +802,7 @@ public class SystemUse {
             throw new EtException("Invalid station");
         }
 
-        out.writeInt(Constants.netStatGPos);
+        out.writeInt(EtConstants.netStatGPos);
         out.writeInt(station.getId());
         out.flush();
 
@@ -803,7 +810,7 @@ public class SystemUse {
         int position = in.readInt();
         // skip parallel position info
         in.skipBytes(4);
-        if (err ==  Constants.error) {
+        if (err ==  EtConstants.error) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
@@ -826,7 +833,7 @@ public class SystemUse {
      *     if the station does not exist;
      *     if station object is invalid
      */
-    synchronized public int getStationParallelPosition(Station station)
+    synchronized public int getStationParallelPosition(EtStation station)
             throws IOException, EtException {
 
         // parallel position is 0 for serial stations (like GrandCentral)
@@ -842,7 +849,7 @@ public class SystemUse {
             throw new EtException("Invalid station");
         }
 
-        out.writeInt(Constants.netStatGPos);
+        out.writeInt(EtConstants.netStatGPos);
         out.writeInt(station.getId());
         out.flush();
 
@@ -850,7 +857,7 @@ public class SystemUse {
         // skip main position info
         in.skipBytes(4);
         int pPosition = in.readInt();
-        if (err ==  Constants.error) {
+        if (err ==  EtConstants.error) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
@@ -875,7 +882,7 @@ public class SystemUse {
      *     if no more attachments are allowed to the station;
      *     if no more attachments are allowed to ET system
      */
-    synchronized public Attachment attach(Station station)
+    synchronized public EtAttachment attach(EtStation station)
             throws IOException, EtException, EtTooManyException {
 
         if (!open) {
@@ -891,7 +898,7 @@ public class SystemUse {
         try {host = InetAddress.getLocalHost().getHostName();}
         catch (UnknownHostException ex) { /* host = "unknown" */ }
 
-        out.writeInt(Constants.netStatAtt);
+        out.writeInt(EtConstants.netStatAtt);
         out.writeInt(station.getId());
         out.writeInt(-1); // no pid in Java
         out.writeInt(host.length() + 1);
@@ -906,15 +913,15 @@ public class SystemUse {
 
         int err = in.readInt();
         int attId = in.readInt();
-        if (err ==  Constants.error) {
+        if (err ==  EtConstants.error) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
-        else if (err ==  Constants.errorTooMany) {
+        else if (err ==  EtConstants.errorTooMany) {
             throw new EtTooManyException("no more attachments allowed to either station or system");
         }
 
-        Attachment att = new Attachment(station, attId, this);
+        EtAttachment att = new EtAttachment(station, attId, this);
         att.setUsable(true);
         return att;
     }
@@ -932,7 +939,7 @@ public class SystemUse {
      *     if not connected to ET system;
      *     if the attachment object is invalid
      */
-    synchronized public void detach(Attachment att)
+    synchronized public void detach(EtAttachment att)
             throws IOException, EtException {
 
         if (!open) {
@@ -943,7 +950,7 @@ public class SystemUse {
             throw new EtException("Invalid attachment");
         }
 
-        out.writeInt(Constants.netStatDet);
+        out.writeInt(EtConstants.netStatDet);
         out.writeInt(att.getId());
         out.flush();
         // always returns ok
@@ -974,7 +981,7 @@ public class SystemUse {
      *     if station object is invalid;
      *     if attachment object is invalid
      */
-    synchronized public boolean stationAttached(Station station, Attachment att)
+    synchronized public boolean stationAttached(EtStation station, EtAttachment att)
             throws IOException, EtException {
 
         if (!open) {
@@ -989,12 +996,12 @@ public class SystemUse {
             throw new EtException("Invalid attachment");
         }
 
-        out.writeInt(Constants.netStatIsAt);
+        out.writeInt(EtConstants.netStatIsAt);
         out.writeInt(station.getId());
         out.writeInt(att.getId());
         out.flush();
         int err = in.readInt();
-        if (err == Constants.error) {
+        if (err == EtConstants.error) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
@@ -1022,7 +1029,7 @@ public class SystemUse {
             throw new EtException("Not connected to ET system");
         }
 
-        out.writeInt(Constants.netStatEx);
+        out.writeInt(EtConstants.netStatEx);
         out.writeInt(name.length()+1);
         try {
             out.write(name.getBytes("ASCII"));
@@ -1050,14 +1057,14 @@ public class SystemUse {
      *     if not connected to ET system;
      *     if the station does not exist
      */
-    synchronized public Station stationNameToObject(String name)
+    synchronized public EtStation stationNameToObject(String name)
             throws IOException, EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
         }
 
-        out.writeInt(Constants.netStatEx);
+        out.writeInt(EtConstants.netStatEx);
         out.writeInt(name.length()+1);
         try {
             out.write(name.getBytes("ASCII"));
@@ -1069,7 +1076,7 @@ public class SystemUse {
         int err = in.readInt();
         int statId = in.readInt();
         if (err == 1) {
-            Station stat = new Station(name, statId, this);
+            EtStation stat = new EtStation(name, statId, this);
             stat.setUsable(true);
             return stat;
         }
@@ -1116,7 +1123,7 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    public Event[] newEvents(Attachment att, Mode mode, int microSec, int count, int size)
+    public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec, int count, int size)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
@@ -1132,9 +1139,9 @@ public class SystemUse {
      *
      * @param attId    attachment id number
      * @param mode     if there are no new events available, this parameter specifies
-     *                 whether to wait for some by sleeping {@link Constants#sleep},
-     *                 to wait for a set time {@link Constants#timed},
-     *                 or to return immediately {@link Constants#async}.
+     *                 whether to wait for some by sleeping {@link EtConstants#sleep},
+     *                 to wait for a set time {@link EtConstants#timed},
+     *                 or to return immediately {@link EtConstants#async}.
      * @param sec      the number of seconds to wait if a timed wait is specified
      * @param nsec     the number of nanoseconds to wait if a timed wait is specified
      * @param count    the number of events desired
@@ -1160,11 +1167,11 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    private Event[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size, int group)
+    private EtEvent[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException,        EtDeadException, EtWakeUpException,
                    EtTimeoutException, EtBusyException, EtEmptyException  {
 
-        EventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
+        EtEventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
                                                     mode, sec, nsec, count, size, group);
 
         // set all events' data arrays to point to shared memory correctly
@@ -1174,7 +1181,7 @@ public class SystemUse {
         MappedByteBuffer buffer = sys.getBuffer();
         int position, eventSize = (int) sys.getEventSize();
 
-        for (EventImpl ev : events) {
+        for (EtEventImpl ev : events) {
             position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
             buffer.clear();
             buffer.position(position);
@@ -1227,7 +1234,7 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public Event[] newEvents(Attachment att, Mode mode, int microSec,
+    synchronized public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec,
                                           int count, int size, int group)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException,   EtBusyException,
@@ -1246,7 +1253,7 @@ public class SystemUse {
         }
 
         if (count == 0) {
-            return new Event[0];
+            return new EtEvent[0];
         }
 
         if ((microSec < 0) && (mode == Mode.TIMED)) {
@@ -1275,14 +1282,14 @@ public class SystemUse {
         }
 
         byte[] buffer = new byte[36];
-        Utils.intToBytes(Constants.netEvsNewGrp, buffer, 0);
-        Utils.intToBytes(att.getId(),     buffer, 4);
-        Utils.intToBytes(mode.getValue(), buffer, 8);
-        Utils.longToBytes((long)size,     buffer, 12);
-        Utils.intToBytes(count,           buffer, 20);
-        Utils.intToBytes(group,           buffer, 24);
-        Utils.intToBytes(sec,             buffer, 28);
-        Utils.intToBytes(nsec,            buffer, 32);
+        EtUtils.intToBytes(EtConstants.netEvsNewGrp, buffer, 0);
+        EtUtils.intToBytes(att.getId(),     buffer, 4);
+        EtUtils.intToBytes(mode.getValue(), buffer, 8);
+        EtUtils.longToBytes((long)size,     buffer, 12);
+        EtUtils.intToBytes(count,           buffer, 20);
+        EtUtils.intToBytes(group,           buffer, 24);
+        EtUtils.intToBytes(sec,             buffer, 28);
+        EtUtils.intToBytes(nsec,            buffer, 32);
         out.write(buffer);
         out.flush();
 
@@ -1301,25 +1308,25 @@ public class SystemUse {
             }
         }
 
-        if (err < Constants.ok) {
-            if (debug >= Constants.error) {
+        if (err < EtConstants.ok) {
+            if (debug >= EtConstants.error) {
                 System.out.println("error in ET system");
             }
 
             // throw some exceptions
-            if (err == Constants.error) {
+            if (err == EtConstants.error) {
                 throw new EtException("bad mode value" );
             }
-            else if (err == Constants.errorBusy) {
+            else if (err == EtConstants.errorBusy) {
                 throw new EtBusyException("input list is busy");
             }
-            else if (err == Constants.errorEmpty) {
+            else if (err == EtConstants.errorEmpty) {
                 throw new EtEmptyException("no events in list");
             }
-            else if (err == Constants.errorWakeUp) {
+            else if (err == EtConstants.errorWakeUp) {
                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
             }
-            else if (err == Constants.errorTimeout) {
+            else if (err == EtConstants.errorTimeout) {
                 throw new EtTimeoutException("timed out");
             }
         }
@@ -1328,7 +1335,7 @@ public class SystemUse {
         int numEvents = err;
 
         // list of events to return
-        EventImpl[] evs = new EventImpl[numEvents];
+        EtEventImpl[] evs = new EtEventImpl[numEvents];
         buffer = new byte[4*numEvents];
         in.readFully(buffer, 0, 4*numEvents);
 
@@ -1349,8 +1356,8 @@ public class SystemUse {
         }
 
         for (int j=0; j < numEvents; j++) {
-            evs[j] = new EventImpl(size, (int)sizeLimit, isJava);
-            evs[j].setId(Utils.bytesToInt(buffer, index+=4));
+            evs[j] = new EtEventImpl(size, (int)sizeLimit, isJava);
+            evs[j].setId(EtUtils.bytesToInt(buffer, index+=4));
             evs[j].setModify(Modify.ANYTHING);
             evs[j].setOwner(att.getId());
         }
@@ -1368,9 +1375,9 @@ public class SystemUse {
      *
      * @param attId    attachment id number
      * @param mode     if there are no events available, this parameter specifies
-     *                 whether to wait for some by sleeping {@link Constants#sleep},
-     *                 to wait for a set time {@link Constants#timed},
-     *                 or to return immediately {@link Constants#async}.
+     *                 whether to wait for some by sleeping {@link EtConstants#sleep},
+     *                 to wait for a set time {@link EtConstants#timed},
+     *                 or to return immediately {@link EtConstants#async}.
      * @param sec      the number of seconds to wait if a timed wait is specified
      * @param nsec     the number of nanoseconds to wait if a timed wait is specified
      * @param count    the number of events desired
@@ -1393,12 +1400,12 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    private Event[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
+    private EtEvent[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException {
 
-        EventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
+        EtEventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
         // set all events' data arrays to point to shared memory correctly
 
@@ -1408,7 +1415,7 @@ public class SystemUse {
         int position, eventSize = (int) sys.getEventSize();
         ByteBuffer slice;
 
-        for (EventImpl ev : events) {
+        for (EtEventImpl ev : events) {
             position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
             buffer.clear();
             buffer.position(position);
@@ -1467,7 +1474,7 @@ public class SystemUse {
      *     if the attachment has been commanded to wakeup,
      *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public Event[] getEvents(Attachment att, Mode mode, Modify modify, int microSec, int count)
+    synchronized public EtEvent[] getEvents(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
@@ -1494,7 +1501,7 @@ public class SystemUse {
         }
 
         if (count == 0) {
-            return new Event[0];
+            return new EtEvent[0];
         }
 
         if ((microSec < 0) && (mode == Mode.TIMED)) {
@@ -1518,13 +1525,13 @@ public class SystemUse {
 
         // Or do we go through the network?
         byte[] buffer = new byte[28];
-        Utils.intToBytes(Constants.netEvsGet, buffer, 0);
-        Utils.intToBytes(att.getId(),         buffer, 4);
-        Utils.intToBytes(mode.getValue(),     buffer, 8);
-        Utils.intToBytes(modify.getValue(),   buffer, 12);
-        Utils.intToBytes(count,               buffer, 16);
-        Utils.intToBytes(sec,                 buffer, 20);
-        Utils.intToBytes(nsec,                buffer, 24);
+        EtUtils.intToBytes(EtConstants.netEvsGet, buffer, 0);
+        EtUtils.intToBytes(att.getId(),         buffer, 4);
+        EtUtils.intToBytes(mode.getValue(),     buffer, 8);
+        EtUtils.intToBytes(modify.getValue(),   buffer, 12);
+        EtUtils.intToBytes(count,               buffer, 16);
+        EtUtils.intToBytes(sec,                 buffer, 20);
+        EtUtils.intToBytes(nsec,                buffer, 24);
         out.write(buffer);
         out.flush();
 
@@ -1543,24 +1550,24 @@ public class SystemUse {
             }
         }
 
-        if (err < Constants.ok) {
-            if (debug >= Constants.error) {
+        if (err < EtConstants.ok) {
+            if (debug >= EtConstants.error) {
                 System.out.println("error in ET system");
             }
 
-            if (err == Constants.error) {
+            if (err == EtConstants.error) {
                 throw new EtException("bad mode value" );
             }
-            else if (err == Constants.errorBusy) {
+            else if (err == EtConstants.errorBusy) {
                 throw new EtBusyException("input list is busy");
             }
-            else if (err == Constants.errorEmpty) {
+            else if (err == EtConstants.errorEmpty) {
                 throw new EtEmptyException("no events in list");
             }
-            else if (err == Constants.errorWakeUp) {
+            else if (err == EtConstants.errorWakeUp) {
                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
             }
-            else if (err == Constants.errorTimeout) {
+            else if (err == EtConstants.errorTimeout) {
                 throw new EtTimeoutException("timed out");
             }
         }
@@ -1568,14 +1575,14 @@ public class SystemUse {
         // skip reading total size (long)
         in.skipBytes(8);
 
-        final int selectInts   = Constants.stationSelectInts;
-        final int dataShift    = Constants.dataShift;
-        final int dataMask     = Constants.dataMask;
-        final int priorityMask = Constants.priorityMask;
+        final int selectInts   = EtConstants.stationSelectInts;
+        final int dataShift    = EtConstants.dataShift;
+        final int dataMask     = EtConstants.dataMask;
+        final int priorityMask = EtConstants.priorityMask;
 
         int numEvents = err;
-        EventImpl[] evs = new EventImpl[numEvents];
-        int byteChunk = 4*(9+Constants.stationSelectInts);
+        EtEventImpl[] evs = new EtEventImpl[numEvents];
+        int byteChunk = 4*(9+ EtConstants.stationSelectInts);
         buffer = new byte[byteChunk];
         int index;
 
@@ -1585,8 +1592,8 @@ public class SystemUse {
         for (int j=0; j < numEvents; j++) {
             in.readFully(buffer, 0, byteChunk);
 
-            length  = Utils.bytesToLong(buffer, 0);
-            memSize = Utils.bytesToLong(buffer, 8);
+            length  = EtUtils.bytesToLong(buffer, 0);
+            memSize = EtUtils.bytesToLong(buffer, 8);
 
             // Note that the server will not send events too big for us,
             // we'll get an error above.
@@ -1598,19 +1605,19 @@ public class SystemUse {
                     memSize = length;
                 }
             }
-            evs[j] = new EventImpl((int)memSize, (int)memSize, isJava);
+            evs[j] = new EtEventImpl((int)memSize, (int)memSize, isJava);
             evs[j].setLength((int)length);
             evs[j].getDataBuffer().limit((int)length);
-            priAndStat = Utils.bytesToInt(buffer, 16);
+            priAndStat = EtUtils.bytesToInt(buffer, 16);
             evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
             evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-            evs[j].setId(Utils.bytesToInt(buffer, 20));
+            evs[j].setId(EtUtils.bytesToInt(buffer, 20));
             // skip unused int here
-            evs[j].setByteOrder(Utils.bytesToInt(buffer, 28));
+            evs[j].setByteOrder(EtUtils.bytesToInt(buffer, 28));
             index = 32;   // skip unused int
             int[] control = new int[selectInts];
             for (int i=0; i < selectInts; i++) {
-                control[i] = Utils.bytesToInt(buffer, index+=4);
+                control[i] = EtUtils.bytesToInt(buffer, index+=4);
             }
             evs[j].setControl(control);
             evs[j].setModify(modify);
@@ -1642,9 +1649,9 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    public void putEvents(Attachment att, List<Event> eventList)
+    public void putEvents(EtAttachment att, List<EtEvent> eventList)
             throws IOException, EtException, EtDeadException {
-        putEvents(att, eventList.toArray(new Event[eventList.size()]));
+        putEvents(att, eventList.toArray(new EtEvent[eventList.size()]));
     }
 
 
@@ -1666,7 +1673,7 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    public void putEvents(Attachment att, Event[] evs)
+    public void putEvents(EtAttachment att, EtEvent[] evs)
             throws IOException, EtException, EtDeadException {
         putEvents(att, evs, 0, evs.length);
     }
@@ -1689,13 +1696,13 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    private void putEventsJNI(int attId, Event[] evs, int offset, int length)
+    private void putEventsJNI(int attId, EtEvent[] evs, int offset, int length)
             throws EtException, EtDeadException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
-        EventImpl[] events = new EventImpl[length];
+        EtEventImpl[] events = new EtEventImpl[length];
         for (int i=0; i<length; i++) {
-            events[i] = (EventImpl) evs[offset + i];
+            events[i] = (EtEventImpl) evs[offset + i];
         }
 
         sys.getJni().putEvents(sys.getJni().getLocalEtId(), attId, events, length);
@@ -1722,7 +1729,7 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    synchronized public void putEvents(Attachment att, Event[] evs, int offset, int length)
+    synchronized public void putEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
             throws IOException, EtException, EtDeadException {
 
         if (!open) {
@@ -1737,8 +1744,8 @@ public class SystemUse {
             throw new EtException("Invalid attachment");
         }
 
-        final int selectInts = Constants.stationSelectInts;
-        final int dataShift  = Constants.dataShift;
+        final int selectInts = EtConstants.stationSelectInts;
+        final int dataShift  = EtConstants.dataShift;
 
         // find out how many events we're sending & total # bytes
         int bytes = 0, numEvents = 0;
@@ -1768,7 +1775,7 @@ public class SystemUse {
         }
 
 
-        out.writeInt(Constants.netEvsPut);
+        out.writeInt(EtConstants.netEvsPut);
         out.writeInt(att.getId());
         out.writeInt(numEvents);
         out.writeLong((long)bytes);
@@ -1780,7 +1787,7 @@ public class SystemUse {
                 out.writeInt(0); // not used
                 out.writeLong((long)evs[i].getLength());
                 out.writeInt(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift);
-                out.writeInt(evs[i].getByteOrder() == ByteOrder.LITTLE_ENDIAN ? Constants.endianLittle : Constants.endianBig);
+                out.writeInt(evs[i].getByteOrder() == ByteOrder.LITTLE_ENDIAN ? EtConstants.endianLittle : EtConstants.endianBig);
                 out.writeInt(0); // not used
                 int[] control = evs[i].getControl();
                 for (int j=0; j < selectInts; j++) {
@@ -1830,13 +1837,13 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    private void dumpEventsJNI(int attId, Event[] evs, int offset, int length)
+    private void dumpEventsJNI(int attId, EtEvent[] evs, int offset, int length)
             throws EtException, EtDeadException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
-        EventImpl[] events = new EventImpl[length];
+        EtEventImpl[] events = new EtEventImpl[length];
         for (int i=0; i<length; i++) {
-            events[i] = (EventImpl) evs[offset + i];
+            events[i] = (EtEventImpl) evs[offset + i];
         }
 
         sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), attId, events, length);
@@ -1861,7 +1868,7 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    public void dumpEvents(Attachment att, Event[] evs)
+    public void dumpEvents(EtAttachment att, EtEvent[] evs)
             throws IOException, EtException, EtDeadException {
         dumpEvents(att, evs, 0, evs.length);
     }
@@ -1886,9 +1893,9 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    public void dumpEvents(Attachment att, List<Event> eventList)
+    public void dumpEvents(EtAttachment att, List<EtEvent> eventList)
             throws IOException, EtException, EtDeadException {
-        dumpEvents(att, eventList.toArray(new Event[eventList.size()]));
+        dumpEvents(att, eventList.toArray(new EtEvent[eventList.size()]));
     }
 
 
@@ -1912,7 +1919,7 @@ public class SystemUse {
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
-    synchronized public void dumpEvents(Attachment att, Event[] evs, int offset, int length)
+    synchronized public void dumpEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
             throws IOException, EtException, EtDeadException {
 
         if (!open) {
@@ -1939,7 +1946,7 @@ public class SystemUse {
             return;
         }
 
-        out.writeInt(Constants.netEvsDump);
+        out.writeInt(EtConstants.netEvsDump);
         out.writeInt(att.getId());
         out.writeInt(numEvents);
 
@@ -2001,7 +2008,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getNumStations() throws IOException, EtException {
-        return getIntValue(Constants.netSysStat);
+        return getIntValue(EtConstants.netSysStat);
     }
 
 
@@ -2016,7 +2023,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getStationsMax() throws IOException, EtException {
-        return getIntValue(Constants.netSysStatMax);
+        return getIntValue(EtConstants.netSysStatMax);
     }
 
 
@@ -2031,7 +2038,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getNumAttachments() throws IOException, EtException {
-        return getIntValue(Constants.netSysAtt);
+        return getIntValue(EtConstants.netSysAtt);
     }
 
 
@@ -2046,7 +2053,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getAttachmentsMax() throws IOException, EtException {
-        return getIntValue(Constants.netSysAttMax);
+        return getIntValue(EtConstants.netSysAttMax);
     }
 
 
@@ -2062,7 +2069,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getNumProcesses() throws IOException, EtException {
-        return getIntValue(Constants.netSysProc);
+        return getIntValue(EtConstants.netSysProc);
     }
 
 
@@ -2078,7 +2085,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getProcessesMax() throws IOException, EtException {
-        return getIntValue(Constants.netSysProcMax);
+        return getIntValue(EtConstants.netSysProcMax);
     }
 
 
@@ -2094,7 +2101,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getNumTemps() throws IOException, EtException {
-        return getIntValue(Constants.netSysTmp);
+        return getIntValue(EtConstants.netSysTmp);
     }
 
 
@@ -2110,7 +2117,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getTempsMax() throws IOException, EtException {
-        return getIntValue(Constants.netSysTmpMax);
+        return getIntValue(EtConstants.netSysTmpMax);
     }
 
 
@@ -2126,7 +2133,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getHeartbeat() throws IOException, EtException {
-        return getIntValue(Constants.netSysHBeat);
+        return getIntValue(EtConstants.netSysHBeat);
     }
 
 
@@ -2142,7 +2149,7 @@ public class SystemUse {
      *     if not connected to ET system
      */
     public int getPid() throws IOException, EtException {
-        return getIntValue(Constants.netSysPid);
+        return getIntValue(EtConstants.netSysPid);
     }
 
 
@@ -2209,12 +2216,12 @@ public class SystemUse {
         }
 
         AllData data = new AllData();
-        out.writeInt(Constants.netSysData);
+        out.writeInt(EtConstants.netSysData);
         out.flush();
 
         // receive error
         int error = in.readInt();
-        if (error != Constants.ok) {
+        if (error != EtConstants.ok) {
             throw new EtException("error getting ET system data");
         }
 
@@ -2283,24 +2290,24 @@ public class SystemUse {
      *     if error in data format/protocol
      */
     synchronized public int[] getHistogram() throws IOException, EtException {
-        byte[] data = new byte[4*(sys.getNumEvents()+1)];
-        int[]  hist = new int[sys.getNumEvents()+1];
-
         if (!open) {
             throw new EtException("Not connected to ET system");
         }
-
-        out.writeInt(Constants.netSysHist);
+        
+        out.writeInt(EtConstants.netSysHist);
         out.flush();
 
         // receive error code
-        if (in.readInt() != Constants.ok) {
+        if (in.readInt() != EtConstants.ok) {
             throw new EtException("cannot get histogram");
         }
 
+        byte[] data = new byte[4*(sys.getNumEvents()+1)];
+        int[]  hist = new int[sys.getNumEvents()+1];
+
         in.readFully(data);
         for (int i=0; i < sys.getNumEvents()+1; i++) {
-            hist[i] = Utils.bytesToInt(data, i*4);
+            hist[i] = EtUtils.bytesToInt(data, i*4);
         }
         return hist;
     }

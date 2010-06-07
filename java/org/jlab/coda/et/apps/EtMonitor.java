@@ -20,9 +20,9 @@ import java.net.*;
 
 import org.jlab.coda.et.data.*;
 import org.jlab.coda.et.exception.*;
-import org.jlab.coda.et.Constants;
-import org.jlab.coda.et.SystemOpenConfig;
-import org.jlab.coda.et.SystemUse;
+import org.jlab.coda.et.EtConstants;
+import org.jlab.coda.et.EtSystemOpenConfig;
+import org.jlab.coda.et.EtSystemUse;
 
 /**
  * This class implements a monitor of an ET system. It opens the system,
@@ -53,7 +53,7 @@ public class EtMonitor {
   
   public static void main(String[] args) {
       String etName = null, host = null;
-      int port = Constants.serverPort;
+      int port = EtConstants.serverPort;
 
       try {
           for (int i = 0; i < args.length; i++) {
@@ -116,10 +116,10 @@ public class EtMonitor {
           }
 
           // make a direct connection to ET system's tcp server
-          SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+          EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
 
           // create ET system object with debugging output
-          SystemUse sys = new SystemUse(config, Constants.debugError);
+          EtSystemUse sys = new EtSystemUse(config, EtConstants.debugError);
           AllData etData = new AllData();
 
 /*
@@ -163,7 +163,7 @@ public class EtMonitor {
   }
 
 
-    private static void display(SystemUse sys, AllData data)
+    private static void display(EtSystemUse sys, AllData data)
   {
     int           end = 499, lang;
     boolean       blocking;
@@ -191,13 +191,13 @@ public class EtMonitor {
     str.append(data.sysData.getMainPid());
     str.append(") (lang ");
     lang = sys.getLanguage();
-    if (lang == Constants.langJava) {
+    if (lang == EtConstants.langJava) {
       str.append("Java) (period ");
     }
-    else if (lang == Constants.langC) {
+    else if (lang == EtConstants.langC) {
       str.append("C) (period ");
     }
-    else if (lang == Constants.langCpp) {
+    else if (lang == EtConstants.langCpp) {
       str.append("C++) (period ");
     }
     else {
@@ -275,19 +275,19 @@ public class EtMonitor {
       str.append(data.statData[i].getId());
       str.append(")\n      static info\n");
 
-      if (data.statData[i].getStatus() == Constants.stationIdle)
+      if (data.statData[i].getStatus() == EtConstants.stationIdle)
         str.append("        status(IDLE), ");
       else
         str.append("        status(ACTIVE), ");
 
-      if (data.statData[i].getFlowMode() == Constants.stationSerial) {
+      if (data.statData[i].getFlowMode() == EtConstants.stationSerial) {
         str.append("flow(SERIAL), ");
       }
       else {
         str.append("flow(PARALLEL), ");
       }
 
-      if (data.statData[i].getBlockMode() == Constants.stationBlocking) {
+      if (data.statData[i].getBlockMode() == EtConstants.stationBlocking) {
         str.append("blocking(YES), ");
         blocking = true;
       }
@@ -296,7 +296,7 @@ public class EtMonitor {
         blocking = false;
       }
 
-      if (data.statData[i].getUserMode() == Constants.stationUserMulti) {
+      if (data.statData[i].getUserMode() == EtConstants.stationUserMulti) {
         str.append("user(MULTI), ");
       }
       else {
@@ -305,20 +305,20 @@ public class EtMonitor {
 	str.append("), ");
       }
 
-      if (data.statData[i].getSelectMode() == Constants.stationSelectAll)
+      if (data.statData[i].getSelectMode() == EtConstants.stationSelectAll)
         str.append("select(ALL)\n");
-      else if (data.statData[i].getSelectMode() == Constants.stationSelectMatch)
+      else if (data.statData[i].getSelectMode() == EtConstants.stationSelectMatch)
         str.append("select(MATCH)\n");
-      else if (data.statData[i].getSelectMode() == Constants.stationSelectUser)
+      else if (data.statData[i].getSelectMode() == EtConstants.stationSelectUser)
         str.append("select(USER)\n");
-      else if (data.statData[i].getSelectMode() == Constants.stationSelectRRobin)
+      else if (data.statData[i].getSelectMode() == EtConstants.stationSelectRRobin)
         str.append("select(RROBIN)\n");
       else
         str.append("select(EQUALCUE)\n");
 
-      if (data.statData[i].getRestoreMode() == Constants.stationRestoreOut)
+      if (data.statData[i].getRestoreMode() == EtConstants.stationRestoreOut)
         str.append("        restore(OUT), ");
-      else if (data.statData[i].getRestoreMode() == Constants.stationRestoreIn)
+      else if (data.statData[i].getRestoreMode() == EtConstants.stationRestoreIn)
         str.append("        restore(IN), ");
       else
         str.append("        restore(GC), ");
@@ -337,7 +337,7 @@ public class EtMonitor {
       }
       str.append(")");
 
-      if (data.statData[i].getSelectMode() == Constants.stationSelectUser) {
+      if (data.statData[i].getSelectMode() == EtConstants.stationSelectUser) {
         str.append("\n        lib = ");
         str.append(data.statData[i].getSelectLibrary());
         str.append(",  function = ");
@@ -351,7 +351,7 @@ public class EtMonitor {
       str.delete(0, end);
 
       // dynamic station info or info on active stations
-      if (data.statData[i].getStatus() != Constants.stationActive) {
+      if (data.statData[i].getStatus() != EtConstants.stationActive) {
         System.out.println();
         continue;
       }
@@ -494,7 +494,7 @@ public class EtMonitor {
     // idle stations
     str.append("  IDLE STATIONS:      ");
     for (int i=0; i < data.statData.length; i++) {
-      if (data.statData[i].getStatus() == Constants.stationIdle) {
+      if (data.statData[i].getStatus() == EtConstants.stationIdle) {
         str.append(data.statData[i].getName());
         str.append(", ");
       }
@@ -510,25 +510,25 @@ public class EtMonitor {
     str.append("\n");
 
 
-    if (lang != Constants.langJava) {
+    if (lang != EtConstants.langJava) {
       // mutexes
       str.append("  LOCKED MUTEXES:     ");
-      if (data.sysData.getMutex() == Constants.mutexLocked)
+      if (data.sysData.getMutex() == EtConstants.mutexLocked)
         str.append("system, ");
-      if (data.sysData.getStatMutex() == Constants.mutexLocked)
+      if (data.sysData.getStatMutex() == EtConstants.mutexLocked)
         str.append("station, ");
-      if (data.sysData.getStatAddMutex() == Constants.mutexLocked)
+      if (data.sysData.getStatAddMutex() == EtConstants.mutexLocked)
         str.append("add_station, ");
 
       for (int i=0; i < data.statData.length; i++) {
-        if (data.statData[i].getMutex() == Constants.mutexLocked) {
+        if (data.statData[i].getMutex() == EtConstants.mutexLocked) {
           str.append(data.statData[i].getName());
         }
-        if (data.statData[i].getInListMutex() == Constants.mutexLocked) {
+        if (data.statData[i].getInListMutex() == EtConstants.mutexLocked) {
           str.append(data.statData[i].getName());
           str.append("-in, ");
         }
-        if (data.statData[i].getOutListMutex() == Constants.mutexLocked) {
+        if (data.statData[i].getOutListMutex() == EtConstants.mutexLocked) {
           str.append(data.statData[i].getName());
           str.append("-out, ");
         }

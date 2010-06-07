@@ -14,8 +14,8 @@
 
 package org.jlab.coda.et.data;
 
-import org.jlab.coda.et.Constants;
-import org.jlab.coda.et.Utils;
+import org.jlab.coda.et.EtConstants;
+import org.jlab.coda.et.EtUtils;
 
 import java.io.*;
 
@@ -28,7 +28,7 @@ import java.io.*;
 public class AttachmentData {
 
     /** Attachment's id number.
-     *  @see org.jlab.coda.et.Attachment#id
+     *  @see org.jlab.coda.et.EtAttachment#id
      *  @see org.jlab.coda.et.system.AttachmentLocal#id */
     private int num;
 
@@ -37,7 +37,7 @@ public class AttachmentData {
     private int proc;
 
     /** Id number of the attachment's station.
-     *  @see org.jlab.coda.et.Attachment#station
+     *  @see org.jlab.coda.et.EtAttachment#station
      *  @see org.jlab.coda.et.system.AttachmentLocal#station */
     private int stat;
 
@@ -47,15 +47,15 @@ public class AttachmentData {
     private int pid;
 
     /** Flag indicating if this attachment is blocked waiting to read events. Its
-     *  value is {@link org.jlab.coda.et.Constants#attBlocked} if blocked and
-     *  {@link org.jlab.coda.et.Constants#attUnblocked} otherwise.
+     *  value is {@link org.jlab.coda.et.EtConstants#attBlocked} if blocked and
+     *  {@link org.jlab.coda.et.EtConstants#attUnblocked} otherwise.
      *  This is not boolean for C ET system compatibility.
      *  @see org.jlab.coda.et.system.AttachmentLocal#waiting */
     private int blocked;
 
     /** Flag indicating if this attachment has been told to quit trying to read
-     *  events and return. Its value is {@link org.jlab.coda.et.Constants#attQuit} if it has been
-     *  told to quit and {@link org.jlab.coda.et.Constants#attContinue} otherwise.
+     *  events and return. Its value is {@link org.jlab.coda.et.EtConstants#attQuit} if it has been
+     *  told to quit and {@link org.jlab.coda.et.EtConstants#attContinue} otherwise.
      *  This is not boolean for C ET system compatibility.
      *  @see org.jlab.coda.et.system.AttachmentLocal#wakeUp */
     private int quit;
@@ -64,22 +64,22 @@ public class AttachmentData {
     private int eventsOwned;
 
     /** Number of events put back into the station.
-     *  @see org.jlab.coda.et.Attachment#getEventsPut
+     *  @see org.jlab.coda.et.EtAttachment#getEventsPut
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsPut */
     private long eventsPut;
 
     /** Number of events gotten from the station.
-     *  @see org.jlab.coda.et.Attachment#getEventsGet
+     *  @see org.jlab.coda.et.EtAttachment#getEventsGet
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsGet */
     private long eventsGet;
 
     /** Number of events dumped (recycled by returning to GRAND_CENTRAL) through the station.
-     *  @see org.jlab.coda.et.Attachment#getEventsDump
+     *  @see org.jlab.coda.et.EtAttachment#getEventsDump
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsDump */
     private long eventsDump;
 
     /** Number of new events gotten from the station.
-     *  @see org.jlab.coda.et.Attachment#getEventsMake
+     *  @see org.jlab.coda.et.EtAttachment#getEventsMake
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsMake */
     private long eventsMake;
 
@@ -96,7 +96,7 @@ public class AttachmentData {
 
     /** Get the attachment's id number.
      *  @return attachment's id number
-     *  @see org.jlab.coda.et.Attachment#id
+     *  @see org.jlab.coda.et.EtAttachment#id
      *  @see org.jlab.coda.et.system.AttachmentLocal#id */
     public int getId() {return num;}
 
@@ -107,7 +107,7 @@ public class AttachmentData {
 
     /** Get the id number of the station to which this attachment belongs.
      *  @return id number of station to which this attachment belongs
-     *  @see org.jlab.coda.et.Attachment#station
+     *  @see org.jlab.coda.et.EtAttachment#station
      *  @see org.jlab.coda.et.system.AttachmentLocal#station */
     public int getStationId() {return stat;}
 
@@ -120,13 +120,13 @@ public class AttachmentData {
     /** Indicates if this attachment is blocked waiting to read events.
      *  @return <code>true</code> if blocked waiting to read events, else <code>false</code>
      *  @see org.jlab.coda.et.system.AttachmentLocal#waiting */
-    public boolean blocked() {return blocked == Constants.attBlocked;}
+    public boolean blocked() {return blocked == EtConstants.attBlocked;}
 
     /** Indicates if this attachment has been told to quit trying to read events and return.
      *  @return <code>true</code> if this attachment has been told to quit trying to read
      *          events and return, else <code>false</code>
      *  @see org.jlab.coda.et.system.AttachmentLocal#wakeUp */
-    public boolean quitting() {return quit == Constants.attQuit;}
+    public boolean quitting() {return quit == EtConstants.attQuit;}
 
 
     /** Get the number of events owned by this attachment.
@@ -135,26 +135,26 @@ public class AttachmentData {
 
     /** Get the number of events put back into the station.
      *  @return number of events put back into the station
-     *  @see org.jlab.coda.et.Attachment#getEventsPut
+     *  @see org.jlab.coda.et.EtAttachment#getEventsPut
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsPut */
     public long getEventsPut() {return eventsPut;}
 
     /** Get the number of events gotten from the station.
      *  @return number of events gotten from the station
-     *  @see org.jlab.coda.et.Attachment#getEventsGet
+     *  @see org.jlab.coda.et.EtAttachment#getEventsGet
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsGet */
     public long getEventsGet() {return eventsGet;}
 
     /** Get the number of events dumped (recycled by returning to GRAND_CENTRAL)
      *  through the station.
      *  @return number of events dumped through the station
-     *  @see org.jlab.coda.et.Attachment#getEventsDump
+     *  @see org.jlab.coda.et.EtAttachment#getEventsDump
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsDump */
     public long getEventsDump() {return eventsDump;}
 
     /** Get the number of new events gotten from the station.
      *  @return number of new events gotten from the station
-     *  @see org.jlab.coda.et.Attachment#getEventsMake
+     *  @see org.jlab.coda.et.EtAttachment#getEventsMake
      *  @see org.jlab.coda.et.system.AttachmentLocal#eventsMake */
     public long getEventsMake() {return eventsMake;}
 
@@ -177,21 +177,21 @@ public class AttachmentData {
         byte[] info = new byte[68];
         dis.readFully(info);
 
-        num         = Utils.bytesToInt(info,   0);
-        proc        = Utils.bytesToInt(info,   4);
-        stat        = Utils.bytesToInt(info,   8);
-        pid         = Utils.bytesToInt(info,  12);
-        blocked     = Utils.bytesToInt(info,  16);
-        quit        = Utils.bytesToInt(info,  20);
-        eventsOwned = Utils.bytesToInt(info,  24);
-        eventsPut   = Utils.bytesToLong(info, 28);
-        eventsGet   = Utils.bytesToLong(info, 36);
-        eventsDump  = Utils.bytesToLong(info, 44);
-        eventsMake  = Utils.bytesToLong(info, 52);
+        num         = EtUtils.bytesToInt(info,   0);
+        proc        = EtUtils.bytesToInt(info,   4);
+        stat        = EtUtils.bytesToInt(info,   8);
+        pid         = EtUtils.bytesToInt(info,  12);
+        blocked     = EtUtils.bytesToInt(info,  16);
+        quit        = EtUtils.bytesToInt(info,  20);
+        eventsOwned = EtUtils.bytesToInt(info,  24);
+        eventsPut   = EtUtils.bytesToLong(info, 28);
+        eventsGet   = EtUtils.bytesToLong(info, 36);
+        eventsDump  = EtUtils.bytesToLong(info, 44);
+        eventsMake  = EtUtils.bytesToLong(info, 52);
 
         // read strings, lengths first
-        int length1 = Utils.bytesToInt(info, 60);
-        int length2 = Utils.bytesToInt(info, 64);
+        int length1 = EtUtils.bytesToInt(info, 60);
+        int length2 = EtUtils.bytesToInt(info, 64);
 
         if (length1 + length2 > 68) {
             info = new byte[length1 + length2];

@@ -14,7 +14,7 @@
 
 package org.jlab.coda.et.data;
 
-import org.jlab.coda.et.Utils;
+import org.jlab.coda.et.EtUtils;
 
 import java.io.*;
 
@@ -59,22 +59,22 @@ public class SystemData {
     private int eventsOwned;
 
 
-    /** System mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked} if
-     *  locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
+    /** System mutex status. It has the value {@link org.jlab.coda.et.EtConstants#mutexLocked} if
+     *  locked and {@link org.jlab.coda.et.EtConstants#mutexUnlocked} otherwise. This is only
      *  relevant in C-based ET systems, since in Java, mutexes cannot be tested without
      *  possibility of blocking. This is not boolean for C-based ET system compatibility.
      *  {@link org.jlab.coda.et.system.SystemCreate#systemLock}. */
     private int mutex;
 
-    /** Station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked} if
-     *  locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
+    /** Station mutex status. It has the value {@link org.jlab.coda.et.EtConstants#mutexLocked} if
+     *  locked and {@link org.jlab.coda.et.EtConstants#mutexUnlocked} otherwise. This is only
      *  relevant in C-based ET systems, since in Java, mutexes cannot be tested without
      *  possibility of blocking. This is not boolean for C-based ET system compatibility.
      *  {@link org.jlab.coda.et.system.SystemCreate#stationLock}. */
     private int statMutex;
 
-    /** Add-station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
-     *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
+    /** Add-station mutex status. It has the value {@link org.jlab.coda.et.EtConstants#mutexLocked}
+     *  if locked and {@link org.jlab.coda.et.EtConstants#mutexUnlocked} otherwise. This is only
      *  relevant in C-based ET systems as this mutex is not used in Java systems. */
     private int statAddMutex;
 
@@ -83,13 +83,13 @@ public class SystemData {
 
 
     /** Endian of host running the ET system. This can have values of either
-     * {@link org.jlab.coda.et.Constants#endianBig} or
-     * {@link org.jlab.coda.et.Constants#endianLittle}. */
+     * {@link org.jlab.coda.et.EtConstants#endianBig} or
+     * {@link org.jlab.coda.et.EtConstants#endianLittle}. */
     private int endian;
 
     /** Flag specifying whether the operating system can share mutexes between
-     *  processes. It has the value {@link org.jlab.coda.et.Constants#mutexShare} if they can be
-     *  shared and {@link org.jlab.coda.et.Constants#mutexNoShare} otherwise. This is not
+     *  processes. It has the value {@link org.jlab.coda.et.EtConstants#mutexShare} if they can be
+     *  shared and {@link org.jlab.coda.et.EtConstants#mutexNoShare} otherwise. This is not
      *  relevant in Java-based ET systems. */
     private int share;
 
@@ -98,7 +98,7 @@ public class SystemData {
     private int mainPid;
 
     /** The number of ints in a station's select array.
-     *  @see org.jlab.coda.et.Constants#stationSelectInts */
+     *  @see org.jlab.coda.et.EtConstants#stationSelectInts */
     private int selects;
 
     /** Total number of events in a system.
@@ -198,34 +198,34 @@ public class SystemData {
     public int getEventsOwned() {return eventsOwned;}
 
 
-    /** Get the system mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
-     *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
+    /** Get the system mutex status. It has the value {@link org.jlab.coda.et.EtConstants#mutexLocked}
+     *  if locked and {@link org.jlab.coda.et.EtConstants#mutexUnlocked} otherwise. This is only
      *  relevant in C-based ET systems as this mutex is not used in Java-based systems.
      *  @return system mutex status */
     public int getMutex() {return mutex;}
 
-    /** Get the station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
-     *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
+    /** Get the station mutex status. It has the value {@link org.jlab.coda.et.EtConstants#mutexLocked}
+     *  if locked and {@link org.jlab.coda.et.EtConstants#mutexUnlocked} otherwise. This is only
      *  relevant in C-based ET systems as this mutex is not used in Java-based systems.
      *  @return station mutex status */
     public int getStatMutex() {return statMutex;}
 
-    /** Get the add-station mutex status. It has the value {@link org.jlab.coda.et.Constants#mutexLocked}
-     *  if locked and {@link org.jlab.coda.et.Constants#mutexUnlocked} otherwise. This is only
+    /** Get the add-station mutex status. It has the value {@link org.jlab.coda.et.EtConstants#mutexLocked}
+     *  if locked and {@link org.jlab.coda.et.EtConstants#mutexUnlocked} otherwise. This is only
      *  relevant in C-based ET systems as this mutex is not used in Java-based systems.
      *  @return add-station mutex status */
     public int getStatAddMutex() {return statAddMutex;}
 
 
     /** Get the endian value of the host running the ET system.  This can
-     *  have values of either {@link org.jlab.coda.et.Constants#endianBig} or
-     *  {@link org.jlab.coda.et.Constants#endianLittle}.
+     *  have values of either {@link org.jlab.coda.et.EtConstants#endianBig} or
+     *  {@link org.jlab.coda.et.EtConstants#endianLittle}.
      *  @return endian value of the host running the ET system */
     public int getEndian() {return endian;}
 
     /** Get the value specifying whether the operating system can share
-     *  mutexes between processes. It has the value {@link org.jlab.coda.et.Constants#mutexShare}
-     *  if they can be shared and {@link org.jlab.coda.et.Constants#mutexNoShare} otherwise.
+     *  mutexes between processes. It has the value {@link org.jlab.coda.et.EtConstants#mutexShare}
+     *  if they can be shared and {@link org.jlab.coda.et.EtConstants#mutexNoShare} otherwise.
      *  It is not relevant in Java ET systems.
      *  @return value specifying whether the operating system can share
      *          mutexes between processes */
@@ -239,7 +239,7 @@ public class SystemData {
 
     /** Get the number of ints in a station's select array.
      *  @return number of ints in a station's select array
-     *  @see org.jlab.coda.et.Constants#stationSelectInts */
+     *  @see org.jlab.coda.et.EtConstants#stationSelectInts */
     public int getSelects() {return selects;}
 
     /** Get the total number of events in a system.
@@ -332,36 +332,36 @@ public class SystemData {
         byte[] info = new byte[108];
         dis.readFully(info);
 
-        alive          = Utils.bytesToInt(info, off);
-        heartbeat      = Utils.bytesToInt(info, off+=4);
-        temps          = Utils.bytesToInt(info, off+=4);
-        stations       = Utils.bytesToInt(info, off+=4);
-        attachments    = Utils.bytesToInt(info, off+=4);
-        processes      = Utils.bytesToInt(info, off+=4);
-        eventsOwned    = Utils.bytesToInt(info, off+=4);
-        mutex          = Utils.bytesToInt(info, off+=4);
-        statMutex      = Utils.bytesToInt(info, off+=4);
-        statAddMutex   = Utils.bytesToInt(info, off+=4);
+        alive          = EtUtils.bytesToInt(info, off);
+        heartbeat      = EtUtils.bytesToInt(info, off+=4);
+        temps          = EtUtils.bytesToInt(info, off+=4);
+        stations       = EtUtils.bytesToInt(info, off+=4);
+        attachments    = EtUtils.bytesToInt(info, off+=4);
+        processes      = EtUtils.bytesToInt(info, off+=4);
+        eventsOwned    = EtUtils.bytesToInt(info, off+=4);
+        mutex          = EtUtils.bytesToInt(info, off+=4);
+        statMutex      = EtUtils.bytesToInt(info, off+=4);
+        statAddMutex   = EtUtils.bytesToInt(info, off+=4);
 
-        endian         = Utils.bytesToInt(info, off+=4);
-        share          = Utils.bytesToInt(info, off+=4);
-        mainPid        = Utils.bytesToInt(info, off+=4);
-        selects        = Utils.bytesToInt(info, off+=4);
-        events         = Utils.bytesToInt(info, off+=4);
-        eventSize      = Utils.bytesToLong(info, off+=4);
-        bit64          = Utils.bytesToInt(info, off+=8) == 1;
+        endian         = EtUtils.bytesToInt(info, off+=4);
+        share          = EtUtils.bytesToInt(info, off+=4);
+        mainPid        = EtUtils.bytesToInt(info, off+=4);
+        selects        = EtUtils.bytesToInt(info, off+=4);
+        events         = EtUtils.bytesToInt(info, off+=4);
+        eventSize      = EtUtils.bytesToLong(info, off+=4);
+        bit64          = EtUtils.bytesToInt(info, off+=8) == 1;
 
-        tempsMax       = Utils.bytesToInt(info, off+=4);
-        stationsMax    = Utils.bytesToInt(info, off+=4);
-        attachmentsMax = Utils.bytesToInt(info, off+=4);
-        processesMax   = Utils.bytesToInt(info, off+=4);
+        tempsMax       = EtUtils.bytesToInt(info, off+=4);
+        stationsMax    = EtUtils.bytesToInt(info, off+=4);
+        attachmentsMax = EtUtils.bytesToInt(info, off+=4);
+        processesMax   = EtUtils.bytesToInt(info, off+=4);
 
-        tcpPort        = Utils.bytesToInt(info, off+=4);
-        udpPort        = Utils.bytesToInt(info, off+=4);
-        multicastPort  = Utils.bytesToInt(info, off+=4);
+        tcpPort        = EtUtils.bytesToInt(info, off+=4);
+        udpPort        = EtUtils.bytesToInt(info, off+=4);
+        multicastPort  = EtUtils.bytesToInt(info, off+=4);
 
-        interfaceCount = Utils.bytesToInt(info, off+=4);
-        multicastCount = Utils.bytesToInt(info, off+=4);
+        interfaceCount = EtUtils.bytesToInt(info, off+=4);
+        multicastCount = EtUtils.bytesToInt(info, off+=4);
 
         // read string lengths first
         off = 0;

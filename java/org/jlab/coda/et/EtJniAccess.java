@@ -7,7 +7,7 @@ import org.jlab.coda.et.exception.*;
  * This class handles all calls to native methods which, in turn,
  * makes calls to the C ET library routines to get, new, put, and dump events.
  */
-class JniAccess {
+class EtJniAccess {
 
     // Load in the necessary library when this class is loaded
     static {
@@ -75,7 +75,7 @@ class JniAccess {
      * @throws EtException     for variety of general errors
      * @throws EtDeadException if ET system is dead
      */
-    native void putEvents(long etId, int attId, EventImpl[] evs, int length)
+    native void putEvents(long etId, int attId, EtEventImpl[] evs, int length)
             throws EtException, EtDeadException;
 
 
@@ -90,7 +90,7 @@ class JniAccess {
      * @throws EtException for variety of general errors
      * @throws EtDeadException if ET system is dead
      */
-    native void dumpEvents(long etId, int attId, EventImpl[] evs, int length)
+    native void dumpEvents(long etId, int attId, EtEventImpl[] evs, int length)
             throws EtException, EtDeadException;
 
 
@@ -100,9 +100,9 @@ class JniAccess {
      * @param etId   ET system id
      * @param attId  attachment id
      * @param mode   if there are no events available, this parameter specifies
-     *               whether to wait for some by sleeping {@link Constants#sleep},
-     *               to wait for a set time {@link Constants#timed},
-     *               or to return immediately {@link Constants#async}.
+     *               whether to wait for some by sleeping {@link EtConstants#sleep},
+     *               to wait for a set time {@link EtConstants#timed},
+     *               or to return immediately {@link EtConstants#async}.
      * @param sec    the number of seconds to wait if a timed wait is specified
      * @param nsec   the number of nanoseconds to wait if a timed wait is specified
      * @param count  number of events desired. Size may be different from that requested.
@@ -112,7 +112,7 @@ class JniAccess {
      * @throws EtException     for variety of general errors
      * @throws EtDeadException if ET system is dead
      */
-    native EventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count)
+    native EtEventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException;
 
 
@@ -122,9 +122,9 @@ class JniAccess {
      * @param etId   ET system id
      * @param attId  attachment id
      * @param mode   if there are no new events available, this parameter specifies
-     *               whether to wait for some by sleeping {@link Constants#sleep},
-     *               to wait for a set time {@link Constants#timed},
-     *               or to return immediately {@link Constants#async}.
+     *               whether to wait for some by sleeping {@link EtConstants#sleep},
+     *               to wait for a set time {@link EtConstants#timed},
+     *               or to return immediately {@link EtConstants#async}.
      * @param sec    the number of seconds to wait if a timed wait is specified
      * @param nsec   the number of nanoseconds to wait if a timed wait is specified
      * @param count  number of events desired
@@ -138,12 +138,12 @@ class JniAccess {
      * @throws EtException        for variety of general errors
      * @throws EtDeadException    if ET system is dead
      * @throws EtWakeUpException  if told to stop sleeping (before timeout) while trying to get events
-     * @throws EtTimeoutException if timed out on {@link Constants#timed} option
-     * @throws EtEmptyException   if no events available in {@link Constants#async} mode
+     * @throws EtTimeoutException if timed out on {@link EtConstants#timed} option
+     * @throws EtEmptyException   if no events available in {@link EtConstants#async} mode
      * @throws EtBusyException    if cannot get access to events due to activity of other
-     *                            processes when in {@link Constants#async} mode
+     *                            processes when in {@link EtConstants#async} mode
      */
-    native EventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
+    native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException,        EtDeadException, EtWakeUpException,
                    EtTimeoutException, EtBusyException, EtEmptyException;
 }

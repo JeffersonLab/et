@@ -18,9 +18,6 @@ import java.lang.*;
 import java.util.*;
 import java.io.*;
 import java.net.*;
-import java.nio.channels.FileChannel;
-import java.nio.MappedByteBuffer;
-import java.nio.ByteOrder;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
@@ -60,7 +57,7 @@ public class SystemCreate {
     private HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
 
     /** Map of all ET system events. */
-    private HashMap<Integer, EventImpl> events;
+    private HashMap<Integer, EtEventImpl> events;
 
     /** All local IP addresses */
     private InetAddress[]netAddresses;
@@ -96,14 +93,14 @@ public class SystemCreate {
     /**
      * Constructor that creates a new ET system using default parameters and starts it running.
      * The default parameters are:
-     *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
-     *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
-     *      max number of stations    = {@link org.jlab.coda.et.Constants#defaultStationsMax},
-     *      max number of attachments = {@link org.jlab.coda.et.Constants#defaultAttsMax},
-     *      debug level               = {@link org.jlab.coda.et.Constants#debugError},
-     *      udp port                  = {@link org.jlab.coda.et.Constants#broadcastPort},
-     *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
-     *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}
+     *      number of events          = {@link org.jlab.coda.et.EtConstants#defaultNumEvents},
+     *      event size                = {@link org.jlab.coda.et.EtConstants#defaultEventSize},
+     *      max number of stations    = {@link org.jlab.coda.et.EtConstants#defaultStationsMax},
+     *      max number of attachments = {@link org.jlab.coda.et.EtConstants#defaultAttsMax},
+     *      debug level               = {@link org.jlab.coda.et.EtConstants#debugError},
+     *      udp port                  = {@link org.jlab.coda.et.EtConstants#broadcastPort},
+     *      server (tcp) port         = {@link org.jlab.coda.et.EtConstants#serverPort}, and
+     *      multicasting port         = {@link org.jlab.coda.et.EtConstants#multicastPort}
      *
      * @param name ET system file name
      * @throws EtException
@@ -126,7 +123,7 @@ public class SystemCreate {
 
         // check config for consistency
         if (!config.selfConsistent()) {
-            if (config.getDebug() >= Constants.debugInfo) {
+            if (config.getDebug() >= EtConstants.debugInfo) {
                 System.out.println("Number of events in groups does not equal total number of events");
             }
             throw new EtException("Number of events in groups does not equal total number of events");
@@ -134,8 +131,8 @@ public class SystemCreate {
 
         this.name = name;
         this.config = new SystemConfig(config);
-        attachments = new HashMap<Integer, AttachmentLocal>(Constants.attachmentsMax + 1);
-        events = new HashMap<Integer, EventImpl>(config.getNumEvents() + 1);
+        attachments = new HashMap<Integer, AttachmentLocal>(EtConstants.attachmentsMax + 1);
+        events = new HashMap<Integer, EtEventImpl>(config.getNumEvents() + 1);
         stations = new LinkedList<StationLocal>();
         // netAddresses will be set in SystemUdpServer
         systemLock  = new byte[0];
@@ -147,14 +144,14 @@ public class SystemCreate {
         try {
             // if file already exists ...
             if (!etFile.createNewFile()) {
-                if (config.getDebug() >= Constants.debugInfo) {
+                if (config.getDebug() >= EtConstants.debugInfo) {
                     System.out.println("ET file already exists");
                 }
                 throw new EtException("ET file already exists");
             }
         }
         catch (IOException ex) {
-            if (config.getDebug() >= Constants.debugInfo) {
+            if (config.getDebug() >= EtConstants.debugInfo) {
                 System.out.println("cannot create ET file");
             }
             throw new EtException("Cannot create ET file");
@@ -169,10 +166,10 @@ public class SystemCreate {
             FileOutputStream fos = new FileOutputStream(etFile);
             DataOutputStream dos = new DataOutputStream(fos);
             dos.writeInt(0x04030201);  // for determining byte order
-            dos.writeInt(Constants.systemTypeJava);
-            dos.writeInt(Constants.version);
-            dos.writeInt(Constants.minorVersion);
-            dos.writeInt(Constants.stationSelectInts);
+            dos.writeInt(EtConstants.systemTypeJava);
+            dos.writeInt(EtConstants.version);
+            dos.writeInt(EtConstants.minorVersion);
+            dos.writeInt(EtConstants.stationSelectInts);
             // this & following not used in Java
             dos.writeInt(0);
             dos.writeLong(0L);
@@ -194,7 +191,7 @@ public class SystemCreate {
             netAddresses = InetAddress.getAllByName(InetAddress.getLocalHost().getHostName());
         }
         catch (UnknownHostException ex) {
-            if (config.getDebug() >= Constants.debugError) {
+            if (config.getDebug() >= EtConstants.debugError) {
                 System.out.println("cannot find local IP addresses");
                 ex.printStackTrace();
             }
@@ -232,7 +229,7 @@ public class SystemCreate {
 
     /** Get map holding all ET system's events.
      * @return map holding all ET system's events */
-    public HashMap<Integer, EventImpl> getEvents() { return events; }
+    public HashMap<Integer, EtEventImpl> getEvents() { return events; }
 
     /** Gets the list of all network addresses.
      *  @return list of all network addresses */
@@ -265,12 +262,12 @@ public class SystemCreate {
         gcStation = createGrandCentral();
 
         // fill GC with standard sized events
-        EventImpl ev;
+        EtEventImpl ev;
         int index = 0, count = 0;
-        ArrayList<EventImpl> eventList = new ArrayList<EventImpl>(config.getNumEvents());
+        ArrayList<EtEventImpl> eventList = new ArrayList<EtEventImpl>(config.getNumEvents());
 
         for (int i=0; i < config.getNumEvents(); i++) {
-            ev = new EventImpl(config.getEventSize());
+            ev = new EtEventImpl(config.getEventSize());
             ev.setId(i);
 
             // assign group numbers
@@ -337,7 +334,7 @@ public class SystemCreate {
             // lock station in main linked list
             mainListStation.getStopTransferLock().lock();
             // if this station is the head of a parallel linked list, grab all their locks too
-            if (mainListStation.getConfig().getFlowMode() == Constants.stationParallel) {
+            if (mainListStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                 // skip first element in parallel list as it is identical to mainListStation
                 StationLocal parallelListStation;
                 for (ListIterator iter = mainListStation.getParallelStations().listIterator(1); iter.hasNext();) {
@@ -358,7 +355,7 @@ public class SystemCreate {
             // unlock station in main linked list
             mainListStation.getStopTransferLock().unlock();
             // if this station is the head of a parallel linked list, release all their locks too
-            if (mainListStation.getConfig().getFlowMode() == Constants.stationParallel) {
+            if (mainListStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                 // skip first element in parallel list as it is identical to mainListStation
                 StationLocal parallelListStation;
                 for (ListIterator iter = mainListStation.getParallelStations().listIterator(1); iter.hasNext();) {
@@ -388,10 +385,10 @@ public class SystemCreate {
         // or past the end of the linked list, put station on the end
         if ((stations.size() < 2) ||
                 (position >= stations.size()) ||
-                (position == Constants.end)) {
+                (position == EtConstants.end)) {
 
             stations.add(newStation);
-            if (newStation.getConfig().getFlowMode() == Constants.stationParallel) {
+            if (newStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                 newStation.getParallelStations().clear();
                 newStation.getParallelStations().add(newStation);
             }
@@ -401,13 +398,13 @@ public class SystemCreate {
             StationLocal stat = stations.get(position);
 
             // if the station in "position" and this station are both parallel ...
-            if ((newStation.getConfig().getFlowMode() == Constants.stationParallel) &&
-                    (stat.getConfig().getFlowMode() == Constants.stationParallel) &&
-                    (parallelPosition != Constants.newHead)) {
+            if ((newStation.getConfig().getFlowMode() == EtConstants.stationParallel) &&
+                    (stat.getConfig().getFlowMode() == EtConstants.stationParallel) &&
+                    (parallelPosition != EtConstants.newHead)) {
 
                 // If these 2 stations have incompatible definitions or we're trying to place
                 // a parallel station in the first (already taken) spot of its group ...
-                if (!StationConfig.compatibleParallelConfigs(stat.getConfig(), newStation.getConfig())) {
+                if (!EtStationConfig.compatibleParallelConfigs(stat.getConfig(), newStation.getConfig())) {
                     throw new EtException("trying to add incompatible parallel station\n");
                 }
                 else if (parallelPosition == 0) {
@@ -416,7 +413,7 @@ public class SystemCreate {
 
                 // Add this parallel station in the "parallelPosition" slot in the
                 // parallel linked list or to the end if parallelPosition = Constants.end.
-                if ((parallelPosition == Constants.end) ||
+                if ((parallelPosition == EtConstants.end) ||
                         (parallelPosition >= stat.getParallelStations().size())) {
                     stat.getParallelStations().add(newStation);
                 }
@@ -426,7 +423,7 @@ public class SystemCreate {
             }
             else {
                 stations.add(position, newStation);
-                if (newStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (newStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     newStation.getParallelStations().clear();
                     newStation.getParallelStations().add(newStation);
                 }
@@ -453,7 +450,7 @@ public class SystemCreate {
             stations.remove(station);
 
             // if it's not a parallel station, we're done
-            if (station.getConfig().getFlowMode() == Constants.stationSerial) {
+            if (station.getConfig().getFlowMode() == EtConstants.stationSerial) {
                 return;
             }
 
@@ -481,7 +478,7 @@ public class SystemCreate {
             for (StationLocal nextStation : stations) {
                 // If it's a parallel station, try to remove "station" from the
                 // list of parallel stations registered with it.
-                if (nextStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (nextStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     if (nextStation.getParallelStations().remove(station)) {
                         // we got it
                         return;
@@ -603,10 +600,10 @@ public class SystemCreate {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    StationLocal createStation(StationConfig stationConfig, String name)
+    StationLocal createStation(EtStationConfig stationConfig, String name)
             throws EtException, EtExistsException, EtTooManyException {
         synchronized(stationLock) {
-            return createStation(stationConfig, name, stations.size(), Constants.end);
+            return createStation(stationConfig, name, stations.size(), EtConstants.end);
         }
     }
 
@@ -628,7 +625,7 @@ public class SystemCreate {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    StationLocal createStation(StationConfig stationConfig, String name,
+    StationLocal createStation(EtStationConfig stationConfig, String name,
                                int position, int parallelPosition)
             throws EtException, EtExistsException, EtTooManyException {
 
@@ -650,7 +647,7 @@ public class SystemCreate {
             StationLocal listStation;
             try {
                 listStation = stationNameToObject(name);
-                StationConfig listStationConfig = listStation.getConfig();
+                EtStationConfig listStationConfig = listStation.getConfig();
                 // it's got the same name, let's see if it's defined the same
                 if ((listStationConfig.getFlowMode()    == stationConfig.getFlowMode())    &&
                     (listStationConfig.getUserMode()    == stationConfig.getUserMode())    &&
@@ -682,7 +679,7 @@ public class SystemCreate {
                     if (listStation.getStationId() == i) {
                         continue search;
                     }
-                    if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                    if (listStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                         for (ListIterator k = listStation.getParallelStations().listIterator(1); k.hasNext();) {
                             listStation = (StationLocal) k.next();
                             if (listStation.getStationId() == i) {
@@ -705,8 +702,8 @@ public class SystemCreate {
             Thread.yield();
 
             // make sure the conductor is started or we'll get race conditions
-            while (station.getStatus() != Constants.stationIdle) {
-                if (config.getDebug() >= Constants.debugInfo) {
+            while (station.getStatus() != EtConstants.stationIdle) {
+                if (config.getDebug() >= EtConstants.debugInfo) {
                     System.out.println("Waiting for " + name + "'s conductor thread to start");
                 }
                 // sleep for minimum amount of time (1 nsec haha)
@@ -735,7 +732,7 @@ public class SystemCreate {
      */
     private StationLocal createGrandCentral() {
         // use the default configuration
-        StationConfig gcConfig = new StationConfig();
+        EtStationConfig gcConfig = new EtStationConfig();
         StationLocal station = null;
         // create station
         try {
@@ -781,7 +778,7 @@ public class SystemCreate {
             stat.interrupt();
 
             // set status
-            stat.setStatus(Constants.stationUnused);
+            stat.setStatus(EtConstants.stationUnused);
 
             // keep track of the total number of stations
             stationCount--;
@@ -831,7 +828,7 @@ public class SystemCreate {
                 if (stat.getStationId() == statId) {
                     return position;
                 }
-                if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (stat.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     for (StationLocal stat2 : stat.getParallelStations()) {
                         if (stat2.getStationId() == statId) {
                             return position;
@@ -865,7 +862,7 @@ public class SystemCreate {
                 if (stat.getStationId() == statId) {
                     return 0;
                 }
-                if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (stat.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     pposition = 1;
                     for (StationLocal stat2 : stat.getParallelStations()) {
                         if (stat2.getStationId() == statId) {
@@ -917,7 +914,7 @@ public class SystemCreate {
                 return true;
             }
             for (StationLocal listStation : stations) {
-                if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (listStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     if (listStation.getParallelStations().contains(station)) {
                         return true;
                     }
@@ -960,7 +957,7 @@ public class SystemCreate {
                 if (listStation.getStationName().equals(name)) {
                     return listStation;
                 }
-                if (listStation.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (listStation.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     for (StationLocal listStation2 : listStation.getParallelStations()) {
                         if (listStation2.getStationName().equals(name)) {
                             return listStation2;
@@ -988,7 +985,7 @@ public class SystemCreate {
                 if (stat.getStationId() == statId) {
                     return stat;
                 }
-                if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+                if (stat.getConfig().getFlowMode() == EtConstants.stationParallel) {
                     for (StationLocal stat2 : stat.getParallelStations()) {
                         if (stat2.getStationId() == statId) {
                             return stat2;
@@ -1063,7 +1060,7 @@ public class SystemCreate {
             station.getAttachments().add(att);
             // station.status = Constants.stationActive;
             // change station status - first grabbing stopTransfer mutexes
-            changeStationStatus(station, Constants.stationActive);
+            changeStationStatus(station, EtConstants.stationActive);
 //System.out.println("attach att #" + att.id + " put into station's map & active");
         }
 
@@ -1084,18 +1081,18 @@ public class SystemCreate {
 //System.out.println("detach: att #" + att.id + " and make idle");
                 // att.station.status = Constants.stationIdle;
                 // change station status - first grabbing stopTransfer mutexes
-                changeStationStatus(att.getStation(), Constants.stationIdle);
+                changeStationStatus(att.getStation(), EtConstants.stationIdle);
                 // give other threads a chance to finish putting events in
                 Thread.yield();
                 // flush any remaining events
-                if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreRedist) {
+                if (att.getStation().getConfig().getRestoreMode() == EtConstants.stationRestoreRedist) {
                     // send to output list of previous station
                     try {
                         int pos = getStationPosition(att.getStation().getStationId());
                         if (--pos < 0) return;
                         StationLocal prevStat = stations.get(pos);
                         try {
-                            moveEvents(prevStat.getOutputList(), Arrays.asList(getEvents(att, Constants.async,
+                            moveEvents(prevStat.getOutputList(), Arrays.asList(getEvents(att, EtConstants.async,
                                                                                          0, config.getNumEvents())));
                         }
                         catch (Exception e) {
@@ -1109,7 +1106,7 @@ public class SystemCreate {
                 else {
                     // send to output list
                     try {
-                        putEvents(att, getEvents(att, Constants.async, 0, config.getNumEvents()));
+                        putEvents(att, getEvents(att, EtConstants.async, 0, config.getNumEvents()));
                     }
                     catch (Exception ex) { }
                 }
@@ -1140,15 +1137,15 @@ public class SystemCreate {
     private void restoreEvents(AttachmentLocal att) {
         // Split new events (which should be dumped) from used
         // events which go where directed by station configuration.
-        ArrayList<EventImpl> usedEvs = new ArrayList<EventImpl>(config.getNumEvents());
-        ArrayList<EventImpl>  newEvs = new ArrayList<EventImpl>(config.getNumEvents());
+        ArrayList<EtEventImpl> usedEvs = new ArrayList<EtEventImpl>(config.getNumEvents());
+        ArrayList<EtEventImpl>  newEvs = new ArrayList<EtEventImpl>(config.getNumEvents());
 //System.out.println("into restoreEvents");
 
         // look at all events
-        for (EventImpl ev : events.values()) {
+        for (EtEventImpl ev : events.values()) {
             // find those owned by this attachment
             if (ev.getOwner() == att.getId()) {
-                if (ev.getAge().getValue() == Constants.eventNew) {
+                if (ev.getAge().getValue() == EtConstants.eventNew) {
 //System.out.println("found new ev " + ev.id + " owned by attachment " + att.id);
                     newEvs.add(ev);
                 }
@@ -1174,7 +1171,7 @@ public class SystemCreate {
         if (usedEvs.size() > 0) {
 //System.out.println("restore " + usedEvs.size() + " used events");
             // if normal events are to be returned to GrandCentral
-            if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreGC) ||
+            if ((att.getStation().getConfig().getRestoreMode() == EtConstants.stationRestoreGC) ||
                     (att.getStation().getStationId() == 0)) {
 //System.out.println("restore used events to GC (dump)");
                 dumpEvents(att, usedEvs);
@@ -1184,17 +1181,17 @@ public class SystemCreate {
             // inputList, but we are the last attachement (and in the
             // middle of detaching), then events put into the inputList
             // will be lost to the system. Place them into the outputList.
-            else if ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreOut) ||
-                    ((att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) &&
+            else if ((att.getStation().getConfig().getRestoreMode() == EtConstants.stationRestoreOut) ||
+                    ((att.getStation().getConfig().getRestoreMode() == EtConstants.stationRestoreIn) &&
                      (att.getStation().getAttachments().size() == 0))) {
 //System.out.println("restore used events to output list");
                 putEvents(att, usedEvs);
             }
-            else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreIn) {
+            else if (att.getStation().getConfig().getRestoreMode() == EtConstants.stationRestoreIn) {
                 // If the station is blocking, its inputList has room for all
                 // the events and there's no problem putting them all.
                 // Statistics don't get messed up here.
-                if (att.getStation().getConfig().getBlockMode() == Constants.stationBlocking) {
+                if (att.getStation().getConfig().getBlockMode() == EtConstants.stationBlocking) {
 //System.out.println("restore used events to input list of blocking station");
                     moveEvents(att.getStation().getInputList(), usedEvs);
                 }
@@ -1216,7 +1213,7 @@ public class SystemCreate {
 //System.out.println("restore used events to input list of nonblocking station");
                 }
             }
-            else if (att.getStation().getConfig().getRestoreMode() == Constants.stationRestoreRedist) {
+            else if (att.getStation().getConfig().getRestoreMode() == EtConstants.stationRestoreRedist) {
                 // Put events into the previous station's outputList and let its
                 // conductor thread do the work - redistributing them to the members
                 // of the parallel station group.
@@ -1268,17 +1265,17 @@ public class SystemCreate {
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
-    EventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
+    EtEventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
             throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: get " + count + " events");
 
         // get events from GrandCentral Station's output list
-        EventImpl[] evs = gcStation.getInputList().get(att, mode, microSec, count);
+        EtEventImpl[] evs = gcStation.getInputList().get(att, mode, microSec, count);
 //System.out.println("newEvents: got events");
 
         // for each event ...
-        for (EventImpl ev : evs) {
+        for (EtEventImpl ev : evs) {
             // initialize fields
             ev.init();
             // registered as owned by this attachment
@@ -1326,7 +1323,7 @@ public class SystemCreate {
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
-    List<EventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
+    List<EtEventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
             throws EtException, EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: try getting " + count + " events of group # " + group);
@@ -1336,11 +1333,11 @@ public class SystemCreate {
         }
 
         // get events from GrandCentral Station's output list
-        List<EventImpl> evs = gcStation.getInputList().get(att, mode, microSec, count, group);
+        List<EtEventImpl> evs = gcStation.getInputList().get(att, mode, microSec, count, group);
 //System.out.println("newEvents: got events (# = " + evs.size() + ")");
 
         // for each event ...
-        for (EventImpl ev : evs) {
+        for (EtEventImpl ev : evs) {
             // initialize fields
             ev.init();
             // registered as owned by this attachment
@@ -1384,13 +1381,13 @@ public class SystemCreate {
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
      */
-    EventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
+    EtEventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
             throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
-        EventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
+        EtEventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
 
         // each event is registered as owned by this attachment
-        for (EventImpl ev : evs) {
+        for (EtEventImpl ev : evs) {
             ev.setOwner(att.getId());
         }
 
@@ -1409,11 +1406,11 @@ public class SystemCreate {
      * @param list        station's input or output list into which events are placed
      * @param eventList   list of event objects
      */
-    private void moveEvents(EventList list, List<EventImpl> eventList) {
+    private void moveEvents(EventList list, List<EtEventImpl> eventList) {
         // mark events as used and as owned by system
-        for (EventImpl ev : eventList) {
+        for (EtEventImpl ev : eventList) {
             ev.setAge(Age.USED);
-            ev.setOwner(Constants.system);
+            ev.setOwner(EtConstants.system);
         }
 
         list.putReverse(eventList);
@@ -1428,12 +1425,12 @@ public class SystemCreate {
      * @param att          attachment object
      * @param eventArray   array of event objects
      */
-    void putEvents(AttachmentLocal att, EventImpl[] eventArray) {
+    void putEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
         // mark events as used and as owned by system
-        for (EventImpl ev : eventArray) {
+        for (EtEventImpl ev : eventArray) {
 //System.out.println("putEvents: set age & owner of event " + i);
             ev.setAge(Age.USED);
-            ev.setOwner(Constants.system);
+            ev.setOwner(EtConstants.system);
         }
 
         att.getStation().getOutputList().put(eventArray);
@@ -1450,13 +1447,13 @@ public class SystemCreate {
      * @param att         attachment object
      * @param eventList   list of event objects
      */
-    private void putEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
+    private void putEvents(AttachmentLocal att, ArrayList<EtEventImpl> eventList) {
 //System.out.println("putEvents: got in, array length = " + eventList.length);
         // mark events as used and as owned by system
-        for (EventImpl ev : eventList) {
+        for (EtEventImpl ev : eventList) {
 //System.out.println("putEvents: set age & owner of event " + i);
             ev.setAge(Age.USED);
-            ev.setOwner(Constants.system);
+            ev.setOwner(EtConstants.system);
         }
 
         att.getStation().getOutputList().put(eventList);
@@ -1474,10 +1471,10 @@ public class SystemCreate {
      * @param att          attachment object
      * @param eventArray   array of event objects
      */
-    void dumpEvents(AttachmentLocal att, EventImpl[] eventArray) {
+    void dumpEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
         // mark as owned by system
-        for (EventImpl ev : eventArray) {
-            ev.setOwner(Constants.system);
+        for (EtEventImpl ev : eventArray) {
+            ev.setOwner(EtConstants.system);
         }
 
         // put into GrandCentral Station
@@ -1497,9 +1494,9 @@ public class SystemCreate {
      * @param att         attachment object
      * @param eventList   list of event objects
      */
-    private void dumpEvents(AttachmentLocal att, ArrayList<EventImpl> eventList) {
-        for (EventImpl ev : eventList) {
-            ev.setOwner(Constants.system);
+    private void dumpEvents(AttachmentLocal att, ArrayList<EtEventImpl> eventList) {
+        for (EtEventImpl ev : eventList) {
+            ev.setOwner(EtConstants.system);
         }
         gcStation.getInputList().putInGC(eventList);
         att.setEventsDump(att.getEventsDump() + eventList.size());
@@ -1522,7 +1519,7 @@ public class SystemCreate {
      *         <code>Constants.error</code> otherwise
      */
     int gatherSystemData() {
-        int err = Constants.ok;
+        int err = EtConstants.ok;
 
         // regather all system information every second at most
         long time2 = System.currentTimeMillis();
@@ -1550,19 +1547,19 @@ public class SystemCreate {
                 int len3 = writeAttachmentData(infoArray, 4+len1+len2, numAtts);
 //System.out.println("len1-3 = " + len1 + ", " + len2 + ", " + len3);
                 // no process data in Java ET systems
-                Utils.intToBytes(0, infoArray, 4+len1+len2+len3);
+                EtUtils.intToBytes(0, infoArray, 4+len1+len2+len3);
                 int len4 = 4;
                 dataLength = len1+len2+len3+len4;
 
                 // Write size of data (not including the length now being written)
                 // in beginning of array.
-                Utils.intToBytes(dataLength, infoArray, 0);
+                EtUtils.intToBytes(dataLength, infoArray, 0);
 
                 gather = false;
             }
             catch (Exception ex) {
                 ex.printStackTrace();
-                err = Constants.error;
+                err = EtConstants.error;
             }
         }
         return err;
@@ -1578,50 +1575,50 @@ public class SystemCreate {
      */
     private int writeSystemData(byte[] info, int off) {
         // values which can change
-        Utils.intToBytes(1, info, off); // alive by definition
-        Utils.intToBytes(0, info, off+=4); // no heartbeat
-        Utils.intToBytes(0, info, off+=4); // no temp events
-        Utils.intToBytes(stations.size(),    info, off+=4); // aren't these redundant???
-        Utils.intToBytes(attachments.size(), info, off+=4); // aren't these redundant???
-        Utils.intToBytes(0, info, off+=4); // no processes sharing memory
+        EtUtils.intToBytes(1, info, off); // alive by definition
+        EtUtils.intToBytes(0, info, off+=4); // no heartbeat
+        EtUtils.intToBytes(0, info, off+=4); // no temp events
+        EtUtils.intToBytes(stations.size(),    info, off+=4); // aren't these redundant???
+        EtUtils.intToBytes(attachments.size(), info, off+=4); // aren't these redundant???
+        EtUtils.intToBytes(0, info, off+=4); // no processes sharing memory
 
         // find out how many events the system owns
         int eventsOwned = 0;
-        for (Event ev : events.values()) {
-            if (ev.getOwner() == Constants.system) {
+        for (EtEvent ev : events.values()) {
+            if (ev.getOwner() == EtConstants.system) {
                 eventsOwned++;
             }
         }
-        Utils.intToBytes(eventsOwned, info, off+=4);
+        EtUtils.intToBytes(eventsOwned, info, off+=4);
 
         // no way to test and see if mutexes are locked in Java
-        Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
-        Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
-        Utils.intToBytes(Constants.mutexUnlocked, info, off+=4);
+        EtUtils.intToBytes(EtConstants.mutexUnlocked, info, off+=4);
+        EtUtils.intToBytes(EtConstants.mutexUnlocked, info, off+=4);
+        EtUtils.intToBytes(EtConstants.mutexUnlocked, info, off+=4);
 
         // values which do NOT change
-        Utils.intToBytes(Constants.endianBig,          info, off+=4);
-        Utils.intToBytes(Constants.mutexNoShare,       info, off+=4);
-        Utils.intToBytes(-1,                           info, off+=4);
-        Utils.intToBytes(Constants.stationSelectInts,  info, off+=4);
-        Utils.intToBytes(config.getNumEvents(),        info, off+=4);
-        Utils.longToBytes((long)config.getEventSize(), info, off+=4);
-        Utils.intToBytes(0,                            info, off+=8);   // send 0 if 32 bits, else 1 if 64 bits
-        Utils.intToBytes(0,                            info, off+=4);
-        Utils.intToBytes(config.getStationsMax(),      info, off+=4);
-        Utils.intToBytes(config.getAttachmentsMax(),   info, off+=4);
-        Utils.intToBytes(0,                            info, off+=4);
+        EtUtils.intToBytes(EtConstants.endianBig,          info, off+=4);
+        EtUtils.intToBytes(EtConstants.mutexNoShare,       info, off+=4);
+        EtUtils.intToBytes(-1,                           info, off+=4);
+        EtUtils.intToBytes(EtConstants.stationSelectInts,  info, off+=4);
+        EtUtils.intToBytes(config.getNumEvents(),        info, off+=4);
+        EtUtils.longToBytes((long)config.getEventSize(), info, off+=4);
+        EtUtils.intToBytes(0,                            info, off+=8);   // send 0 if 32 bits, else 1 if 64 bits
+        EtUtils.intToBytes(0,                            info, off+=4);
+        EtUtils.intToBytes(config.getStationsMax(),      info, off+=4);
+        EtUtils.intToBytes(config.getAttachmentsMax(),   info, off+=4);
+        EtUtils.intToBytes(0,                            info, off+=4);
 
         // tcp server port
-        Utils.intToBytes(config.getServerPort(), info, off+=4);
+        EtUtils.intToBytes(config.getServerPort(), info, off+=4);
         // udp port
-        Utils.intToBytes(config.getUdpPort(), info, off+=4);
+        EtUtils.intToBytes(config.getUdpPort(), info, off+=4);
         // multicast port
-        Utils.intToBytes(config.getMulticastPort(), info, off+=4);
+        EtUtils.intToBytes(config.getMulticastPort(), info, off+=4);
 
         // # of interfaces and multicast addresses
-        Utils.intToBytes(netAddresses.length, info, off+=4);
-        Utils.intToBytes(config.getMulticastAddrs().size(), info, off+=4);
+        EtUtils.intToBytes(netAddresses.length, info, off+=4);
+        EtUtils.intToBytes(config.getMulticastAddrs().size(), info, off+=4);
 
         int len;
         int totalInts = 27;
@@ -1630,7 +1627,7 @@ public class SystemCreate {
         // length of interface address strings
         for (InetAddress addr : netAddresses) {
             len = addr.getHostAddress().length() + 1;
-            Utils.intToBytes(len, info, off+=4);
+            EtUtils.intToBytes(len, info, off+=4);
             totalInts++;
             totalStringLen += len;
         }
@@ -1640,14 +1637,14 @@ public class SystemCreate {
         // length of multicast address strings
         for (InetAddress addr : config.getMulticastAddrs()) {
             len = addr.getHostAddress().length() + 1;
-            Utils.intToBytes(len, info, off+=4);
+            EtUtils.intToBytes(len, info, off+=4);
             totalInts++;
             totalStringLen += len;
         }
 
         // length ET file name
         len = name.length() + 1;
-        Utils.intToBytes(len, info, off+=4);
+        EtUtils.intToBytes(len, info, off+=4);
         totalInts++;
         totalStringLen += len;
 
@@ -1722,42 +1719,42 @@ public class SystemCreate {
             // reserve a spot here to be filled later with num of attachments.
             offAtt = off;
 
-            Utils.intToBytes(stat.getStationId(),     info, off += 4);
-            Utils.intToBytes(stat.getStatus(),        info, off += 4);
-            Utils.intToBytes(Constants.mutexUnlocked, info, off += 4);
+            EtUtils.intToBytes(stat.getStationId(),     info, off += 4);
+            EtUtils.intToBytes(stat.getStatus(),        info, off += 4);
+            EtUtils.intToBytes(EtConstants.mutexUnlocked, info, off += 4);
 
             // since the number of attachments may change, be careful
             counter = 0;
             for (AttachmentLocal att : stat.getAttachments()) {
-                Utils.intToBytes(att.getId(), info, off += 4);
+                EtUtils.intToBytes(att.getId(), info, off += 4);
                 counter++;
             }
-            Utils.intToBytes(counter, info, offAtt);
+            EtUtils.intToBytes(counter, info, offAtt);
             numAtts = counter;
 
-            Utils.intToBytes(Constants.mutexUnlocked,                 info, off += 4);
-            Utils.intToBytes(stat.getInputList().getEvents().size(),  info, off += 4);
-            Utils.longToBytes(stat.getInputList().getEventsTry(),     info, off += 4);
-            Utils.longToBytes(stat.getInputList().getEventsIn(),      info, off += 8);
-            Utils.intToBytes(Constants.mutexUnlocked,                 info, off += 8);
-            Utils.intToBytes(stat.getOutputList().getEvents().size(), info, off += 4);
-            Utils.longToBytes(stat.getOutputList().getEventsOut(),    info, off += 4);
+            EtUtils.intToBytes(EtConstants.mutexUnlocked,                 info, off += 4);
+            EtUtils.intToBytes(stat.getInputList().getEvents().size(),  info, off += 4);
+            EtUtils.longToBytes(stat.getInputList().getEventsTry(),     info, off += 4);
+            EtUtils.longToBytes(stat.getInputList().getEventsIn(),      info, off += 8);
+            EtUtils.intToBytes(EtConstants.mutexUnlocked,                 info, off += 8);
+            EtUtils.intToBytes(stat.getOutputList().getEvents().size(), info, off += 4);
+            EtUtils.longToBytes(stat.getOutputList().getEventsOut(),    info, off += 4);
 
-            if (stat.getConfig().getFlowMode() == Constants.stationParallel && isHead) {
-                Utils.intToBytes(Constants.stationParallelHead, info, off += 8);
+            if (stat.getConfig().getFlowMode() == EtConstants.stationParallel && isHead) {
+                EtUtils.intToBytes(EtConstants.stationParallelHead, info, off += 8);
             }
             else {
-                Utils.intToBytes(stat.getConfig().getFlowMode(), info, off += 8);
+                EtUtils.intToBytes(stat.getConfig().getFlowMode(), info, off += 8);
             }
-            Utils.intToBytes(stat.getConfig().getUserMode(),    info, off += 4);
-            Utils.intToBytes(stat.getConfig().getRestoreMode(), info, off += 4);
-            Utils.intToBytes(stat.getConfig().getBlockMode(),   info, off += 4);
-            Utils.intToBytes(stat.getConfig().getPrescale(),    info, off += 4);
-            Utils.intToBytes(stat.getConfig().getCue(),         info, off += 4);
-            Utils.intToBytes(stat.getConfig().getSelectMode(),  info, off += 4);
+            EtUtils.intToBytes(stat.getConfig().getUserMode(),    info, off += 4);
+            EtUtils.intToBytes(stat.getConfig().getRestoreMode(), info, off += 4);
+            EtUtils.intToBytes(stat.getConfig().getBlockMode(),   info, off += 4);
+            EtUtils.intToBytes(stat.getConfig().getPrescale(),    info, off += 4);
+            EtUtils.intToBytes(stat.getConfig().getCue(),         info, off += 4);
+            EtUtils.intToBytes(stat.getConfig().getSelectMode(),  info, off += 4);
             int[] select = stat.getConfig().getSelect();
-            for (int j = 0; j < Constants.stationSelectInts; j++) {
-                Utils.intToBytes(select[j], info, off += 4);
+            for (int j = 0; j < EtConstants.stationSelectInts; j++) {
+                EtUtils.intToBytes(select[j], info, off += 4);
             }
 
             // write strings, lengths first
@@ -1775,10 +1772,10 @@ public class SystemCreate {
             }
             len4 = stat.getStationName().length() + 1;
 
-            Utils.intToBytes(len1, info, off += 4);
-            Utils.intToBytes(len2, info, off += 4);
-            Utils.intToBytes(len3, info, off += 4);
-            Utils.intToBytes(len4, info, off += 4);
+            EtUtils.intToBytes(len1, info, off += 4);
+            EtUtils.intToBytes(len2, info, off += 4);
+            EtUtils.intToBytes(len3, info, off += 4);
+            EtUtils.intToBytes(len4, info, off += 4);
 
             // write strings into array
             off += 4;
@@ -1813,7 +1810,7 @@ public class SystemCreate {
             }
 
             // track size of all data stored in buffer
-            byteSize += 4 * (19 + numAtts + Constants.stationSelectInts) +
+            byteSize += 4 * (19 + numAtts + EtConstants.stationSelectInts) +
                     8 * 3 + len1 + len2 + len3 + len4;
 
             // if more stations now than space allowed for, skip rest
@@ -1823,7 +1820,7 @@ public class SystemCreate {
             }
 
             // if head of parallel linked list ...
-            if ((stat.getConfig().getFlowMode() == Constants.stationParallel) &&
+            if ((stat.getConfig().getFlowMode() == EtConstants.stationParallel) &&
                     (stations.contains(stat))) {
                 parallelIterator = stat.getParallelStations().listIterator(1);
                 if (parallelIterator.hasNext()) {
@@ -1834,7 +1831,7 @@ public class SystemCreate {
                 }
             }
             // if in (but not head of) parallel linked list ...
-            else if (stat.getConfig().getFlowMode() == Constants.stationParallel) {
+            else if (stat.getConfig().getFlowMode() == EtConstants.stationParallel) {
                 if (parallelIterator.hasNext()) {
                     isHead = false;
                     stat = (StationLocal) parallelIterator.next();
@@ -1852,7 +1849,7 @@ public class SystemCreate {
         }
 
         // enter # of stations
-        Utils.intToBytes(statCount, info, offset);
+        EtUtils.intToBytes(statCount, info, offset);
 
         return byteSize;
     }
@@ -1872,7 +1869,7 @@ public class SystemCreate {
         // exceed "attsMax" number of attachments.
 
         if (attsMax == 0) {
-            Utils.intToBytes(0, info, offset);
+            EtUtils.intToBytes(0, info, offset);
             return 4;
         }
 
@@ -1887,33 +1884,33 @@ public class SystemCreate {
 
         for (AttachmentLocal att :  attachments.values()) {
 
-            Utils.intToBytes(att.getId(), info, off);
-            Utils.intToBytes(-1, info, off+=4); // no ET "processes" in Java
-            Utils.intToBytes(att.getStation().getStationId(), info, off+=4);
-            Utils.intToBytes(-1, info, off+=4);
-            Utils.intToBytes((att.isWaiting()? Constants.attBlocked : Constants.attUnblocked), info, off+=4);
-            Utils.intToBytes((att.isWakeUp()? Constants.attQuit : Constants.attContinue), info, off+=4);
+            EtUtils.intToBytes(att.getId(), info, off);
+            EtUtils.intToBytes(-1, info, off+=4); // no ET "processes" in Java
+            EtUtils.intToBytes(att.getStation().getStationId(), info, off+=4);
+            EtUtils.intToBytes(-1, info, off+=4);
+            EtUtils.intToBytes((att.isWaiting()? EtConstants.attBlocked : EtConstants.attUnblocked), info, off+=4);
+            EtUtils.intToBytes((att.isWakeUp()? EtConstants.attQuit : EtConstants.attContinue), info, off+=4);
 
             // find out how many events the attachment owns
             eventsOwned = 0;
 
-            for (Event ev : events.values()) {
+            for (EtEvent ev : events.values()) {
                 if (ev.getOwner() == att.getId()) {
                     eventsOwned++;
                 }
             }
-            Utils.intToBytes(eventsOwned, info, off+=4);
+            EtUtils.intToBytes(eventsOwned, info, off+=4);
 
-            Utils.longToBytes(att.getEventsPut(),  info, off+=4);
-            Utils.longToBytes(att.getEventsGet(),  info, off+=8);
-            Utils.longToBytes(att.getEventsDump(), info, off+=8);
-            Utils.longToBytes(att.getEventsMake(), info, off+=8);
+            EtUtils.longToBytes(att.getEventsPut(),  info, off+=4);
+            EtUtils.longToBytes(att.getEventsGet(),  info, off+=8);
+            EtUtils.longToBytes(att.getEventsDump(), info, off+=8);
+            EtUtils.longToBytes(att.getEventsMake(), info, off+=8);
 
             // read strings, lengths first
             len1 = att.getHost().length() + 1;
             len2 = att.getStation().getStationName().length() + 1;
-            Utils.intToBytes(len1, info, off+=8);
-            Utils.intToBytes(len2, info, off+=4);
+            EtUtils.intToBytes(len1, info, off+=8);
+            EtUtils.intToBytes(len2, info, off+=4);
 //System.out.println("writeAttachments: len1 = " + len1 + ", len2 = " + len2);
             // write strings into array
             off += 4;
@@ -1944,7 +1941,7 @@ public class SystemCreate {
 //System.out.println("writeAttachments: #atts = " + attCount + ", byteSize = " + byteSize);
 
         // send # of attachments
-        Utils.intToBytes(attCount, info, offset);
+        EtUtils.intToBytes(attCount, info, offset);
 
         return byteSize;
     }

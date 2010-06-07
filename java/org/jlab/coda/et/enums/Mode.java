@@ -14,7 +14,7 @@
 
 package org.jlab.coda.et.enums;
 
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 /**
  * This enum represents 3 possible modes in which to get new or existing events
@@ -27,11 +27,11 @@ import org.jlab.coda.et.Constants;
  */
 public enum Mode {
     /** Wait forever for events to become available. */
-    SLEEP   (Constants.sleep),
+    SLEEP   (EtConstants.sleep),
     /** Wait up to a given delay time for events to become available. */
-    TIMED   (Constants.timed),
+    TIMED   (EtConstants.timed),
     /** Do not wait for events to become available. */
-    ASYNC   (Constants.async);
+    ASYNC   (EtConstants.async);
 
     private int value;
 

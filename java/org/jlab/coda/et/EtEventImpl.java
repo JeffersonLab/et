@@ -30,10 +30,10 @@ import org.jlab.coda.et.enums.Modify;
  * @author Carl Timmer
  */
 
-public class EventImpl implements Event {
+public class EtEventImpl implements EtEvent {
 
     // convenience variables
-    private static final int   numSelectInts = Constants.stationSelectInts;
+    private static final int   numSelectInts = EtConstants.stationSelectInts;
     private static final int[] controlInitValues = new int[numSelectInts];
 
     /** Unique id number (place of event in C-based ET system). */
@@ -41,7 +41,7 @@ public class EventImpl implements Event {
 
     /**
      * Specifies whether the event was obtained as a new event (through
-     * {@link SystemUse#newEvents}), or as a "used" event (through {@link SystemUse#getEvents}).
+     * {@link EtSystemUse#newEvents}), or as a "used" event (through {@link EtSystemUse#getEvents}).
      * If the event is new, its value is {@link Age#NEW} otherwise {@link Age#USED}.
      */
     private Age age;
@@ -55,7 +55,7 @@ public class EventImpl implements Event {
 
     /**
      * The attachment id which owns or got the event. If it's owned by the
-     * system its value is {@link Constants#system}.
+     * system its value is {@link EtConstants#system}.
      */
     private int owner;
 
@@ -127,7 +127,7 @@ public class EventImpl implements Event {
      *
      * @param size size of the data array in bytes
      */
-    public EventImpl(int size) {
+    public EtEventImpl(int size) {
         memSize    = size;
         isJava     = true;
         data       = new byte[size];
@@ -139,16 +139,16 @@ public class EventImpl implements Event {
     /**
      * Creates an event object for ET system users when connecting to ET systems
      * over the network. Called by
-     * {@link SystemUse#getEvents(Attachment, org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)},
+     * {@link EtSystemUse#getEvents(EtAttachment , org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)},
      * and
-     * {@link SystemUse#newEvents(Attachment, org.jlab.coda.et.enums.Mode, int, int, int, int)}.
+     * {@link EtSystemUse#newEvents(EtAttachment , org.jlab.coda.et.enums.Mode, int, int, int, int)}.
      *
      * @param size   size of the data array in bytes.
      * @param limit  limit on the size of the data array in bytes. Only used
      *               for C-based ET systems.
      * @param isJava is ET system Java based?
      */
-    EventImpl(int size, int limit, boolean isJava) {
+    EtEventImpl(int size, int limit, boolean isJava) {
         memSize     = size;
         sizeLimit   = limit;
         this.isJava = isJava;
@@ -177,7 +177,7 @@ public class EventImpl implements Event {
      * @param byteOrder {@link #byteOrder}
      * @param control   {@link #control}
      */
-    EventImpl(int size, int limit, int status, int id, int age, int owner,
+    EtEventImpl(int size, int limit, int status, int id, int age, int owner,
               int modify, int length, int priority, int byteOrder, int[] control) {
 
         isJava         = false;
@@ -204,7 +204,7 @@ public class EventImpl implements Event {
      * @param id    {@link #id}
      * @param owner {@link #owner}
      */
-    EventImpl(int limit, int id, int owner) {
+    EtEventImpl(int limit, int id, int owner) {
 
         age        = Age.NEW;
         priority   = Priority.LOW;
@@ -226,7 +226,7 @@ public class EventImpl implements Event {
     public void init() {
         age        = Age.NEW;
         priority   = Priority.LOW;
-        owner      = Constants.system;
+        owner      = EtConstants.system;
         length     = 0;
         modify     = Modify.NOTHING;
         byteOrder  = 0x04030201;
@@ -369,8 +369,8 @@ public class EventImpl implements Event {
 
     /**
      * Sets the age of the event which is {@link Age#NEW} for new events obtained by calling
-     * {@link SystemUse#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
-     * {@link SystemUse#getEvents}).
+     * {@link EtSystemUse#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
+     * {@link EtSystemUse#getEvents}).
      *
      * @param age age of the event
      */
@@ -464,19 +464,19 @@ public class EventImpl implements Event {
      * {@inheritDoc}
      */
     public void setByteOrder(int endian) throws EtException {
-        if (endian == Constants.endianBig) {
+        if (endian == EtConstants.endianBig) {
             byteOrder = 0x04030201;
         }
-        else if (endian == Constants.endianLittle) {
+        else if (endian == EtConstants.endianLittle) {
             byteOrder = 0x01020304;
         }
-        else if (endian == Constants.endianLocal) {
+        else if (endian == EtConstants.endianLocal) {
             byteOrder = 0x04030201;
         }
-        else if (endian == Constants.endianNotLocal) {
+        else if (endian == EtConstants.endianNotLocal) {
             byteOrder = 0x01020304;
         }
-        else if (endian == Constants.endianSwitch) {
+        else if (endian == EtConstants.endianSwitch) {
             byteOrder = Integer.reverseBytes(byteOrder);
         }
         else {

@@ -21,10 +21,10 @@ package org.jlab.coda.et;
  * @author Carl Timmer
  */
 
-public final class Constants {
+public final class EtConstants {
 
     /** This constructor does nothing. */
-    private Constants () {
+    private EtConstants() {
     }
 
     /** Ints representing ascii for "cMsg is cool", used to filter out portscanning software. */
@@ -33,40 +33,40 @@ public final class Constants {
     // constants from et.h
 
     /** A convenient multicast address used for finding an ET system.
-     * @see SystemOpenConfig#addMulticastAddr */
+     * @see EtSystemOpenConfig#addMulticastAddr */
     public static final String multicastAddr       = "239.200.0.0";
     /** Specify a local host when opening an ET system.
-     *  @see SystemOpenConfig#setHost */
+     *  @see EtSystemOpenConfig#setHost */
     public static final String hostLocal           = ".local";
     /** Specify a remote host when opening an ET system.
-     *  @see SystemOpenConfig#setHost */
+     *  @see EtSystemOpenConfig#setHost */
     public static final String hostRemote          = ".remote";
     /** Allow any host when opening an ET system.
-     *  @see SystemOpenConfig#setHost */
+     *  @see EtSystemOpenConfig#setHost */
     public static final String hostAnywhere        = ".anywhere";
     /** Discover an ET system by multicasting.
-     *  @see SystemOpenConfig#setNetworkContactMethod */
+     *  @see EtSystemOpenConfig#setNetworkContactMethod */
     public static final int    multicast           = 0;
     /** Discover an ET system by broadcasting.
-     *  @see SystemOpenConfig#setNetworkContactMethod */
+     *  @see EtSystemOpenConfig#setNetworkContactMethod */
     public static final int    broadcast           = 1;
     /** Open an ET system by specifying host and port.
-     *  @see SystemOpenConfig#setNetworkContactMethod */
+     *  @see EtSystemOpenConfig#setNetworkContactMethod */
     public static final int    direct              = 2;
     /** Discover an ET system by broadcasting and multicasting.
-     *  @see SystemOpenConfig#setNetworkContactMethod */
+     *  @see EtSystemOpenConfig#setNetworkContactMethod */
     public static final int    broadAndMulticast   = 3;
     /** A default port on which to broadcast when finding an ET system. */
     public static final int    broadcastPort       = 11111;
     /** A default port on which to multicast when finding an ET system.
-     *  @see SystemOpenConfig#addMulticastAddr
-     *  @see SystemOpenConfig#setMulticastAddrs */
+     *  @see EtSystemOpenConfig#addMulticastAddr
+     *  @see EtSystemOpenConfig#setMulticastAddrs */
     public static final int    multicastPort       = 11112;
     /** A default port on which ET system TCP server makes connections with users.
-     *  @see SystemOpenConfig#setTcpPort */
+     *  @see EtSystemOpenConfig#setTcpPort */
     public static final int    serverPort          = 11111;
     /** A default time-to-live value for multicasting.
-     *  @see SystemOpenConfig#setTTL */
+     *  @see EtSystemOpenConfig#setTTL */
     public static final int    multicastTTL        = 1;
     /** A default value for the number of integers associated with each event that
      *  atations may use to select or filter that event. If this is changed, a
@@ -81,17 +81,17 @@ public final class Constants {
 
     /** A policy that chooses the first ET system to respond when broadcasting
      *  and/or multicasting to find a system anywhere or remotely.
-     *  @see SystemOpenConfig#setResponsePolicy */
+     *  @see EtSystemOpenConfig#setResponsePolicy */
     public static final int    policyFirst         = 0;
     /** A policy that chooses the first local ET system to respond when
      *  broadcasting and/or multicasting to find a system anywhere or remotely.
      *  If a local system does not respond, the first response is chosen.
-     *  @see SystemOpenConfig#setResponsePolicy */
+     *  @see EtSystemOpenConfig#setResponsePolicy */
     public static final int    policyLocal         = 1;
     /** A policy that throws an EtTooManyException when multiple ET systems
      *  respond when broadcasting and/or multicasting to find an ET system
      *  anywhere or remotely.
-     *  @see SystemOpenConfig#setResponsePolicy */
+     *  @see EtSystemOpenConfig#setResponsePolicy */
     public static final int    policyError         = 2;
 
 
@@ -118,50 +118,50 @@ public final class Constants {
     /** A station's status meaning it exists and has at least one attachment. */
     public static final int    stationActive          = 3;
     /** A station may have multiple attachments.
-     *  @see StationConfig#setUserMode */
+     *  @see EtStationConfig#setUserMode */
     public static final int    stationUserMulti       = 0;
     /** A station may only have one attachment.
-     *  @see StationConfig#setUserMode */
+     *  @see EtStationConfig#setUserMode */
     public static final int    stationUserSingle      = 1;
     /** A station will not block the flow of events. Once its cue is full, the
      *  station asks for no more events.
-     *  @see StationConfig#setBlockMode */
+     *  @see EtStationConfig#setBlockMode */
     public static final int    stationNonBlocking     = 0;
     /** A station accepts every event into its cue and may block the flow of
      *  events.
-     *  @see StationConfig#setBlockMode */
+     *  @see EtStationConfig#setBlockMode */
     public static final int    stationBlocking        = 1;
     /** All events are placed into a station's cue with no filtering applied
      *  (besides prescaling).
-     *  @see StationConfig#setSelectMode */
+     *  @see EtStationConfig#setSelectMode */
     public static final int    stationSelectAll       = 1;
     /** Events are placed into a station's cue with a predefined filtering applied
      *  (besides prescaling).
-     *  @see StationConfig#setSelectMode */
+     *  @see EtStationConfig#setSelectMode */
     public static final int    stationSelectMatch     = 2;
     /** Events are placed into a station's cue with a user defined filtering
      *  applied (besides prescaling).
-     *  @see StationConfig#setSelectMode */
+     *  @see EtStationConfig#setSelectMode */
     public static final int    stationSelectUser      = 3;
     /** Events are placed into the cues of a single group of parallel stations
      *  with a round robin distribution algorithm.
-     *  @see StationConfig#setSelectMode */
+     *  @see EtStationConfig#setSelectMode */
     public static final int    stationSelectRRobin    = 4;
     /** Events are placed into the cues of a single group of parallel stations
      *  in an algorithm designed to keep the cues equal in value.
-     *  @see StationConfig#setSelectMode */
+     *  @see EtStationConfig#setSelectMode */
     public static final int    stationSelectEqualCue  = 5;
     /** Events owned by a crashed user process are restored to the ET system in
      *  the output list of the attachment's station.
-     *  @see StationConfig#setRestoreMode */
+     *  @see EtStationConfig#setRestoreMode */
     public static final int    stationRestoreOut      = 0;
     /** Events owned by a crashed user process are restored to the ET system in
      *  the input list of the attachment's station.
-     *  @see StationConfig#setRestoreMode */
+     *  @see EtStationConfig#setRestoreMode */
     public static final int    stationRestoreIn       = 1;
     /** Events owned by a crashed user process are restored to the ET system by
      *  putting them in GRAND_CENTRAL station (recycling them).
-     *  @see StationConfig#setRestoreMode */
+     *  @see EtStationConfig#setRestoreMode */
     public static final int    stationRestoreGC       = 2;
     /** Events owned by a crashed user process attached to a parallel station
      *  are restored to the ET system by redistributing them among that group
@@ -169,26 +169,26 @@ public final class Constants {
      *  attachments, the events in its input list are also redistributed (unlike
      *  in stationRestoreGC mode where these events are put in the station's output
      *  list).
-     *  @see StationConfig#setRestoreMode */
+     *  @see EtStationConfig#setRestoreMode */
     public static final int    stationRestoreRedist   = 3;
     /** Events flow "normally" - that is serially - through a station.
-     *  @see StationConfig#setFlowMode */
+     *  @see EtStationConfig#setFlowMode */
     public static final int    stationSerial          = 0;
     /** Events flow in parallel through stations in a single group.
-     *  @see StationConfig#setFlowMode */
+     *  @see EtStationConfig#setFlowMode */
     public static final int    stationParallel        = 1;
     /** Events flow in parallel through stations in a single group with this station
      *  as the head of that group.
-     *  @see StationConfig#setFlowMode */
+     *  @see EtStationConfig#setFlowMode */
     public static final int    stationParallelHead    = 2;
 
     // station defaults
 
     /** A default input list cue size for a nonblocking station.
-     *  @see StationConfig#setCue */
+     *  @see EtStationConfig#setCue */
     public static final int    defaultStationCue      = 10;
     /** A default prescale value for a station.
-     *  @see StationConfig#setPrescale */
+     *  @see EtStationConfig#setPrescale */
     public static final int    defaultStationPrescale = 1;
 
     // talk to C language ET systems with structures
@@ -206,10 +206,10 @@ public final class Constants {
     // Events
 
     /** Low event priority.
-     *  @see Event#setPriority */
+     *  @see EtEvent#setPriority */
     public static final int    low                 = 0;
     /** High event priority.
-     *  @see Event#setPriority */
+     *  @see EtEvent#setPriority */
     public static final int    high                = 1;
     /** Parse event priority information. */
     public static final int    priorityMask        = 0x1;

@@ -58,13 +58,13 @@ class SystemTcpServer extends Thread {
     /** Start thread to listen for connections and spawn off communication
      *  handling threads. */
     public void run() {
-        if (sys.getConfig().getDebug() >= Constants.debugInfo) {
+        if (sys.getConfig().getDebug() >= EtConstants.debugInfo) {
             System.out.println("Running TCP Server Thread");
         }
 
         // use the default port number since one wasn't specified
         if (port < 1) {
-            port = Constants.serverPort;
+            port = EtConstants.serverPort;
         }
 
         // let exceptions propagate up a level
@@ -138,9 +138,9 @@ class SystemTcpServer extends Thread {
                         int magic1 = buffer.getInt();
                         int magic2 = buffer.getInt();
                         int magic3 = buffer.getInt();
-                        if (magic1 != Constants.magicNumbers[0] ||
-                                magic2 != Constants.magicNumbers[1] ||
-                                magic3 != Constants.magicNumbers[2])  {
+                        if (magic1 != EtConstants.magicNumbers[0] ||
+                                magic2 != EtConstants.magicNumbers[1] ||
+                                magic3 != EtConstants.magicNumbers[2])  {
 //System.out.println("SystemTcpServer:  Magic numbers did NOT match");
                             channel.close();
                         }
@@ -239,24 +239,24 @@ class ClientThread extends Thread {
             // see if the ET system that the client is
             // trying to connect to is this one.
             if (!etName.equals(sys.getName())) {
-                if (config.getDebug() >= Constants.debugError) {
+                if (config.getDebug() >= EtConstants.debugError) {
                     System.out.println("Tcp Server: client trying to connect to " + etName);
                 }
                 // send error to client
-                out.writeInt(Constants.error);
+                out.writeInt(EtConstants.error);
                 out.flush();
                 return;
             }
 
             // send ET system info back to client
-            out.writeInt(Constants.ok);
-            out.writeInt(Constants.endianBig);
+            out.writeInt(EtConstants.ok);
+            out.writeInt(EtConstants.endianBig);
             out.writeInt(config.getNumEvents());
             out.writeLong(config.getEventSize());
-            out.writeInt(Constants.version);
-            out.writeInt(Constants.stationSelectInts);
-            out.writeInt(Constants.langJava);
-            out.writeInt(Constants.bit64);
+            out.writeInt(EtConstants.version);
+            out.writeInt(EtConstants.stationSelectInts);
+            out.writeInt(EtConstants.langJava);
+            out.writeInt(EtConstants.bit64);
             out.writeInt(0);
             out.flush();
 
@@ -266,7 +266,7 @@ class ClientThread extends Thread {
             return;
         }
         catch (IOException ex) {
-            if (config.getDebug() >= Constants.debugError) {
+            if (config.getDebug() >= EtConstants.debugError) {
                 System.out.println("Tcp Server: IO error in client etOpen");
             }
         }
@@ -291,15 +291,15 @@ class ClientThread extends Thread {
         // as events to be modified, but were never put back.
 
         // for efficiency, keep local copy of constants
-        final int selectInts   = Constants.stationSelectInts;
-        final int dataShift    = Constants.dataShift;
-        final int priorityMask = Constants.priorityMask;
-        final int dataMask     = Constants.dataMask;
-        final int modify       = Constants.modify;
-        final int ok           = Constants.ok;
+        final int selectInts   = EtConstants.stationSelectInts;
+        final int dataShift    = EtConstants.dataShift;
+        final int priorityMask = EtConstants.priorityMask;
+        final int dataMask     = EtConstants.dataMask;
+        final int modify       = EtConstants.modify;
+        final int ok           = EtConstants.ok;
 
         int command;
-        EventImpl[] evs = null;
+        EtEventImpl[] evs = null;
         HashMap<Integer, AttachmentLocal> attachments =
                 new HashMap<Integer, AttachmentLocal>(sys.getConfig().getAttachmentsMax() + 1);
         // buffer for sending events to users
@@ -330,34 +330,34 @@ class ClientThread extends Thread {
                 // start off with commands for local clients for use in Linux
                 // or other non-mutex sharing operating systems.
 
-                if (command < Constants.netEvGet) {
+                if (command < EtConstants.netEvGet) {
                     // No local Linux stuff in Java implementation
-                    if (config.getDebug() >= Constants.debugError) {
+                    if (config.getDebug() >= EtConstants.debugError) {
                         System.out.println("No Java support for local Linux");
                     }
                     throw new EtReadException("No Java support for local Linux");
                 }
 
-                else if (command < Constants.netAlive) {
+                else if (command < EtConstants.netAlive) {
 
                     switch (command) {
 
-                        case Constants.netEvGet: {
+                        case EtConstants.netEvGet: {
                             in.readFully(params, 0, 20);
                             int err = ok;
-                            int attId = Utils.bytesToInt(params, 0);
-                            int mode  = Utils.bytesToInt(params, 4);
-                            int mod   = Utils.bytesToInt(params, 8);
-                            int sec   = Utils.bytesToInt(params, 12);
-                            int nsec  = Utils.bytesToInt(params, 16);
+                            int attId = EtUtils.bytesToInt(params, 0);
+                            int mode  = EtUtils.bytesToInt(params, 4);
+                            int mod   = EtUtils.bytesToInt(params, 8);
+                            int sec   = EtUtils.bytesToInt(params, 12);
+                            int nsec  = EtUtils.bytesToInt(params, 16);
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
                             try {
-                                if (mode == Constants.timed) {
+                                if (mode == EtConstants.timed) {
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.getEvents(att, mode, uSec, 1);
                                 }
-                                else if (mode == Constants.sleep) {
+                                else if (mode == EtConstants.sleep) {
                                     // There's a problem if we have a remote client that is waiting
                                     // for another event by sleeping and the events stop flowing. In
                                     // that case, the client can be killed and the ET system does NOT
@@ -379,7 +379,7 @@ class ClientThread extends Thread {
                                                 att.setWakeUp(false);
                                                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                             }
-                                            evs = sys.getEvents(att, Constants.timed, 4000000, 1);
+                                            evs = sys.getEvents(att, EtConstants.timed, 4000000, 1);
                                             // no longer in sleep mode
                                             att.setSleepMode(false);
                                             // may have been told to wake up between last 2 statements.
@@ -407,20 +407,20 @@ class ClientThread extends Thread {
 
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
                             catch (EtBusyException ex) {
-                                err = Constants.errorBusy;
+                                err = EtConstants.errorBusy;
                             }
                             catch (EtEmptyException ex) {
-                                err = Constants.errorEmpty;
+                                err = EtConstants.errorEmpty;
                             }
                             catch (EtWakeUpException ex) {
-                                err = Constants.errorWakeUp;
+                                err = EtConstants.errorWakeUp;
                                 att.setSleepMode(false);
                             }
                             catch (EtTimeoutException ex) {
-                                err = Constants.errorTimeout;
+                                err = EtConstants.errorTimeout;
                             }
 
                             if (err != ok) {
@@ -429,26 +429,26 @@ class ClientThread extends Thread {
                                 break;
                             }
 
-                            EventImpl ev = evs[0];
+                            EtEventImpl ev = evs[0];
 
                             // handle buffering by hand
                             byte[] buf = new byte[4 * (10 + selectInts) + ev.getLength()];
 
                             // first send error
-                            Utils.intToBytes(err, buf, 0);
-                            Utils.longToBytes((long)ev.getLength(),  buf,  4);
-                            Utils.longToBytes((long)ev.getMemSize(), buf, 12);
-                            Utils.intToBytes(ev.getPriority().getValue() |
+                            EtUtils.intToBytes(err, buf, 0);
+                            EtUtils.longToBytes((long)ev.getLength(),  buf,  4);
+                            EtUtils.longToBytes((long)ev.getMemSize(), buf, 12);
+                            EtUtils.intToBytes(ev.getPriority().getValue() |
                                              ev.getDataStatus().getValue() << dataShift, buf, 20);
-                            Utils.intToBytes(ev.getId(), buf, 24);  // skip 4 bytes here
-                            Utils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
-                                             Constants.endianLittle : Constants.endianBig,
+                            EtUtils.intToBytes(ev.getId(), buf, 24);  // skip 4 bytes here
+                            EtUtils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
+                                             EtConstants.endianLittle : EtConstants.endianBig,
                                              buf, 32);
                             // arrays are initialized to zero so skip 0 values elements
                             int index = 36;
                             int[] control = ev.getControl();
                             for (int i = 0; i < selectInts; i++) {
-                                Utils.intToBytes(control[i], buf, index += 4);
+                                EtUtils.intToBytes(control[i], buf, index += 4);
                             }
                             System.arraycopy(ev.getData(), 0, buf, index += 4, ev.getLength());
 
@@ -464,23 +464,23 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvsGet: {
+                        case EtConstants.netEvsGet: {
                             in.readFully(params, 0, 24);
                             int err = ok;
-                            int attId = Utils.bytesToInt(params,  0);
-                            int mode  = Utils.bytesToInt(params,  4);
-                            int mod   = Utils.bytesToInt(params,  8);
-                            int count = Utils.bytesToInt(params, 12);
-                            int sec   = Utils.bytesToInt(params, 16);
-                            int nsec  = Utils.bytesToInt(params, 20);
+                            int attId = EtUtils.bytesToInt(params,  0);
+                            int mode  = EtUtils.bytesToInt(params,  4);
+                            int mod   = EtUtils.bytesToInt(params,  8);
+                            int count = EtUtils.bytesToInt(params, 12);
+                            int sec   = EtUtils.bytesToInt(params, 16);
+                            int nsec  = EtUtils.bytesToInt(params, 20);
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
                             try {
-                                if (mode == Constants.timed) {
+                                if (mode == EtConstants.timed) {
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.getEvents(att, mode, uSec, count);
                                 }
-                                else if (mode == Constants.sleep) {
+                                else if (mode == EtConstants.sleep) {
                                     // There's a problem if we have a remote client that is waiting
                                     // for another event by sleeping and the events stop flowing. In
                                     // that case, the client can be killed and the ET system does NOT
@@ -502,7 +502,7 @@ class ClientThread extends Thread {
                                                 att.setWakeUp(false);
                                                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                             }
-                                            evs = sys.getEvents(att, Constants.timed, 4000000, count);
+                                            evs = sys.getEvents(att, EtConstants.timed, 4000000, count);
                                             // no longer in sleep mode
                                             att.setSleepMode(false);
                                             // may have been told to wake up between last 2 statements.
@@ -530,20 +530,20 @@ class ClientThread extends Thread {
 
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
                             catch (EtBusyException ex) {
-                                err = Constants.errorBusy;
+                                err = EtConstants.errorBusy;
                             }
                             catch (EtEmptyException ex) {
-                                err = Constants.errorEmpty;
+                                err = EtConstants.errorEmpty;
                             }
                             catch (EtWakeUpException ex) {
-                                err = Constants.errorWakeUp;
+                                err = EtConstants.errorWakeUp;
                                 att.setSleepMode(false);
                             }
                             catch (EtTimeoutException ex) {
-                                err = Constants.errorTimeout;
+                                err = EtConstants.errorTimeout;
                             }
 
                             if (err != ok) {
@@ -579,29 +579,29 @@ class ClientThread extends Thread {
                             int length, index = 12;
                             int headerSize = 4 * (6 + selectInts);
                             int size = evs.length * headerSize;
-                            for (EventImpl ev1 : evs) {
+                            for (EtEventImpl ev1 : evs) {
                                 size += ev1.getLength();
                             }
 
-                            Utils.intToBytes(evs.length, buffer, 0);
-                            Utils.longToBytes((long)size, buffer, 4);
+                            EtUtils.intToBytes(evs.length, buffer, 0);
+                            EtUtils.longToBytes((long)size, buffer, 4);
 
                             Modify mfy = Modify.getModify(mod);
-                            for (EventImpl ev : evs) {
+                            for (EtEventImpl ev : evs) {
                                 ev.setModify(mfy);
                                 length = ev.getLength();
-                                Utils.longToBytes((long)length, buffer, index);
-                                Utils.longToBytes((long)ev.getMemSize(), buffer, index += 8);
-                                Utils.intToBytes(ev.getPriority().getValue() |
+                                EtUtils.longToBytes((long)length, buffer, index);
+                                EtUtils.longToBytes((long)ev.getMemSize(), buffer, index += 8);
+                                EtUtils.intToBytes(ev.getPriority().getValue() |
                                                  ev.getDataStatus().getValue() << dataShift, buffer, index += 8);
-                                Utils.intToBytes(ev.getId(), buffer, index += 4); // skip 4 bytes here
-                                Utils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
-                                                 Constants.endianLittle : Constants.endianBig,
+                                EtUtils.intToBytes(ev.getId(), buffer, index += 4); // skip 4 bytes here
+                                EtUtils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
+                                                 EtConstants.endianLittle : EtConstants.endianBig,
                                                  buffer, index += 8);
-                                Utils.intToBytes(0, buffer, index += 4);
+                                EtUtils.intToBytes(0, buffer, index += 4);
                                 int[] control = ev.getControl();
                                 for (int i = 0; i < selectInts; i++) {
-                                    Utils.intToBytes(control[i], buffer, index += 4);
+                                    EtUtils.intToBytes(control[i], buffer, index += 4);
                                 }
                                 index += 4;
                                 if (index + headerSize + length > buffer.length) {
@@ -631,32 +631,32 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvPut: {
+                        case EtConstants.netEvPut: {
                             in.readFully(params, 0, 32 + 4 * selectInts);
 
-                            int attId = Utils.bytesToInt(params, 0);
+                            int attId = EtUtils.bytesToInt(params, 0);
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
-                            int id = Utils.bytesToInt(params, 4);
-                            EventImpl ev = sys.getEvents().get(id);
+                            int id = EtUtils.bytesToInt(params, 4);
+                            EtEventImpl ev = sys.getEvents().get(id);
                             // skip 4 bytes here
 
-                            long len = Utils.bytesToLong(params, 12);
+                            long len = EtUtils.bytesToLong(params, 12);
                             if (len > Integer.MAX_VALUE) {
                                 throw new EtException("Event is too long for this (java) ET system");
                             }
                             ev.setLengthFromServer((int) len);
 
-                            int priAndStat = Utils.bytesToInt(params, 20);
+                            int priAndStat = EtUtils.bytesToInt(params, 20);
                             ev.setPriority(Priority.getPriority(priAndStat & priorityMask));
                             ev.setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-                            ev.setByteOrder(Utils.bytesToInt(params, 24));
+                            ev.setByteOrder(EtUtils.bytesToInt(params, 24));
                             // last parameter is ignored
 
                             int index = 24;
                             int[] control = new int[selectInts];
                             for (int i = 0; i < selectInts; i++) {
-                                control[i] = Utils.bytesToInt(params, index += 4);
+                                control[i] = EtUtils.bytesToInt(params, index += 4);
                             }
                             ev.setControl(control);
                             // only read data if modifying everything
@@ -664,7 +664,7 @@ class ClientThread extends Thread {
                                 in.readFully(ev.getData(), 0, ev.getLength());
                             }
 
-                            EventImpl[] evArray = new EventImpl[1];
+                            EtEventImpl[] evArray = new EtEventImpl[1];
                             evArray[0] = ev;
 
                             sys.putEvents(att, evArray);
@@ -675,39 +675,39 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvsPut: {
+                        case EtConstants.netEvsPut: {
                             in.readFully(params, 0, 16);
-                            int attId           = Utils.bytesToInt(params, 0);
+                            int attId           = EtUtils.bytesToInt(params, 0);
                             AttachmentLocal att = attachments.get(new Integer(attId));
-                            int numEvents       = Utils.bytesToInt(params,  4);
-                            long size           = Utils.bytesToLong(params, 8);
+                            int numEvents       = EtUtils.bytesToInt(params,  4);
+                            long size           = EtUtils.bytesToLong(params, 8);
 
                             long len;
                             int  id, priAndStat, index;
                             int  byteChunk = 28 + 4 * selectInts;
-                            evs = new EventImpl[numEvents];
+                            evs = new EtEventImpl[numEvents];
 
                             for (int j = 0; j < numEvents; j++) {
                                 in.readFully(params, 0, byteChunk);
 
-                                id = Utils.bytesToInt(params, 0);
+                                id = EtUtils.bytesToInt(params, 0);
                                 evs[j] = sys.getEvents().get(id);
                                 // skip 4 bytes here
 
-                                len = Utils.bytesToLong(params, 8);
+                                len = EtUtils.bytesToLong(params, 8);
                                 if (len > Integer.MAX_VALUE) {
                                     throw new EtException("Event is too long for this (java) ET system");
                                 }
                                 evs[j].setLengthFromServer((int) len);
 
-                                priAndStat = Utils.bytesToInt(params, 16);
+                                priAndStat = EtUtils.bytesToInt(params, 16);
                                 evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
                                 evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-                                evs[j].setByteOrder(Utils.bytesToInt(params, 20));
+                                evs[j].setByteOrder(EtUtils.bytesToInt(params, 20));
                                 index = 24;
                                 int[] control = new int[selectInts];
                                 for (int i = 0; i < selectInts; i++) {
-                                    control[i] = Utils.bytesToInt(params, index += 4);
+                                    control[i] = EtUtils.bytesToInt(params, index += 4);
                                 }
                                 evs[j].setControl(control);
                                 if (evs[j].getModify() == Modify.ANYTHING) {
@@ -728,28 +728,28 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvNew: {
+                        case EtConstants.netEvNew: {
                             in.readFully(params, 0, 24);
                             int  err = ok;
-                            int  attId = Utils.bytesToInt(params,  0);
-                            int  mode  = Utils.bytesToInt(params,  4);
-                            long size  = Utils.bytesToLong(params, 8);
-                            int  sec   = Utils.bytesToInt(params, 16);
-                            int  nsec  = Utils.bytesToInt(params, 20);
+                            int  attId = EtUtils.bytesToInt(params,  0);
+                            int  mode  = EtUtils.bytesToInt(params,  4);
+                            long size  = EtUtils.bytesToLong(params, 8);
+                            int  sec   = EtUtils.bytesToInt(params, 16);
+                            int  nsec  = EtUtils.bytesToInt(params, 20);
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
                             if (bit64 && size > Integer.MAX_VALUE/5) {
-                                out.writeInt(Constants.errorTooBig);
+                                out.writeInt(EtConstants.errorTooBig);
                                 out.writeLong(0L);
                                 break;
                             }
 
                             try {
-                                if (mode == Constants.timed) {
+                                if (mode == EtConstants.timed) {
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.newEvents(att, mode, uSec, 1, (int)size);
                                 }
-                                else if (mode == Constants.sleep) {
+                                else if (mode == EtConstants.sleep) {
                                     // There's a problem if we have a remote client that is waiting
                                     // for another event by sleeping and the events stop flowing. In
                                     // that case, the client can be killed and the ET system does NOT
@@ -771,7 +771,7 @@ class ClientThread extends Thread {
                                                 att.setWakeUp(false);
                                                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                             }
-                                            evs = sys.newEvents(att, Constants.timed, 4000000, 1, (int)size);
+                                            evs = sys.newEvents(att, EtConstants.timed, 4000000, 1, (int)size);
                                             // no longer in sleep mode
                                             att.setSleepMode(false);
                                             // may have been told to wake up between last 2 statements.
@@ -798,20 +798,20 @@ class ClientThread extends Thread {
                                 }
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
                             catch (EtBusyException ex) {
-                                err = Constants.errorBusy;
+                                err = EtConstants.errorBusy;
                             }
                             catch (EtEmptyException ex) {
-                                err = Constants.errorEmpty;
+                                err = EtConstants.errorEmpty;
                             }
                             catch (EtWakeUpException ex) {
-                                err = Constants.errorWakeUp;
+                                err = EtConstants.errorWakeUp;
                                 att.setSleepMode(false);
                             }
                             catch (EtTimeoutException ex) {
-                                err = Constants.errorTimeout;
+                                err = EtConstants.errorTimeout;
                             }
 
                             if (err != ok) {
@@ -832,29 +832,29 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvsNew: {
+                        case EtConstants.netEvsNew: {
                             in.readFully(params, 0, 28);
                             int err = ok;
-                            int  attId = Utils.bytesToInt(params,  0);
-                            int  mode  = Utils.bytesToInt(params,  4);
-                            long size  = Utils.bytesToLong(params, 8);
-                            int  count = Utils.bytesToInt(params, 16);
-                            int  sec   = Utils.bytesToInt(params, 20);
-                            int  nsec  = Utils.bytesToInt(params, 24);
+                            int  attId = EtUtils.bytesToInt(params,  0);
+                            int  mode  = EtUtils.bytesToInt(params,  4);
+                            long size  = EtUtils.bytesToLong(params, 8);
+                            int  count = EtUtils.bytesToInt(params, 16);
+                            int  sec   = EtUtils.bytesToInt(params, 20);
+                            int  nsec  = EtUtils.bytesToInt(params, 24);
 
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
                             if (bit64 && count*size > Integer.MAX_VALUE/5) {
-                                out.writeInt(Constants.errorTooBig);
+                                out.writeInt(EtConstants.errorTooBig);
                                 break;
                             }
 
                             try {
-                                if (mode == Constants.timed) {
+                                if (mode == EtConstants.timed) {
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.newEvents(att, mode, uSec, count, (int)size);
                                 }
-                                else if (mode == Constants.sleep) {
+                                else if (mode == EtConstants.sleep) {
                                     // There's a problem if we have a remote client that is waiting
                                     // for another event by sleeping and the events stop flowing. In
                                     // that case, the client can be killed and the ET system does NOT
@@ -876,7 +876,7 @@ class ClientThread extends Thread {
                                                 att.setWakeUp(false);
                                                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                             }
-                                            evs = sys.newEvents(att, Constants.timed, 4000000, count, (int)size);
+                                            evs = sys.newEvents(att, EtConstants.timed, 4000000, count, (int)size);
                                             // no longer in sleep mode
                                             att.setSleepMode(false);
                                             // may have been told to wake up between last 2 statements.
@@ -904,20 +904,20 @@ class ClientThread extends Thread {
 
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
                             catch (EtBusyException ex) {
-                                err = Constants.errorBusy;
+                                err = EtConstants.errorBusy;
                             }
                             catch (EtEmptyException ex) {
-                                err = Constants.errorEmpty;
+                                err = EtConstants.errorEmpty;
                             }
                             catch (EtWakeUpException ex) {
-                                err = Constants.errorWakeUp;
+                                err = EtConstants.errorWakeUp;
                                 att.setSleepMode(false);
                             }
                             catch (EtTimeoutException ex) {
-                                err = Constants.errorTimeout;
+                                err = EtConstants.errorTimeout;
                             }
 
                             if (err != ok) {
@@ -931,10 +931,10 @@ class ClientThread extends Thread {
                             byte[] buf = new byte[4 + 4 * evs.length];
 
                             // first send number of events
-                            Utils.intToBytes(evs.length, buf, 0);
-                            for (EventImpl ev : evs) {
+                            EtUtils.intToBytes(evs.length, buf, 0);
+                            for (EtEventImpl ev : evs) {
                                 ev.setModify(Modify.ANYTHING);
-                                Utils.intToBytes(ev.getId(), buf, index += 4);
+                                EtUtils.intToBytes(ev.getId(), buf, index += 4);
                             }
                             out.write(buf);
                             out.flush();
@@ -944,13 +944,13 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvDump: {
+                        case EtConstants.netEvDump: {
                             int  attId = in.readInt();
                             int  id    = in.readInt();
 
                             AttachmentLocal att = attachments.get(new Integer(attId));
-                            EventImpl ev = sys.getEvents().get(id);
-                            EventImpl[] evArray = new EventImpl[1];
+                            EtEventImpl ev = sys.getEvents().get(id);
+                            EtEventImpl[] evArray = new EtEventImpl[1];
                             evArray[0] = ev;
                             sys.dumpEvents(att, evArray);
 
@@ -960,10 +960,10 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvsDump: {
+                        case EtConstants.netEvsDump: {
                             int attId     = in.readInt();
                             int numEvents = in.readInt();
-                            evs = new EventImpl[numEvents];
+                            evs = new EtEventImpl[numEvents];
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
                             int id;
@@ -972,7 +972,7 @@ class ClientThread extends Thread {
                             int index = -4;
 
                             for (int j = 0; j < numEvents; j++) {
-                                id = Utils.bytesToInt(buf, index += 4);
+                                id = EtUtils.bytesToInt(buf, index += 4);
                                 evs[j] = sys.getEvents().get(id);
                             }
 
@@ -984,31 +984,31 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netEvsNewGrp: {
+                        case EtConstants.netEvsNewGrp: {
                             in.readFully(params, 0, 32);
                             int err = ok;
-                            int  attId = Utils.bytesToInt(params,  0);
-                            int  mode  = Utils.bytesToInt(params,  4);
-                            long size  = Utils.bytesToLong(params, 8);
-                            int  count = Utils.bytesToInt(params, 16);
-                            int  group = Utils.bytesToInt(params, 20);
-                            int  sec   = Utils.bytesToInt(params, 24);
-                            int  nsec  = Utils.bytesToInt(params, 28);
+                            int  attId = EtUtils.bytesToInt(params,  0);
+                            int  mode  = EtUtils.bytesToInt(params,  4);
+                            long size  = EtUtils.bytesToLong(params, 8);
+                            int  count = EtUtils.bytesToInt(params, 16);
+                            int  group = EtUtils.bytesToInt(params, 20);
+                            int  sec   = EtUtils.bytesToInt(params, 24);
+                            int  nsec  = EtUtils.bytesToInt(params, 28);
 
                             AttachmentLocal att = attachments.get(new Integer(attId));
-                            List<EventImpl> evList=null;
+                            List<EtEventImpl> evList=null;
 
                             if (bit64 && count*size > Integer.MAX_VALUE/5) {
-                                out.writeInt(Constants.errorTooBig);
+                                out.writeInt(EtConstants.errorTooBig);
                                 break;
                             }
 
                             try {
-                                if (mode == Constants.timed) {
+                                if (mode == EtConstants.timed) {
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evList = sys.newEvents(att, mode, uSec, count, (int)size, group);
                                 }
-                                else if (mode == Constants.sleep) {
+                                else if (mode == EtConstants.sleep) {
                                     // There's a problem if we have a remote client that is waiting
                                     // for another event by sleeping and the events stop flowing. In
                                     // that case, the client can be killed and the ET system does NOT
@@ -1030,7 +1030,7 @@ class ClientThread extends Thread {
                                                 att.setWakeUp(false);
                                                 throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                                             }
-                                            evList = sys.newEvents(att, Constants.timed, 4000000, count, (int)size, group);
+                                            evList = sys.newEvents(att, EtConstants.timed, 4000000, count, (int)size, group);
                                             // no longer in sleep mode
                                             att.setSleepMode(false);
                                             // may have been told to wake up between last 2 statements.
@@ -1077,20 +1077,20 @@ class ClientThread extends Thread {
 
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
                             catch (EtBusyException ex) {
-                                err = Constants.errorBusy;
+                                err = EtConstants.errorBusy;
                             }
                             catch (EtEmptyException ex) {
-                                err = Constants.errorEmpty;
+                                err = EtConstants.errorEmpty;
                             }
                             catch (EtWakeUpException ex) {
-                                err = Constants.errorWakeUp;
+                                err = EtConstants.errorWakeUp;
                                 att.setSleepMode(false);
                             }
                             catch (EtTimeoutException ex) {
-                                err = Constants.errorTimeout;
+                                err = EtConstants.errorTimeout;
                             }
 
                             if (err != ok) {
@@ -1104,10 +1104,10 @@ class ClientThread extends Thread {
                             byte[] buf = new byte[4 + 4 * evList.size()];
 
                             // first send number of events
-                            Utils.intToBytes(evList.size(), buf, 0);
-                            for (EventImpl ev : evList) {
+                            EtUtils.intToBytes(evList.size(), buf, 0);
+                            for (EtEventImpl ev : evList) {
                                 ev.setModify(Modify.ANYTHING);
-                                Utils.intToBytes(ev.getId(), buf, index += 4);
+                                EtUtils.intToBytes(ev.getId(), buf, index += 4);
                             }
                             out.write(buf);
                             out.flush();
@@ -1121,9 +1121,9 @@ class ClientThread extends Thread {
                 }   // if (command < Constants.netAlive)
 
 
-                else if (command < Constants.netStatGAtts) {
+                else if (command < EtConstants.netStatGAtts) {
                     switch (command) {
-                        case Constants.netAlive: {
+                        case EtConstants.netAlive: {
                             // we must be alive by definition as this is in the ET process
                             out.writeInt(1);
                             out.flush();
@@ -1131,7 +1131,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netWait: {
+                        case EtConstants.netWait: {
                             // We are alive by definition and in Java there is no
                             // routine comparable to et_wait_for_alive(). This is
                             // to talk to "C" ET systems.
@@ -1141,8 +1141,8 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netClose:
-                        case Constants.netFClose: {
+                        case EtConstants.netClose:
+                        case EtConstants.netFClose: {
                             out.writeInt(ok);
 
                             // detach all attachments
@@ -1151,7 +1151,7 @@ class ClientThread extends Thread {
                                 ent = (Entry) i.next();
                                 sys.detach((AttachmentLocal) ent.getValue());
                             }
-                            if (config.getDebug() >= Constants.debugInfo) {
+                            if (config.getDebug() >= EtConstants.debugInfo) {
                                 java.lang.System.out.println("commandLoop: remote client closing");
                             }
                             return;
@@ -1159,7 +1159,7 @@ class ClientThread extends Thread {
                         // break;
 
 
-                        case Constants.netWakeAtt: {
+                        case EtConstants.netWakeAtt: {
                             int attId = in.readInt();
                             // look locally for attachments
                             AttachmentLocal att = attachments.get(new Integer(attId));
@@ -1173,7 +1173,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netWakeAll: {
+                        case EtConstants.netWakeAll: {
                             int statId = in.readInt();
                             // Stations are stored in a linked list. Find one w/ this id.
                             synchronized (sys.getStationLock()) {
@@ -1202,7 +1202,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatAtt: {
+                        case EtConstants.netStatAtt: {
                             int err = ok;
                             int statId = in.readInt();
                             int pid    = in.readInt();
@@ -1226,10 +1226,10 @@ class ClientThread extends Thread {
                                 attachments.put(att.getId(), att);
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
                             catch (EtTooManyException ex) {
-                                err = Constants.errorTooMany;
+                                err = EtConstants.errorTooMany;
                             }
 
                             out.writeInt(err);
@@ -1244,7 +1244,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatDet: {
+                        case EtConstants.netStatDet: {
                             int attId = in.readInt();
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
@@ -1258,10 +1258,10 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatCrAt: {
+                        case EtConstants.netStatCrAt: {
                             int err = ok;
                             StationLocal stat = null;
-                            StationConfig statConfig = new StationConfig();
+                            EtStationConfig statConfig = new EtStationConfig();
 
                             // read in station config info
                             int init = in.readInt(); // not used in Java
@@ -1272,8 +1272,8 @@ class ClientThread extends Thread {
                             statConfig.setPrescale(in.readInt());
                             statConfig.setCue(in.readInt());
                             statConfig.setSelectMode(in.readInt());
-                            int[] select = new int[Constants.stationSelectInts];
-                            for (int i = 0; i < Constants.stationSelectInts; i++) {
+                            int[] select = new int[EtConstants.stationSelectInts];
+                            for (int i = 0; i < EtConstants.stationSelectInts; i++) {
                                 select[i] = in.readInt();
                             }
                             statConfig.setSelect(select);
@@ -1314,13 +1314,13 @@ class ClientThread extends Thread {
                                 stat = sys.createStation(statConfig, name, position, parallelPosition);
                             }
                             catch (EtTooManyException ex) {
-                                err = Constants.errorTooMany;
+                                err = EtConstants.errorTooMany;
                             }
                             catch (EtExistsException ex) {
-                                err = Constants.errorExists;
+                                err = EtConstants.errorExists;
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
 
                             out.writeInt(err);
@@ -1335,7 +1335,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatRm: {
+                        case EtConstants.netStatRm: {
                             int err = ok;
                             int statId = in.readInt();
 
@@ -1343,7 +1343,7 @@ class ClientThread extends Thread {
                                 sys.removeStation(statId);
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
 
                             out.writeInt(err);
@@ -1351,7 +1351,7 @@ class ClientThread extends Thread {
                         }
                         break;
 
-                        case Constants.netStatSPos: {
+                        case EtConstants.netStatSPos: {
                             int err = ok;
                             int statId = in.readInt();
                             int position = in.readInt();
@@ -1361,7 +1361,7 @@ class ClientThread extends Thread {
                                 sys.setStationPosition(statId, position, pposition);
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
 
                             out.writeInt(err);
@@ -1370,7 +1370,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatGPos: {
+                        case EtConstants.netStatGPos: {
                             int position = -1, pPosition = 0;
                             int err = ok;
                             int statId = in.readInt();
@@ -1380,7 +1380,7 @@ class ClientThread extends Thread {
                                 pPosition = sys.getStationParallelPosition(statId);
                             }
                             catch (EtException ex) {
-                                err = Constants.error;
+                                err = EtConstants.error;
                             }
 
                             out.writeInt(err);
@@ -1391,7 +1391,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatIsAt: {
+                        case EtConstants.netStatIsAt: {
                             int attached; // not attached by default
                             int statId = in.readInt();
                             int attId = in.readInt();
@@ -1400,7 +1400,7 @@ class ClientThread extends Thread {
                                 attached = sys.stationAttached(statId, attId) ? 1 : 0;
                             }
                             catch (EtException ex) {
-                                attached = Constants.error;
+                                attached = EtConstants.error;
                             }
 
                             out.writeInt(attached);
@@ -1409,7 +1409,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatEx: {
+                        case EtConstants.netStatEx: {
                             boolean exists = true;
                             int statId = 0;
                             int length = in.readInt();
@@ -1432,7 +1432,7 @@ class ClientThread extends Thread {
                         break;
 
 
-                        case Constants.netStatSSw: {
+                        case EtConstants.netStatSSw: {
                             StationLocal stat = null;
                             int[] select = new int[selectInts];
                             int statId = in.readInt();
@@ -1452,14 +1452,14 @@ class ClientThread extends Thread {
                                 out.writeInt(ok);
                             }
                             else {
-                                out.writeInt(Constants.error);
+                                out.writeInt(EtConstants.error);
                             }
                             out.flush();
                         }
                         break;
 
 
-                        case Constants.netStatGSw: {
+                        case EtConstants.netStatGSw: {
                             int statId = in.readInt();
                             StationLocal stat = null;
 
@@ -1477,26 +1477,26 @@ class ClientThread extends Thread {
                                 }
                             }
                             else {
-                                out.writeInt(Constants.error);
+                                out.writeInt(EtConstants.error);
                             }
                             out.flush();
                         }
                         break;
 
 
-                        case Constants.netStatFunc:
-                        case Constants.netStatLib:
-                        case Constants.netStatClass: {
+                        case EtConstants.netStatFunc:
+                        case EtConstants.netStatLib:
+                        case EtConstants.netStatClass: {
                             int statId = in.readInt();
                             StationLocal stat;
 
                             try {
                                 stat = sys.stationIdToObject(statId);
                                 String returnString;
-                                if (command == Constants.netStatFunc) {
+                                if (command == EtConstants.netStatFunc) {
                                     returnString = stat.getConfig().getSelectFunction();
                                 }
-                                else if (command == Constants.netStatLib) {
+                                else if (command == EtConstants.netStatLib) {
                                     returnString = stat.getConfig().getSelectLibrary();
                                 }
                                 else {
@@ -1504,7 +1504,7 @@ class ClientThread extends Thread {
                                 }
 
                                 if (returnString == null) {
-                                    out.writeInt(Constants.error);
+                                    out.writeInt(EtConstants.error);
                                     out.writeInt(0);
                                 }
                                 else {
@@ -1519,7 +1519,7 @@ class ClientThread extends Thread {
                                 }
                             }
                             catch (EtException ex) {
-                                out.writeInt(Constants.error);
+                                out.writeInt(EtConstants.error);
                                 out.writeInt(-1);
                             }
 
@@ -1535,7 +1535,7 @@ class ClientThread extends Thread {
                 }   // if (command < Constants.netStatGAtts)
 
                 // the following commands get values associated with stations
-                else if (command < Constants.netStatSBlock) {
+                else if (command < EtConstants.netStatSBlock) {
                     int val = 0;
                     int statId = in.readInt();
 
@@ -1547,40 +1547,40 @@ class ClientThread extends Thread {
                     }
 
                     if (stat == null) {
-                        out.writeInt(Constants.error);
+                        out.writeInt(EtConstants.error);
                     }
                     else {
-                        if (command == Constants.netStatGAtts) {
+                        if (command == EtConstants.netStatGAtts) {
                             synchronized (sys.getStationLock()) {
                                 val = stat.getAttachments().size();
                             }
                         }
-                        else if (command == Constants.netStatStatus)
+                        else if (command == EtConstants.netStatStatus)
                             val = stat.getStatus();
-                        else if (command == Constants.netStatInCnt) {
+                        else if (command == EtConstants.netStatInCnt) {
                             synchronized (stat.getInputList()) {
                                 val = stat.getInputList().getEvents().size();
                             }
                         }
-                        else if (command == Constants.netStatOutCnt) {
+                        else if (command == EtConstants.netStatOutCnt) {
                             synchronized (stat.getOutputList()) {
                                 val = stat.getOutputList().getEvents().size();
                             }
                         }
-                        else if (command == Constants.netStatGBlock)
+                        else if (command == EtConstants.netStatGBlock)
                             val = stat.getConfig().getBlockMode();
-                        else if (command == Constants.netStatGUser)
+                        else if (command == EtConstants.netStatGUser)
                             val = stat.getConfig().getUserMode();
-                        else if (command == Constants.netStatGRestore)
+                        else if (command == EtConstants.netStatGRestore)
                             val = stat.getConfig().getRestoreMode();
-                        else if (command == Constants.netStatGPre)
+                        else if (command == EtConstants.netStatGPre)
                             val = stat.getConfig().getPrescale();
-                        else if (command == Constants.netStatGCue)
+                        else if (command == EtConstants.netStatGCue)
                             val = stat.getConfig().getCue();
-                        else if (command == Constants.netStatGSelect)
+                        else if (command == EtConstants.netStatGSelect)
                             val = stat.getConfig().getSelectMode();
                         else {
-                            if (config.getDebug() >= Constants.debugError) {
+                            if (config.getDebug() >= EtConstants.debugError) {
                                 java.lang.System.out.println("commandLoop: bad command value");
                             }
                             throw new EtReadException("bad command value");
@@ -1592,7 +1592,7 @@ class ClientThread extends Thread {
                 }
 
                 // the following commands set values associated with stations
-                else if (command < Constants.netAttPut) {
+                else if (command < EtConstants.netAttPut) {
                     int statId = in.readInt();
                     int val = in.readInt();
 
@@ -1604,21 +1604,21 @@ class ClientThread extends Thread {
                     }
 
                     if (stat == null) {
-                        out.writeInt(Constants.error);
+                        out.writeInt(EtConstants.error);
                     }
                     else {
-                        if (command == Constants.netStatSBlock)
+                        if (command == EtConstants.netStatSBlock)
                             stat.setBlockMode(val);
-                        else if (command == Constants.netStatSUser)
+                        else if (command == EtConstants.netStatSUser)
                             stat.setUserMode(val);
-                        else if (command == Constants.netStatSRestore)
+                        else if (command == EtConstants.netStatSRestore)
                             stat.setRestoreMode(val);
-                        else if (command == Constants.netStatSPre)
+                        else if (command == EtConstants.netStatSPre)
                             stat.setPrescale(val);
-                        else if (command == Constants.netStatSCue)
+                        else if (command == EtConstants.netStatSCue)
                             stat.setCue(val);
                         else {
-                            if (config.getDebug() >= Constants.debugError) {
+                            if (config.getDebug() >= EtConstants.debugError) {
                                 java.lang.System.out.println("commandLoop: bad command value");
                             }
                             throw new EtReadException("bad command value");
@@ -1629,64 +1629,64 @@ class ClientThread extends Thread {
                 }
 
                 // the following commands get values associated with attachments
-                else if (command < Constants.netSysTmp) {
+                else if (command < EtConstants.netSysTmp) {
                     int attId = in.readInt();
                     // look locally for attachments
                     AttachmentLocal att = attachments.get(new Integer(attId));
                     if (att == null) {
-                        out.writeInt(Constants.error);
+                        out.writeInt(EtConstants.error);
                         out.writeLong(0);
                     }
                     else {
                         out.writeInt(ok);
-                        if (command == Constants.netAttPut)
+                        if (command == EtConstants.netAttPut)
                             out.writeLong(att.getEventsPut());
-                        else if (command == Constants.netAttGet)
+                        else if (command == EtConstants.netAttGet)
                             out.writeLong(att.getEventsGet());
-                        else if (command == Constants.netAttDump)
+                        else if (command == EtConstants.netAttDump)
                             out.writeLong(att.getEventsDump());
-                        else if (command == Constants.netAttMake)
+                        else if (command == EtConstants.netAttMake)
                             out.writeLong(att.getEventsMake());
                     }
                     out.flush();
                 }
 
                 // the following commands get values associated with the system
-                else if (command <= Constants.netSysGrp) {
+                else if (command <= EtConstants.netSysGrp) {
                     int val;
 
-                    if (command == Constants.netSysTmp)
+                    if (command == EtConstants.netSysTmp)
                         val = 0; // no temps (or all temps) by definition
-                    else if (command == Constants.netSysTmpMax)
+                    else if (command == EtConstants.netSysTmpMax)
                         val = 0; // no max # of temps
-                    else if (command == Constants.netSysStat) {
+                    else if (command == EtConstants.netSysStat) {
                         synchronized (sys.getStationLock()) {
                             val = sys.getStations().size(); // # stations active or idle
                         }
                     }
-                    else if (command == Constants.netSysStatMax)
+                    else if (command == EtConstants.netSysStatMax)
                         val = sys.getConfig().getStationsMax(); // max # stations allowed
-                    else if (command == Constants.netSysProc)
+                    else if (command == EtConstants.netSysProc)
                         val = 0; // no processes since no shared memory
-                    else if (command == Constants.netSysProcMax)
+                    else if (command == EtConstants.netSysProcMax)
                         val = 0; // no max # of processes since no shared memory
-                    else if (command == Constants.netSysAtt) {
+                    else if (command == EtConstants.netSysAtt) {
                         synchronized (sys.getSystemLock()) {
                             val = sys.getAttachments().size(); // # attachments
                         }
                     }
-                    else if (command == Constants.netSysAttMax)
+                    else if (command == EtConstants.netSysAttMax)
                         val = sys.getConfig().getAttachmentsMax(); // max # attachments allowed
-                    else if (command == Constants.netSysHBeat)
+                    else if (command == EtConstants.netSysHBeat)
                         val = 0; // no heartbeat since no shared mem
-                    else if (command == Constants.netSysPid) {
+                    else if (command == EtConstants.netSysPid) {
                         val = -1; // no pids in Java
                     }
-                    else if (command == Constants.netSysGrp) {
+                    else if (command == EtConstants.netSysGrp) {
                         val = sys.getConfig().getGroups().length; // number of groups
                     }
                     else {
-                        if (config.getDebug() >= Constants.debugError) {
+                        if (config.getDebug() >= EtConstants.debugError) {
                             java.lang.System.out.println("commandLoop: bad command value");
                         }
                         throw new EtReadException("bad command value");
@@ -1698,9 +1698,9 @@ class ClientThread extends Thread {
                 }
 
 
-                else if (command <= Constants.netSysHist) {
+                else if (command <= EtConstants.netSysHist) {
                     // command to distribute data about this ET system over the network
-                    if (command == Constants.netSysData) {
+                    if (command == EtConstants.netSysData) {
                         // allow only 1 thread at a time a crack at updating information
                         synchronized (sys.getInfoArray()) {
                             int err = sys.gatherSystemData();
@@ -1714,16 +1714,16 @@ class ClientThread extends Thread {
                     }
 
                     // send histogram data
-                    else if (command == Constants.netSysHist) {
+                    else if (command == EtConstants.netSysHist) {
                         // not supported under Java (yet)
-                        out.writeInt(Constants.error);
+                        out.writeInt(EtConstants.error);
                         out.flush();
                     }
 
                 }
 
                 else {
-                    if (config.getDebug() >= Constants.debugError) {
+                    if (config.getDebug() >= EtConstants.debugError) {
                         java.lang.System.out.println("commandLoop: bad command value");
                     }
                     throw new EtReadException("bad command value");
@@ -1749,7 +1749,7 @@ class ClientThread extends Thread {
             sys.detach(entry.getValue());
         }
 
-        if (config.getDebug() >= Constants.debugError) {
+        if (config.getDebug() >= EtConstants.debugError) {
             java.lang.System.out.println("commandLoop: remote client connection broken");
         }
 

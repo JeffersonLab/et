@@ -15,20 +15,12 @@
 package org.jlab.coda.et.apps;
 
 import java.lang.*;
-import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
-import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
-import java.io.StringWriter;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.jevio.ByteParser;
 import org.jlab.coda.jevio.EvioEvent;
-import org.jlab.coda.jevio.EvioFile;
-
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.stream.XMLOutputFactory;
 
 
 /**
@@ -60,7 +52,7 @@ public class Consumer {
 
         int position = 1, pposition = 0, blocking = 1;
         String etName = null, host = null, statName = null;
-        int port = Constants.serverPort;
+        int port = EtConstants.serverPort;
 
         try {
             for (int i = 0; i < args.length; i++) {
@@ -118,7 +110,7 @@ public class Consumer {
             }
 
             if (host == null) {
-                host = Constants.hostAnywhere;
+                host = EtConstants.hostAnywhere;
                 /*
                 try {
                     host = InetAddress.getLocalHost().getHostName();
@@ -141,27 +133,27 @@ public class Consumer {
             }
 
             // make a direct connection to ET system's tcp server
-            SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
 
             // create ET system object with verbose debugging output
-            SystemUse sys = new SystemUse(config, Constants.debugInfo);
+            EtSystemUse sys = new EtSystemUse(config, EtConstants.debugInfo);
 
             // configuration of a new station
-            StationConfig statConfig = new StationConfig();
+            EtStationConfig statConfig = new EtStationConfig();
             //statConfig.setFlowMode(Constants.stationParallel);
             //statConfig.setCue(100);
             if (blocking == 0) {
-                statConfig.setBlockMode(Constants.stationNonBlocking);
+                statConfig.setBlockMode(EtConstants.stationNonBlocking);
             }
 
             // create station
-            Station stat = sys.createStation(statConfig, statName, position, pposition);
+            EtStation stat = sys.createStation(statConfig, statName, position, pposition);
 
             // attach to new station
-            Attachment att = sys.attach(stat);
+            EtAttachment att = sys.attach(stat);
 
             // array of events
-            Event[] mevs;
+            EtEvent[] mevs;
 
             int num, chunk = 1, count = 0;
             long t1, t2, totalT = 0, totalCount = 0;
@@ -181,7 +173,7 @@ public class Consumer {
                     // example of reading & printing event data
                     if (true) {
 
-                        for (Event mev : mevs) {
+                        for (EtEvent mev : mevs) {
                             // get event's data buffer
                             ByteBuffer buf = mev.getDataBuffer();
                             // buf.limit() is set to the length of the actual data (not buffer capacity)

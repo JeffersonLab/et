@@ -40,7 +40,7 @@ public class MonitorSingleSystem {
   private int        dividerPosition, graphHeight, orientation;
   private double     attWidth, stationWidth, stationGap;
   private String     key;
-  private SystemUse  sys;
+  private EtSystemUse sys;
   private AllData    data;
   private boolean    initialized, updated;
   private boolean    isSolaris, isJava, isLinux;
@@ -125,13 +125,13 @@ public class MonitorSingleSystem {
   }
   
   // Constructor
-  public MonitorSingleSystem(SystemUse use, JTabbedPane tabbedPane,
+  public MonitorSingleSystem(EtSystemUse use, JTabbedPane tabbedPane,
                              int period) {
     this(use, tabbedPane, period, tabbedPane.getWidth()/2,
          JSplitPane.HORIZONTAL_SPLIT, null);		     
   }
   
-  public MonitorSingleSystem(SystemUse use, JTabbedPane tabbedPane,
+  public MonitorSingleSystem(EtSystemUse use, JTabbedPane tabbedPane,
                              int period, int divider,
 			     int orient, Color[] colors) {
     sys  = use;
@@ -154,7 +154,7 @@ public class MonitorSingleSystem {
     
     // Create unique name for this ET system - used as key in
     // Monitor's hash tables.
-    SystemOpenConfig config = sys.getConfig();
+    EtSystemOpenConfig config = sys.getConfig();
     if (sys.getHost().indexOf(".") < 0) {
       key = new String(config.getEtName() + " (" + sys.getHost() + ")");
     }
@@ -249,8 +249,8 @@ public class MonitorSingleSystem {
     
     // Store objects for future use (more efficient
     // than always recreating objects)
-    int size1 = Constants.defaultStationsMax,
-        size2 = Constants.defaultAttsMax;
+    int size1 = EtConstants.defaultStationsMax,
+        size2 = EtConstants.defaultAttsMax;
     try {
       size1 = sys.getStationsMax();
       size2 = sys.getAttachmentsMax();
@@ -348,11 +348,11 @@ public class MonitorSingleSystem {
     str.append("Host = ");
     str.append(sys.getHost());
     int lang = sys.getLanguage();
-    if (lang != Constants.langJava) {
+    if (lang != EtConstants.langJava) {
       str.append(",  language = C,  pid = ");
       str.append(data.sysData.getMainPid());
       // processes exist on Solaris only
-      if (data.sysData.getShare() == Constants.mutexShare) {
+      if (data.sysData.getShare() == EtConstants.mutexShare) {
         isSolaris = true;
 	    topNode.add(processNode);
       }
@@ -482,7 +482,7 @@ public class MonitorSingleSystem {
     str.append("Idle stations: ");
     boolean gotNone = true;
     for (int i=0; i < data.statData.length; i++) {
-      if (data.statData[i].getStatus() == Constants.stationIdle) {
+      if (data.statData[i].getStatus() == EtConstants.stationIdle) {
         str.append(data.statData[i].getName());
         str.append(", ");
 	gotNone = false;
@@ -549,23 +549,23 @@ public class MonitorSingleSystem {
       boolean showName = true;
       str.delete(0, end);
       str.append("Locked mutexes: ");
-      if (data.sysData.getMutex() == Constants.mutexLocked)
+      if (data.sysData.getMutex() == EtConstants.mutexLocked)
         str.append("sys, ");
-      if (data.sysData.getStatMutex() == Constants.mutexLocked)
+      if (data.sysData.getStatMutex() == EtConstants.mutexLocked)
         str.append("stat, ");
-      if (data.sysData.getStatAddMutex() == Constants.mutexLocked)
+      if (data.sysData.getStatAddMutex() == EtConstants.mutexLocked)
         str.append("add_stat, ");
 
       for (int i=0; i < data.statData.length; i++) {
-        if (data.statData[i].getMutex() == Constants.mutexLocked) {
+        if (data.statData[i].getMutex() == EtConstants.mutexLocked) {
           str.append(data.statData[i].getName());
           str.append(", ");
         }
-        if (data.statData[i].getInListMutex() == Constants.mutexLocked) {
+        if (data.statData[i].getInListMutex() == EtConstants.mutexLocked) {
           str.append(data.statData[i].getName());
           str.append("-in, ");
         }
-        if (data.statData[i].getOutListMutex() == Constants.mutexLocked) {
+        if (data.statData[i].getOutListMutex() == EtConstants.mutexLocked) {
           str.append(data.statData[i].getName());
           str.append("-out, ");
         }
@@ -630,14 +630,14 @@ public class MonitorSingleSystem {
       // station config (skip GC as it never changes)
       if ((i != 0) || isNewNode ) {
         str.delete(0, end);
-	if (data.statData[i].getFlowMode() == Constants.stationSerial) {
+	if (data.statData[i].getFlowMode() == EtConstants.stationSerial) {
           str.append("Serial, ");
 	}
 	else {
           str.append("Parallel, ");
 	}
 	
-	if (data.statData[i].getBlockMode() == Constants.stationBlocking) {
+	if (data.statData[i].getBlockMode() == EtConstants.stationBlocking) {
           str.append("blocking, ");
           blocking = true;
 	  str.append("prescale = ");
@@ -669,7 +669,7 @@ public class MonitorSingleSystem {
 	
 
         str.delete(0, end);
-	if (data.statData[i].getUserMode() == Constants.stationUserMulti) {
+	if (data.statData[i].getUserMode() == EtConstants.stationUserMulti) {
           str.append("Users = multi");
 	}
 	else {
@@ -677,20 +677,20 @@ public class MonitorSingleSystem {
 	  str.append(data.statData[i].getUserMode());
 	}
 
-	if (data.statData[i].getRestoreMode() == Constants.stationRestoreOut)
+	if (data.statData[i].getRestoreMode() == EtConstants.stationRestoreOut)
           str.append(", restore = out, ");
-	else if (data.statData[i].getRestoreMode() == Constants.stationRestoreIn)
+	else if (data.statData[i].getRestoreMode() == EtConstants.stationRestoreIn)
           str.append(", restore = in, ");
 	else
           str.append(", restore = GC, ");
 
-	if (data.statData[i].getSelectMode() == Constants.stationSelectAll)
+	if (data.statData[i].getSelectMode() == EtConstants.stationSelectAll)
           str.append("select = all");
-	else if (data.statData[i].getSelectMode() == Constants.stationSelectMatch)
+	else if (data.statData[i].getSelectMode() == EtConstants.stationSelectMatch)
           str.append("select = match");
-	else if (data.statData[i].getSelectMode() == Constants.stationSelectUser)
+	else if (data.statData[i].getSelectMode() == EtConstants.stationSelectUser)
           str.append("select = user");
-	else if (data.statData[i].getSelectMode() == Constants.stationSelectRRobin)
+	else if (data.statData[i].getSelectMode() == EtConstants.stationSelectRRobin)
           str.append("select = rrobin");
 	else
           str.append("select = equalcue");
@@ -708,9 +708,9 @@ public class MonitorSingleSystem {
 
         str.delete(0, end);
 	str.append("Select words: ");
-	for (int j=0; j < Constants.stationSelectInts; j++) {
+	for (int j=0; j < EtConstants.stationSelectInts; j++) {
             str.append(data.statData[i].getSelect()[j]);
-	    if (j == Constants.stationSelectInts - 1) break;
+	    if (j == EtConstants.stationSelectInts - 1) break;
             str.append(", ");
 	}
 	if (isNewNode) {
@@ -727,7 +727,7 @@ public class MonitorSingleSystem {
 	// but station can be removed and then recreated with
 	// a new configuration (in less time than it takes to
 	// update).
-	if (data.statData[i].getSelectMode() == Constants.stationSelectUser) {
+	if (data.statData[i].getSelectMode() == EtConstants.stationSelectUser) {
           str.delete(0, end);
           if (isJava) {
             str.append("Class = ");
@@ -762,7 +762,7 @@ public class MonitorSingleSystem {
       // statistical station info
       
       str.delete(0, end);
-      if (data.statData[i].getStatus() == Constants.stationIdle) {
+      if (data.statData[i].getStatus() == EtConstants.stationIdle) {
         str.append("Idle, ");
       }
       else {
@@ -1063,7 +1063,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
     backgrd.setSize(width, height); 
     backgrd.setLocation(x, y); 
     // set the rect to have a linear color gradient fill pattern
-    if (status == Constants.stationActive) {
+    if (status == EtConstants.stationActive) {
       backgrd.setPaint(Lx.getGradientPaint(0, 0, stationColor, 200, 0, Color.black, true));
     }
     else {
@@ -1140,7 +1140,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
     inBox.setName("BOX");
     inBox.setLocation(x + space, yTop);
     inBox.setSize(sliderWidth, slideHeight);
-    if (status == Constants.stationActive) {
+    if (status == EtConstants.stationActive) {
       inBox.setLineColor(stationColor);
     }
     else {
@@ -1170,7 +1170,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
     outBox.setName("BOX");
     outBox.setLocation(x + 2.*space + sliderWidth, yTop);
     outBox.setSize(sliderWidth, slideHeight);
-    if (status == Constants.stationActive) {
+    if (status == EtConstants.stationActive) {
       outBox.setLineColor(stationColor);
     }
     else {
@@ -1421,7 +1421,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
             
       // If this is a parallel station, but not the head,
       // it belongs with previous parallelManager.
-      if (data.statData[i].getFlowMode() == Constants.stationParallel) {
+      if (data.statData[i].getFlowMode() == EtConstants.stationParallel) {
         parallelManager = prevParallelManager;
 	newParallelManager = false;
       }
@@ -1446,7 +1446,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
       
       // Keep track of which place in the parallel manager a station is,
       // and the previous parallelManager
-      if (data.statData[i].getFlowMode() != Constants.stationParallel) {
+      if (data.statData[i].getFlowMode() != EtConstants.stationParallel) {
 	parallelPlace       = 0;
 	prevParallelManager = parallelManager;
       }
@@ -1461,7 +1461,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
 	// get ref to station icon in graph
 	statIcon = (LxGroup) statManager.getComponent(0);
 	// change color if idle
-	if (data.statData[i].getStatus() == Constants.stationIdle) {
+	if (data.statData[i].getStatus() == EtConstants.stationIdle) {
 	  makeStationIdle(statIcon);
 	}
 	else {
@@ -1480,7 +1480,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
 	// make sure userData is up-to-date
 	userData.flowMode = data.statData[i].getFlowMode();
 	userData.isHead = false;
-	if (userData.flowMode == Constants.stationParallelHead) {
+	if (userData.flowMode == EtConstants.stationParallelHead) {
 	  userData.isHead = true;
 	}
 	
@@ -1518,7 +1518,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
 	userData = new StationFlowData();
 	userData.flowMode = data.statData[i].getFlowMode();
 	userData.isHead = false;
-	if (userData.flowMode == Constants.stationParallelHead) {
+	if (userData.flowMode == EtConstants.stationParallelHead) {
 	  userData.isHead = true;
 	}
 	userData.parentLayout = parallelManager;
@@ -1560,9 +1560,9 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
       statManager.setWidth(newWidth);
       width = parallelManager.getWidth();
       // if parallel station ...
-      if (userData.flowMode != Constants.stationSerial) {
+      if (userData.flowMode != EtConstants.stationSerial) {
 	// if first station but using old parallelManager (that might be too wide), reset width
-	if (!newParallelManager && userData.flowMode == Constants.stationParallelHead) {
+	if (!newParallelManager && userData.flowMode == EtConstants.stationParallelHead) {
           parallelManager.setWidth(newWidth + 50.);
 	}
         // need to increase width
@@ -1578,7 +1578,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
       // graph links (skip GRAND_CENTRAL)
       if (redoLinks && i!=0) {
         // if last head/serial station in list, adjust top 2 links
-        if (userData.flowMode != Constants.stationParallel) {
+        if (userData.flowMode != EtConstants.stationParallel) {
 	  mainLink1.setHandles(handleRightGC, statIcon.getHandle(2));
  	  mainLink2.setHandles(statIcon.getHandle(6), handleLeftGC);
         }
@@ -1622,7 +1622,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
       }
       // Always need to redo links for parallel stations because
       // changing width (number of attachments) affects the links.
-      else if (userData.flowMode == Constants.stationParallel) {
+      else if (userData.flowMode == EtConstants.stationParallel) {
 	int linkWidth;
         comps = parallelManager.getComponents();
 	for (int j=1; j < comps.length; j++) {
@@ -1652,7 +1652,7 @@ System.out.println("Remove node " + (i+numProcs) + " called " + node);
       
       // store objects for use by next station
       prevStatManager = statManager;
-      if (userData.flowMode != Constants.stationParallel) {
+      if (userData.flowMode != EtConstants.stationParallel) {
         handleB = statIcon.getHandle(6);
 	handleA = statIcon.getHandle(2);
       }

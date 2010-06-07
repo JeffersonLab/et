@@ -51,13 +51,13 @@ class SystemUdpServer extends Thread {
 
     /** Starts threads to listen for packets at a different addresses. */
     public void run() {
-        if (config.getDebug() >= Constants.debugInfo) {
+        if (config.getDebug() >= EtConstants.debugInfo) {
             System.out.println("Running UDP Listening Threads");
         }
 
         // use the default port number since one wasn't specified
         if (port < 1) {
-            port = Constants.serverPort;
+            port = EtConstants.serverPort;
         }
 
         // If we're broadcasting, then we use 1 thread with 1 socket,
@@ -154,7 +154,7 @@ class ListeningThread extends Thread {
             }
         }
         sock = mSock;
-        cast = Constants.broadAndMulticast;
+        cast = EtConstants.broadAndMulticast;
     }
 
 
@@ -168,7 +168,7 @@ class ListeningThread extends Thread {
         this.sys  = sys;
         config    = sys.getConfig();
         this.sock = sock;
-        cast = Constants.broadcast;
+        cast = EtConstants.broadcast;
     }
 
 
@@ -206,7 +206,7 @@ class ListeningThread extends Thread {
         //
 
         // buffer for reading ET name
-        byte[] etNameBytes = new byte[Constants.fileNameLengthMax];
+        byte[] etNameBytes = new byte[EtConstants.fileNameLengthMax];
 
         // Put outgoing packet into byte array
         ByteArrayOutputStream baos = null;
@@ -226,11 +226,11 @@ class ListeningThread extends Thread {
             DataOutputStream dos = new DataOutputStream(baos);
 
             // magic #s
-            dos.writeInt(Constants.magicNumbers[0]);
-            dos.writeInt(Constants.magicNumbers[1]);
-            dos.writeInt(Constants.magicNumbers[2]);
+            dos.writeInt(EtConstants.magicNumbers[0]);
+            dos.writeInt(EtConstants.magicNumbers[1]);
+            dos.writeInt(EtConstants.magicNumbers[2]);
 
-            dos.writeInt(Constants.version);
+            dos.writeInt(EtConstants.version);
             dos.writeInt(config.getServerPort());
             dos.writeInt(cast);
 
@@ -317,9 +317,9 @@ class ListeningThread extends Thread {
                 int magic1 = dis.readInt();
                 int magic2 = dis.readInt();
                 int magic3 = dis.readInt();
-                if (magic1 != Constants.magicNumbers[0] ||
-                        magic2 != Constants.magicNumbers[1] ||
-                        magic3 != Constants.magicNumbers[2])  {
+                if (magic1 != EtConstants.magicNumbers[0] ||
+                        magic2 != EtConstants.magicNumbers[1] ||
+                        magic3 != EtConstants.magicNumbers[2])  {
 //System.out.println("SystemUdpServer:  Magic numbers did NOT match");
                     continue;
                 }
@@ -330,11 +330,11 @@ class ListeningThread extends Thread {
 //                    ", length = " + length);
 
                 // reject incompatible ET versions
-                if (version != Constants.version) {
+                if (version != EtConstants.version) {
                     continue;
                 }
                 // reject improper formats
-                if ((length < 1) || (length > Constants.fileNameLengthMax)) {
+                if ((length < 1) || (length > EtConstants.fileNameLengthMax)) {
                     continue;
                 }
 
@@ -347,7 +347,7 @@ class ListeningThread extends Thread {
 
 //System.out.println("et_listen_thread: received packet version =  " + version +
 //                                  ", ET = " + etName);
-                if (config.getDebug() >= Constants.debugInfo) {
+                if (config.getDebug() >= EtConstants.debugInfo) {
                     System.out.println("et_listen_thread: received packet from " +
                             rPacket.getAddress().getHostName() +
                             " @ " + rPacket.getAddress().getHostAddress() +
@@ -359,14 +359,14 @@ class ListeningThread extends Thread {
                     // we're the one the client is looking for, send a reply
                     DatagramPacket sPacket = new DatagramPacket(sBuffer, sBuffer.length,
                                                                 rPacket.getAddress(), rPacket.getPort());
-                    if (config.getDebug() >= Constants.debugInfo) {
+                    if (config.getDebug() >= EtConstants.debugInfo) {
                         System.out.println("et_listen_thread: send return packet");
                     }
                     sock.send(sPacket);
                 }
             }
             catch (IOException ex) {
-                if (config.getDebug() >= Constants.debugError) {
+                if (config.getDebug() >= EtConstants.debugError) {
                     System.out.println("error handling UDP packets");
                     ex.printStackTrace();
                 }

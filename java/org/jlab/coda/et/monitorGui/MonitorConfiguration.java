@@ -278,20 +278,20 @@ public class MonitorConfiguration extends DefaultHandler {
             int index = 0, ttl = 0, dummy = 11111;
             int broadcastPort = 0, multicastPort = 0, port = 0;
             String host = null;
-            SystemOpenConfig config = null;
+            EtSystemOpenConfig config = null;
 
             try {
                 if (findMethod.equals("broadcasting")) {
                     if (dataStorage.containsKey("location")) {
                         host = (String) dataStorage.get("location");
                         if (host.equals("local")) {
-                            host = Constants.hostLocal;
+                            host = EtConstants.hostLocal;
                         }
                         else if (host.equals("remote")) {
-                            host = Constants.hostRemote;
+                            host = EtConstants.hostRemote;
                         }
                         else {
-                            host = Constants.hostAnywhere;
+                            host = EtConstants.hostAnywhere;
                         }
                     }
                     else {
@@ -305,19 +305,19 @@ public class MonitorConfiguration extends DefaultHandler {
                     while (tok.hasMoreTokens()) {
                         addrs[index++] = tok.nextToken();
                     }
-                    config = new SystemOpenConfig(etSystem, broadcastPort, host);
+                    config = new EtSystemOpenConfig(etSystem, broadcastPort, host);
                 }
                 else if (findMethod.equals("multicasting")) {
                     if (dataStorage.containsKey("location")) {
                         host = (String) dataStorage.get("location");
                         if (host.equals("local")) {
-                            host = Constants.hostLocal;
+                            host = EtConstants.hostLocal;
                         }
                         else if (host.equals("remote")) {
-                            host = Constants.hostRemote;
+                            host = EtConstants.hostRemote;
                         }
                         else {
-                            host = Constants.hostAnywhere;
+                            host = EtConstants.hostAnywhere;
                         }
                     }
                     else {
@@ -332,11 +332,11 @@ public class MonitorConfiguration extends DefaultHandler {
                         addrs[index++] = tok.nextToken();
                     }
 
-                    int udpPort = Constants.broadcastPort;
+                    int udpPort = EtConstants.broadcastPort;
                     if (dataStorage.containsKey("udpPort")) {
                         udpPort = Integer.parseInt((String) dataStorage.get("udpPort"));
                     }
-                    config = new SystemOpenConfig(etSystem, host,
+                    config = new EtSystemOpenConfig(etSystem, host,
                                                   Arrays.asList(addrs),
                                                   udpPort, multicastPort, ttl);
                 }
@@ -344,13 +344,13 @@ public class MonitorConfiguration extends DefaultHandler {
                     if (dataStorage.containsKey("location")) {
                         host = (String) dataStorage.get("location");
                         if (host.equals("local")) {
-                            host = Constants.hostLocal;
+                            host = EtConstants.hostLocal;
                         }
                         else if (host.equals("remote")) {
-                            host = Constants.hostRemote;
+                            host = EtConstants.hostRemote;
                         }
                         else {
-                            host = Constants.hostAnywhere;
+                            host = EtConstants.hostAnywhere;
                         }
                     }
                     else {
@@ -371,17 +371,17 @@ public class MonitorConfiguration extends DefaultHandler {
                     while (tok.hasMoreTokens()) {
                         mAddrs[index++] = tok.nextToken();
                     }
-                    config = new SystemOpenConfig(etSystem, host, true,
+                    config = new EtSystemOpenConfig(etSystem, host, true,
                                                   Arrays.asList(mAddrs), true,
-                                                  Constants.broadAndMulticast,
+                                                  EtConstants.broadAndMulticast,
                                                   dummy, broadcastPort, multicastPort, ttl,
-                                                  Constants.policyError);
+                                                  EtConstants.policyError);
                 }
                 else if (findMethod.equals("direct")) {
                     if (dataStorage.containsKey("location")) {
                         host = (String) dataStorage.get("location");
                         if (host.equals("local")) {
-                            host = Constants.hostLocal;
+                            host = EtConstants.hostLocal;
                         }
                     }
                     else {
@@ -389,7 +389,7 @@ public class MonitorConfiguration extends DefaultHandler {
                         monitor.addHostname(host);
                     }
                     port = Integer.parseInt((String) dataStorage.get("tcpPort"));
-                    config = new SystemOpenConfig(etSystem, host, port);
+                    config = new EtSystemOpenConfig(etSystem, host, port);
                 }
 
             }
@@ -569,9 +569,9 @@ public class MonitorConfiguration extends DefaultHandler {
 
 	// Connections to ET systems
 	String key;
-	SystemUse use=null;
-	SystemOpenConfig config;
-    for (Map.Entry<String,SystemUse> entry : monitor.connections.entrySet()) {
+	EtSystemUse use=null;
+	EtSystemOpenConfig config;
+    for (Map.Entry<String, EtSystemUse> entry : monitor.connections.entrySet()) {
       // Get object with connection info in it.
 	  use = entry.getValue();
 	  key = entry.getKey();
@@ -584,17 +584,17 @@ public class MonitorConfiguration extends DefaultHandler {
 	  
 	  // Method of finding ET system.
 	  int method = config.getNetworkContactMethod();
-	  if (method == Constants.broadcast) {
+	  if (method == EtConstants.broadcast) {
 	      text.append("    <broadcasting>\n");
 	      // Location or host?
 	      String host = config.getHost();
-	      if (host.equals(Constants.hostLocal)) {
+	      if (host.equals(EtConstants.hostLocal)) {
 		    text.append("      <location>local</location>\n");
 	      }
-	      else if (host.equals(Constants.hostRemote)) {
+	      else if (host.equals(EtConstants.hostRemote)) {
 		    text.append("      <location>remote</location>\n");
 	      }
-	      else if (host.equals(Constants.hostAnywhere)) {
+	      else if (host.equals(EtConstants.hostAnywhere)) {
 		    text.append("      <location>anywhere</location>\n");
 	      }
 	      else {
@@ -609,17 +609,17 @@ public class MonitorConfiguration extends DefaultHandler {
 	      text.append(config.getUdpPort());
 	      text.append("</broadcastPort>\n    </broadcasting>\n");
 	  }
-	  else if (method == Constants.multicast) {
+	  else if (method == EtConstants.multicast) {
 	      text.append("    <multicasting>\n");
 	      // Location or host?
 	      String host = config.getHost();
-	      if (host.equals(Constants.hostLocal)) {
+	      if (host.equals(EtConstants.hostLocal)) {
 		text.append("      <location>local</location>\n");
 	      }
-	      else if (host.equals(Constants.hostRemote)) {
+	      else if (host.equals(EtConstants.hostRemote)) {
 		text.append("      <location>remote</location>\n");
 	      }
-	      else if (host.equals(Constants.hostAnywhere)) {
+	      else if (host.equals(EtConstants.hostAnywhere)) {
 		text.append("      <location>anywhere</location>\n");
 	      }
 	      else {
@@ -639,17 +639,17 @@ public class MonitorConfiguration extends DefaultHandler {
 	      text.append(config.getTTL());
 	      text.append("</ttl>\n    </multicasting>\n");
 	  }
-	  else if (method == Constants.broadAndMulticast) {
+	  else if (method == EtConstants.broadAndMulticast) {
 	      text.append("    <broadAndMulticasting>\n");
 	      // Location or host?
 	      String host = config.getHost();
-	      if (host.equals(Constants.hostLocal)) {
+	      if (host.equals(EtConstants.hostLocal)) {
 		text.append("      <location>local</location>\n");
 	      }
-	      else if (host.equals(Constants.hostRemote)) {
+	      else if (host.equals(EtConstants.hostRemote)) {
 		text.append("      <location>remote</location>\n");
 	      }
-	      else if (host.equals(Constants.hostAnywhere)) {
+	      else if (host.equals(EtConstants.hostAnywhere)) {
 		text.append("      <location>anywhere</location>\n");
 	      }
 	      else {
@@ -675,10 +675,10 @@ public class MonitorConfiguration extends DefaultHandler {
 	      text.append(config.getTTL());
 	      text.append("</ttl>\n    </broadAndMulticasting>\n");
 	  }
-	  else if (method == Constants.direct) {
+	  else if (method == EtConstants.direct) {
 	      text.append("    <direct>\n");
 	      String host = config.getHost();
-	      if (host.equals(Constants.hostLocal)) {
+	      if (host.equals(EtConstants.hostLocal)) {
 		text.append("      <location>local</location>\n");
 	      }
 	      else {
@@ -694,7 +694,7 @@ public class MonitorConfiguration extends DefaultHandler {
 	  else {
 	      text.append("    <udpToHost>\n");
 	      String host = config.getHost();
-	      if (host.equals(Constants.hostLocal)) {
+	      if (host.equals(EtConstants.hostLocal)) {
 		text.append("      <location>local</location>\n");
 	      }
 	      else {

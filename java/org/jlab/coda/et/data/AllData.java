@@ -29,7 +29,7 @@ public class AllData {
      * Information about stations, attachments, and processes are added by
      * other methods.
      *
-     * @see org.jlab.coda.et.SystemUse#getData
+     * @see org.jlab.coda.et.EtSystemUse#getData
      */
     public AllData() {
         sysData = new SystemData();

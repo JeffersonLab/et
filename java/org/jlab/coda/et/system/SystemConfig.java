@@ -18,7 +18,7 @@ import java.lang.*;
 import java.util.*;
 import java.net.*;
 import org.jlab.coda.et.exception.*;
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 /**
  * This class defines a configuration for the creation of an ET system.
@@ -46,11 +46,11 @@ public class SystemConfig {
     private int attachmentsMax;
 
     /**
-     *  Debug level. This may have values of {@link Constants#debugNone} meaning
-     *  print nothing, {@link Constants#debugSevere} meaning print only the
-     *  severest errors, {@link Constants#debugError} meaning print all errors,
-     *  {@link Constants#debugWarn} meaning print all errors and warnings, and
-     *  finally {@link Constants#debugInfo} meaning print all errors, warnings,
+     *  Debug level. This may have values of {@link org.jlab.coda.et.EtConstants#debugNone} meaning
+     *  print nothing, {@link org.jlab.coda.et.EtConstants#debugSevere} meaning print only the
+     *  severest errors, {@link org.jlab.coda.et.EtConstants#debugError} meaning print all errors,
+     *  {@link org.jlab.coda.et.EtConstants#debugWarn} meaning print all errors and warnings, and
+     *  finally {@link org.jlab.coda.et.EtConstants#debugInfo} meaning print all errors, warnings,
      *  and informative messages.
      */
     private int debug;
@@ -74,24 +74,24 @@ public class SystemConfig {
     /**
      * Constructor that creates a new SystemConfig object using default parameters.
      * The default parameters are:
-     *      number of events          = {@link org.jlab.coda.et.Constants#defaultNumEvents},
-     *      event size                = {@link org.jlab.coda.et.Constants#defaultEventSize},
-     *      max number of stations    = {@link org.jlab.coda.et.Constants#defaultStationsMax},
-     *      max number of attachments = {@link org.jlab.coda.et.Constants#defaultAttsMax},
-     *      debug level               = {@link org.jlab.coda.et.Constants#debugError},
-     *      udp port                  = {@link org.jlab.coda.et.Constants#broadcastPort},
-     *      server (tcp) port         = {@link org.jlab.coda.et.Constants#serverPort}, and
-     *      multicasting port         = {@link org.jlab.coda.et.Constants#multicastPort}.
+     *      number of events          = {@link org.jlab.coda.et.EtConstants#defaultNumEvents},
+     *      event size                = {@link org.jlab.coda.et.EtConstants#defaultEventSize},
+     *      max number of stations    = {@link org.jlab.coda.et.EtConstants#defaultStationsMax},
+     *      max number of attachments = {@link org.jlab.coda.et.EtConstants#defaultAttsMax},
+     *      debug level               = {@link org.jlab.coda.et.EtConstants#debugError},
+     *      udp port                  = {@link org.jlab.coda.et.EtConstants#broadcastPort},
+     *      server (tcp) port         = {@link org.jlab.coda.et.EtConstants#serverPort}, and
+     *      multicasting port         = {@link org.jlab.coda.et.EtConstants#multicastPort}.
      */
     public SystemConfig () {
-        numEvents       = Constants.defaultNumEvents;
-        eventSize       = Constants.defaultEventSize;
-        stationsMax     = Constants.defaultStationsMax;
-        attachmentsMax  = Constants.defaultAttsMax;
-        debug           = Constants.debugError;
-        udpPort         = Constants.broadcastPort;
-        serverPort      = Constants.serverPort;
-        multicastPort   = Constants.multicastPort;
+        numEvents       = EtConstants.defaultNumEvents;
+        eventSize       = EtConstants.defaultEventSize;
+        stationsMax     = EtConstants.defaultStationsMax;
+        attachmentsMax  = EtConstants.defaultAttsMax;
+        debug           = EtConstants.debugError;
+        udpPort         = EtConstants.broadcastPort;
+        serverPort      = EtConstants.serverPort;
+        multicastPort   = EtConstants.multicastPort;
         multicastAddrs  = new HashSet<InetAddress>(10);
         // by default there is one group with all events in it
         groups          = new int[1];
@@ -298,11 +298,11 @@ public class SystemConfig {
      *     if the argument has a bad value
      */
     public void setDebug(int level) throws EtException {
-        if ((level != Constants.debugNone)   &&
-                (level != Constants.debugInfo)   &&
-                (level != Constants.debugWarn)   &&
-                (level != Constants.debugError)  &&
-                (level != Constants.debugSevere))  {
+        if ((level != EtConstants.debugNone)   &&
+                (level != EtConstants.debugInfo)   &&
+                (level != EtConstants.debugWarn)   &&
+                (level != EtConstants.debugError)  &&
+                (level != EtConstants.debugSevere))  {
             throw new EtException("bad debug value");
         }
         debug = level;

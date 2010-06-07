@@ -31,10 +31,10 @@ import org.jlab.coda.et.exception.*;
  * @author Carl Timmer
  */
 
-public class SystemOpen {
+public class EtSystemOpen {
 
     /** Object specifying how to open an ET system. */
-    private SystemOpenConfig config;
+    private EtSystemOpenConfig config;
 
     /** TCP socket connection established with an ET system's server. */
     private Socket sock;
@@ -51,7 +51,7 @@ public class SystemOpen {
     /** Is this object connected to a real, live ET system? */
     private boolean connected;
 
-    /** Debug level. Set by {@link SystemOpen#setDebug}. */
+    /** Debug level. Set by {@link EtSystemOpen#setDebug}. */
     private int debug;
 
     // using shared memory
@@ -64,7 +64,7 @@ public class SystemOpen {
     private MappedByteBuffer buffer;
 
     /** Object for accessing native methods which use C library to get and put events. */
-    private JniAccess jni;
+    private EtJniAccess jni;
 
     // properties of opened ET system
 
@@ -84,8 +84,8 @@ public class SystemOpen {
     private int stationSelectInts;
 
     /** Language used to implement the opened ET system. The possible values are
-     *  {@link Constants#langJava} for Java, {@link Constants#langCpp} for C++,
-     *  and {@link Constants#langC} for C. */
+     *  {@link EtConstants#langJava} for Java, {@link EtConstants#langCpp} for C++,
+     *  and {@link EtConstants#langC} for C. */
     private int language;
 
     /** True if ET system is 64 bit, else false. */
@@ -99,11 +99,11 @@ public class SystemOpen {
 
     /**
      * Constructor which stores copy of argument.
-     * @param config SystemOpenConfig object
+     * @param config EtSystemOpenConfig object
      */
-    public SystemOpen(SystemOpenConfig config) {
-        this.config = new SystemOpenConfig(config);
-        debug = Constants.debugError;
+    public EtSystemOpen(EtSystemOpenConfig config) {
+        this.config = new EtSystemOpenConfig(config);
+        debug = EtConstants.debugError;
         responders = new  LinkedHashMap<String, Integer>(20);
     }
 
@@ -112,20 +112,20 @@ public class SystemOpen {
 
 
     /**
-     * Sets the debug output level. Must be either {@link Constants#debugNone},
-     * {@link Constants#debugSevere}, {@link Constants#debugError},
-     * {@link Constants#debugWarn}, or {@link Constants#debugInfo}.
+     * Sets the debug output level. Must be either {@link EtConstants#debugNone},
+     * {@link EtConstants#debugSevere}, {@link EtConstants#debugError},
+     * {@link EtConstants#debugWarn}, or {@link EtConstants#debugInfo}.
      *
      * @param debug debug level
      * @throws EtException
      *     if bad argument value
      */
     public void setDebug(int debug) throws EtException {
-        if ((debug != Constants.debugNone)   &&
-            (debug != Constants.debugSevere) &&
-            (debug != Constants.debugError)  &&
-            (debug != Constants.debugWarn)   &&
-            (debug != Constants.debugInfo))    {
+        if ((debug != EtConstants.debugNone)   &&
+            (debug != EtConstants.debugSevere) &&
+            (debug != EtConstants.debugError)  &&
+            (debug != EtConstants.debugWarn)   &&
+            (debug != EtConstants.debugInfo))    {
             throw new EtException("bad debug argument");
         }
         this.debug = debug;
@@ -179,9 +179,9 @@ public class SystemOpen {
      *  @return debug output level */
     public int getDebug() {return debug;}
 
-    /** Gets a copy of the SystemOpenConfig configuration object.
+    /** Gets a copy of the EtSystemOpenConfig configuration object.
      *  @return copy of configuration object */
-    public SystemOpenConfig getConfig() {return new SystemOpenConfig(config);}
+    public EtSystemOpenConfig getConfig() {return new EtSystemOpenConfig(config);}
 
     /** Gets whether the ET system is connected (opened) or not.
      *  @return status of connection to ET system */
@@ -206,7 +206,7 @@ public class SystemOpen {
     public MappedByteBuffer getBuffer() {return buffer;}
 
     /** Gets the object used to access native methods when using local, C-based ET system. */
-    public JniAccess getJni() {return jni;}
+    public EtJniAccess getJni() {return jni;}
 
 
     // The next two methods are really only useful when the
@@ -255,7 +255,7 @@ public class SystemOpen {
      *     if the host address(es) is(are) unknown
      * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
-     *     {@link Constants#policyError} and we are looking either
+     *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
     private boolean findServerPort() throws IOException, UnknownHostException, EtTooManyException {
@@ -274,11 +274,11 @@ public class SystemOpen {
         DataOutputStream        dos = new DataOutputStream(baos);
 
         // write magic #s
-        dos.writeInt(Constants.magicNumbers[0]);
-        dos.writeInt(Constants.magicNumbers[1]);
-        dos.writeInt(Constants.magicNumbers[2]);
+        dos.writeInt(EtConstants.magicNumbers[0]);
+        dos.writeInt(EtConstants.magicNumbers[1]);
+        dos.writeInt(EtConstants.magicNumbers[2]);
         // write ET version
-        dos.writeInt(Constants.version);
+        dos.writeInt(EtConstants.version);
         // write string length of ET name
         dos.writeInt(config.getEtName().length() + 1);
         // write ET name
@@ -331,8 +331,8 @@ public class SystemOpen {
 
         // If the host is not remote or anywhere out there. If it's
         // local or we know its name, send a UDP packet to it alone.
-        if ((!config.getHost().equals(Constants.hostRemote)) &&
-            (!config.getHost().equals(Constants.hostAnywhere)))  {
+        if ((!config.getHost().equals(EtConstants.hostRemote)) &&
+            (!config.getHost().equals(EtConstants.hostAnywhere)))  {
 
             // We can use multicast socket for regular UDP - it works
             MulticastSocket socket = new MulticastSocket();	//IOEx
@@ -345,7 +345,7 @@ public class SystemOpen {
             // This will work in Java where the server listens on all addresses.
             // But it won't work for C where only broad and multicast address
             // are listened to.
-            if ((config.getHost().equals(Constants.hostLocal)) ||
+            if ((config.getHost().equals(EtConstants.hostLocal)) ||
                 (config.getHost().equals("localhost")))  {
                 specifiedHost = localHost;
                 // else if we know host's name ...
@@ -356,8 +356,8 @@ public class SystemOpen {
             sendList.add(new send(specifiedHost, socket, config.getUdpPort()));
 
             // setup broadcast sockets & packets first
-            if ((config.getNetworkContactMethod() == Constants.broadcast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            if ((config.getNetworkContactMethod() == EtConstants.broadcast) ||
+                (config.getNetworkContactMethod() == EtConstants.broadAndMulticast)) {
 
                 // We can use multicast socket for broadcasting - it works
                 socket = new MulticastSocket();    //IOEx
@@ -371,15 +371,15 @@ public class SystemOpen {
                 }
 
                 sendList.add(new send(config.broadcastIP, socket, config.getUdpPort()));
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("findServerPort: broadcasting to " + config.broadcastIP +
                             " on port " + config.getUdpPort());
                 }
             }
 
             // setup multicast sockets & packets next
-            if ((config.getNetworkContactMethod() == Constants.multicast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            if ((config.getNetworkContactMethod() == EtConstants.multicast) ||
+                (config.getNetworkContactMethod() == EtConstants.broadAndMulticast)) {
 
                 for (String addr : config.getMulticastAddrs()) {
                     socket = new MulticastSocket();    //IOEx
@@ -394,13 +394,13 @@ public class SystemOpen {
                     }
 
                     sendList.add(new send(addr, socket, config.getMulticastPort()));
-                    if (debug >= Constants.debugInfo) {
+                    if (debug >= EtConstants.debugInfo) {
                         System.out.println("findServerPort: multicasting to " + addr + " on port " + config.getMulticastPort());
                     }
                 }
             }
 
-            if (debug >= Constants.debugInfo) {
+            if (debug >= EtConstants.debugInfo) {
                 System.out.println("findServerPort: send to local or specified host " + specifiedHost +
                         " on port " + config.getUdpPort());
             }
@@ -411,8 +411,8 @@ public class SystemOpen {
         else {
 
             // setup broadcast sockets & packets first
-            if ((config.getNetworkContactMethod() == Constants.broadcast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            if ((config.getNetworkContactMethod() == EtConstants.broadcast) ||
+                (config.getNetworkContactMethod() == EtConstants.broadAndMulticast)) {
 
                 // We can use multicast socket for broadcasting - it works
                 MulticastSocket socket = new MulticastSocket();    //IOEx
@@ -426,15 +426,15 @@ public class SystemOpen {
                 }
 
                 sendList.add(new send(config.broadcastIP, socket, config.getUdpPort()));
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("findServerPort: broadcasting to " + config.broadcastIP +
                             " on port " + config.getUdpPort());
                 }
             }
 
             // setup multicast sockets & packets next
-            if ((config.getNetworkContactMethod() == Constants.multicast) ||
-                (config.getNetworkContactMethod() == Constants.broadAndMulticast)) {
+            if ((config.getNetworkContactMethod() == EtConstants.multicast) ||
+                (config.getNetworkContactMethod() == EtConstants.broadAndMulticast)) {
 
                 for (String addr : config.getMulticastAddrs()) {
                     MulticastSocket socket = new MulticastSocket();    //IOEx
@@ -449,7 +449,7 @@ public class SystemOpen {
                     }
 
                     sendList.add(new send(addr, socket, config.getMulticastPort()));
-                    if (debug >= Constants.debugInfo) {
+                    if (debug >= EtConstants.debugInfo) {
                         System.out.println("findServerPort: multicasting to " + addr + " on port " + config.getMulticastPort());
                     }
                 }
@@ -486,7 +486,7 @@ public class SystemOpen {
             get receiver = new get(sender.socket);
             receiveList.add(receiver);
             // start single thread
-            if (debug >= Constants.debugInfo) {
+            if (debug >= EtConstants.debugInfo) {
                 System.out.println("findServerPort: starting thread to socket " + sender.socket);
             }
             receiver.start();
@@ -506,7 +506,7 @@ public class SystemOpen {
 
             get:
             while (true) {
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("findServerPort: wait for " + waitTime + " milliseconds");
                 }
                 // wait for replies
@@ -519,7 +519,7 @@ public class SystemOpen {
                 // check for replies on all sockets
                 for (get receiver : receiveList) {
                     status = receiver.thread.waitForReply(10);
-                    if (debug >= Constants.debugInfo) {
+                    if (debug >= EtConstants.debugInfo) {
                         System.out.println("findServerPort: receive on socket " + receiver.socket +
                                 ", status = " + status);
                     }
@@ -535,13 +535,13 @@ public class SystemOpen {
                         // looking for; if not, try to get another packet. If it
                         // is a match, store it in a HashMap (responders).
                         if (replyMatch(receiver.packet)) { // IOEx, UnknownHostEx
-                            if (debug >= Constants.debugInfo) {
+                            if (debug >= EtConstants.debugInfo) {
                                 System.out.println("findServerPort: found match");
                             }
                             match = gotMatch;
                         }
                         else {
-                            if (debug >= Constants.debugInfo) {
+                            if (debug >= EtConstants.debugInfo) {
                                 System.out.println("findServerPort: no match");
                             }
                         }
@@ -563,7 +563,7 @@ public class SystemOpen {
                     // If max # of packets not yet sent, send another
                     // batch and try again with a longer wait
                     if (totalPacketsSent < sendPacketLimit) {
-                        if (debug >= Constants.debugInfo) {
+                        if (debug >= EtConstants.debugInfo) {
                             System.out.println("findServerPort: timedout, try again with longer wait");
                         }
                         continue sendPoint;
@@ -578,8 +578,8 @@ public class SystemOpen {
 
         if (match) {
             // If the host is not remote or anywhere (i.e. we know its name).
-            if ((!config.getHost().equals(Constants.hostRemote)) &&
-                (!config.getHost().equals(Constants.hostAnywhere))) {
+            if ((!config.getHost().equals(EtConstants.hostRemote)) &&
+                (!config.getHost().equals(EtConstants.hostAnywhere))) {
 
                 // if we have more than one responding ET system ...
                 if (responders.size() > 1) {
@@ -599,14 +599,14 @@ public class SystemOpen {
                 // if we have more than one responding ET system
                 if (responders.size() > 1) {
                     // if picking first responding ET system ...
-                    if (config.getResponsePolicy() == Constants.policyFirst) {
+                    if (config.getResponsePolicy() == EtConstants.policyFirst) {
                         Iterator<Map.Entry<String,Integer>> i = responders.entrySet().iterator();
                         Map.Entry<String,Integer> e = i.next();
                         host = e.getKey();
                         tcpPort = e.getValue();
                     }
                     // else if picking local system first ...
-                    else if (config.getResponsePolicy() == Constants.policyLocal) {
+                    else if (config.getResponsePolicy() == EtConstants.policyLocal) {
                         // compare local host to responding hosts
                         boolean foundLocalHost = false;
 
@@ -635,7 +635,7 @@ public class SystemOpen {
             }
             return foundServer;
         }
-        if (debug >= Constants.debugInfo) {
+        if (debug >= EtConstants.debugInfo) {
             System.out.println("findServerPort: cannot find server, quitting");
         }
         host = null;
@@ -688,16 +688,16 @@ public class SystemOpen {
         int magic1 = dis.readInt();
         int magic2 = dis.readInt();
         int magic3 = dis.readInt();
-        if (magic1 != Constants.magicNumbers[0] ||
-            magic2 != Constants.magicNumbers[1] ||
-            magic3 != Constants.magicNumbers[2])  {
+        if (magic1 != EtConstants.magicNumbers[0] ||
+            magic2 != EtConstants.magicNumbers[1] ||
+            magic3 != EtConstants.magicNumbers[2])  {
 //System.out.println("replyMatch:  Magic numbers did NOT match");
             return noMatch;
         }
 
         // (1) ET version #
         int version = dis.readInt();         //IOEx
-        if (version != Constants.version) {
+        if (version != EtConstants.version) {
 //System.out.println("replyMatch:  version did NOT match");
             return noMatch;
         }
@@ -710,16 +710,16 @@ public class SystemOpen {
 
         // (3) response to what type of cast?
         int cast = dis.readInt();
-        if ((cast != Constants.broadcast) &&
-            (cast != Constants.multicast) &&
-            (cast != Constants.broadAndMulticast)) {
+        if ((cast != EtConstants.broadcast) &&
+            (cast != EtConstants.multicast) &&
+            (cast != EtConstants.broadAndMulticast)) {
             return noMatch;
         }
 
         // (4) read length of IP address (dotted-decimal) of responding address
         //     or 0.0.0.0 if java
         int length = dis.readInt();
-        if ((length < 1) || (length > Constants.ipAddrStrLen)) {
+        if ((length < 1) || (length > EtConstants.ipAddrStrLen)) {
             return noMatch;
         }
 
@@ -733,7 +733,7 @@ public class SystemOpen {
         // (6) Read length of "uname" or InetAddress.getLocalHost().getHostName() if java,
         //     used as identifier of this host no matter which interface used.
         length = dis.readInt();
-        if ((length < 1) || (length > Constants.maxHostNameLen)) {
+        if ((length < 1) || (length > EtConstants.maxHostNameLen)) {
             return noMatch;
         }
 
@@ -769,7 +769,7 @@ public class SystemOpen {
             hosts.add(repliedHostName);
         }
 
-        if (debug >= Constants.debugInfo) {
+        if (debug >= EtConstants.debugInfo) {
             System.out.println("replyMatch: port = " + port +
                     ", replied IP addr = " + repliedIpAddress +
                     ", uname = " + repliedUname);
@@ -789,8 +789,8 @@ public class SystemOpen {
             InetAddress repliedHost = InetAddress.getByName(rHost);   //UnknownHostEx
 
             // if we're looking for a host anywhere
-            if (config.getHost().equals(Constants.hostAnywhere)) {
-                if (debug >= Constants.debugInfo) {
+            if (config.getHost().equals(EtConstants.hostAnywhere)) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("replyMatch: .anywhere");
                 }
 
@@ -804,8 +804,8 @@ public class SystemOpen {
                 return gotMatch;
             }
             // else if we're looking for a remote host
-            else if (config.getHost().equals(Constants.hostRemote)) {
-                if (debug >= Constants.debugInfo) {
+            else if (config.getHost().equals(EtConstants.hostRemote)) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("replyMatch: .remote");
                 }
                 if (!localHost.equals(repliedHost)) {
@@ -820,9 +820,9 @@ public class SystemOpen {
                 }
             }
             // else if we're looking for a local host
-            else if ((config.getHost().equals(Constants.hostLocal)) ||
+            else if ((config.getHost().equals(EtConstants.hostLocal)) ||
                      (config.getHost().equals("localhost"))) {
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("replyMatch: .local");
                 }
                 if (localHost.equals(repliedHost)) {
@@ -834,7 +834,7 @@ public class SystemOpen {
             }
             // else a specific host name has been specified
             else {
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("replyMatch: <name>");
                 }
                 // "config.host" is the host name we're looking for
@@ -859,7 +859,7 @@ public class SystemOpen {
      *     if problems with network comunications
      * @throws EtException
      *     if the responing ET system has the wrong name, runs a different version
-     *     of ET, or has a different value for {@link Constants#stationSelectInts}
+     *     of ET, or has a different value for {@link EtConstants#stationSelectInts}
      */
     private void connectToEtServer() throws IOException, EtException {
 
@@ -867,12 +867,12 @@ public class SystemOpen {
         DataOutputStream dos = new DataOutputStream(sock.getOutputStream());
 
         // write magic #s
-        dos.writeInt(Constants.magicNumbers[0]);
-        dos.writeInt(Constants.magicNumbers[1]);
-        dos.writeInt(Constants.magicNumbers[2]);
+        dos.writeInt(EtConstants.magicNumbers[0]);
+        dos.writeInt(EtConstants.magicNumbers[1]);
+        dos.writeInt(EtConstants.magicNumbers[2]);
 
         // write our endian, length of ET filename, and ET filename
-        dos.writeInt(Constants.endianBig);
+        dos.writeInt(EtConstants.endianBig);
         dos.writeInt(config.getEtName().length() + 1);
         dos.writeInt(0);    // 1 means 64 bit, 0 means 32 bit (all java is 32 bit)
         dos.writeLong(0L);	// write one 64 bit long instead of 2, 32 bit ints since = 0 anyway
@@ -884,7 +884,7 @@ public class SystemOpen {
         dos.flush();
 
         // read what ET's tcp server sends back
-        if (dis.readInt() != Constants.ok) {
+        if (dis.readInt() != EtConstants.ok) {
             throw new EtException("found the wrong ET system");
         }
         endian            = dis.readInt();
@@ -897,20 +897,20 @@ public class SystemOpen {
         dis.skipBytes(4);
 
         // check to see if connecting to same version ET software
-        if (version != Constants.version) {
+        if (version != EtConstants.version) {
             disconnect();
             throw new EtException("may not open wrong version ET system");
         }
         // double check to see if # of select ints are the same
-        if (stationSelectInts != Constants.stationSelectInts) {
+        if (stationSelectInts != EtConstants.stationSelectInts) {
             disconnect();
             throw new EtException("may not open ET system with different # of select integers");
         }
 
         connected = true;
 
-        if (debug >= Constants.debugInfo) {
-            System.out.println("open: endian = " + (endian == Constants.endianBig ? "big" : "little") +
+        if (debug >= EtConstants.debugInfo) {
+            System.out.println("open: endian = " + (endian == EtConstants.endianBig ? "big" : "little") +
                     ", nevents = " + numEvents +
                     ", event size = " + eventSize +
                     ", version = " + version +
@@ -954,10 +954,10 @@ public class SystemOpen {
      * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
-     *     {@link Constants#stationSelectInts}
+     *     {@link EtConstants#stationSelectInts}
      * @throws EtTooManyException
      *     if there were more than one valid response when policy is set to
-     *     {@link Constants#policyError} and we are looking either
+     *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
     synchronized public void connect() throws IOException, UnknownHostException,
@@ -969,15 +969,15 @@ public class SystemOpen {
         // buffer (data).
         mapLocalSharedMemory = false;
 
-        if (config.getNetworkContactMethod() == Constants.direct) {
+        if (config.getNetworkContactMethod() == EtConstants.direct) {
             // if making direct connection, we have host & port
-            if (debug >= Constants.debugInfo) {
+            if (debug >= EtConstants.debugInfo) {
                 System.out.println("connect: make a direct connection");
             }
             tcpPort = config.getTcpPort();
 
             // if "local" specified, find actual hostname
-            if (config.getHost().equals(Constants.hostLocal) || config.getHost().equals("localhost")) {
+            if (config.getHost().equals(EtConstants.hostLocal) || config.getHost().equals("localhost")) {
                 host = InetAddress.getLocalHost().getHostName();
                 mapLocalSharedMemory = true;
             }
@@ -986,7 +986,7 @@ public class SystemOpen {
                 // in it, try getHostName even though that is not guaranteed
                 // to return a fully qualified name.
                 if (config.getHost().indexOf(".") < 0) {
-                    if (debug >= Constants.debugInfo) {
+                    if (debug >= EtConstants.debugInfo) {
                         System.out.println("connect: try to make " + config.getHost() + " a fully qualified name");
                     }
                     host = InetAddress.getByName(config.getHost()).getHostName();
@@ -1002,7 +1002,7 @@ public class SystemOpen {
             }
         }
         else {
-            if (debug >= Constants.debugInfo) {
+            if (debug >= EtConstants.debugInfo) {
                 System.out.println("connect: try to find server port");
             }
             // send a UDP broad or multicast packet to find ET TCP server & port
@@ -1040,7 +1040,7 @@ public class SystemOpen {
 
 
         // open the ET system, waiting if requested & necessary
-        if (debug >= Constants.debugInfo) {
+        if (debug >= EtConstants.debugInfo) {
             System.out.println("connect: try to connect to ET system");
         }
 
@@ -1067,69 +1067,69 @@ public class SystemOpen {
                 // First, map only the first part of the file which contains some
                 // important data in 6 ints and 5 longs (64 bytes). Once that info is read,
                 // remap the file properly to get at the data.
-                buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, Constants.initialSharedMemBytes);
+                buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, EtConstants.initialSharedMemBytes);
 
                 int byteOrder = buffer.getInt();
                 if (byteOrder != 0x04030201) {
                     buffer.order(ByteOrder.LITTLE_ENDIAN);
                 }
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("byteOrder = " + Integer.toHexString(byteOrder));
                 }
 
                 int next = buffer.getInt();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("systemType = " + next);
                 }
 
                 next = buffer.getInt();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("major version = " + next);
                 }
 
                 next = buffer.getInt();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("minor version = " + next);
                 }
 
                 next = buffer.getInt();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("num select ints = " + next);
                 }
 
                 next = buffer.getInt();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("head byte size = " + next);
                 }
 
                 long nextLong = buffer.getLong();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("event byte size = " + nextLong);
                 }
 
                 nextLong = buffer.getLong();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("header position = " + nextLong);
                 }
 
                 long dataPosition = nextLong = buffer.getLong();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("data position = " + nextLong);
                 }
 
                 long totalFileSize = nextLong = buffer.getLong();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("total file size = " + nextLong + ", but is really " + fc.size());
                 }
 
                 long usedFileSize = nextLong = buffer.getLong();
-                if (debug >= Constants.debugInfo) {
+                if (debug >= EtConstants.debugInfo) {
                     System.out.println("used file size = " + nextLong);
                 }
                 
                 // look at data - map only data part of the file
                 buffer = fc.map(FileChannel.MapMode.READ_WRITE, dataPosition,
-                                usedFileSize + Constants.initialSharedMemBytes);
+                                usedFileSize + EtConstants.initialSharedMemBytes);
                 if (byteOrder != 0x04030201) {
                     buffer.order(ByteOrder.LITTLE_ENDIAN);
                 }
@@ -1137,7 +1137,7 @@ public class SystemOpen {
                 // closing the file channel does NOT affect the buffer
                 fc.close();
 
-                jni = new JniAccess();
+                jni = new EtJniAccess();
 
                 // open the ET system locally with native method
                 jni.openLocalEtSystem(config.getEtName());

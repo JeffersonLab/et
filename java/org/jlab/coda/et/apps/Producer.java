@@ -16,7 +16,6 @@ package org.jlab.coda.et.apps;
 
 
 import java.lang.*;
-import java.nio.ByteOrder;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
@@ -49,7 +48,7 @@ public class Producer {
     public static void main(String[] args) {
 
         String etName = null, host = null;
-        int port = Constants.serverPort;
+        int port = EtConstants.serverPort;
         int group = 1;
         int delay = 0;
         int size = 32;
@@ -129,7 +128,7 @@ public class Producer {
             }
 
             if (host == null) {
-                host = Constants.hostAnywhere;
+                host = EtConstants.hostAnywhere;
                 /*
                 try {
                     host = InetAddress.getLocalHost().getHostName();
@@ -148,19 +147,19 @@ public class Producer {
             }
 
             // make a direct connection to ET system's tcp server
-            SystemOpenConfig config = new SystemOpenConfig(etName, host, port);
+            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
 
             // create ET system object with verbose debugging output
-            SystemUse sys = new SystemUse(config, Constants.debugInfo);
+            EtSystemUse sys = new EtSystemUse(config, EtConstants.debugInfo);
 
             // get GRAND_CENTRAL station object
-            Station gc = sys.stationNameToObject("GRAND_CENTRAL");
+            EtStation gc = sys.stationNameToObject("GRAND_CENTRAL");
 
             // attach to grandcentral
-            Attachment att = sys.attach(gc);
+            EtAttachment att = sys.attach(gc);
 
             // array of events
-            Event[] mevs;
+            EtEvent[] mevs;
 
             int chunk = 1, count = 0, startingVal = 0;
             long t1, t2, counter = 0, totalT = 0, totalCount = 0;

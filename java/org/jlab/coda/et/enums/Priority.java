@@ -14,7 +14,7 @@
 
 package org.jlab.coda.et.enums;
 
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 /**
  * This enum represents the 2 possible priorities an event can have.
@@ -23,9 +23,9 @@ import org.jlab.coda.et.Constants;
  */
 public enum Priority {
     /** Low or normal priority, events take their proper turn. */
-    LOW      (Constants.low),
+    LOW      (EtConstants.low),
     /** High priority, events cut in and move to the front of the list. */
-    HIGH     (Constants.high);
+    HIGH     (EtConstants.high);
 
     private int value;
 

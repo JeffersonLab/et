@@ -24,7 +24,7 @@ import org.jlab.coda.et.exception.*;
  *
  * @author Carl Timmer
  */
-public class SystemOpenConfig {
+public class EtSystemOpenConfig {
 
     /** Broadcast address. */
     static public final String broadcastIP = "255.255.255.255";
@@ -50,9 +50,9 @@ public class SystemOpenConfig {
 
     /**
      * Means used to contact an ET system over network. The possible values are
-     * @link Constants#broadcast} for broadcasting, {@link Constants#multicast}
-     * for multicasting, {@link Constants#direct} for connecting directly to the
-     * ET tcp server, and {@link Constants#broadAndMulticast} for using both
+     * @link Constants#broadcast} for broadcasting, {@link EtConstants#multicast}
+     * for multicasting, {@link EtConstants#direct} for connecting directly to the
+     * ET tcp server, and {@link EtConstants#broadAndMulticast} for using both
      * broadcasting and multicasting.
      */
     private int networkContactMethod;
@@ -72,10 +72,10 @@ public class SystemOpenConfig {
 
     /**
      * Policy on what to do about multiple responding ET systems to a broadcast
-     * or multicast. The possible values are {@link Constants#policyFirst} which
-     * chooses the first ET system to respond, {@link Constants#policyLocal}
+     * or multicast. The possible values are {@link EtConstants#policyFirst} which
+     * chooses the first ET system to respond, {@link EtConstants#policyLocal}
      * which chooses the first local ET system to respond and if none then the
-     * first response, or {@link Constants#policyError} which throws an
+     * first response, or {@link EtConstants#policyError} which throws an
      * EtTooManyException exception.
      */
     private int responsePolicy;
@@ -85,14 +85,14 @@ public class SystemOpenConfig {
 
 
     /**
-     * Most general constructor for creating a new SystemOpenConfig object.
+     * Most general constructor for creating a new EtSystemOpenConfig object.
      *
      * @param etName ET system name
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
-     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
-     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
+     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
      * @param broadcasting do we UDP broadcast to find ET system?
      * @param mAddrs collection of multicast addresses (as Strings) to mulitcast to in order to
      *               find ET system
@@ -100,15 +100,15 @@ public class SystemOpenConfig {
      *                   (as if remote), or <code>false</code> if also using JNI/shared memory
      *                   for talking to local C-based ET systems
      * @param method means used to contact an ET system over the network:
-     *               {@link Constants#broadcast}, {@link Constants#multicast},
-     *               {@link Constants#direct}, or {@link Constants#broadAndMulticast}
+     *               {@link EtConstants#broadcast}, {@link EtConstants#multicast},
+     *               {@link EtConstants#direct}, or {@link EtConstants#broadAndMulticast}
      * @param tPort  TCP server port number of the ET system
      * @param uPort  UDP port number for broadcasting or sending udp packets to known hosts
      * @param mPort  Port number to multicast to
      * @param ttlNum Time-to_live value for multicasting
      * @param policy policy on what to do about multiple responding ET systems to
-     *               a broadcast or multicast: {@link Constants#policyFirst},
-     *               {@link Constants#policyLocal}, or {@link Constants#policyError}
+     *               a broadcast or multicast: {@link EtConstants#policyFirst},
+     *               {@link EtConstants#policyLocal}, or {@link EtConstants#policyError}
      *
      * @throws EtException
      *     if method value is not valid;
@@ -119,7 +119,7 @@ public class SystemOpenConfig {
      *     if string args are null or blank;
      *     if policy value is not valid
      */
-    public SystemOpenConfig (String etName, String hostName,
+    public EtSystemOpenConfig(String etName, String hostName,
                              boolean broadcasting, Collection<String> mAddrs,
                              boolean remoteOnly, int method, int tPort, int uPort,
                              int mPort, int ttlNum, int policy)
@@ -132,7 +132,7 @@ public class SystemOpenConfig {
 
         host = hostName;
         if (host == null || host.equals("")) {
-            if (method != Constants.broadcast) {
+            if (method != EtConstants.broadcast) {
                 throw new EtException("Bad host or location name");
             }
         }
@@ -150,10 +150,10 @@ public class SystemOpenConfig {
 
         connectRemotely = remoteOnly;
         
-        if ((method != Constants.multicast) &&
-            (method != Constants.broadcast) &&
-            (method != Constants.broadAndMulticast) &&
-            (method != Constants.direct))     {
+        if ((method != EtConstants.multicast) &&
+            (method != EtConstants.broadcast) &&
+            (method != EtConstants.broadAndMulticast) &&
+            (method != EtConstants.direct))     {
             throw new EtException("Bad contact method value");
         }
         else {
@@ -161,14 +161,14 @@ public class SystemOpenConfig {
         }
 
 
-        if (networkContactMethod == Constants.direct) {
-            if (host.equals(Constants.hostRemote) ||
-                    host.equals(Constants.hostAnywhere)) {
+        if (networkContactMethod == EtConstants.direct) {
+            if (host.equals(EtConstants.hostRemote) ||
+                    host.equals(EtConstants.hostAnywhere)) {
                 throw new EtException("Need to specify an actual host name");
             }
         }
-        else if ( ((networkContactMethod == Constants.multicast) ||
-                (networkContactMethod == Constants.broadAndMulticast))
+        else if ( ((networkContactMethod == EtConstants.multicast) ||
+                (networkContactMethod == EtConstants.broadAndMulticast))
                 && noMulticastAddrs) {
             throw new EtException("Need to specify a multicast address");
         }
@@ -196,14 +196,14 @@ public class SystemOpenConfig {
         ttl = ttlNum;
 
 
-        if ((policy != Constants.policyFirst) &&
-            (policy != Constants.policyLocal) &&
-            (policy != Constants.policyError))  {
+        if ((policy != EtConstants.policyFirst) &&
+            (policy != EtConstants.policyLocal) &&
+            (policy != EtConstants.policyError))  {
             throw new EtException("Bad policy value");
         }
 
-        if ((host.equals(Constants.hostRemote)) &&
-            (policy == Constants.policyLocal)) {
+        if ((host.equals(EtConstants.hostRemote)) &&
+            (policy == EtConstants.policyLocal)) {
             // stupid combination of settings
             throw new EtException("Policy value cannot be local if host is remote");
         }
@@ -218,18 +218,18 @@ public class SystemOpenConfig {
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
-     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
-     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
+     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
      *
      * @throws EtException
      *     if no broadcast addresses were specified;
      *     if port number is < 1024 or > 65535
      */
-    public SystemOpenConfig (String etName, String hostName)
+    public EtSystemOpenConfig(String etName, String hostName)
             throws EtException {
-        this (etName, hostName, true, null, false, Constants.broadcast,
-              Constants.serverPort, Constants.broadcastPort, Constants.multicastPort,
-              Constants.multicastTTL, Constants.policyFirst);
+        this (etName, hostName, true, null, false, EtConstants.broadcast,
+              EtConstants.serverPort, EtConstants.broadcastPort, EtConstants.multicastPort,
+              EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
 
@@ -241,18 +241,18 @@ public class SystemOpenConfig {
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
-     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
-     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
+     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
      *
      * @throws EtException
      *     if no broadcast addresses were specified;
      *     if port number is < 1024 or > 65535
      */
-    public SystemOpenConfig (String etName, int uPort, String hostName)
+    public EtSystemOpenConfig(String etName, int uPort, String hostName)
             throws EtException {
-        this (etName, hostName, true, null, false, Constants.broadcast,
-              Constants.serverPort, uPort, Constants.multicastPort,
-              Constants.multicastTTL, Constants.policyFirst);
+        this (etName, hostName, true, null, false, EtConstants.broadcast,
+              EtConstants.serverPort, uPort, EtConstants.multicastPort,
+              EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
 
@@ -263,8 +263,8 @@ public class SystemOpenConfig {
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
-     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
-     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
+     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
      * @param mAddrs collection of multicast addresses (as Strings)
      * @param mPort  multicasting port number
      * @param ttlNum multicasting time-to_live value 
@@ -273,12 +273,12 @@ public class SystemOpenConfig {
      *     if no multicast addresses were specified;
      *     if port number is < 1024 or > 65535, or ttl is < 0 or > 254
      */
-    public SystemOpenConfig (String etName, String hostName,
+    public EtSystemOpenConfig(String etName, String hostName,
                              Collection<String> mAddrs, int mPort, int ttlNum)
             throws EtException {
-        this (etName, hostName, false, mAddrs, false, Constants.multicast,
-              Constants.serverPort, Constants.broadcastPort, mPort,
-              ttlNum, Constants.policyFirst);
+        this (etName, hostName, false, mAddrs, false, EtConstants.multicast,
+              EtConstants.serverPort, EtConstants.broadcastPort, mPort,
+              ttlNum, EtConstants.policyFirst);
     }
 
 
@@ -289,8 +289,8 @@ public class SystemOpenConfig {
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
-     *                 3) general location of ET system such as {@link Constants#hostAnywhere},
-     *                   {@link Constants#hostLocal}, or {@link Constants#hostRemote}
+     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
+     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
      * @param mAddrs collection of multicast addresses (as Strings)
      * @param uPort  port number to send direct udp packet to
      * @param mPort  multicasting port number
@@ -300,12 +300,12 @@ public class SystemOpenConfig {
      *     if no multicast addresses were specified;
      *     if port numbers are < 1024 or > 65535, or ttl is < 0 or > 254
      */
-    public SystemOpenConfig (String etName, String hostName,
+    public EtSystemOpenConfig(String etName, String hostName,
                              Collection<String> mAddrs, int uPort, int mPort, int ttlNum)
             throws EtException {
-        this (etName, hostName, false, mAddrs, false, Constants.multicast,
-              Constants.serverPort, uPort, mPort,
-              ttlNum, Constants.policyFirst);
+        this (etName, hostName, false, mAddrs, false, EtConstants.multicast,
+              EtConstants.serverPort, uPort, mPort,
+              ttlNum, EtConstants.policyFirst);
     }
 
 
@@ -321,19 +321,19 @@ public class SystemOpenConfig {
      *     if no actual host name was specified;
      *     if port number is < 1024 or > 65535
      */
-    public SystemOpenConfig (String etName, String hostName, int tPort)
+    public EtSystemOpenConfig(String etName, String hostName, int tPort)
             throws EtException {
-        this (etName, hostName, false, null, false, Constants.direct,
-              tPort, Constants.broadcastPort, Constants.multicastPort,
-              Constants.multicastTTL, Constants.policyFirst);
+        this (etName, hostName, false, null, false, EtConstants.direct,
+              tPort, EtConstants.broadcastPort, EtConstants.multicastPort,
+              EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
 
     /**
-     * Constructor to create a new SystemOpenConfig object from another.
-     * @param config SystemOpenConfig object from which to create a new configuration
+     * Constructor to create a new EtSystemOpenConfig object from another.
+     * @param config EtSystemOpenConfig object from which to create a new configuration
      */
-    public SystemOpenConfig (SystemOpenConfig config) {
+    public EtSystemOpenConfig(EtSystemOpenConfig config) {
         name                 = config.name;
         host                 = config.host;
         multicastAddrs       = config.getMulticastAddrs();
@@ -484,9 +484,9 @@ public class SystemOpenConfig {
 
     /**
      *  Sets the means or method of contacting an ET system. Its values may be
-     *  {@link Constants#broadcast} for broadcasting, {@link Constants#multicast}
-     *  for multicasting, {@link Constants#direct} for connecting directly to the
-     *  ET tcp server, and {@link Constants#broadAndMulticast} for using both
+     *  {@link EtConstants#broadcast} for broadcasting, {@link EtConstants#multicast}
+     *  for multicasting, {@link EtConstants#direct} for connecting directly to the
+     *  ET tcp server, and {@link EtConstants#broadAndMulticast} for using both
      *  broadcasting and multicasting.
      *
      *  @param method means or method of contacting an ET system
@@ -494,10 +494,10 @@ public class SystemOpenConfig {
      *     if the argument has a bad value
      */
     public void setNetworkContactMethod(int method) throws EtException {
-        if ((method != Constants.multicast) &&
-            (method != Constants.broadcast) &&
-            (method != Constants.broadAndMulticast) &&
-            (method != Constants.direct))     {
+        if ((method != EtConstants.multicast) &&
+            (method != EtConstants.broadcast) &&
+            (method != EtConstants.broadAndMulticast) &&
+            (method != EtConstants.direct))     {
             throw new EtException("bad contact method value");
         }
         networkContactMethod = method;
@@ -507,10 +507,10 @@ public class SystemOpenConfig {
     /**
      *  Sets the policy on what to do about multiple responding ET systems to a
      *  broadcast or multicast. The possible values are
-     *  {@link Constants#policyFirst} which chooses the first ET system to
-     *  respond, {@link Constants#policyLocal} which chooses the first local ET
+     *  {@link EtConstants#policyFirst} which chooses the first ET system to
+     *  respond, {@link EtConstants#policyLocal} which chooses the first local ET
      *  system to respond and if none then the first response, or
-     *  {@link Constants#policyError} which throws an EtTooManyException
+     *  {@link EtConstants#policyError} which throws an EtTooManyException
      *  exception.
      *
      *  @param policy policy on what to do about multiple responding ET systems
@@ -519,14 +519,14 @@ public class SystemOpenConfig {
      *     ET system but the host is set to chose a remote system.
      */
     public void setResponsePolicy(int policy) throws EtException {
-        if ((policy != Constants.policyFirst) &&
-            (policy != Constants.policyLocal) &&
-            (policy != Constants.policyError))  {
+        if ((policy != EtConstants.policyFirst) &&
+            (policy != EtConstants.policyLocal) &&
+            (policy != EtConstants.policyError))  {
             throw new EtException("bad policy value");
         }
         
-        if ((host.equals(Constants.hostRemote)) &&
-            (policy == Constants.policyLocal)) {
+        if ((host.equals(EtConstants.hostRemote)) &&
+            (policy == EtConstants.policyLocal)) {
             // stupid combination of settings
             throw new EtException("policy value cannot be local if host is remote");
         }

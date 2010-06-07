@@ -14,22 +14,21 @@
 
 package org.jlab.coda.et.enums;
 
-import org.jlab.coda.et.SystemUse;
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 /**
  * This enum indicates whether an event is a new or unused event, obtained by a call to
- * {@link SystemUse#newEvents}, or whether it is an existing or used event, obtained by
- * a call to {@link SystemUse#getEvents}.
+ * {@link org.jlab.coda.et.EtSystemUse#newEvents}, or whether it is an existing or used event, obtained by
+ * a call to {@link org.jlab.coda.et.EtSystemUse#getEvents}.
  *  
  * @author timmer
  */
 public enum Age {
 
     /** Existing event with data, obtained throug getEvents(). */
-    USED     (Constants.eventUsed),
+    USED     (EtConstants.eventUsed),
     /** New event with no data, obtained throug newEvents(). */
-    NEW      (Constants.eventNew);
+    NEW      (EtConstants.eventNew);
 
     
     private int value;

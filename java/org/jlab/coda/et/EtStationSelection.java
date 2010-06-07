@@ -17,20 +17,25 @@ package org.jlab.coda.et;
 import org.jlab.coda.et.system.StationLocal;
 import org.jlab.coda.et.system.SystemCreate;
 
+
 /**
- * This interface defines a method to use for custom event selection in a station.
+ * This class contains an example of a user-defined method used to
+ * select events for a station.
  *
  * @author Carl Timmer
  */
 
-public interface EventSelectable {
+public class EtStationSelection implements EtEventSelectable {
 
-  /**
-   * An event selection method must follow this form.
-   * @param sys the ET system object
-   * @param st the station using a user-defned selection method
-   * @param ev event being evaluated for selection
-   */
-  public boolean select(SystemCreate sys, StationLocal st, Event ev);
+    public EtStationSelection() {
+    }
 
+    public boolean select(SystemCreate sys, StationLocal st, EtEvent ev) {
+        if (ev.getId()%2 == 0) {
+            //System.out.println("  Select Func: accept ev.id = " + ev.id);
+            return true;
+        }
+        //System.out.println("  Select Func: reject ev.id = " + ev.id);
+        return false;
+    }
 }

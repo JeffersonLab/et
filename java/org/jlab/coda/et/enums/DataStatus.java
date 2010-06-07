@@ -14,7 +14,7 @@
 
 package org.jlab.coda.et.enums;
 
-import org.jlab.coda.et.Constants;
+import org.jlab.coda.et.EtConstants;
 
 /**
  * This enum represents the 3 possible states of an event's data's status.
@@ -25,11 +25,11 @@ import org.jlab.coda.et.Constants;
  */
 public enum DataStatus {
     /** Data is OK or uncorrupted. */
-    OK               (Constants.dataOk),
+    OK               (EtConstants.dataOk),
     /** Data is worthless or corrupted. */
-    CORRUPT          (Constants.dataCorrupt),
+    CORRUPT          (EtConstants.dataCorrupt),
     /** Data status is unkown and might be corrupted. */
-    POSSIBLYCORRUPT  (Constants.dataPossiblyCorrupt);
+    POSSIBLYCORRUPT  (EtConstants.dataPossiblyCorrupt);
 
     private int value;
 

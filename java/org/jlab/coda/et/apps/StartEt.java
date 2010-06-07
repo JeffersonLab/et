@@ -106,7 +106,7 @@ public class StartEt {
             config.setEventSize(size);
             // set debug level
             if (debug)
-                config.setDebug(Constants.debugInfo);
+                config.setDebug(EtConstants.debugInfo);
             // create an active ET system
             SystemCreate sys = new SystemCreate(file, config);
         }

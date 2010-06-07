@@ -27,7 +27,7 @@ import org.jlab.coda.et.*;
  * @author Carl Timmer
  */
 
-public class StationLocal extends Thread implements EventSelectable {
+public class StationLocal extends Thread implements EtEventSelectable {
 
     /** ET system object. */
     private SystemCreate sys;
@@ -39,11 +39,11 @@ public class StationLocal extends Thread implements EventSelectable {
     private String name;
 
     /** Station configuration object. */
-    private StationConfig config;
+    private EtStationConfig config;
 
-    /** Station status. It may have the values {@link Constants#stationUnused},
-     *  {@link Constants#stationCreating}, {@link Constants#stationIdle}, and
-     *  {@link Constants#stationActive}. */
+    /** Station status. It may have the values {@link org.jlab.coda.et.EtConstants#stationUnused},
+     *  {@link org.jlab.coda.et.EtConstants#stationCreating}, {@link org.jlab.coda.et.EtConstants#stationIdle}, and
+     *  {@link org.jlab.coda.et.EtConstants#stationActive}. */
     private volatile int status;
 
     /** Flag telling this station to kill the conductor thread */
@@ -73,8 +73,8 @@ public class StationLocal extends Thread implements EventSelectable {
     private HashSet<AttachmentLocal> attachments;
 
     /** Predefined event selection method used when the station's select mode
-     *  is {@link Constants#stationSelectMatch}. */
-    private EventSelectable selector;
+     *  is {@link org.jlab.coda.et.EtConstants#stationSelectMatch}. */
+    private EtEventSelectable selector;
 
     /**
      * Creates a new StationLocal object.
@@ -86,14 +86,14 @@ public class StationLocal extends Thread implements EventSelectable {
      * @throws EtException
      *     if the station cannot load the selectClass
      */
-    public StationLocal(SystemCreate sys, String name, StationConfig config, int id)
+    public StationLocal(SystemCreate sys, String name, EtStationConfig config, int id)
             throws EtException {
 
         this.id          = id;
         this.sys         = sys;
         this.name        = name;
-        this.config      = new StationConfig(config);
-        status           = Constants.stationUnused;
+        this.config      = new EtStationConfig(config);
+        status           = EtConstants.stationUnused;
         parallelStations = new LinkedList<StationLocal>();
         stopTransferLock = new ReentrantLock();
 
@@ -101,15 +101,15 @@ public class StationLocal extends Thread implements EventSelectable {
         outputList = new EventList();
 
         // attachments
-        attachments = new HashSet<AttachmentLocal>(Constants.attachmentsMax);
+        attachments = new HashSet<AttachmentLocal>(EtConstants.attachmentsMax);
 
         // user event selection routine
         selector = this;
-        if (config.getSelectMode() == Constants.stationSelectUser) {
+        if (config.getSelectMode() == EtConstants.stationSelectUser) {
             // instantiate object of proper class
             try {
                 Object f = Class.forName(config.getSelectClass()).newInstance();
-                selector = (EventSelectable) f;
+                selector = (EtEventSelectable) f;
             }
             catch (ClassNotFoundException ex) {
                 throw new EtException("station cannot load select class " + config.getSelectClass());
@@ -121,7 +121,7 @@ public class StationLocal extends Thread implements EventSelectable {
                 throw new EtException("station cannot load class " + config.getSelectClass());
             }
 
-            if (sys.getConfig().getDebug() >= Constants.debugInfo) {
+            if (sys.getConfig().getDebug() >= EtConstants.debugInfo) {
                 System.out.println(name + " loaded select class " + config.getSelectClass());
             }
         }
@@ -167,7 +167,7 @@ public class StationLocal extends Thread implements EventSelectable {
      * Get the station configuration.
      * @return tation configuration
      */
-    public StationConfig getConfig() { return config; }
+    public EtStationConfig getConfig() { return config; }
 
     /**
      * Get the linked list of parallel stations.
@@ -176,15 +176,15 @@ public class StationLocal extends Thread implements EventSelectable {
     public LinkedList<StationLocal> getParallelStations() { return parallelStations; }
 
     /**
-     * Get the station status which may be one of the following values: {@link Constants#stationUnused },
-     * {@link Constants#stationCreating}, {@link Constants#stationIdle}, or  {@link Constants#stationActive}.
+     * Get the station status which may be one of the following values: {@link org.jlab.coda.et.EtConstants#stationUnused },
+     * {@link org.jlab.coda.et.EtConstants#stationCreating}, {@link org.jlab.coda.et.EtConstants#stationIdle}, or  {@link org.jlab.coda.et.EtConstants#stationActive}.
      * @return station status
      */
     public int getStatus() { return status; }
 
     /**
-     * Set the station status which may be one of the following values: {@link Constants#stationUnused },
-     * {@link Constants#stationCreating}, {@link Constants#stationIdle}, or {@link Constants#stationActive}.
+     * Set the station status which may be one of the following values: {@link org.jlab.coda.et.EtConstants#stationUnused },
+     * {@link org.jlab.coda.et.EtConstants#stationCreating}, {@link org.jlab.coda.et.EtConstants#stationIdle}, or {@link org.jlab.coda.et.EtConstants#stationActive}.
      * Since the user does not ever call this method, forget any argument checks.
      * @param status station status
      */
@@ -305,20 +305,20 @@ public class StationLocal extends Thread implements EventSelectable {
 
 
     /**
-     * When selectMode equals {@link Constants#stationSelectMatch}, this
+     * When selectMode equals {@link org.jlab.coda.et.EtConstants#stationSelectMatch}, this
      * becomes the station's selection method.
      *
      * @param sys ET system object
      * @param stat station object
      * @param ev event object being evaluated
-     * @see EventSelectable
+     * @see org.jlab.coda.et.EtEventSelectable
      */
-    public boolean select(SystemCreate sys, StationLocal stat, Event ev) {
+    public boolean select(SystemCreate sys, StationLocal stat, EtEvent ev) {
         boolean result = false;
         int[] select  = stat.config.getSelect();
         int[] control = ev.getControl();
 
-        for (int i=0; i < Constants.stationSelectInts ; i++) {
+        for (int i=0; i < EtConstants.stationSelectInts ; i++) {
             if (i%2 == 0) {
                 result = result || ((select[i] != -1) &&
                         (select[i] == control[i]));
@@ -380,26 +380,26 @@ public class StationLocal extends Thread implements EventSelectable {
     public void run() {
         int count, prescale, available, getListSize, position;
         long listTry;
-        EventImpl ev;
+        EtEventImpl ev;
         boolean writeAll, parallelIsActive, rrobinOrEqualcue;
         StationLocal currentStat, stat, firstActive, startStation;
-        List<EventImpl> subList;
+        List<EtEventImpl> subList;
         ListIterator statIterator, pIterator = null;
 
         // inputList of next station
         EventList inList;
         // events read from station's outputList
-        ArrayList<EventImpl> getList = new ArrayList<EventImpl>(sys.getConfig().getNumEvents());
+        ArrayList<EtEventImpl> getList = new ArrayList<EtEventImpl>(sys.getConfig().getNumEvents());
         // events to be put into the next station's inputList
-        ArrayList<EventImpl> putList = new ArrayList<EventImpl>(sys.getConfig().getNumEvents());
+        ArrayList<EtEventImpl> putList = new ArrayList<EtEventImpl>(sys.getConfig().getNumEvents());
 
         // store some constants in stack variables for greater speed
-        final int idle = Constants.stationIdle;
-        final int active = Constants.stationActive;
-        final int blocking = Constants.stationBlocking;
-        final int nonBlocking = Constants.stationNonBlocking;
-        final int selectAll = Constants.stationSelectAll;
-        final int parallel = Constants.stationParallel;
+        final int idle = EtConstants.stationIdle;
+        final int active = EtConstants.stationActive;
+        final int blocking = EtConstants.stationBlocking;
+        final int nonBlocking = EtConstants.stationNonBlocking;
+        final int selectAll = EtConstants.stationSelectAll;
+        final int parallel = EtConstants.stationParallel;
 
         if (name.equals("GRAND_CENTRAL")) {
             status = active;
@@ -476,12 +476,12 @@ public class StationLocal extends Thread implements EventSelectable {
                 firstActive = null;
 
                 // if this is a parallel station ...
-                if (currentStat.config.getFlowMode() == Constants.stationParallel) {
+                if (currentStat.config.getFlowMode() == EtConstants.stationParallel) {
                     // Are any of the parallel stations active or can we skip the bunch?
                     pIterator = currentStat.parallelStations.listIterator();
                     while (pIterator.hasNext()) {
                         stat = (StationLocal) pIterator.next();
-                        if (stat.status == Constants.stationActive) {
+                        if (stat.status == EtConstants.stationActive) {
                             parallelIsActive = true;
                             firstActive = stat;
                             break;
@@ -492,17 +492,17 @@ public class StationLocal extends Thread implements EventSelectable {
 
                     // Which algorithm are we using?
                     if (parallelIsActive &&
-                            ((currentStat.config.getSelectMode() == Constants.stationSelectRRobin) ||
-                                    (currentStat.config.getSelectMode() == Constants.stationSelectEqualCue))) {
+                            ((currentStat.config.getSelectMode() == EtConstants.stationSelectRRobin) ||
+                                    (currentStat.config.getSelectMode() == EtConstants.stationSelectEqualCue))) {
                         rrobinOrEqualcue = true;
                     }
                 }
 
                 // if not rrobin/equalcue & station(s) is(are) active ...
                 if (!rrobinOrEqualcue &&
-                        (parallelIsActive || (currentStat.status == Constants.stationActive))) {
+                        (parallelIsActive || (currentStat.status == EtConstants.stationActive))) {
 
-                    if (currentStat.config.getFlowMode() == Constants.stationParallel) {
+                    if (currentStat.config.getFlowMode() == EtConstants.stationParallel) {
                         // Skip to first active parallel station
                         currentStat = firstActive;
                         inList = currentStat.inputList;
@@ -553,7 +553,7 @@ public class StationLocal extends Thread implements EventSelectable {
                             else if (currentStat.config.getBlockMode() == blocking) {
                                 prescale = currentStat.config.getPrescale();
                                 for (ListIterator i = getList.listIterator(); i.hasNext();) {
-                                    ev = (EventImpl) i.next();
+                                    ev = (EtEventImpl) i.next();
                                     // apply selection method
                                     if (currentStat.selector.select(sys, currentStat, ev)) {
                                         // apply prescale
@@ -572,7 +572,7 @@ public class StationLocal extends Thread implements EventSelectable {
                                 if (inList.getEvents().size() < currentStat.config.getCue()) {
                                     count = currentStat.config.getCue() - inList.getEvents().size();
                                     for (ListIterator i = getList.listIterator(); i.hasNext();) {
-                                        ev = (EventImpl) i.next();
+                                        ev = (EtEventImpl) i.next();
                                         // apply selection method
                                         if (currentStat.selector.select(sys, currentStat, ev)) {
                                             putList.add(ev);
@@ -615,7 +615,7 @@ public class StationLocal extends Thread implements EventSelectable {
                             do {
                                 if (pIterator.hasNext()) {
                                     stat = (StationLocal) pIterator.next();
-                                    if (stat.status == Constants.stationActive) {
+                                    if (stat.status == EtConstants.stationActive) {
                                         currentStat = stat;
                                         inList = currentStat.inputList;
                                         break;
@@ -624,7 +624,7 @@ public class StationLocal extends Thread implements EventSelectable {
                                 else {
                                     break parallelDo;
                                 }
-                            } while (stat.status != Constants.stationActive);
+                            } while (stat.status != EtConstants.stationActive);
                         }
 
                         // loop through active parallel stations if necessary
@@ -641,7 +641,7 @@ public class StationLocal extends Thread implements EventSelectable {
                     int eventsPerStation, nextHigherCue, eventsDoledOut, stationsWithSameCue;
                     int[] numEvents;
 
-                    if (currentStat.config.getSelectMode() == Constants.stationSelectRRobin) {
+                    if (currentStat.config.getSelectMode() == EtConstants.stationSelectRRobin) {
                         // Flag to start looking for station that receives first round-robin event
                         boolean startLooking = false;
                         stat = currentStat;
@@ -649,7 +649,7 @@ public class StationLocal extends Thread implements EventSelectable {
 
                         while (true) {
                             // for each active station ...
-                            if (stat.status == Constants.stationActive) {
+                            if (stat.status == EtConstants.stationActive) {
                                 if (startLooking) {
                                     // This is the first active station after
                                     // the last station to receive an event.
@@ -726,7 +726,7 @@ public class StationLocal extends Thread implements EventSelectable {
 
                         while (true) {
                             // For each active parallel station ...
-                            if (stat.status == Constants.stationActive) {
+                            if (stat.status == EtConstants.stationActive) {
                                 // Mark station that got the last event
                                 if (count == lastEventIndex) {
                                     stat.wasLast = true;
@@ -789,7 +789,7 @@ public class StationLocal extends Thread implements EventSelectable {
                         stat = firstActive;
                         while (true) {
                             // For each active station ...
-                            if (stat.status == Constants.stationActive) {
+                            if (stat.status == EtConstants.stationActive) {
                                 // Find total # of events in stations' input lists.
                                 // Store this information as it will change and we don't
                                 // really want to grab all the input mutexes to make
@@ -876,7 +876,7 @@ public class StationLocal extends Thread implements EventSelectable {
 
                         while (true) {
                             // for each active parallel station ...
-                            if (stat.status == Constants.stationActive) {
+                            if (stat.status == EtConstants.stationActive) {
 
                                 if ((eventsToPut = numEvents[count++]) < 1) {
                                     // find next station in the parallel linked list

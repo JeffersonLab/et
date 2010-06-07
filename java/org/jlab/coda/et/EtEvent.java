@@ -26,7 +26,7 @@ import java.nio.ByteOrder;
 /**
  * Interface used to define methods necessary to be an Event.
  */
-public interface Event {
+public interface EtEvent {
 
     /**
      * Initialize an event's fields. Called for an event each time it passes
@@ -46,8 +46,8 @@ public interface Event {
 
     /**
      * Gets the age of the event, either {@link Age#NEW} if a new event obtained through
-     * calling {@link SystemUse#newEvents} or {@link Age#USED} if obtained through calling
-     * {@link SystemUse#getEvents}.
+     * calling {@link EtSystemUse#newEvents} or {@link Age#USED} if obtained through calling
+     * {@link EtSystemUse#getEvents}.
      *
      * @return age of the event.
      */
@@ -129,9 +129,9 @@ public interface Event {
 
     /**
      * Gets the attachment id of the attachment which owns or got the event.
-     * If it's owned by the system its value is {@link Constants#system}.
+     * If it's owned by the system its value is {@link EtConstants#system}.
      *
-     * @return id of owning attachment or {@link Constants#system} if system owns it
+     * @return id of owning attachment or {@link EtConstants#system} if system owns it
      */
     public int getOwner();
 
@@ -178,8 +178,8 @@ public interface Event {
 
     /**
      * Set the event's byte order by using values consistent with C-based ET systems,
-     * {@link Constants#endianBig}, {@link Constants#endianLittle}, {@link Constants#endianLocal},
-     * {@link Constants#endianNotLocal}, or {@link Constants#endianSwitch}.
+     * {@link EtConstants#endianBig}, {@link EtConstants#endianLittle}, {@link EtConstants#endianLocal},
+     * {@link EtConstants#endianNotLocal}, or {@link EtConstants#endianSwitch}.
      *
      * @param endian endian value
      * @throws EtException if argument is a bad value

@@ -53,8 +53,8 @@ public class Monitor extends JFrame {
     private int defaultPeriod;
 
     // keep track of connections to & monitors of ET systems
-    public final Map<String,SystemUse> connections =
-            Collections.synchronizedMap(new HashMap<String,SystemUse>(20));
+    public final Map<String, EtSystemUse> connections =
+            Collections.synchronizedMap(new HashMap<String, EtSystemUse>(20));
     public final Map<String,MonitorSingleSystem> monitors =
             Collections.synchronizedMap(new HashMap<String,MonitorSingleSystem>(20));
 
@@ -181,9 +181,9 @@ public class Monitor extends JFrame {
 
     // add host names to combo box
     public boolean addHostname(String name) {
-        if (name.equals(Constants.hostLocal) ||
-                name.equals(Constants.hostRemote) ||
-                name.equals(Constants.hostAnywhere)) {
+        if (name.equals(EtConstants.hostLocal) ||
+                name.equals(EtConstants.hostRemote) ||
+                name.equals(EtConstants.hostAnywhere)) {
             return false;
         }
         boolean nameIsThere = false;
@@ -440,7 +440,7 @@ public class Monitor extends JFrame {
                             frame.removeConnection(frame, mon, key, false);
                             // Remove single system monitor from hash table.
                             i.remove();
-                            // Remove SystemUse object from hash table.
+                            // Remove EtSystemUse object from hash table.
                             frame.connections.remove(key);
 
                             //ex.printStackTrace();
@@ -1194,7 +1194,7 @@ public class Monitor extends JFrame {
         l3.setForeground(titleColor);
 
         // text input for udp/broadcast port number
-        udpPort = new WholeNumberField(Constants.broadcastPort, 8, 1024, 65535);
+        udpPort = new WholeNumberField(EtConstants.broadcastPort, 8, 1024, 65535);
         udpPort.setAlignmentX(Component.LEFT_ALIGNMENT);
         udpPort.setFont(MonitorFonts.inputFont);
         udpPort.setForeground(textColor);
@@ -1223,7 +1223,7 @@ public class Monitor extends JFrame {
         );
 
         // text input for udp multicast port number
-        mcastPort = new WholeNumberField(Constants.multicastPort, 8, 1024, 65535);
+        mcastPort = new WholeNumberField(EtConstants.multicastPort, 8, 1024, 65535);
         mcastPort.setAlignmentX(Component.LEFT_ALIGNMENT);
         mcastPort.setFont(MonitorFonts.inputFont);
         mcastPort.setForeground(textColor);
@@ -1252,7 +1252,7 @@ public class Monitor extends JFrame {
         );
 
         // text input for tcp server port number
-        tcpPort = new WholeNumberField(Constants.serverPort, 8, 1024, 65535);
+        tcpPort = new WholeNumberField(EtConstants.serverPort, 8, 1024, 65535);
         tcpPort.setFont(MonitorFonts.inputFont);
         tcpPort.setAlignmentX(Component.LEFT_ALIGNMENT);
         tcpPort.setForeground(textColor);
@@ -1280,7 +1280,7 @@ public class Monitor extends JFrame {
         );
 
         // text input for TTL value
-        ttl = new WholeNumberField(Constants.multicastTTL, 6, 0, 255);
+        ttl = new WholeNumberField(EtConstants.multicastTTL, 6, 0, 255);
         ttl.setFont(MonitorFonts.inputFont);
         ttl.setAlignmentX(Component.LEFT_ALIGNMENT);
         ttl.setForeground(textColor);
@@ -1450,7 +1450,7 @@ public class Monitor extends JFrame {
         connect.setBackground(backgroundColor);
         connect.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                SystemOpenConfig config = getEtSystemConfig();
+                EtSystemOpenConfig config = getEtSystemConfig();
                 if (config == null) return;
                 addEtSystem(config);
             }
@@ -1488,7 +1488,7 @@ public class Monitor extends JFrame {
     /**
      * Do everything to add another monitored ET system to this application.
      */
-    private void addEtSystem(final SystemOpenConfig config) {
+    private void addEtSystem(final EtSystemOpenConfig config) {
         ConnectionThread t = new ConnectionThread(Monitor.this, config);
         t.start();
     }
@@ -1497,7 +1497,7 @@ public class Monitor extends JFrame {
     /**
      * Do everything to add another monitored ET system to this application.
      */
-    public void addEtSystem(final SystemOpenConfig config, int updatePeriod,
+    public void addEtSystem(final EtSystemOpenConfig config, int updatePeriod,
                             int dividerLocation, int orientation, Color[] colors) {
         ConnectionThread t = new ConnectionThread(Monitor.this, config,
                                                   updatePeriod,
@@ -1511,11 +1511,11 @@ public class Monitor extends JFrame {
     /**
      * Gather data about which ET system and how to connect to it.
      */
-    private SystemOpenConfig getEtSystemConfig() {
+    private EtSystemOpenConfig getEtSystemConfig() {
 
         try {
             boolean specifingHostname = false;
-            SystemOpenConfig config = null;
+            EtSystemOpenConfig config = null;
 
             // Get ET system name.
             String etSystem = (String) etName.getSelectedItem();
@@ -1525,14 +1525,14 @@ public class Monitor extends JFrame {
             String howToConnect = (String) cast.getSelectedItem();
 
             if (host.equals("local")) {
-                host = Constants.hostLocal;
+                host = EtConstants.hostLocal;
                 specifingHostname = true;
             }
             else if (host.equals("remote")) {
-                host = Constants.hostRemote;
+                host = EtConstants.hostRemote;
             }
             else if (host.equals("anywhere")) {
-                host = Constants.hostAnywhere;
+                host = EtConstants.hostAnywhere;
             }
             else {
                 specifingHostname = true;
@@ -1553,10 +1553,10 @@ public class Monitor extends JFrame {
                     }
                 }
                 int port = udpPort.getValue();
-                config = new SystemOpenConfig(etSystem, host, Arrays.asList(addresses), port);
+                config = new EtSystemOpenConfig(etSystem, host, Arrays.asList(addresses), port);
                 */
                 int port = udpPort.getValue();
-                config = new SystemOpenConfig(etSystem, port, host);
+                config = new EtSystemOpenConfig(etSystem, port, host);
             }
 
             else if (howToConnect.equals("multicasting")) {
@@ -1578,7 +1578,7 @@ public class Monitor extends JFrame {
                 // port. This is significant since going local or to a specific host,
                 // a direct udp packet is sent to that host on the udp port
                 // (as well as the specified multicast).
-                config = new SystemOpenConfig(etSystem, host,
+                config = new EtSystemOpenConfig(etSystem, host,
                                               Arrays.asList(addresses),
                                               uPort, mPort, ttlval);
             }
@@ -1604,11 +1604,11 @@ public class Monitor extends JFrame {
                 int tPort = tcpPort.getValue();
                 int ttlval = ttl.getValue();
 
-                config = new SystemOpenConfig(etSystem, host, true,
+                config = new EtSystemOpenConfig(etSystem, host, true,
                                               Arrays.asList(mAddresses), true,
-                                              Constants.broadAndMulticast,
+                                              EtConstants.broadAndMulticast,
                                               tPort, uPort, mPort, ttlval,
-                                              Constants.policyError);
+                                              EtConstants.policyError);
             }
 
             else if (howToConnect.equals("direct connection")) {
@@ -1619,7 +1619,7 @@ public class Monitor extends JFrame {
                     throw new EtException("Specify a host's name (not remote, or anywhere) to make a direct connection.");
                 }
                 int port = tcpPort.getValue();
-                config = new SystemOpenConfig(etSystem, host, port);
+                config = new EtSystemOpenConfig(etSystem, host, port);
             }
 
             return config;
@@ -1639,16 +1639,16 @@ public class Monitor extends JFrame {
     /**
      * Make a connection to an ET system & record it.
      */
-    public SystemUse makeConnection(final SystemOpenConfig config) {
+    public EtSystemUse makeConnection(final EtSystemOpenConfig config) {
         if (config == null) {
             return null;
         }
 
-        // Make a connection. Use SystemOpen object directly here
-        // instead of SystemUse object so we can see exactly who
+        // Make a connection. Use EtSystemOpen object directly here
+        // instead of EtSystemUse object so we can see exactly who
         // responded to a broad/multicast if there were multiple
         // responders.
-        SystemOpen open = new SystemOpen(config);
+        EtSystemOpen open = new EtSystemOpen(config);
 
         // Change cursor & disable button for waiting.
         openFrame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -1711,7 +1711,7 @@ public class Monitor extends JFrame {
                 try {
                     config.setHost(host);
                     config.setTcpPort(port);
-                    config.setNetworkContactMethod(Constants.direct);
+                    config.setNetworkContactMethod(EtConstants.direct);
                     open.connect();
                 }
                 catch (Exception except) {
@@ -1764,10 +1764,10 @@ public class Monitor extends JFrame {
             return null;
         }
 
-        // Return a SystemUse object - create from SystemOpen object
-        SystemUse use = null;
+        // Return a EtSystemUse object - create from EtSystemOpen object
+        EtSystemUse use = null;
         try {
-            use = new SystemUse(open, Constants.debugNone);
+            use = new EtSystemUse(open, EtConstants.debugNone);
         }
         catch (Exception ex) {
             open.disconnect();
@@ -1783,7 +1783,7 @@ public class Monitor extends JFrame {
         connections.put(key, use);
 
         // Finally, put an item into the "Load Connection Parameters" menu
-        final SystemUse useObject = use;
+        final EtSystemUse useObject = use;
         final JMenuItem menuItem = new JMenuItem(key);
         menuItem.setFont(MonitorFonts.buttonTabMenuFont);
         menuItem.setBackground(backgroundColor);
@@ -1793,7 +1793,7 @@ public class Monitor extends JFrame {
         menuItem.addActionListener(
                 new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        SystemOpenConfig config = useObject.getConfig();
+                        EtSystemOpenConfig config = useObject.getConfig();
 
                         // Add ET system name (if not listed already).
                         addFileName(config.getEtName());
@@ -1801,13 +1801,13 @@ public class Monitor extends JFrame {
                         etName.setSelectedItem(config.getEtName());
                         // Add hostname (if not listed already).
                         String host = config.getHost();
-                        if (host.equals(Constants.hostLocal)) {
+                        if (host.equals(EtConstants.hostLocal)) {
                             host = "local";
                         }
-                        else if (host.equals(Constants.hostRemote)) {
+                        else if (host.equals(EtConstants.hostRemote)) {
                             host = "remote";
                         }
-                        else if (host.equals(Constants.hostAnywhere)) {
+                        else if (host.equals(EtConstants.hostAnywhere)) {
                             host = "anywhere";
                         }
                         if (addHostname(host)) {
@@ -1817,15 +1817,15 @@ public class Monitor extends JFrame {
 
                         // select contact method
                         int method = config.getNetworkContactMethod();
-                        if (method == Constants.broadcast) {
+                        if (method == EtConstants.broadcast) {
                             cast.setSelectedItem("broadcasting");
                             // set broadcast addresses
                             bAddress.removeAllItems();
-                            bAddress.addItem(SystemOpenConfig.broadcastIP);
+                            bAddress.addItem(EtSystemOpenConfig.broadcastIP);
                             // broadcast port
                             udpPort.setValue(config.getUdpPort());
                         }
-                        else if (method == Constants.multicast) {
+                        else if (method == EtConstants.multicast) {
                             cast.setSelectedItem("multicasting");
                             // set multicast addresses
                             mAddress.removeAllItems();
@@ -1840,11 +1840,11 @@ public class Monitor extends JFrame {
                             // ttl value
                             ttl.setValue(config.getTTL());
                         }
-                        else if (method == Constants.broadAndMulticast) {
+                        else if (method == EtConstants.broadAndMulticast) {
                             cast.setSelectedItem("broad & multicasting");
                             // set broadcast addresses
                             bAddress.removeAllItems();
-                            bAddress.addItem(SystemOpenConfig.broadcastIP);
+                            bAddress.addItem(EtSystemOpenConfig.broadcastIP);
                             // set multicast addresses
                             mAddress.removeAllItems();
                             HashSet set = config.getMulticastAddrs();
@@ -1858,7 +1858,7 @@ public class Monitor extends JFrame {
                             // ttl value
                             ttl.setValue(config.getTTL());
                         }
-                        else if (method == Constants.direct) {
+                        else if (method == EtConstants.direct) {
                             cast.setSelectedItem("direct connection");
                             // tcp port
                             tcpPort.setValue(config.getTcpPort());
@@ -1907,7 +1907,7 @@ public class Monitor extends JFrame {
         if (notInIterator) {
             // Remove single system monitor from hash table.
             monitor.monitors.remove(key);
-            // Remove SystemUse object from hash table.
+            // Remove EtSystemUse object from hash table.
             monitor.connections.remove(key);
         }
 
@@ -1930,7 +1930,7 @@ public class Monitor extends JFrame {
     /**
      * Display a new ET system connection.
      */
-    public void displayEtSystem(final SystemOpenConfig config, final SystemUse use) {
+    public void displayEtSystem(final EtSystemOpenConfig config, final EtSystemUse use) {
         displayEtSystem(config, use, defaultPeriod, tabbedPane.getWidth() / 2,
                         JSplitPane.HORIZONTAL_SPLIT, null);
     }
@@ -1939,7 +1939,7 @@ public class Monitor extends JFrame {
     /**
      * Display a new ET system connection.
      */
-    public void displayEtSystem(final SystemOpenConfig config, final SystemUse use,
+    public void displayEtSystem(final EtSystemOpenConfig config, final EtSystemUse use,
                                 int updatePeriod, int dividerLocation,
                                 int orientation, Color[] colors) {
 
@@ -2001,16 +2001,16 @@ public class Monitor extends JFrame {
  */
 
 class ConnectionThread extends Thread {
-    private SystemUse use;
+    private EtSystemUse use;
     private final Monitor monitor;
     private final Runnable runnable;
-    private final SystemOpenConfig config;
+    private final EtSystemOpenConfig config;
 
-    public SystemUse getSystemUse() {
+    public EtSystemUse getSystemUse() {
         return use;
     }
 
-    public ConnectionThread(final Monitor mon, SystemOpenConfig con) {
+    public ConnectionThread(final Monitor mon, EtSystemOpenConfig con) {
         monitor = mon;
         config = con;
         runnable = new Runnable() {
@@ -2020,7 +2020,7 @@ class ConnectionThread extends Thread {
         };
     }
 
-    public ConnectionThread(final Monitor mon, SystemOpenConfig con,
+    public ConnectionThread(final Monitor mon, EtSystemOpenConfig con,
                             final int updatePeriod, final int dividerLocation,
                             final int orientation, final Color[] colors) {
         monitor = mon;

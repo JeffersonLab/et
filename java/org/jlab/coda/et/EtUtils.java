@@ -18,7 +18,7 @@ package org.jlab.coda.et;
  * Collection of methods to help manipulate bytes in arrays.
  * @author timmer
  */
-public class Utils {
+public class EtUtils {
     /**
      * Copies a short value into 2 bytes of a byte array.
      * @param shortVal short value

@@ -17,9 +17,9 @@ package org.jlab.coda.et.system;
 import java.lang.*;
 import java.util.*;
 import org.jlab.coda.et.exception.*;
-import org.jlab.coda.et.Event;
-import org.jlab.coda.et.Constants;
-import org.jlab.coda.et.EventImpl;
+import org.jlab.coda.et.EtEvent;
+import org.jlab.coda.et.EtConstants;
+import org.jlab.coda.et.EtEventImpl;
 import org.jlab.coda.et.enums.Priority;
 
 /**
@@ -32,7 +32,7 @@ import org.jlab.coda.et.enums.Priority;
 class EventList {
 
     /** Linked list of events. */
-    private LinkedList<EventImpl> events;
+    private LinkedList<EtEventImpl> events;
 
     /** Number of events put into this list. */
     private long eventsIn;
@@ -61,7 +61,7 @@ class EventList {
 
     /** Construct a new EventList object. */
     EventList() {
-        events = new LinkedList<EventImpl>();
+        events = new LinkedList<EtEventImpl>();
     }
 
 
@@ -70,7 +70,7 @@ class EventList {
      * Get the linked list of events.
      * @return linked list of events
      */
-    LinkedList<EventImpl> getEvents() {
+    LinkedList<EtEventImpl> getEvents() {
         return events;
     }
 
@@ -155,7 +155,7 @@ class EventList {
      * filling of GRAND_CENTRAL station.
      * @param newEvents list of events to put
      */
-    void putInLow(List<EventImpl> newEvents) {
+    void putInLow(List<EtEventImpl> newEvents) {
         // add all events to list's end
         events.addAll(newEvents);
         // keep stats
@@ -168,7 +168,7 @@ class EventList {
      * GRAND_CENTRAL station.
      * @param newEvents array of events to put
      */
-    synchronized void putInGC(EventImpl[] newEvents) {
+    synchronized void putInGC(EtEventImpl[] newEvents) {
         // convert array to list and put as low priority events
         putInLow(Arrays.asList(newEvents));
     }
@@ -179,7 +179,7 @@ class EventList {
      * GRAND_CENTRAL station.
      * @param newEvents list of events to put
      */
-    synchronized void putInGC(List<EventImpl> newEvents) {
+    synchronized void putInGC(List<EtEventImpl> newEvents) {
         putInLow(newEvents);
     }
 
@@ -191,7 +191,7 @@ class EventList {
      * newEvents.
      * @param newEvents list of events to put
      */
-    void putAll(List<EventImpl> newEvents) {
+    void putAll(List<EtEventImpl> newEvents) {
         // number of incoming events
         int num = newEvents.size();
 
@@ -213,7 +213,7 @@ class EventList {
         else {
             // find last high priority event already in list
             int highCount = 0;
-            for (Event ev : events) {
+            for (EtEvent ev : events) {
                 if (ev.getPriority() != Priority.HIGH) {
                     break;
                 }
@@ -223,7 +223,7 @@ class EventList {
 
             // add new high pri items
             int newHighCount = 0;
-            for (EventImpl ev : newEvents) {
+            for (EtEventImpl ev : newEvents) {
                 if (ev.getPriority() != Priority.HIGH) {
                     break;
                 }
@@ -248,14 +248,14 @@ class EventList {
      * restore events to the input list when user connection is broken.
      * @param newEvents array of events to put
      */
-    synchronized void put(EventImpl[] newEvents) {
+    synchronized void put(EtEventImpl[] newEvents) {
         // if no events in list, initialize lastHigh
         if (events.size() == 0) {
             lastHigh = 0;
         }
 
         // put events in one-by-one - with place depending on priority
-        for (EventImpl ev : newEvents) {
+        for (EtEventImpl ev : newEvents) {
             // if low priority event, add to the list end
             if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
@@ -277,14 +277,14 @@ class EventList {
      * restore events to the input list when user connection is broken.
      * @param newEvents list of events to put
      */
-    synchronized void put(List<EventImpl> newEvents) {
+    synchronized void put(List<EtEventImpl> newEvents) {
         // if no events in list, initialize lastHigh
         if (events.size() == 0) {
             lastHigh = 0;
         }
 
         // put events in one-by-one - with place depending on priority
-        for (EventImpl ev : newEvents) {
+        for (EtEventImpl ev : newEvents) {
             // if low priority event, add to the list end
             if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
@@ -308,7 +308,7 @@ class EventList {
      * Used to restore events to input/output lists when user connection is broken.
      * @param newEvents list of events to put
      */
-    synchronized void putReverse(List<EventImpl> newEvents) {
+    synchronized void putReverse(List<EtEventImpl> newEvents) {
         // if no events in list, initialize lastHigh
         if (events.size() == 0) {
             lastHigh = 0;
@@ -317,7 +317,7 @@ class EventList {
             // The lastHigh is NOT tracked for input lists, so let's do
             // it here since this method can be used for input lists.
             int highCount = 0;
-            for (Event ev : events) {
+            for (EtEvent ev : events) {
                 if (ev.getPriority() != Priority.HIGH) {
                     break;
                 }
@@ -327,7 +327,7 @@ class EventList {
         }
 
         // put events in one-by-one - with place depending on priority
-        for (EventImpl ev : newEvents) {
+        for (EtEventImpl ev : newEvents) {
             // if low priority event, add below last high priority but above low priority events
             if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
@@ -349,7 +349,7 @@ class EventList {
      * Used only by conductor to get all events from a station's output list.
      * @param eventsToGo list of event to get
      */
-    synchronized void get(List<EventImpl> eventsToGo) {
+    synchronized void get(List<EtEventImpl> eventsToGo) {
         eventsToGo.addAll(events);
         eventsOut += events.size();
         events.clear();
@@ -372,7 +372,7 @@ class EventList {
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      */
-    synchronized EventImpl[] get(AttachmentLocal att, int mode, int microSec, int quantity)
+    synchronized EtEventImpl[] get(AttachmentLocal att, int mode, int microSec, int quantity)
             throws EtEmptyException, EtWakeUpException, EtTimeoutException {
 
         int  nanos, count = events.size();
@@ -381,7 +381,7 @@ class EventList {
         // Sleep mode is never used since it is implemented in the TcpServer
         // thread by repeated calls in timed mode.
         if (count == 0) {
-            if (mode == Constants.sleep) {
+            if (mode == EtConstants.sleep) {
                 while (count < 1) {
                     waitingCount++;
                     att.setWaiting(true);
@@ -408,7 +408,7 @@ class EventList {
                     count = events.size();
                 }
             }
-            else if (mode == Constants.timed) {
+            else if (mode == EtConstants.timed) {
                 while (count < 1) {
                     microDelay = microSec - 1000*elapsedTime;
                     milliSec   = microDelay/1000L;
@@ -446,7 +446,7 @@ class EventList {
 //System.out.println("  get" + att.id + ": woke up and counts = " + count);
                 }
             }
-            else if (mode == Constants.async) {
+            else if (mode == EtConstants.async) {
                 throw new EtEmptyException("no events in list");
             }
         }
@@ -456,8 +456,8 @@ class EventList {
         }
 //System.out.println("  get"+ att.id + ": quantity = " + quantity);
 
-        List<EventImpl> deleteList = events.subList(0, quantity);
-        EventImpl[] eventsToGo = new EventImpl[quantity];
+        List<EtEventImpl> deleteList = events.subList(0, quantity);
+        EtEventImpl[] eventsToGo = new EtEventImpl[quantity];
         deleteList.toArray(eventsToGo);
         deleteList.clear();
 
@@ -482,19 +482,19 @@ class EventList {
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
      */
-    synchronized List<EventImpl> get(AttachmentLocal att, int mode, int microSec, int quantity, int group)
+    synchronized List<EtEventImpl> get(AttachmentLocal att, int mode, int microSec, int quantity, int group)
             throws EtEmptyException, EtWakeUpException, EtTimeoutException {
 
         int nanos, count = events.size(), groupCount = 0;
-        EventImpl ev;
+        EtEventImpl ev;
         boolean scanList = true;
         long begin, microDelay, milliSec, elapsedTime = 0;
-        LinkedList<EventImpl> groupList = new LinkedList<EventImpl>();
+        LinkedList<EtEventImpl> groupList = new LinkedList<EtEventImpl>();
 
         // Sleep mode is never used since it is implemented in the TcpServer
         // thread by repeated calls in timed mode.
         do {
-            if (mode == Constants.sleep) {
+            if (mode == EtConstants.sleep) {
                 while (count < 1 || !scanList) {
                     waitingCount++;
                     att.setWaiting(true);
@@ -522,7 +522,7 @@ class EventList {
                     scanList = true;
                 }
             }
-            else if (mode == Constants.timed) {
+            else if (mode == EtConstants.timed) {
                 while (count < 1 || !scanList) {
                     microDelay = microSec - 1000*elapsedTime;
                     milliSec   = microDelay/1000L;
@@ -565,7 +565,7 @@ class EventList {
                     scanList = true;
                 }
             }
-            else if (mode == Constants.async) {
+            else if (mode == EtConstants.async) {
                 throw new EtEmptyException("no events in list");
             }
 
@@ -575,7 +575,7 @@ class EventList {
 //System.out.println("  get"+ att.id + ": quantity = " + quantity);
 
             for (ListIterator liter = events.listIterator(); liter.hasNext(); ) {
-                ev = (EventImpl)liter.next();
+                ev = (EtEventImpl)liter.next();
                 if (ev.getGroup() == group) {
                     groupList.add(ev);
                     if (++groupCount >= quantity)  break;
@@ -585,7 +585,7 @@ class EventList {
             scanList = false;
 
             // If we got nothing and we're Constants.sleep or Constants.timed, then try again
-        } while (groupCount == 0 && mode != Constants.async);
+        } while (groupCount == 0 && mode != EtConstants.async);
 
         // remove from this list
         events.removeAll(groupList);
