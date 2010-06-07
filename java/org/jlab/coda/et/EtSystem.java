@@ -74,22 +74,8 @@ public class EtSystem {
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
      * @param debug  debug level (e.g. {@link EtConstants#debugInfo})
-     *
-     * @throws java.io.IOException
-     *     if problems with network comunications
-     * @throws java.net.UnknownHostException
-     *     if the host address(es) is(are) unknown
-     * @throws EtException
-     *     if the responding ET system has the wrong name, runs a different
-     *     version of ET, or has a different value for
-     *     {@link EtConstants#stationSelectInts}
-     * @throws EtTooManyException
-     *     if there were more than one valid response when policy is set to
-     *     {@link EtConstants#policyError} and we are looking either
-     *     remotely or anywhere for the ET system.
      */
-    public EtSystem(EtSystemOpenConfig config, int debug) throws
-            IOException, EtException, EtTooManyException {
+    public EtSystem(EtSystemOpenConfig config, int debug) {
 
         openConfig = new EtSystemOpenConfig(config);
         sys = new EtSystemOpen(openConfig);
@@ -106,7 +92,10 @@ public class EtSystem {
             this.debug = debug;
         }
 
-        sys.setDebug(debug);
+        try {
+            sys.setDebug(debug);
+        }
+        catch (EtException e) { /* never happen */ }
 
         //open();
     }
@@ -116,19 +105,6 @@ public class EtSystem {
      *
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
-     *
-     * @throws IOException
-     *     if problems with network comunications
-     * @throws UnknownHostException
-     *     if the host address(es) is(are) unknown
-     * @throws EtException
-     *     if the responding ET system has the wrong name, runs a different
-     *     version of ET, or has a different value for
-     *     {@link EtConstants#stationSelectInts}
-     * @throws EtTooManyException
-     *     if there were more than one valid response when policy is set to
-     *     {@link EtConstants#policyError} and we are looking either
-     *     remotely or anywhere for the ET system.
      */
     public EtSystem(EtSystemOpenConfig config) throws
             IOException, EtException, EtTooManyException {
