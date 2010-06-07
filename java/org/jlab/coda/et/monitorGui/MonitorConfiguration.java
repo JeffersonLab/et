@@ -371,7 +371,7 @@ public class MonitorConfiguration extends DefaultHandler {
                     while (tok.hasMoreTokens()) {
                         mAddrs[index++] = tok.nextToken();
                     }
-                    config = new EtSystemOpenConfig(etSystem, host, true,
+                    config = new EtSystemOpenConfig(etSystem, host,
                                                   Arrays.asList(mAddrs), true,
                                                   EtConstants.broadAndMulticast,
                                                   dummy, broadcastPort, multicastPort, ttl,

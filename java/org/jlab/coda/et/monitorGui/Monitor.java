@@ -1604,7 +1604,7 @@ public class Monitor extends JFrame {
                 int tPort = tcpPort.getValue();
                 int ttlval = ttl.getValue();
 
-                config = new EtSystemOpenConfig(etSystem, host, true,
+                config = new EtSystemOpenConfig(etSystem, host,
                                               Arrays.asList(mAddresses), true,
                                               EtConstants.broadAndMulticast,
                                               tPort, uPort, mPort, ttlval,

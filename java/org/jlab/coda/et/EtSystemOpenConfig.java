@@ -93,7 +93,6 @@ public class EtSystemOpenConfig {
      *                 2) dotted decimal address of ET system's host, or
      *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
      *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
-     * @param broadcasting do we UDP broadcast to find ET system?
      * @param mAddrs collection of multicast addresses (as Strings) to mulitcast to in order to
      *               find ET system
      * @param remoteOnly <code>true</code> if talking to ET system only through sockets
@@ -120,8 +119,8 @@ public class EtSystemOpenConfig {
      *     if policy value is not valid
      */
     public EtSystemOpenConfig(String etName, String hostName,
-                             boolean broadcasting, Collection<String> mAddrs,
-                             boolean remoteOnly, int method, int tPort, int uPort,
+                             Collection<String> mAddrs, boolean remoteOnly,
+                             int method, int tPort, int uPort,
                              int mPort, int ttlNum, int policy)
             throws EtException {
 
@@ -136,8 +135,6 @@ public class EtSystemOpenConfig {
                 throw new EtException("Bad host or location name");
             }
         }
-
-        this.broadcasting = broadcasting;
 
         boolean noMulticastAddrs = true;
         if ((mAddrs == null) || (mAddrs.size() < 1)) {
@@ -160,16 +157,20 @@ public class EtSystemOpenConfig {
             networkContactMethod = method;
         }
 
+        // do we broadcast?
+        broadcasting = !(networkContactMethod == EtConstants.direct ||
+                         networkContactMethod == EtConstants.multicast);
 
+        // inconsistencies?
         if (networkContactMethod == EtConstants.direct) {
             if (host.equals(EtConstants.hostRemote) ||
-                    host.equals(EtConstants.hostAnywhere)) {
+                host.equals(EtConstants.hostAnywhere)) {
                 throw new EtException("Need to specify an actual host name");
             }
         }
         else if ( ((networkContactMethod == EtConstants.multicast) ||
-                (networkContactMethod == EtConstants.broadAndMulticast))
-                && noMulticastAddrs) {
+                   (networkContactMethod == EtConstants.broadAndMulticast)) &&
+                    noMulticastAddrs) {
             throw new EtException("Need to specify a multicast address");
         }
 
@@ -227,7 +228,7 @@ public class EtSystemOpenConfig {
      */
     public EtSystemOpenConfig(String etName, String hostName)
             throws EtException {
-        this (etName, hostName, true, null, false, EtConstants.broadcast,
+        this (etName, hostName, null, false, EtConstants.broadcast,
               EtConstants.serverPort, EtConstants.broadcastPort, EtConstants.multicastPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
@@ -250,7 +251,7 @@ public class EtSystemOpenConfig {
      */
     public EtSystemOpenConfig(String etName, int uPort, String hostName)
             throws EtException {
-        this (etName, hostName, true, null, false, EtConstants.broadcast,
+        this (etName, hostName, null, false, EtConstants.broadcast,
               EtConstants.serverPort, uPort, EtConstants.multicastPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
@@ -276,7 +277,7 @@ public class EtSystemOpenConfig {
     public EtSystemOpenConfig(String etName, String hostName,
                              Collection<String> mAddrs, int mPort, int ttlNum)
             throws EtException {
-        this (etName, hostName, false, mAddrs, false, EtConstants.multicast,
+        this (etName, hostName, mAddrs, false, EtConstants.multicast,
               EtConstants.serverPort, EtConstants.broadcastPort, mPort,
               ttlNum, EtConstants.policyFirst);
     }
@@ -303,7 +304,7 @@ public class EtSystemOpenConfig {
     public EtSystemOpenConfig(String etName, String hostName,
                              Collection<String> mAddrs, int uPort, int mPort, int ttlNum)
             throws EtException {
-        this (etName, hostName, false, mAddrs, false, EtConstants.multicast,
+        this (etName, hostName, mAddrs, false, EtConstants.multicast,
               EtConstants.serverPort, uPort, mPort,
               ttlNum, EtConstants.policyFirst);
     }
@@ -323,7 +324,7 @@ public class EtSystemOpenConfig {
      */
     public EtSystemOpenConfig(String etName, String hostName, int tPort)
             throws EtException {
-        this (etName, hostName, false, null, false, EtConstants.direct,
+        this (etName, hostName, null, false, EtConstants.direct,
               tPort, EtConstants.broadcastPort, EtConstants.multicastPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
