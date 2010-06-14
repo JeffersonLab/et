@@ -23,7 +23,7 @@
 #include <unistd.h>
 
 #include "et_private.h"
-#include "org_jlab_coda_et_JniAccess.h"
+#include "org_jlab_coda_et_EtJniAccess.h"
 
 
 static int debug = 0;
@@ -37,11 +37,11 @@ static jmethodID constrMethodId1, constrMethodId2,
 
 
 /*
- * Class:     org_jlab_coda_et_JniAccess
+ * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    closeLocalEtSystem
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_closeLocalEtSystem
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_closeLocalEtSystem
         (JNIEnv *env, jobject thisObj, jlong etId)
 {
     et_close((et_sys_id)etId);
@@ -49,11 +49,11 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_closeLocalEtSystem
 
 
 /*
- * Class:     org_jlab_coda_et_JniAccess
+ * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    openLocalEtSystem
  * Signature: (Ljava/lang/String;)J
  */
-JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
         (JNIEnv *env, jobject thisObj, jstring fileName)
 {
     int err;
@@ -86,7 +86,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
         return;
     }
     et_open_config_destroy(openconfig);
-    
+
     /* store byte order of local system */
     localByteOrder = et_byteorder();
     if (localByteOrder == ET_ERROR) {
@@ -101,9 +101,9 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     /*******************************************/
     /* cache objects for efficient, future use */
     /*******************************************/
-    classEventImpl = (*env)->FindClass(env, "org/jlab/coda/et/EventImpl");
-    eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);
-    
+    classEventImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtEventImpl");
+    eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);    printf("3\n");
+ 
     /* find id's of all the fields that we'll read/write directly to */
     fid[0] = (*env)->GetFieldID(env, classEventImpl, "id",         "I");
     fid[1] = (*env)->GetFieldID(env, classEventImpl, "length",     "I");
@@ -117,17 +117,17 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_openLocalEtSystem
     /* get id's of a couple different constructors */
     constrMethodId1 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(III)V");
     constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[I)V");
-  
+
     if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
 
 
 /*
- * Class:     org_jlab_coda_et_JniAccess
+ * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    getEvents
- * Signature: (JIIIIII)[Lorg/jlab/coda/et/Event;
+ * Signature: (JIIIIII)[Lorg/jlab/coda/et/EtEvent;
  */
-JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_getEvents
+JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_getEvents
         (JNIEnv *env , jobject thisObj, jlong etId, jint attId,
          jint mode, jint sec, jint nsec, jint count)
 {
@@ -218,11 +218,11 @@ if (debug) printf("getEvents (native) : filled array!\n");
 
 
 /*
- * Class:     org_jlab_coda_et_JniAccess
+ * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    putEvents
- * Signature: (JI[Lorg/jlab/coda/et/Event;II)V
+ * Signature: (JI[Lorg/jlab/coda/et/EtEvent;II)V
  */
-JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_putEvents
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_putEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId,
          jobjectArray events, jint length)
 {
@@ -293,11 +293,11 @@ if (debug) printf("putEvents (native) : put 'em back\n");
 
 
 /*
- * Class:     org_jlab_coda_et_JniAccess
+ * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    dumpEvents
- * Signature: (JI[Lorg/jlab/coda/et/EventImpl;I)V
+ * Signature: (JI[Lorg/jlab/coda/et/EtEventImpl;I)V
  */
-JNIEXPORT void JNICALL Java_org_jlab_coda_et_JniAccess_dumpEvents
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_dumpEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jobjectArray events, jint length)
 {
     int i, j, status, place;
@@ -337,11 +337,11 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
 }
 
 /*
- * Class:     org_jlab_coda_et_JniAccess
+ * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    newEvents
- * Signature: (JIIIIIII)[Lorg/jlab/coda/et/EventImpl;
+ * Signature: (JIIIIIII)[Lorg/jlab/coda/et/EtEventImpl;
  */
-JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_JniAccess_newEvents
+JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
          jint sec, jint nsec, jint count, jint size, jint group)
 {
