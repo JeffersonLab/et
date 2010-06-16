@@ -106,8 +106,7 @@ public class EtSystem {
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
      */
-    public EtSystem(EtSystemOpenConfig config) throws
-            IOException, EtException, EtTooManyException {
+    public EtSystem(EtSystemOpenConfig config) {
 
         this(config, EtConstants.debugError);
     }
@@ -279,7 +278,7 @@ public class EtSystem {
         try {
             // Are we using JNI? If so, close the ET system it opened.
             if (sys.isMapLocalSharedMemory()) {
-                sys.getJni().closeLocalEtSystem(sys.getJni().getLocalEtId());
+                sys.getJni().close();
             }
 
             out.writeInt(EtConstants.netClose);  // close and forcedclose do the same thing in java

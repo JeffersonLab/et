@@ -1137,10 +1137,9 @@ public class EtSystemOpen {
                 // closing the file channel does NOT affect the buffer
                 fc.close();
 
-                jni = new EtJniAccess();
-
                 // open the ET system locally with native method
-                jni.openLocalEtSystem(config.getEtName());
+                jni = EtJniAccess.getInstance(config.getEtName());
+
             }
             catch (EtTimeoutException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
