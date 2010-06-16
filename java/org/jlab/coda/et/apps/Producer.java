@@ -151,6 +151,7 @@ public class Producer {
 
             // create ET system object with verbose debugging output
             EtSystem sys = new EtSystem(config, EtConstants.debugInfo);
+            sys.open();
 
             // get GRAND_CENTRAL station object
             EtStation gc = sys.stationNameToObject("GRAND_CENTRAL");
