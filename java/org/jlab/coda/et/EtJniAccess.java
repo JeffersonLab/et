@@ -2,6 +2,9 @@ package org.jlab.coda.et;
 
 import org.jlab.coda.et.exception.*;
 
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.HashMap;
+
 
 /**
  * This class handles all calls to native methods which, in turn,
@@ -21,9 +24,61 @@ class EtJniAccess {
         }
     }
 
+    /** Serialize access to classMap and creation of these objects. */
+    static ReentrantLock classLock = new ReentrantLock();
+
+    /** Store EtJniAccess objects here since we only want to create 1 object per ET system. */
+    static HashMap<String, EtJniAccess> classMap = new HashMap<String, EtJniAccess>(10);
+
+
+    /**
+     * Get an instance of this object for a particular ET system. Only one EtJniAccess object
+     * is created for a particular ET system.
+     *
+     * @param etName name of ET system to open
+     * @return object of this type to use for interaction with local, C-based ET system
+     * @throws EtException        for any failure to open ET system except timeout
+     * @throws EtTimeoutException for failure to open ET system within the specified time limit
+     */
+    static EtJniAccess getInstance(String etName) throws EtException, EtTimeoutException {
+        try {
+            classLock.lock();
+
+            // See if we've already opened the ET system being asked for, if so, return that
+            if (classMap.containsKey(etName)) {
+System.out.println("RETURNING ALREADY EXISTING ET SYSTEM NATIVE OBJECT");
+                EtJniAccess jni = classMap.get(etName);
+                jni.numberOpens++;
+                System.out.println("numberOpens = " + jni.numberOpens);
+                return jni;
+            }
+
+            EtJniAccess jni = new EtJniAccess();
+            jni.openLocalEtSystem(etName);
+            jni.etSystemName = etName;
+            jni.numberOpens = 1;
+            System.out.println("numberOpens = " + jni.numberOpens);
+            classMap.put(etName, jni);
+
+            return jni;
+        }
+        finally {
+            classLock.unlock();
+        }
+    }
+
+    private int numberOpens;
 
     /** Place to store id (pointer) returned from et_open in C code. */
     private long localEtId;
+
+    /** Store the name of the ET system. */
+    private String etSystemName;
+
+    /**
+     * Create EtJniAccess objects with the {@link #getInstance(String)} method.
+     */
+    private EtJniAccess() {}
 
 
     /**
@@ -46,14 +101,36 @@ class EtJniAccess {
 
     /**
      * Open a local, C-based ET system and store it's id in {@link #localEtId}.
+     * This only needs to be done once per local system even though many connections
+     * to the ET server may be desired.
      *
      * @param etName name of ET system to open
      *
      * @throws EtException        for any failure to open ET system except timeout
      * @throws EtTimeoutException for failure to open ET system within the specified time limit
      */
-    native void openLocalEtSystem(String etName)
+    private native void openLocalEtSystem(String etName)
             throws EtException, EtTimeoutException;
+
+
+    /**
+     * Close the local, C-based ET system that we previously opened.
+     */
+    void close() {
+        try {
+            classLock.lock();
+            numberOpens--;
+System.out.println("close: numberOpens = " + numberOpens);
+            if (numberOpens < 1) {
+                classMap.remove(etSystemName);
+System.out.println("close: really close local ET system");
+                closeLocalEtSystem(localEtId);
+            }
+        }
+        finally {
+            classLock.unlock();
+        }
+    }
 
 
     /**
@@ -61,7 +138,7 @@ class EtJniAccess {
      *
      * @param etId ET system id
      */
-    native void closeLocalEtSystem(long etId);
+    private native void closeLocalEtSystem(long etId);
 
 
     /**
