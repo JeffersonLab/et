@@ -1648,6 +1648,7 @@ public class Monitor extends JFrame {
         // instead of EtSystem object so we can see exactly who
         // responded to a broad/multicast if there were multiple
         // responders.
+        config.setConnectRemotely(true);  // forget loading JNI lib
         EtSystemOpen open = new EtSystemOpen(config);
 
         // Change cursor & disable button for waiting.
