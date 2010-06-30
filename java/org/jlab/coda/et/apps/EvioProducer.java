@@ -20,12 +20,13 @@ public class EvioProducer {
 
 
      private static void usage() {
-         System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-host <host>]\n\n" +
+         System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-host <host>]" +
+                 "                     [-d <delay in millisec>] [-g <group #>]\n\n" +
                  "       -f     ET system's name\n" +
                  "       -s     size in bytes for requested events\n" +
                  "       -p     port number for a udp broadcast\n" +
                  "       -d     delay in millisec between getting and putting events\n" +
-                 "       -g     group number of events\n" +
+                 "       -g     group number of new events to get\n" +
                  "       -host  host the ET system resides on (defaults to anywhere)\n\n" +
                  "        This consumer works by making a connection to the\n" +
                  "        ET system's tcp server port.\n");
@@ -33,7 +34,7 @@ public class EvioProducer {
 
 
     /**
-     * Main program for testing.
+     * Create an evio bank for sending.
      */
     public static ByteBuffer evioBytes() throws EvioException {
 
@@ -114,8 +115,9 @@ public class EvioProducer {
     }
 
 
-
-
+    /**
+     * Main program for testing.
+     */
     public static void main(String[] args) {
 
          String etName = null, host = null;
