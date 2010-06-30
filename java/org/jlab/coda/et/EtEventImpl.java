@@ -489,6 +489,7 @@ public class EtEventImpl implements EtEvent {
      * {@inheritDoc}
      */
     public void setByteOrder(ByteOrder order) {
+        if (order == null) return;
         if (order == ByteOrder.BIG_ENDIAN) {
             byteOrder = 0x04030201;
         }
@@ -502,6 +503,7 @@ public class EtEventImpl implements EtEvent {
      * {@inheritDoc}
      */
     public void setControl(int[] con) throws EtException {
+        if (con == null) return;
         if (con.length != numSelectInts) {
             throw new EtException("wrong number of elements in control array");
         }
@@ -518,6 +520,7 @@ public class EtEventImpl implements EtEvent {
     public void setData(byte[] data) {
         // In C-based ET systems, user cannot increase data size beyond
         // what was initially allocated, but this is only used by local Java ET system.
+        if (data == null) return;
         this.data = data;
         length    = data.length;
         memSize   = data.length;
