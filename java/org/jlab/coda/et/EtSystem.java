@@ -29,7 +29,8 @@ import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.et.enums.Priority;
 import org.jlab.coda.et.enums.DataStatus;
 
-
+// TODO: if IO exception occurs, open is not set to false, must catch it and call close()
+// TODO: so open is set to false. Then try open again.
 /**
  * This class implements an object which allows a user to interact with an ET
  * system. It is not the ET system itself, but rather a proxy which communicates
@@ -69,7 +70,7 @@ public class EtSystem {
 
 
     /**
-     * Construct a new EtSystemUse object.
+     * Construct a new EtSystem object.
      *
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
@@ -101,7 +102,7 @@ public class EtSystem {
     }
 
     /**
-     * Construct a new EtSystemUse object. Debug level set to print only errors.
+     * Construct a new EtSystem object. Debug level set to print only errors.
      *
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
@@ -112,7 +113,7 @@ public class EtSystem {
     }
 
     /**
-     * Construct a new EtSystemUse object. Not meant for general use.
+     * Construct a new EtSystem object. Not meant for general use.
      * Use one of the other constructors.
      *
      * @param sys   EtSystemOpen object to specify a connection to the ET
@@ -1791,8 +1792,6 @@ public class EtSystem {
         // err should always be = Constants.ok
         // skip reading error
         in.skipBytes(4);
-
-        return;
     }
 
 
@@ -1936,8 +1935,6 @@ public class EtSystem {
         // err should always be = Constants.ok
         // skip reading error
         in.skipBytes(4);
-
-        return;
     }
 
 
