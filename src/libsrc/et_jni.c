@@ -102,7 +102,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
     /* cache objects for efficient, future use */
     /*******************************************/
     classEventImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtEventImpl");
-    eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);    printf("3\n");
+    eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);
  
     /* find id's of all the fields that we'll read/write directly to */
     fid[0] = (*env)->GetFieldID(env, classEventImpl, "id",         "I");
