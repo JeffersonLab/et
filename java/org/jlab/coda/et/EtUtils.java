@@ -25,7 +25,7 @@ public class EtUtils {
      * @param b byte array
      * @param off offset into the byte array
      */
-    public static final void shortToBytes(short shortVal, byte[] b, int off) {
+    public static void shortToBytes(short shortVal, byte[] b, int off) {
         b[off]   = (byte) ((shortVal & 0xff00) >>> 8);
         b[off+1] = (byte)  (shortVal & 0x00ff);
     }
@@ -37,7 +37,7 @@ public class EtUtils {
      * @param off offset into the byte array (0 = start at first element)
      * @return integer value
      */
-    public static final int bytesToInt(byte[] b, int off) {
+    public static int bytesToInt(byte[] b, int off) {
         return ((b[off]     & 0xff) << 24 |
                 (b[off + 1] & 0xff) << 16 |
                 (b[off + 2] & 0xff) <<  8 |
@@ -50,7 +50,7 @@ public class EtUtils {
      * @param b byte array
      * @param off offset into the byte array
      */
-    public static final void intToBytes(int intVal, byte[] b, int off) {
+    public static void intToBytes(int intVal, byte[] b, int off) {
       b[off]   = (byte) ((intVal & 0xff000000) >>> 24);
       b[off+1] = (byte) ((intVal & 0x00ff0000) >>> 16);
       b[off+2] = (byte) ((intVal & 0x0000ff00) >>>  8);
@@ -63,7 +63,7 @@ public class EtUtils {
      * @param off offset into the byte array (0 = start at first element)
      * @return long value
      */
-    public static final long bytesToLong(byte[] b, int off) {
+    public static long bytesToLong(byte[] b, int off) {
       return ((b[off]   & 0xffL) << 56 |
               (b[off+1] & 0xffL) << 48 |
               (b[off+2] & 0xffL) << 40 |
@@ -80,7 +80,7 @@ public class EtUtils {
      * @param b byte array
      * @param off offset into the byte array
      */
-    public static final void longToBytes(long longVal, byte[] b, int off) {
+    public static void longToBytes(long longVal, byte[] b, int off) {
         b[off]   = (byte) ((longVal & 0xff00000000000000L) >>> 56);
         b[off+1] = (byte) ((longVal & 0x00ff000000000000L) >>> 48);
         b[off+2] = (byte) ((longVal & 0x0000ff0000000000L) >>> 40);
@@ -97,7 +97,7 @@ public class EtUtils {
      * @param b byte array
      * @param off offset into the byte array
      */
-    public static final void swapArrayInt(byte[] b, int off) {
+    public static void swapArrayInt(byte[] b, int off) {
         byte b1, b2, b3, b4;
         b1 = b[off];
         b2 = b[off+1];
@@ -115,7 +115,7 @@ public class EtUtils {
      * @param off offset into the byte array (0 = start at first element)
      * @return short value
      */
-    public static final short bytesToShort(byte[] b, int off) {
+    public static short bytesToShort(byte[] b, int off) {
         return (short) (((b[off]&0xff) << 8) | (b[off+1]&0xff));
     }
 
@@ -124,7 +124,7 @@ public class EtUtils {
      * @param b byte array
      * @param off offset into the byte array
      */
-    public static final void swapArrayShort(byte[] b, int off) {
+    public static void swapArrayShort(byte[] b, int off) {
         byte b1, b2;
         b1 = b[off];
         b2 = b[off+1];

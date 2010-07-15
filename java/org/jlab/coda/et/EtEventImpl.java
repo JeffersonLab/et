@@ -482,7 +482,6 @@ public class EtEventImpl implements EtEvent {
         else {
             throw new EtException("bad value for byte order");
         }
-        return;
     }
 
     /**
@@ -496,7 +495,6 @@ public class EtEventImpl implements EtEvent {
         else {
             byteOrder = 0x01020304;
         }
-        return;
     }
 
     /**
