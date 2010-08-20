@@ -1698,7 +1698,7 @@ class ClientThread extends Thread {
                 }
 
 
-                else if (command <= EtConstants.netSysHist) {
+                else if (command <= EtConstants.netSysGrps) {
                     // command to distribute data about this ET system over the network
                     if (command == EtConstants.netSysData) {
                         // allow only 1 thread at a time a crack at updating information
@@ -1719,6 +1719,19 @@ class ClientThread extends Thread {
                         out.writeInt(EtConstants.error);
                         out.flush();
                     }
+
+                    // send group data
+                    else if (command == EtConstants.netSysGrps) {
+                        // send number of groups to follow
+                        int[] groups = sys.getConfig().getGroups();
+                        out.writeInt(groups.length);
+
+                        // send number in each group
+                        for (int j : groups) {
+                            out.writeInt(j);
+                        }
+                    }
+
 
                 }
 
