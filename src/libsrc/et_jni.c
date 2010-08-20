@@ -58,7 +58,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
 {
     int err;
     const char* mappedFile;
-    et_sys_id id; // void *
+    et_sys_id id; /* (void *) */
     et_openconfig openconfig;
     jclass clazz, class1, classEventImpl;
     jmethodID mid;
