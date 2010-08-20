@@ -467,4 +467,5 @@ public final class EtConstants {
 
     public static final int    netSysData       = 170;
     public static final int    netSysHist       = 171;
+    public static final int    netSysGrps       = 172;
 }
