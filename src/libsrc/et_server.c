@@ -2796,7 +2796,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
     }
 
     /* the following commands distribute data about this ET system over the network */
-    else if (command <= ET_NET_SYS_HIST) {
+    else if (command <= ET_NET_SYS_GRPS) {
       if (command == ET_NET_SYS_DATA) {
         struct iovec iov[5];
         int    outgoing[2], size;
