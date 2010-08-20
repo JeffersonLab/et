@@ -929,6 +929,7 @@ typedef struct  et_mem_t {
 
 #define  ET_NET_SYS_DATA      170        /* send ET system data */
 #define  ET_NET_SYS_HIST      171        /* send ET histogram data */
+#define  ET_NET_SYS_GRPS      172        /* send size of each event group */
 
 
 /* struct for passing data from system to network threads */
