@@ -2859,26 +2859,55 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
       /* send histogram data */
       else if (command == ET_NET_SYS_HIST) {
-        err = et_data_gethistogram(id, histogram+1, nevents_max+1);
-        /* sneak error code into histogram array for convenience in writing */
-        histogram[0] = err;
+          err = et_data_gethistogram(id, histogram+1, nevents_max+1);
+          /* sneak error code into histogram array for convenience in writing */
+          histogram[0] = err;
 
-        if (err != ET_OK) {
-          histogram[0] = htonl(histogram[0]);
-          if (et_tcp_write(connfd, (void *) histogram, sizeof(int)) != sizeof(int)) {
-            goto end;
+          if (err != ET_OK) {
+              histogram[0] = htonl(histogram[0]);
+              if (et_tcp_write(connfd, (void *) histogram, sizeof(int)) != sizeof(int)) {
+                  goto end;
+              }
           }
-        }
-        else {
-          /* swap data */
-          for (i=0; i < nevents_max+2; i++) {
-            histogram[i] = htonl(histogram[i]);
+          else {
+              /* swap data */
+              for (i=0; i < nevents_max+2; i++) {
+                  histogram[i] = htonl(histogram[i]);
+              }
+              if (et_tcp_write(connfd, (void *) histogram, sizeof(int)*(nevents_max+2)) !=
+                  sizeof(int)*(nevents_max+2)) {
+                  goto end;
+              }
           }
-          if (et_tcp_write(connfd, (void *) histogram, sizeof(int)*(nevents_max+2)) !=
-              sizeof(int)*(nevents_max+2)) {
-            goto end;
+      }
+
+      /* send group data */
+      else if (command == ET_NET_SYS_GRPS) {
+          et_id *etid = (et_id *) id;
+          int *groups;
+          int groupCount = etid->sys->config.groupCount;
+
+          /* send number of groups to follow */
+          i = htonl(groupCount);
+          if (et_tcp_write(connfd, (void *) &i, sizeof(int)) != sizeof(int)) {
+              goto end;
           }
-        }
+
+          /* send number in each group */
+          groups = (int *) malloc(groupCount*sizeof(int));
+          if (groups == NULL) {
+              et_logmsg("ERROR", "et_command_loop: cannot allocate memory\n");
+              free(iov); free(header); free(histogram); free(events); free(ints32);
+              return;
+          }
+          for (i=0; i < groupCount; i++) {
+              groups[i] = htonl(etid->sys->config.groups[i]);
+          }
+          if (et_tcp_write(connfd, (void *) groups, groupCount*sizeof(int)) != groupCount*sizeof(int)) {
+              goto end;
+          }
+
+          free(groups);          
       }
 
     }
