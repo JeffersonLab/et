@@ -2126,6 +2126,21 @@ public class EtSystem {
 
 
     /**
+     * Gets the number of groups events are divided into.
+     *
+     * @return number of groups events are divided into
+     *
+     * @throws IOException
+     *     if there are problems with network communication
+     * @throws EtException
+     *     if not connected to ET system
+     */
+    public int getGroupCount() throws IOException, EtException {
+        return getIntValue(EtConstants.netSysGrp);
+    }
+
+
+    /**
      * Gets the number of events in the ET system.
      * @return number of events in the ET system
      */
