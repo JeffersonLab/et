@@ -1730,6 +1730,7 @@ class ClientThread extends Thread {
                         for (int j : groups) {
                             out.writeInt(j);
                         }
+                        out.flush();
                     }
 
 
