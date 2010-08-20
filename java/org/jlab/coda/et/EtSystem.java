@@ -2141,6 +2141,36 @@ public class EtSystem {
 
 
     /**
+     * Gets the array defining groups events are divided into.
+     * The index+1 is the group number, the value is the number
+     * of events in that group.
+     *
+     * @return array defining groups events are divided into
+     *
+     * @throws IOException
+     *     if there are problems with network communication
+     * @throws EtException
+     *     if not connected to ET system
+     */
+    public int[] getGroups() throws IOException, EtException {
+        if (!open) {
+            throw new EtException("Not connected to ET system");
+        }
+
+        out.writeInt(EtConstants.netSysGrps);
+        out.flush();
+
+        int groupSize = in.readInt();
+        int[] groups  = new int[groupSize];
+
+        for (int i=0; i < groupSize; i++) {
+            groups[i] = in.readInt();
+        }
+        return groups;
+    }
+
+
+    /**
      * Gets the number of events in the ET system.
      * @return number of events in the ET system
      */
