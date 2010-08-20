@@ -1732,8 +1732,6 @@ class ClientThread extends Thread {
                         }
                         out.flush();
                     }
-
-
                 }
 
                 else {
