@@ -28,15 +28,13 @@
 
 int main(int argc, char **argv)
 {  
-  int           c;
+  int           c, i_tmp, errflg=0;
   extern char  *optarg;
   extern int    optind;
-  int           errflg = 0;
-  int           i_tmp;
-  
-  int           status, sig_num;
-  int           et_verbose = ET_DEBUG_NONE;
-  int           deleteFile = 0;
+
+  char          *mcastAddr=NULL;
+  int           status, sig_num, serverPort=0, udpPort=0;
+  int           et_verbose = ET_DEBUG_NONE, deleteFile=0;
   sigset_t      sigblockset, sigwaitset;
   et_sysconfig  config;
   et_sys_id     id;
@@ -48,68 +46,120 @@ int main(int argc, char **argv)
   /************************************/
   /* default configuration parameters */
   /************************************/
+  int nGroups = 1;
   int nevents = 2000;               /* total number of events */
   int event_size = 3000;            /* size of event in bytes */
   char *et_filename = NULL;
   char  et_name[ET_FILENAME_LENGTH];
 
   
-  while ((c = getopt(argc, argv, "vdn:s:f:")) != EOF) {
-    switch (c) {
-    case 'n':
-      i_tmp = atoi(optarg);
-      if (i_tmp > 0) {
-	nevents = i_tmp;
-      } else {
-	printf("Invalid argument to -n. Must be a positive integer.\n");
-	exit(-1);
-      }
-      break;
+  while ((c = getopt(argc, argv, "vdn:s:p:u:m:a:f:g:")) != EOF) {
       
-    case 's':
-      i_tmp = atoi(optarg);
-      if (i_tmp > 0) {
-	event_size = i_tmp;
-      } else {
-	printf("Invalid argument to -s. Must be a positive integer.\n");
-	exit(-1);
-      }
-      break;
-      
-    case 'f':
-      if (strlen(optarg) >= ET_FILENAME_LENGTH) {
-        fprintf(stderr, "ET file name is too long\n");
-        exit(-1);
-      }
-      strcpy(et_name, optarg);
-      et_filename = et_name;
-      break;
+       if (c == -1)
+          break;
 
-    /* Remove an existing memory-mapped file first, then recreate it. */
-    case 'd':
-      deleteFile = 1;
-      break;
+      switch (c) {
+          case 'n':
+              i_tmp = atoi(optarg);
+              if (i_tmp > 0) {
+                  nevents = i_tmp;
+              } else {
+                  printf("Invalid argument to -n. Must be a positive integer.\n");
+                  exit(-1);
+              }
+              break;
 
-    case 'v':
-      et_verbose = ET_DEBUG_INFO;
-      break;
-      
-    case ':':
-    case 'h':
-    case '?':
-    default:
-      errflg++;
-    }
+          case 's':
+              i_tmp = atoi(optarg);
+              if (i_tmp > 0) {
+                  event_size = i_tmp;
+              } else {
+                  printf("Invalid argument to -s. Must be a positive integer.\n");
+                  exit(-1);
+              }
+              break;
+
+          case 'p':
+              i_tmp = atoi(optarg);
+              if (i_tmp > 1023 && i_tmp < 65535) {
+                  serverPort = i_tmp;
+              } else {
+                  printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
+                  exit(-1);
+              }
+              break;
+
+          case 'u':
+              i_tmp = atoi(optarg);
+              if (i_tmp > 1023 && i_tmp < 65535) {
+                  udpPort = i_tmp;
+              } else {
+                  printf("Invalid argument to -u. Must be < 65535 & > 1023.\n");
+                  exit(-1);
+              }
+              break;
+
+          case 'a':
+              if (strlen(optarg) >= 16) {
+                  fprintf(stderr, "Multicast address is too long\n");
+                  exit(-1);
+              }
+              strcpy(mcastAddr, optarg);
+              break;
+
+          case 'g':
+              i_tmp = atoi(optarg);
+              if (i_tmp > 0 && i_tmp < 501) {
+                  nGroups = i_tmp;
+              } else {
+                  printf("Invalid argument to -g. Must be 501 > g > 0.\n");
+                  exit(-1);
+              }
+              break;
+
+          case 'f':
+              if (strlen(optarg) >= ET_FILENAME_LENGTH) {
+                  fprintf(stderr, "ET file name is too long\n");
+                  exit(-1);
+              }
+              strcpy(et_name, optarg);
+              et_filename = et_name;
+              break;
+
+              /* Remove an existing memory-mapped file first, then recreate it. */
+          case 'd':
+              deleteFile = 1;
+              break;
+
+          case 'v':
+              et_verbose = ET_DEBUG_INFO;
+              break;
+
+          case ':':
+          case 'h':
+          case '?':
+          default:
+              errflg++;
+      }
   }
     
   if (optind < argc || errflg){
-    fprintf(stderr, "usage: %s -v -r [-n events] [-s event_size] [-f file]\n", argv[0]);
-    fprintf(stderr, "          -v for verbose output\n");
-    fprintf(stderr, "          -d deletes an existing file first\n");
-    fprintf(stderr, "          -n sets number of events\n");
-    fprintf(stderr, "          -s sets event size in bytes\n");
-    fprintf(stderr, "          -f sets memory-mapped file name\n");
-    exit(2);
+      fprintf(stderr,
+              "usage: %s  %s\n%s",
+              argv[0],
+              "-v -r [-f file] [-n events] [-s evenSize] [-g groups]",
+              "       [-p TCP server port] [-u UDP port] [-a multicast address]");
+      
+      fprintf(stderr, "          -v for verbose output\n");
+      fprintf(stderr, "          -d deletes an existing file first\n");
+      fprintf(stderr, "          -f sets memory-mapped file name\n");
+      fprintf(stderr, "          -n sets number of events\n");
+      fprintf(stderr, "          -s sets event size in bytes\n");
+      fprintf(stderr, "          -g sets number of groups to divide events into\n");
+      fprintf(stderr, "          -p sets TCP server port #\n");
+      fprintf(stderr, "          -u sets UDP (broadcast &/or multicast) port #\n");
+      fprintf(stderr, "          -a sets multicast address\n");
+      exit(2);
   }
 
   /* Check et_filename */
@@ -148,32 +198,64 @@ int main(int argc, char **argv)
     printf("et_start: no more memory\n");
     exit(1);
   }
+
+  /* divide events into equal groups and any leftovers into another group */
+  if (nGroups > 1) {
+      int i, addgroup=0, *groups, totalNE=0;
+        
+      int n = nevents / nGroups;
+      int r = nevents % nGroups;
+      if (r > 0) {
+          addgroup = 1;
+      }
+
+      groups = calloc(nGroups+addgroup, sizeof(int));
+      if (groups == NULL) {
+          printf("et_start: out of memory\n");
+          exit(1);
+      }
+
+      for (i=0; i < nGroups; i++) {
+          groups[i] = n;
+          totalNE += n;
+      }
+
+      if (addgroup) {
+          groups[nGroups] = r;
+          totalNE += r;
+      }
+      printf("Have %d total events divided\n",totalNE);
+      et_system_config_setgroups(config, groups, nGroups+addgroup);
+
+      free(groups);
+  }
+  
   /* total number of events */
   et_system_config_setevents(config, nevents);
 
   /* size of event in bytes */
   et_system_config_setsize(config, event_size);
 
-  /* max number of temporary (specially allocated mem) events */
-  /* This cannot exceed total # of events                     */
-  et_system_config_settemps(config, nevents);
+  /* limit on # of stations = 20 */
+  /* hard limit on # of processes = 110 */
+  /* hard limit on # of attachments = 110 */
+  /* max # of temporary (specially allocated mem) events = 300 */
 
-  /* limit on # of stations */
-  et_system_config_setstations(config, 10);
-  
-  /* soft limit on # of attachments (hard limit = ET_ATTACHMENTS_MAX) */
-  et_system_config_setattachments(config, 20);
-  
-  /* soft limit on # of processes (hard limit = ET_PROCESSES_MAX) */
-  et_system_config_setprocs(config, 20);
-    
   /* set TCP server port */
-  /* et_system_config_setserverport(config, 11222); */
+  if (serverPort > 0) et_system_config_setserverport(config, serverPort);
+  
+  /* set UDP (broadcast/multicast) port */
+  if (udpPort > 0) et_system_config_setport(config, udpPort);
   
   /* add multicast address to listen to  */
-  /* et_system_config_addmulticast(config, "239.111.1.1"); */
-  /* et_system_config_addmulticast(config, ET_MULTICAST_ADDR); */
-  
+  if (mcastAddr != NULL) {
+    status = et_system_config_addmulticast(config, mcastAddr);
+    if (status != ET_OK) {
+        printf("et_start: bad multicast address argument\n");
+        exit(1);
+    }
+  }
+
   /* Make sure filename is null-terminated string */
   if (et_system_config_setfile(config, et_name) == ET_ERROR) {
     printf("et_start: bad filename argument\n");
@@ -190,8 +272,12 @@ int main(int argc, char **argv)
     exit(1);
   }
   sigemptyset(&sigwaitset);
+  /* Java uses SIGTERM to end processes it spawns.
+   * So if this program is run by a Java JVM, the
+   * following line allows the JVM to kill it. */
+  sigaddset(&sigwaitset, SIGTERM);
   sigaddset(&sigwaitset, SIGINT);
-  
+
   /*************************/
   /*    start ET system    */
   /*************************/
@@ -203,36 +289,12 @@ int main(int argc, char **argv)
     exit(1);
   }
   
-  /* in CODA usage, most want the TAPE station to be first
-   * as that is the station used by the event recorder to
-   * send events to tape.
-   */
-  /*
-  et_station_config_init(&sconfig);
-  et_station_config_setselect(sconfig,  ET_STATION_SELECT_ALL);
-  et_station_config_setblock(sconfig,   ET_STATION_BLOCKING);
-  et_station_config_setuser(sconfig,    ET_STATION_USER_MULTI);
-  et_station_config_setrestore(sconfig, ET_STATION_RESTORE_OUT);
-  et_station_config_setprescale(sconfig,1);
-
-  if ((status = et_station_create(id, &statid, "TAPE", sconfig)) < 0) {
-    if (status == ET_ERROR_EXISTS) {
-      printf("et_start: \"TAPE\" station exists\n");
-    }
-    else {
-      printf("et_start: cannot create \"TAPE\" station, error = %d\n", status);
-      exit(1);
-    }
-  }
-  et_station_config_destroy(sconfig);
-  */
   et_system_setdebug(id, et_verbose);
  
   /* turn this thread into a signal handler */
-  sigwait(&sigwaitset, &sig_num);
-  
+   sigwait(&sigwaitset, &sig_num);
 
-  printf("Interrupted by CONTROL-C\n");
+  printf("Interrupted by CONTROL-C or SIGTERM\n");
   printf("ET is exiting\n");
   et_system_close(id);
 
