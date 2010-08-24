@@ -33,8 +33,8 @@
 /* recent versions of linux put float.h (and DBL_MAX) in a strange place */
 #define DOUBLE_MAX   1.7976931348623157E+308
 
-#define NUMLOOPS 10000
-#define CHUNK 10
+#define NUMLOOPS 100000
+#define CHUNK 100
 #define DBL_MAX   1.e+100
 
 /* prototype */
@@ -97,7 +97,6 @@ int main(int argc,char **argv)
   /* spawn signal handling thread */
   pthread_create(&tid, NULL, signal_thread, (void *)NULL);
   
-restartLinux:
   /* open ET system */
   et_open_config_init(&openconfig);
    /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
@@ -206,7 +205,7 @@ restartLinux:
         }
         
         totalCount += count;
-        sleep(4);
+        /*sleep(4);*/
       } /* for NUMLOOPS */
   
       /* statistics */
@@ -226,21 +225,6 @@ restartLinux:
       freq_avg = freq_tot/iterations;
       iterations++;
       printf("%s: %3.4g Hz,  %3.4g Hz Avg.\n", argv[0], freq, freq_avg);
-
-      /* if ET system is dead, wait here until it comes back */
-      if (!et_alive(id)) {
-          status = et_wait_for_alive(id);
-          if (status == ET_OK) {
-              int locality;
-              et_system_getlocality(id, &locality);
-              /* if Linux, re-establish connection to ET system since socket broken */
-              if (locality == ET_LOCAL_NOSHARE) {
-                  printf("%s: try to reconnect Linux client\n", argv[0]);
-                  et_forcedclose(id);
-                  goto restartLinux;
-              }
-          }
-      }
       
   } /* while(alive) */
     
