@@ -224,6 +224,7 @@ public class EvioProducer {
 
              // create ET system object with verbose debugging output
              EtSystem sys = new EtSystem(config, EtConstants.debugInfo);
+             sys.open();
 
              // get GRAND_CENTRAL station object
              EtStation gc = sys.stationNameToObject("GRAND_CENTRAL");
@@ -244,7 +245,7 @@ public class EvioProducer {
              t1 = System.currentTimeMillis();
 
              for (int i = 0; i < 50; i++) {
-                 while (count < 300000L) {
+                 while (count < 30000L) {
                      // get array of new events
                      mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
 
