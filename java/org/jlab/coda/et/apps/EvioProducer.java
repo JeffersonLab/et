@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
  */
 public class EvioProducer {
 
+
     public EvioProducer() {
     }
 
@@ -32,11 +33,21 @@ public class EvioProducer {
                  "        ET system's tcp server port.\n");
      }
 
+    /** Setting this to false will make the buffer be recreated from scratch for each event. */
+    static boolean fastMode = true;
+
+    /** Buffer to use for generated evio data. */
+    static ByteBuffer buffie;
 
     /**
      * Create an evio bank for sending.
      */
     public static ByteBuffer evioBytes() throws EvioException {
+
+        if (fastMode && buffie != null) {
+            buffie.flip();
+            return buffie;
+        }
 
         // count the events we make for testing
         int eventNumber = 1;
@@ -106,12 +117,12 @@ public class EvioProducer {
 
 
         // write the event
-        ByteBuffer buf = ByteBuffer.allocate(event2.getTotalBytes());
-        event2.write(buf);
-        buf.flip();
+        buffie = ByteBuffer.allocate(event2.getTotalBytes());
+        event2.write(buffie);
+        buffie.flip();
 
         //System.out.println("Event = \n"+ event2.toXML());
-        return buf;
+        return buffie;
     }
 
 
@@ -240,6 +251,7 @@ public class EvioProducer {
              double rate, avgRate;
              int[] con = {1, 2, 3, 4};
              String s;
+             ByteBuffer buf;
 
              // keep track of time for event rate calculations
              t1 = System.currentTimeMillis();
@@ -255,9 +267,9 @@ public class EvioProducer {
                      if (true) {
                          for (int j = 0; j < mevs.length; j++) {
                              // put integer (j) into front of data buffer
-                             int swappedData = j + startingVal;
+                             //int swappedData = j + startingVal;
                              //swappedData = Integer.reverseBytes(swappedData);
-                             ByteBuffer buf = evioBytes();
+                             buf = evioBytes();
 
                              mevs[j].getDataBuffer().put(buf);
                              int len = buf.position();
