@@ -35,7 +35,7 @@ public class SystemConfig {
      *  event upon starting up the ET system. */
     private int eventSize;
 
-    /** Number of events in each group. Used with mulitple producers who want to
+    /** Number of events in each group. Used with multiple producers who want to
      * guarantee available events for each producer. */
     private int[] groups;
 
