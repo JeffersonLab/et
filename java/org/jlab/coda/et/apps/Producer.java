@@ -36,7 +36,7 @@ public class Producer {
         System.out.println("\nUsage: java Producer -f <et name> [-p <server port>] [-host <host>]\n\n" +
                 "       -f     ET system's name\n" +
                 "       -s     size in bytes for requested events\n" +
-                "       -p     port number for a udp broadcast\n" +
+                "       -p     port number for a ET server\n" +
                 "       -d     delay in millisec between getting and putting events\n" +
                 "       -g     group number of events\n" +
                 "       -host  host the ET system resides on (defaults to anywhere)\n\n" +
@@ -172,7 +172,7 @@ public class Producer {
             t1 = System.currentTimeMillis();
 
             for (int i = 0; i < 50; i++) {
-                while (count < 300000L) {
+                while (count < 30000L) {
                     // get array of new events
                     mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
 
