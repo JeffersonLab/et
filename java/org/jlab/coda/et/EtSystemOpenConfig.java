@@ -345,6 +345,7 @@ public class EtSystemOpenConfig {
         multicastPort        = config.multicastPort;
         ttl                  = config.ttl;
         responsePolicy       = config.responsePolicy;
+        waitTime             = config.waitTime;
     }
 
 
