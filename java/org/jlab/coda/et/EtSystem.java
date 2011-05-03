@@ -1097,7 +1097,8 @@ public class EtSystem {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec, int count, int size)
             throws IOException, EtException, EtDeadException,
@@ -1141,7 +1142,8 @@ public class EtSystem {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private EtEvent[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException,        EtDeadException, EtWakeUpException,
@@ -1191,7 +1193,7 @@ public class EtSystem {
      * @return an array of new events obtained from ET system. Count may be different from that requested.
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if not connected to ET system;
      *     if arguments have bad values;
@@ -1208,7 +1210,8 @@ public class EtSystem {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     synchronized public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec,
                                           int count, int size, int group)
@@ -1374,7 +1377,8 @@ public class EtSystem {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private EtEvent[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException,
@@ -1448,7 +1452,8 @@ public class EtSystem {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp}, {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     synchronized public EtEvent[] getEvents(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
             throws IOException, EtException, EtDeadException,
