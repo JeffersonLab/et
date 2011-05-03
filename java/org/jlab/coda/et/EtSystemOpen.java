@@ -51,7 +51,7 @@ public class EtSystemOpen {
     /** Is this object connected to a real, live ET system? */
     private boolean connected;
 
-    /** Debug level. Set by {@link EtSystemOpen#setDebug}. */
+    /** Debug level. Set by {@link EtSystemOpen#setDebug(int)}. */
     private int debug;
 
     // using shared memory
@@ -968,7 +968,6 @@ public class EtSystemOpen {
         // made to memory map it and access events through JNI (header) and a memory mapped
         // buffer (data).
         mapLocalSharedMemory = false;
-
         if (config.getNetworkContactMethod() == EtConstants.direct) {
             // if making direct connection, we have host & port
             if (debug >= EtConstants.debugInfo) {
@@ -982,7 +981,7 @@ public class EtSystemOpen {
                 mapLocalSharedMemory = true;
             }
             else {
-                // We prefer a fully qualifed host name. If there are no "."'s
+                // We prefer a fully qualified host name. If there are no "."'s
                 // in it, try getHostName even though that is not guaranteed
                 // to return a fully qualified name.
                 if (config.getHost().indexOf(".") < 0) {
@@ -1021,43 +1020,51 @@ public class EtSystemOpen {
             mapLocalSharedMemory = false;
         }
 
-        // Create a connection to an ET system TCP Server
-        sock = new Socket(host, tcpPort);        // IOEx
-        try {
-            // Set NoDelay option for fast response
-            sock.setTcpNoDelay(true);
-            // Set reading timeout to 2 second so dead ET sys
-            // can be found by reading on a socket.
-            sock.setSoTimeout(2000);
-            // Set KeepAlive so we can tell if ET system is dead
-            sock.setKeepAlive(true);
-            // set buffer size
-            sock.setReceiveBufferSize(65535);
-            sock.setSendBufferSize(65535);
-        }
-        catch (SocketException ex) {
-        }
-
-
         // open the ET system, waiting if requested & necessary
         if (debug >= EtConstants.debugInfo) {
             System.out.println("connect: try to connect to ET system");
         }
 
+        boolean gotConnection = false;
+        IOException ioException = null;
         long t1, t2;
         t1 = t2 = System.currentTimeMillis();
         while (t2 <= (t1 + config.getWaitTime())) {
             try {
+                // Create a connection to an ET system TCP Server
+//System.out.println("           Creating socket to ET");
+                sock = new Socket(host, tcpPort);        // IOEx
+                try {
+                    // Set NoDelay option for fast response
+                    sock.setTcpNoDelay(true);
+                    // Set reading timeout to 2 second so dead ET sys
+                    // can be found by reading on a socket.
+                    sock.setSoTimeout(2000);
+                    // Set KeepAlive so we can tell if ET system is dead
+                    sock.setKeepAlive(true);
+                    // set buffer size
+                    sock.setReceiveBufferSize(65535);
+                    sock.setSendBufferSize(65535);
+                }
+                catch (SocketException ex) {
+                }
+
                 connectToEtServer();    // IOEx if no ET, EtEx if incompatible ET
+                gotConnection = true;
                 break;
             }
             catch (IOException e) {
-                try {Thread.sleep(200);}
+//System.out.println("           FAILED connection to ET, try again?");
+                ioException = e;
+                try {Thread.sleep(250);}
                 catch (InterruptedException e1) {}
                 t2 = System.currentTimeMillis();
             }
         }
 
+        if (!gotConnection) {
+            throw new IOException("Cannot create network connection to ET system", ioException);
+        }
 
         // try using memory mapped file
         if (mapLocalSharedMemory) {
@@ -1148,12 +1155,12 @@ public class EtSystemOpen {
             catch (EtException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
-System.out.println("Error in opening ET with jni, Et exception");
+System.out.println("Error in opening ET with jni, Et exception, use sockets only to talk to ET system");
             }
             catch (IOException e) {
                 // cannot open a file, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
-System.out.println("Error in opening ET with jni, IO exception");
+System.out.println("Error in opening ET with jni, IO exception, use sockets only to talk to ET system");
             }
         }
     }
