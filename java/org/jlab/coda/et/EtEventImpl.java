@@ -41,7 +41,9 @@ public class EtEventImpl implements EtEvent {
 
     /**
      * Specifies whether the event was obtained as a new event (through
-     * {@link EtSystem#newEvents}), or as a "used" event (through {@link EtSystem#getEvents}).
+     * {@link EtSystem#newEvents(EtAttachment, org.jlab.coda.et.enums.Mode, int, int, int)}),
+     * or as a "used" event (through
+     * {@link EtSystem#getEvents(EtAttachment, org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)}).
      * If the event is new, its value is {@link Age#NEW} otherwise {@link Age#USED}.
      */
     private Age age;
@@ -369,8 +371,9 @@ public class EtEventImpl implements EtEvent {
 
     /**
      * Sets the age of the event which is {@link Age#NEW} for new events obtained by calling
-     * {@link EtSystem#newEvents}), or {@link Age#NEW} for "used" event obtained by calling
-     * {@link EtSystem#getEvents}).
+     * {@link EtSystem#newEvents(EtAttachment, org.jlab.coda.et.enums.Mode, int, int, int)}),
+     * or {@link Age#NEW} for "used" event obtained by calling
+     * {@link EtSystem#getEvents(EtAttachment, org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)}).
      *
      * @param age age of the event
      */
