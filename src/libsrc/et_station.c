@@ -826,7 +826,7 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
    * these values with the true (remote) values.
    */
   sys->attach[my_index].pid    = getpid();
-  if (et_defaulthost(sys->attach[my_index].host, ET_MAXHOSTNAMELEN) != ET_OK) {
+  if (etNetLocalHost(sys->attach[my_index].host, ET_MAXHOSTNAMELEN) != ET_OK) {
     if (etid->debug >= ET_DEBUG_WARN) {
       et_logmsg("WARN", "et_station_attach: cannot find hostname\n");
     }
