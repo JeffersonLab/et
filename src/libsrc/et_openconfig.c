@@ -53,13 +53,13 @@ int et_open_config_init(et_openconfig *sconfig)
   sc->mcastaddrs.count = 0;
   
   /* find our local subnets' broadcast addresses */
-  if (et_getBroadcastAddrs(&sc->bcastaddrs, NULL) == ET_ERROR) {
+  if (etNetGetBroadcastAddrs(&sc->bcastaddrs, NULL) == ET_ERROR) {
     sc->bcastaddrs = NULL;
   }
   
-  if (et_getNetInfo(&sc->netinfo, NULL) != ET_OK) {
+  if (etNetGetNetworkInfo(&sc->netinfo, NULL) != ET_OK) {
     sc->netinfo = NULL;
-printf("et_open_config_init: error in et_getNetInfo\n");
+    printf("et_open_config_init: error in etNetGetNetworkInfo\n");
   }
   
   sc->init = ET_STRUCT_OK;
@@ -76,10 +76,10 @@ int et_open_config_destroy(et_openconfig sconfig)
   if (sc == NULL) return ET_OK;
   
   /* first, free network info (linked list) */
-  et_freeIpAddrs(sc->netinfo);
+  etNetFreeIpAddrs(sc->netinfo);
   
   /* next, free broadcast info (linked list) */
-  et_freeBroadcastAddrs(sc->bcastaddrs);
+  etNetFreeBroadcastAddrs(sc->bcastaddrs);
   
   free(sc);
   return ET_OK;

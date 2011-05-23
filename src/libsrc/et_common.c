@@ -78,9 +78,8 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
   /* else if ET system is on local host */
   else if ((strcmp(config->host, ET_HOST_LOCAL) == 0) ||
            (strcmp(config->host, "localhost")   == 0))  {
-    int shared = et_sharedmutex();
     /* if local operating system can share pthread mutexes ... */
-    if (shared == ET_MUTEX_SHARE) {
+    if (et_sharedmutex() == ET_MUTEX_SHARE) {
       return ET_LOCAL;
     }
     else {
@@ -90,7 +89,7 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
   
   /* else if ET system host name is unknown and maybe anywhere ... */
   else if (strcmp(config->host, ET_HOST_ANYWHERE) == 0) {
-    int err, port;
+    int err, port, isLocal;
     uint32_t inetaddr;
     struct timeval waittime;
     
@@ -108,17 +107,37 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
       et_logmsg("ERROR", "et_findlocality, multiple ET systems reponded\n");
       return err;
     }
-/*
-printf("et_findlocality: for ET_HOST_ANYWHERE, host = %s, locality = %d\n",
-ethost, et_nodelocality(ethost));
-*/
-    return et_nodelocality(ethost);
+    
+    etNetNodeIsLocal(ethost, &isLocal);
+    if (isLocal) {
+        if (et_sharedmutex() == ET_MUTEX_SHARE) {
+            return ET_LOCAL;
+        }
+        else {
+            return ET_LOCAL_NOSHARE;
+        }
+    }
+    
+    return ET_REMOTE;
   }
   
   /* else ET system host name is given ... */
   else {
-    return et_nodelocality(config->host);
+    int isLocal;
+    etNetNodeIsLocal(config->host, &isLocal);
+    if (isLocal) {
+        if (et_sharedmutex() == ET_MUTEX_SHARE) {
+            return ET_LOCAL;
+        }
+        else {
+            return ET_LOCAL_NOSHARE;
+        }
+    }
+    
+    return ET_REMOTE;
   }
+  
+  return ET_REMOTE;
 }
  
 /******************************************************/
