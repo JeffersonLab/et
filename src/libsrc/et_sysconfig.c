@@ -58,7 +58,7 @@ int et_system_config_init(et_sysconfig* sconfig)
   sc->groups[0]        = sc->nevents;
   
   /* Find our local subnets' broadcast addresses */
-  if (et_getBroadcastAddrs(NULL, &sc->bcastaddrs) == ET_ERROR) {
+  if (etNetGetBroadcastAddrs(NULL, &sc->bcastaddrs) == ET_ERROR) {
     sc->bcastaddrs.count = 0;
   }
   /* check to see if we have room for the last broadcast addr (255.255.255.255) */
@@ -67,7 +67,7 @@ int et_system_config_init(et_sysconfig* sconfig)
   }
 
   /* Find our local interfaces' addresses and names. */
-  if (et_getNetInfo(NULL, &sc->netinfo) != ET_OK) {
+  if (etNetGetNetworkInfo(NULL, &sc->netinfo) != ET_OK) {
     sc->netinfo.count = 0;
   }
    		  
@@ -84,6 +84,12 @@ int et_system_config_destroy(et_sysconfig sconfig)
   
   if (sc == NULL) return ET_OK;
   
+  /* first, free network info (linked list) */
+  etNetFreeIpAddrs(sc->netinfo);
+  
+  /* next, free broadcast info (linked list) */
+  etNetFreeBroadcastAddrs(sc->bcastaddrs);
+
   free(sc);
   return ET_OK;
 }

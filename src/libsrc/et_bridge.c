@@ -612,7 +612,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
       transfer[6] = htonl(config->timeout_from.tv_nsec);
     }
  
-    if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+    if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
       et_tcp_unlock(idfrom);
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
         et_logmsg("ERROR", "et_events_bridge, write error\n");
@@ -621,7 +621,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
       return ET_ERROR_WRITE;
     }
  
-    if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+    if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
       et_tcp_unlock(idfrom);
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
         et_logmsg("ERROR", "et_events_bridge, read error\n");
@@ -638,7 +638,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
     }
     
     /* read total size of data to come - in bytes */
-    if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+    if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
       et_tcp_unlock(idfrom);
       if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
         et_logmsg("ERROR", "et_events_bridge, read error\n");
@@ -673,7 +673,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
       
       for (i=0; i < num_new; i++) {
         /* Read in the event's header info */
-        if (et_tcp_read(sockfd, (void *) header, sizeof(header)) != sizeof(header)) {
+        if (etNetTcpRead(sockfd, (void *) header, sizeof(header)) != sizeof(header)) {
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, reading event header error\n");
           }
@@ -711,7 +711,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
           put[i]->control[k] = ntohl(header[k+9]);
         }
     
-        if (et_tcp_read(sockfd, put[i]->pdata, len) != len) {
+        if (etNetTcpRead(sockfd, put[i]->pdata, len) != len) {
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, reading event data error\n");
           }
@@ -1008,7 +1008,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
         transfer[4] = htonl(ET_LOWINT(bytes));
 
         et_tcp_lock(idto);
-        if (et_tcp_writev(sockfd, iov, iov_bufs, 16) == -1) {
+        if (etNetTcpWritev(sockfd, iov, iov_bufs, 16) == -1) {
           et_tcp_unlock(idto);
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, write error\n");
@@ -1024,7 +1024,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
           goto end;
         }
 
-        if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+        if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
           et_tcp_unlock(idto);
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, read error\n");
