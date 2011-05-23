@@ -772,7 +772,7 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   
   sys->port         = 0;
  *sys->host         = '\0';
-  if (et_defaulthost(sys->host, ET_MAXHOSTNAMELEN) != ET_OK) {
+  if (etNetLocalHost(sys->host, ET_MAXHOSTNAMELEN) != ET_OK) {
     if (id->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_init_mem_sys: cannot find hostname\n");
     }
