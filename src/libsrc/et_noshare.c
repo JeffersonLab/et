@@ -187,7 +187,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   transfer[7] = 0;
   
   /* make the network connection */
-  sockfd = et_tcp_connect(etid->sys->host, (unsigned short)etid->sys->port);
+  sockfd = etNetTcpConnect(etid->sys->host, (unsigned short)etid->sys->port);
   if (sockfd < 0) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open: cannot connect to server\n");
@@ -211,7 +211,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   memcpy(pbuf,filename, length);
   
   /* write it to server */
-  if (et_tcp_write(sockfd, (void *) buf, bufsize) != bufsize) {
+  if (etNetTcpWrite(sockfd, (void *) buf, bufsize) != bufsize) {
     free(buf);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open, write error\n");
@@ -222,7 +222,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   free(buf);
   
   /* read the return */
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open, read error\n");
     }
@@ -237,7 +237,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     goto error;
   }
   
-  if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+  if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open, read error\n");
     }
@@ -302,14 +302,14 @@ int etn_alive(et_sys_id id)
    * restarted (breaking tcp connection), we'll get a write error.
    */
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
+  if (etNetTcpWrite(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_alive, write error\n");
     }
     status = ET_ERROR_WRITE;
   }
-  if (et_tcp_read(sockfd, &alive, sizeof(alive)) != sizeof(alive)) {
+  if (etNetTcpRead(sockfd, &alive, sizeof(alive)) != sizeof(alive)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_alive, read error\n");
@@ -419,7 +419,7 @@ int etn_event_new(et_sys_id id, et_att_id att, et_event **ev,
   }
  
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_new, write error\n");
@@ -427,7 +427,7 @@ int etn_event_new(et_sys_id id, et_att_id att, et_event **ev,
     return ET_ERROR_WRITE;
   }
  
-  if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+  if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_new, read error\n");
@@ -497,7 +497,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
   }
  
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, write error\n");
@@ -505,7 +505,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_WRITE;
   }
  
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, read error\n");
@@ -531,7 +531,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
    */
   size = nevents*sizeof(et_event *);  /* double use of size */
   
-  if (et_tcp_read(sockfd, (void *) evs, size) != size) {
+  if (etNetTcpRead(sockfd, (void *) evs, size) != size) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, read error\n");
@@ -594,7 +594,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
   }
  
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, write error\n");
@@ -602,7 +602,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_WRITE;
   }
  
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, read error\n");
@@ -628,7 +628,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
    */
   size = nevents*sizeof(et_event *);  /* double use of size */
   
-  if (et_tcp_read(sockfd, (void *) evs, size) != size) {
+  if (etNetTcpRead(sockfd, (void *) evs, size) != size) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, read error\n");
@@ -689,7 +689,7 @@ int etn_event_get(et_sys_id id, et_att_id att, et_event **ev,
   }
  
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_get, write error\n");
@@ -697,7 +697,7 @@ int etn_event_get(et_sys_id id, et_att_id att, et_event **ev,
     return ET_ERROR_WRITE;
   }
  
-  if (et_tcp_read(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
+  if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_get, read error\n");
@@ -766,7 +766,7 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
   }
  
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_get, write error\n");
@@ -774,7 +774,7 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_WRITE;
   }
  
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_get, read error\n");
@@ -790,7 +790,7 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
   nevents = err;
   size    = nevents*sizeof(et_event *);
   
-  if (et_tcp_read(sockfd, (void *) evs, size) != size) {
+  if (etNetTcpRead(sockfd, (void *) evs, size) != size) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_get, read error\n");
@@ -859,7 +859,7 @@ int etn_event_put(et_sys_id id, et_att_id att, et_event *ev)
   
   /* write event */
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_put, write error\n");
@@ -871,7 +871,7 @@ int etn_event_put(et_sys_id id, et_att_id att, et_event *ev)
     return ET_ERROR_WRITE;
   }
   
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_put: read error\n");
@@ -938,7 +938,7 @@ int etn_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
   iov[1].iov_len  = num*sizeof(et_event *);
 
   et_tcp_lock(etid);
-  if (et_tcp_writev(sockfd, iov, 2, 16) == -1) {
+  if (etNetTcpWritev(sockfd, iov, 2, 16) == -1) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_put, write error\n");
@@ -955,7 +955,7 @@ int etn_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
     return ET_ERROR_WRITE;
   }
 
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_put, read error\n");
@@ -1011,7 +1011,7 @@ int etn_event_dump(et_sys_id id, et_att_id att, et_event *ev)
 
   /* write event */
   et_tcp_lock(etid);
-  if (et_tcp_write(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
+  if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_dump, write error\n");
@@ -1023,7 +1023,7 @@ int etn_event_dump(et_sys_id id, et_att_id att, et_event *ev)
     return ET_ERROR_WRITE;
   }
   
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_event_dump: read error\n");
@@ -1090,7 +1090,7 @@ int etn_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
   iov[1].iov_len  = num*sizeof(et_event *);
 
   et_tcp_lock(etid);
-  if (et_tcp_writev(sockfd, iov, 2, 16) == -1) {
+  if (etNetTcpWritev(sockfd, iov, 2, 16) == -1) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_dump, write error\n");
@@ -1107,7 +1107,7 @@ int etn_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int num)
     return ET_ERROR_WRITE;
   }
 
-  if (et_tcp_read(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
+  if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_dump, read error\n");
