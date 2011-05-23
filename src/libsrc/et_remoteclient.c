@@ -221,7 +221,7 @@ int et_event_setendian(et_event *pe, int endian)
 {
   int myendian;
   
-  if ( (myendian = et_byteorder()) == ET_ERROR) {
+  if ( (myendian = etNetLocalByteOrder()) == ET_ERROR) {
     return ET_ERROR;
   }
   
@@ -258,7 +258,7 @@ int et_event_getendian(et_event *pe, int *endian)
     return ET_ERROR;
   }
   
-  if ( (myendian = et_byteorder()) == ET_ERROR) {
+  if ( (myendian = etNetLocalByteOrder()) == ET_ERROR) {
     return ET_ERROR;
   }
   
