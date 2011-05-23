@@ -183,14 +183,19 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
 
   /* check endian */
   if (pInfo->byteOrder != 0x04030201) {
-      et_logmsg("ERROR", "et_mem_attach: cannot open ET system file - wrong endian\n");
+      if (pInfo->byteOrder == 0x01020304) {
+        et_logmsg("ERROR", "et_mem_attach: ET system file is wrong endian\n");
+      }
+      else {
+          et_logmsg("ERROR", "et_mem_attach: ET system file removed but process running - kill ET & restart\n");
+      }
       close(fd);
       return ET_ERROR;
   }
   
   /* check system type */   
   if (pInfo->systemType != ET_SYSTEM_TYPE_C) {
-      et_logmsg("ERROR", "et_mem_attach: file is used only for Java ET systems\n");
+      et_logmsg("ERROR", "et_mem_attach: This ET system file is used only for Java ET systems\n");
       close(fd);
       return ET_ERROR;
   }
