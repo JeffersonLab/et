@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "et_network.h"
+#include <netdb.h>
+#include "etCommonNetwork.h"
 
 static char *Sock_ntop_host(const struct sockaddr *sa, socklen_t salen);
 static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen);
@@ -27,7 +28,7 @@ int main(int argc, char **argv)
 		printf("invalid <address-family>");
 	doaliases = atoi(argv[2]);
 
-	for (ifihead = ifi = et_get_ifi_info(family, doaliases);
+    for (ifihead = ifi = etNetGetInterfaceInfo(family, doaliases);
 		 ifi != NULL; ifi = ifi->ifi_next) {
 		printf("%s: <", ifi->ifi_name);
 /* *INDENT-OFF* */
@@ -50,10 +51,10 @@ int main(int argc, char **argv)
 		if ( (sa = ifi->ifi_addr) != NULL) {
                   struct hostent *hptr;
                   char **pptr;
-		  struct sockaddr_in *sin = (struct sockaddr_in *) sa;
+		          struct sockaddr_in *sin = (struct sockaddr_in *) sa;
                   printf("  IP addr: %s\n", Sock_ntop_host(sa, sizeof(*sa)));
                   
-                  if ( (hptr = gethostbyaddr((char *)&sin->sin_addr, 4, AF_INET)) != NULL) {
+                  if ( (hptr = gethostbyaddr((const char *)&sin->sin_addr, sizeof(struct in_addr), AF_INET)) != NULL) {
                     printf("  name   : %s\n", hptr->h_name);
                     for (pptr= hptr->h_aliases; *pptr != NULL; pptr++) {
                       printf("  alias  : %s\n", *pptr);
@@ -65,39 +66,38 @@ int main(int argc, char **argv)
 		if ( (sa = ifi->ifi_dstaddr) != NULL)
 			printf("  destination addr: %s\n", Sock_ntop_host(sa, sizeof(*sa)));
 	}
-	et_free_ifi_info(ifihead);
+    etNetFreeInterfaceInfo(ifihead);
 	exit(0);
 }
 
-
 static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
 {
-    static char str[128];		/* Unix domain is largest */
+    static char str[128];       /* Unix domain is largest */
 
-	switch (sa->sa_family) {
-	case AF_INET: {
-		struct sockaddr_in	*sin = (struct sockaddr_in *) sa;
+    switch (sa->sa_family) {
+        case AF_INET: {
+            struct sockaddr_in  *sin = (struct sockaddr_in *) sa;
 
-		if (inet_ntop(AF_INET, &sin->sin_addr, str, sizeof(str)) == NULL)
-			return(NULL);
-		return(str);
-	}
+            if (inet_ntop(AF_INET, &sin->sin_addr, str, sizeof(str)) == NULL)
+                return(NULL);
+            return(str);
+        }
 
-#ifdef	IPV6
-	case AF_INET6: {
-		struct sockaddr_in6	*sin6 = (struct sockaddr_in6 *) sa;
+#ifdef  IPV6
+    case AF_INET6: {
+    struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) sa;
 
-		if (inet_ntop(AF_INET6, &sin6->sin6_addr, str, sizeof(str)) == NULL)
-			return(NULL);
-		return(str);
-	}
+    if (inet_ntop(AF_INET6, &sin6->sin6_addr, str, sizeof(str)) == NULL)
+        return(NULL);
+    return(str);
+    }
 #endif
 
-	default:
-		snprintf(str, sizeof(str), "sock_ntop_host: unknown AF_xxx: %d, len %d",
-				 sa->sa_family, salen);
-		return(str);
-	}
+        default:
+            snprintf(str, sizeof(str), "sock_ntop_host: unknown AF_xxx: %d, len %d",
+                     sa->sa_family, salen);
+            return(str);
+    }
     return (NULL);
 }
 
