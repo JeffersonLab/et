@@ -106,13 +106,13 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
             /* make the network connection */
             if (inetaddr == 0) {
 et_logmsg("INFO","etr_open: etNetTcpConnect to host %s on port %d\n",ethost,port);
-              if ( (sockfd = etNetTcpConnect(ethost, (unsigned short)port)) >= 0) {
+              if (etNetTcpConnect(ethost, (unsigned short)port, 0, 0, &sockfd, NULL) == ET_OK) {
                   break;
               }
             }
             else {
 et_logmsg("INFO","etr_open: etNetTcpConnect2 to address %u on port %d\n",inetaddr,port);
-              if ( (sockfd = etNetTcpConnect2(inetaddr, (unsigned short)port)) >= 0) {
+              if (etNetTcpConnect2(inetaddr, (unsigned short)port, 0, 0, &sockfd, NULL) == ET_OK) {
                   break;
               }
             }
@@ -168,6 +168,18 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
     else {
         if (etid->debug >= ET_DEBUG_INFO) {
             et_logmsg("INFO", "etr_open: ET system on %s, port# %d\n", ethost, port);
+        }
+    }
+
+    /* bind socket to address in order to specify network interface */
+    if (strlen(config->interface) > 0) {
+        err = etNetSetInterface(sockfd, config->interface);
+        if (err != ET_OK) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "etr_open, cannot choose network interface\n");
+            }
+            err = ET_ERROR_REMOTE;
+            goto error;
         }
     }
 
