@@ -12,6 +12,7 @@ headerList = ['et.h',
 linkList = [archIncDir + sep + 'et.h',
             archIncDir + sep + 'et_private.h',
             archIncDir + sep + 'et_network.h',
+            archIncDir + sep + 'etCommonNetwork.h',
             archIncDir + sep + 'et_data.h']
 
 jniFileList = ['et_jni.c']
@@ -38,6 +39,7 @@ fileList = ['et_attachment.c',
 
 remoteFileList = ['et_init.c',
                   'et_network.c',
+                  'etCommonNetwork.c',
                   'et_openconfig.c',
                   'et_remote.c',
                   'et_remoteclient.c',
