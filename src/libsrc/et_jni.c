@@ -88,8 +88,8 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
     et_open_config_destroy(openconfig);
 
     /* store byte order of local system */
-    localByteOrder = etNetLocalByteOrder();
-    if (localByteOrder == ET_ERROR) {
+    err = etNetLocalByteOrder(&localByteOrder);
+    if (err != ET_OK) {
         localByteOrder = ET_ENDIAN_LITTLE;
     }
 
