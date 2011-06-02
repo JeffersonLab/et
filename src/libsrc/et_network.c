@@ -54,18 +54,6 @@
 #endif
 #include "et_network.h"
 
-#ifdef VXWORKS
-
-/** Implementation of strdup for vxWorks. */
-char *strdup(const char *s1) {
-    char *s;    
-    if (s1 == NULL) return NULL;    
-    if ((s = (char *) malloc(strlen(s1)+1)) == NULL) return NULL;    
-    return strcpy(s, s1);
-}
-
-#endif
-
 
 /*****************************************************/
 /* 64 bit swap routine */
@@ -160,7 +148,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
   int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0, magicInts[3];
   const int    on=1, timeincr[]={0,1,2,3,4,5};
   uint32_t     addr;
-  et_iplist *baddr;
+  codaIpList   *baddr;
    
   /* encoding & decoding packets */
   char  *pbuf, buffer[4096]; /* should be way more than enough */
@@ -382,7 +370,7 @@ if (debug)
         (config->cast == ET_BROADANDMULTICAST)) {
 
       /* for each listed broadcast address ... */
-      et_iplist *baddr = config->bcastaddrs;
+      codaIpList *baddr = config->bcastaddrs;
       while (baddr != NULL) {
           /* put address into net-ordered binary form */
           if (inet_aton(baddr->addr, &castaddr) == INET_ATON_ERR) {
