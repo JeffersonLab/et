@@ -154,7 +154,10 @@ void *et_cast_thread(void *arg)
 }
 
 
-/************************************************************/
+/************************************************************
+ * Thread for listening to clients who broadcast or
+ * multicast.
+ */
 static void *et_listen_thread(void *arg)
 {
   et_netthread       *threadarg  = (et_netthread *) arg;
@@ -163,7 +166,7 @@ static void *et_listen_thread(void *arg)
   int                cast        = threadarg->cast;
   char               *uname      = threadarg->uname;
   char               *listenaddr = threadarg->listenaddr;
-  et_ipinfo          *pinfo      = config->netinfo.ipinfo;
+  codaIpInfo         *pinfo      = config->netinfo.ipinfo;
   int                ipAddrCount = config->netinfo.count;
 
   int                i, j, k, version, sockfd, nbytes, length, len, err;
@@ -213,7 +216,7 @@ static void *et_listen_thread(void *arg)
    * (8)  number of names for this IP addr starting with canonical
    * (9)    32bit, net-byte ordered IPv4 address assoc with following name
    * (10)   length of next string
-   * (11)       first name = canonical
+   * (11)       first name = canonical (if available)
    * (12)   32bit, net-byte ordered IPv4 address assoc with following name
    * (13)   length of next string
    * (14)       first alias ...
@@ -461,7 +464,7 @@ void *et_netserver(void *arg)
   et_threadinfo   *pinfo;
 
   /* find servers's endian value */
-  if ( (endian = etNetLocalByteOrder()) == ET_ERROR) {
+  if (etNetLocalByteOrder(&endian) != ET_OK) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_netserver: strange byteorder\n");
     }
