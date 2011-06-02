@@ -3,6 +3,7 @@ Import('env', 'libDir', 'incDir', 'debugSuffix')
 
 remoteFileList = ['et_init.c',
                   'et_network.c',
+                  'etCommonNetwork.c',
                   'et_openconfig.c',
                   'et_remote.c',
                   'et_remoteclient.c',
