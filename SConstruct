@@ -13,9 +13,10 @@
 ################################
 
 # get operating system info
-import os, subprocess
-import string
-import SCons.Node.FS
+import re
+import sys
+import glob
+import os, string, subprocess, SCons.Node.FS
 from os import access, F_OK, sep, symlink, lstat
 from subprocess import Popen, PIPE
 
@@ -35,6 +36,28 @@ osname   = platform + '-' +  machine
 # This allows us to get to the vxworks compiler for example.
 # So for vxworks, make sure the tools are in your PATH
 env = Environment(ENV = {'PATH' : os.environ['PATH']})
+
+def recursiveDirs(root) :
+    return filter( (lambda a : a.rfind( ".svn")==-1 ),  [ a[0] for a in os.walk(root)]  )
+
+def unique(list) :
+    return dict.fromkeys(list).keys()
+
+def scanFiles(dir, accept=["*.cpp"], reject=[]) :
+    sources = []
+    paths = recursiveDirs(dir)
+    for path in paths :
+        for pattern in accept :
+            sources+=glob.glob(path+"/"+pattern)
+    for pattern in reject :
+        sources = filter( (lambda a : a.rfind(pattern)==-1 ),  sources )
+    return unique(sources)
+
+def subdirsContaining(root, patterns):
+    dirs = unique(map(os.path.dirname, scanFiles(root, patterns)))
+    dirs.sort()
+    return dirs
+
 
 ####################################################################################
 # Create a Builder to install symbolic links, where "source" is list of node objects
@@ -165,14 +188,23 @@ print "debug =", debug
 Help('\nlocal scons OPTIONS:\n')
 Help('--dbg               compile with debug flag\n')
 
-# vxworks option
-AddOption('--vx',
-           dest='doVX',
+# vxworks 5.5 option
+AddOption('--vx5.5',
+           dest='doVX55',
            default=False,
            action='store_true')
-useVxworks = GetOption('doVX')
-print "useVxworks =", useVxworks
-Help('--vx                cross compile for vxworks\n')
+useVxworks55= GetOption('doVX55')
+print "useVxworks 5.5 =", useVxworks55
+Help('--vx5.5             cross compile for vxworks 5.5\n')
+
+# vxworks 6.0 option
+AddOption('--vx6.0',
+           dest='doVX60',
+           default=False,
+           action='store_true')
+useVxworks60= GetOption('doVX60')
+print "useVxworks 6.0 =", useVxworks60
+Help('--vx6.0             cross compile for vxworks 6.0\n')
 
 # 32 bit option
 AddOption('--32bits',
@@ -200,6 +232,18 @@ Help('-c  install         uninstall libs, headers, examples, and remove all gene
 # Compile flags
 #########################
 
+# 2 possible versions of vxWorks
+if useVxworks55:
+    useVxworks = True
+    vxVersion  = 5.5
+    
+elif useVxworks60:
+    useVxworks = True
+    vxVersion  = 6.0
+
+else:
+    useVxworks = False
+    
 # debug/optimization flags
 debugSuffix = ''
 if debug:
@@ -218,16 +262,45 @@ execLibs = ['']
 
 # If using vxworks
 if useVxworks:
-    print "\nDoing vxworks\n"
-    osname = platform + '-vxppc'
+    osname = 'vxworks-ppc'
+
+    ## Figure out which version of vxworks is being used.
+    ## Do this by finding out which ccppc is first in our PATH.
+    #vxCompilerPath = Popen('which ccppc', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
+    
+    ## Then ty to grab the major version number from the PATH
+    #matchResult = re.match('/site/vxworks/(\\d).+', vxCompilerPath)
+    #if matchResult != None:
+        ## Test if version number was obtained
+        #try:
+            #vxVersion = int(matchResult.group(1))
+        #except IndexError:
+            #print 'ERROR finding vxworks version, set to 6 by default\n'
+
+    print '\nUsing vxWorks version ' + str(vxVersion) + '\n'
+
+    if vxVersion == 5.5:
+        vxbase = '/site/vxworks/5.5/ppc'
+        vxInc  = [vxbase + '/target/h']
+    elif vxVersion == 6.0:
+        vxbase = '/site/vxworks/6.0/ppc/gnu/3.3.2-vxworks60'
+        vxInc  = ['/site/vxworks/6.0/ppc/vxworks-6.0/target/h',
+                  '/site/vxworks/6.0/ppc/vxworks-6.0/target/h/wrn/coreip']
+    else:
+        print 'Unknown version of vxWorks, exiting\n'
+        raise SystemExit
+
 
     if platform == 'Linux':
-        vxbase = os.getenv('WIND_BASE', '/site/vxworks/5.5/ppc')
-        vxbin = vxbase + '/x86-linux/bin'
+        if vxVersion == 5:
+            vxbin = vxbase + '/host/x86-linux/bin'
+        else:
+            vxbin = vxbase + '/x86-linux2/bin'
     elif platform == 'SunOS':
-        vxbase = os.getenv('WIND_BASE', '/site/vxworks/5.5/ppc')
-        print "WIND_BASE = ", vxbase
-        vxbin = vxbase + '/sun4-solaris/bin'
+        if vxVersion > 5:
+            print '\nVxworks 6.x compilation not allowed on solaris\n'
+            raise SystemExit
+        vxbin = vxbase + '/host/sun4-solaris2/bin'
         if machine == 'i86pc':
             print '\nVxworks compilation not allowed on x86 solaris\n'
             raise SystemExit
@@ -239,11 +312,12 @@ if useVxworks:
     # get rid of -shared and use -r
     env.Replace(SHLINKFLAGS = '-r')
     # redefine SHCFLAGS/SHCCFLAGS to get rid of -fPIC (in Linux)
-    env.Replace(SHCFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
-    env.Replace(SHCCFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
-    env.Append(CFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
-    env.Append(CCFLAGS = '-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604')
-    env.Append(CPPPATH = vxbase + '/target/h')
+    vxFlags = '-fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604'
+    env.Replace(SHCFLAGS  = vxFlags)
+    env.Replace(SHCCFLAGS = vxFlags)
+    env.Append(CFLAGS     = vxFlags)
+    env.Append(CCFLAGS    = vxFlags)
+    env.Append(CPPPATH    = vxInc)
     env.Append(CPPDEFINES = ['CPU=PPC604', 'VXWORKS', '_GNU_TOOL', 'VXWORKSPPC', 'POSIX_MISTAKE'])
     env['CC']     = 'ccppc'
     env['CXX']    = 'g++ppc'
@@ -361,8 +435,8 @@ def tarballer(target, source, env):
         return
     dirname = os.path.basename(os.path.abspath('.'))
     cmd = 'tar -X tar/tarexclude -C .. -c -z -f ' + str(target[0]) + ' ./' + dirname
-    p = os.popen(cmd)
-    return p.close()
+    pipe = Popen(cmd, shell=True, stdin=PIPE).stdout
+    return pipe
 
 # name of tarfile (software package dependent)
 tarfile = 'tar/et-' + versionMajor + '.' + versionMinor + '.tgz'
