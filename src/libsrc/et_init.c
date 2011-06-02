@@ -327,7 +327,7 @@ int et_id_init(et_sys_id *id)
   etid->port         = 0;
  *etid->ethost       = '\0';
   /* find endian value */
-  if ( (etid->endian = etNetLocalByteOrder()) == ET_ERROR) {
+  if (etNetLocalByteOrder(&etid->endian) != ET_OK) {
     et_logmsg("SEVERE", "et_id_init, strange byteorder\n");
     exit(1);
   }
