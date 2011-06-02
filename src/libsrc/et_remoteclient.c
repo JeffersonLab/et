@@ -219,10 +219,10 @@ int et_event_getdatastatus(et_event *pe, int *datastatus)
 /******************************************************/
 int et_event_setendian(et_event *pe, int endian)
 {
-  int myendian;
+  int err, myendian;
   
-  if ( (myendian = etNetLocalByteOrder()) == ET_ERROR) {
-    return ET_ERROR;
+  if ( (err = etNetLocalByteOrder(&myendian)) != ET_OK) {
+      return err;
   }
   
   if ((endian != ET_ENDIAN_BIG)      &&
@@ -252,14 +252,14 @@ int et_event_setendian(et_event *pe, int endian)
 /******************************************************/
 int et_event_getendian(et_event *pe, int *endian)
 { 
-  int myendian, notmyendian;
+  int err, myendian, notmyendian;
   
   if (endian == NULL) {
     return ET_ERROR;
   }
   
-  if ( (myendian = etNetLocalByteOrder()) == ET_ERROR) {
-    return ET_ERROR;
+  if ( (err = etNetLocalByteOrder(&myendian)) != ET_OK) {
+      return err;
   }
   
   notmyendian = (myendian == ET_ENDIAN_BIG) ? ET_ENDIAN_LITTLE : ET_ENDIAN_BIG;
