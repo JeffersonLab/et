@@ -28,8 +28,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <limits.h>
-#include <netinet/in.h>         /* sockaddr_in definition */
-#include "et.h"
+
+#include "etCommonNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,60 +89,6 @@ extern "C" {
 /* max # of network addresses/names per host we'll examine */
 #define ET_MAXADDRESSES 10
 
-/** Structure to handle dotted-decimal IP addresses in a linked list. */
-typedef struct et_iplist_t {
-  char                addr[ET_IPADDRSTRLEN]; /**< Single dotted-decimal address. */
-  struct et_iplist_t *next;                  /**< Next item in linked list. */
-} et_iplist;
-
-/** Structure to handle multiple dotted-decimal IP addresses. */
-typedef struct et_ipaddrs_t {
-  int       count;                                  /**< Number of valid addresses in this structure. */
-  char      addr[ET_MAXADDRESSES][ET_IPADDRSTRLEN]; /**< Array of addresses. */
-  pthread_t tid[ET_MAXADDRESSES];                   /**< Array of pthread thread ids. */
-} et_ddipaddrs;
-
-
-/**
- * This structure holds a single IP address (dotted-decimal
- * and binary forms) along with its canonical name, aliases,
- * broadcast address, and a place to store a thread id.
- */
-typedef struct et_ipaddr_t {
-  int    aliasCount;                 /**< Number of aliases stored in this structure. */
-  char   **aliases;                  /**< Array of alias strings. */
-  char   addr[ET_IPADDRSTRLEN];      /**< IP address in dotted-decimal form. */
-  char   canon[ET_MAXHOSTNAMELEN];   /**< Canonical name of host associated with addr. */
-  char   broadcast[ET_IPADDRSTRLEN]; /**< Broadcast address in dotted-decimal form. */
-  struct sockaddr_in saddr;          /**< Binary form of IP address. */
-  struct et_ipaddr_t *next;          /**< Next item in linked list. */
-} et_ipaddr;
-
-/**
- * This structure holds a single IP address (dotted-decimal
- * and binary forms) along with its canonical name, aliases,
- * broadcast address, and a place to store a thread id. This
- * form is for use with shared memory since it is of fixed size.
- */
-typedef struct et_ipinfo_t {
-  int    aliasCount;                 /**< Number of aliases stored in this item. */
-  char   addr[ET_IPADDRSTRLEN];      /**< IP address in dotted-decimal form. */
-  char   canon[ET_MAXHOSTNAMELEN];   /**< Canonical name of host associated with addr. */
-  char   broadcast[ET_IPADDRSTRLEN]; /**< Broadcast address in dotted-decimal form. */
-  char   aliases[ET_MAXADDRESSES][ET_MAXHOSTNAMELEN]; /**< Array of alias strings. */
-  struct sockaddr_in saddr;          /**< Binary form of IP address (net byte order). */
-} et_ipinfo;
-
-/**
- * This structure stores an array of et_ipinfo structures in order to represent
- * all the network interface data of a computer.
- */
-typedef struct et_netinfo_t {
-  int       count;                   /**< Number of valid array items. */
-  et_ipinfo ipinfo[ET_MAXADDRESSES]; /**< Array of structures each of which holds a
-                                          single IP address and its related data. */
-} et_netinfo;
-
 /****************************************
  * times for heart beating & monitoring *
  ****************************************/
@@ -152,13 +98,6 @@ typedef struct et_netinfo_t {
 /* 0.5 sec */
 #define ET_BEAT_SEC   0
 #define ET_BEAT_NSEC  500000000
-
-/* see "Programming with POSIX threads' by Butenhof */
-#define err_abort(code,text) do { \
-    fprintf (stderr, "%s at \"%s\":%d: %s\n", \
-        text, __FILE__, __LINE__, strerror (code)); \
-    exit (-1); \
-    } while (0)
 
 /* max value for heartbeats */
 #define ET_HBMODULO UINT_MAX
@@ -554,11 +493,11 @@ typedef struct  et_sys_config_t {
   int             groups[ET_EVENT_GROUPS_MAX];
   char            filename[ET_FILENAME_LENGTH];
   /* for remote use */
-  int             port;
-  int             serverport;
-  et_netinfo      netinfo;
-  et_ddipaddrs    bcastaddrs;
-  et_ddipaddrs    mcastaddrs;
+  int               port;
+  int               serverport;
+  codaNetInfo       netinfo;
+  codaDotDecIpAddrs bcastaddrs;
+  codaDotDecIpAddrs mcastaddrs;
 } et_sys_config;
 
 /*
@@ -679,6 +618,8 @@ typedef struct et_system_t {
  *               : its value may also be ET_HOST_ANYWHERE for an ET system that
  *               : may be local or remote, ET_HOST_REMOTE for an ET system that's
  *               : remote, or ET_HOST_LOCAL for an ET system that is local.
+ * interface     : dotted-decimal ip address specifying the interface
+ *               : for network communications with ET system.
  * netinfo       : linked list of structs containing network info
  * bcastaddrs    : linked list of all local subnet broadcast addrs (dotted-decimal)
  * mcastaddrs    : list of all multicast addresses (dotted-dec)
@@ -697,9 +638,10 @@ typedef struct et_open_config_t {
   int             policy;
   struct timespec timeout;
   char            host[ET_MAXHOSTNAMELEN];
-  et_ipaddr       *netinfo;
-  et_iplist       *bcastaddrs;
-  et_ddipaddrs    mcastaddrs;
+  char            interface[ET_IPADDRSTRLEN];
+  codaIpAddr       *netinfo;
+  codaIpList       *bcastaddrs;
+  codaDotDecIpAddrs mcastaddrs;
 } et_open_config;
 
 
