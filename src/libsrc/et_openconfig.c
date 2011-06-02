@@ -48,6 +48,7 @@ int et_open_config_init(et_openconfig *sconfig)
   sc->serverport       = ET_SERVER_PORT;
   sc->timeout.tv_sec   = 0;
   sc->timeout.tv_nsec  = 0;
+  memset(sc->interface, 0, ET_IPADDRSTRLEN);
   strcpy(sc->host, ET_HOST_LOCAL);
   sc->policy           = ET_POLICY_FIRST; /* use first response to broad/multicast */
   sc->mcastaddrs.count = 0;
@@ -108,7 +109,9 @@ int et_open_config_getwait(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->wait;
+  if (val != NULL) {
+      *val = sc->wait;
+  }
   return ET_OK;
 }
 
@@ -137,7 +140,9 @@ int et_open_config_getcast(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->cast;
+  if (val != NULL) {
+      *val = sc->cast;
+  }
   return ET_OK;
 }
 
@@ -163,7 +168,9 @@ int et_open_config_getTTL(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->ttl;
+  if (val != NULL) {
+      *val = sc->ttl;
+  }
   return ET_OK;
 }
 
@@ -190,7 +197,9 @@ int et_open_config_getmode(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->mode;
+  if (val != NULL) {
+      *val = sc->mode;
+  }
   return ET_OK;
 }
 /*****************************************************/
@@ -216,7 +225,9 @@ int et_open_config_getdebugdefault(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->debug_default;
+  if (val != NULL) {
+      *val = sc->debug_default;
+  }
   return ET_OK;
 }
 
@@ -242,7 +253,9 @@ int et_open_config_getport(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->udpport;
+  if (val != NULL) {
+      *val = sc->udpport;
+  }
   return ET_OK;
 }
 
@@ -268,7 +281,9 @@ int et_open_config_getmultiport(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->multiport;
+  if (val != NULL) {
+      *val = sc->multiport;
+  }
   return ET_OK;
 }
 
@@ -294,7 +309,9 @@ int et_open_config_getserverport(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->serverport;
+  if (val != NULL) {
+      *val = sc->serverport;
+  }
   return ET_OK;
 }
 
@@ -316,7 +333,9 @@ int et_open_config_gettimeout(et_openconfig sconfig, struct timespec *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->timeout;
+  if (val != NULL) {
+      *val = sc->timeout;
+  }
   return ET_OK;
 }
 
@@ -447,7 +466,9 @@ int et_open_config_getpolicy(et_openconfig sconfig, int *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  *val = sc->policy;
+  if (val != NULL) {
+      *val = sc->policy;
+  }
   return ET_OK;
 }
 
@@ -477,6 +498,46 @@ int et_open_config_gethost(et_openconfig sconfig, char *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   
-  strcpy(val, sc->host);
+  if (val != NULL) {
+      strcpy(val, sc->host);
+  }
   return ET_OK;
+}
+
+/*****************************************************/
+/* Sets the local interface when using the network
+ * to communicate with the Et system. */
+int et_open_config_setinterface(et_openconfig sconfig, const char *val)
+{
+    et_open_config *sc = (et_open_config *) sconfig;
+  
+    if (sc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+  
+    if (!etNetIsDottedDecimal(val, NULL)) {
+        return ET_ERROR;
+    }
+    
+    if (val == NULL) {
+        return ET_ERROR;
+    }
+  
+    if (strlen(val) > ET_FUNCNAME_LENGTH-1) {
+        return ET_ERROR;
+    }
+  
+    strcpy(sc->interface, val);
+    return ET_OK;
+}
+
+/*****************************************************/
+int et_open_config_getinterface(et_openconfig sconfig, char *val)
+{
+    et_open_config *sc = (et_open_config *) sconfig;
+  
+    if (val != NULL) {
+        strcpy(val, sc->interface);
+    }
+    return ET_OK;
 }
