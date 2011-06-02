@@ -81,14 +81,14 @@ extern "C" {
 /* ET libraries (local & remote) whose users interact in any way.    */
 /*********************************************************************/
 /* # of control integers associated with each station */
-#define ET_STATION_SELECT_INTS 4
+#define ET_STATION_SELECT_INTS 6
 
 /*********************************************************************/
 /*             DO NOT CHANGE ANYTHING BELOW THIS LINE !!!            */
 /*********************************************************************/
 
 /* default multicast time-to-live value */
-#define ET_MULTICAST_TTL   1
+#define ET_MULTICAST_TTL   32
 
 /* ET server is on host that is ... */
 #define ET_HOST_LOCAL      ".local"
@@ -267,6 +267,14 @@ extern "C" {
 
 #define ET_SWAP16(x) ( (((x) >> 8) & 0x00FF) | \
                        (((x) << 8) & 0xFF00) )
+
+
+/* see "Programming with POSIX threads' by Butenhof */
+#define err_abort(code,text) do { \
+    fprintf (stderr, "%s at \"%s\":%d: %s\n", \
+        text, __FILE__, __LINE__, strerror (code)); \
+    exit (-1); \
+} while (0)
 
 
 /* STRUCTURES */
@@ -628,6 +636,9 @@ extern int et_open_config_removemulticast(et_openconfig sconfig, const char *val
 
 extern int et_open_config_setpolicy(et_openconfig sconfig, int val);
 extern int et_open_config_getpolicy(et_openconfig sconfig, int *val);
+
+extern int et_open_config_setinterface(et_openconfig sconfig, const char *val);
+extern int et_open_config_getinterface(et_openconfig sconfig, char *val);
 
 /*************************************************************
  * routines to store and read system bridge parameters used  *
