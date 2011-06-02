@@ -37,7 +37,7 @@ int et_system_config_init(et_sysconfig* sconfig)
 {
   et_sys_config *sc;
   
-  sc = (et_sys_config *) malloc(sizeof(et_sys_config));
+  sc = (et_sys_config *) calloc(1, sizeof(et_sys_config));
   if (sc == NULL) {
     return ET_ERROR;
   }
@@ -84,12 +84,6 @@ int et_system_config_destroy(et_sysconfig sconfig)
   
   if (sc == NULL) return ET_OK;
   
-  /* first, free network info (linked list) */
-  etNetFreeIpAddrs(sc->netinfo);
-  
-  /* next, free broadcast info (linked list) */
-  etNetFreeBroadcastAddrs(sc->bcastaddrs);
-
   free(sc);
   return ET_OK;
 }
