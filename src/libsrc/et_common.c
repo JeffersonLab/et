@@ -28,6 +28,19 @@
 #include "et_private.h"
 #include "et_network.h"
 
+#ifdef VXWORKS
+
+/** Implementation of strdup for vxWorks. */
+char *strdup(const char *s1) {
+    char *s;
+    if (s1 == NULL) return NULL;
+    if ((s = (char *) malloc(strlen(s1)+1)) == NULL) return NULL;
+    return strcpy(s, s1);
+}
+
+#endif
+
+
 /*****************************************************/
 /*             ERROR REPORTING                       */
 /*****************************************************/
