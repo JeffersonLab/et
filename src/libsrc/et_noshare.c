@@ -187,7 +187,8 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   transfer[7] = 0;
   
   /* make the network connection */
-  err = etNetTcpConnect(etid->sys->host, (unsigned short)etid->sys->port, 0, 0, &sockfd, NULL);
+  err = etNetTcpConnect(etid->sys->host, config->interface,
+                        (unsigned short)etid->sys->port, 0, 0, &sockfd, NULL);
   if (err != ET_OK) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open: cannot connect to server\n");
