@@ -101,6 +101,7 @@ extern int etDebug;
 #define   codanetGetNetworkInfo         etNetGetNetworkInfo
 #define   codanetFreeBroadcastAddrs     etNetFreeBroadcastAddrs
 #define   codanetGetBroadcastAddrs      etNetGetBroadcastAddrs
+#define   codanetGetIpAddrs             etNetGetIpAddrs
 #define   codanetMcastSetIf             etNetMcastSetIf
 #define   codanetGetIfNames             etNetGetIfNames
 
@@ -238,9 +239,9 @@ typedef struct codaNetInfo_t {
     
 /* routine prototypes */
 extern int   codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize, int rcvBufSize, int *listenFd);
-extern int   codanetTcpConnect(const char *ip_address, unsigned short port,
+extern int   codanetTcpConnect(const char *ip_address, const char *interface, unsigned short port,
                                int rcvBufSize, int sendBufSize, int *fd, int *localPort);
-extern int   codanetTcpConnect2(uint32_t inetaddr, unsigned short port,
+extern int   codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short port,
                                 int sendBufSize, int rcvBufSize, int *fd, int *localPort);
 extern int   codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
                                       int sendBufSize, int rcvBufSize, struct timeval *timeout,
@@ -277,6 +278,7 @@ extern void  codanetFreeIpAddrs(codaIpAddr *ipaddr);
 extern int   codanetGetNetworkInfo(codaIpAddr **ipaddrs, codaNetInfo *info);
 extern void  codanetFreeBroadcastAddrs(codaIpList *addr);
 extern int   codanetGetBroadcastAddrs(codaIpList **addrs, codaDotDecIpAddrs *bcaddrs);
+extern int   codanetGetIpaddrs(char ***ipAddrs, int *count, char *host);
 extern int   codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex);
 extern int   codanetGetIfNames(char ***ifNames, int *count);
 

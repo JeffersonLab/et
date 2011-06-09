@@ -92,6 +92,7 @@ struct hostent *gethostbyname(const char *hostName)
 {
     int host;
     if ((host = hostGetByName((char *)hostName))==ERROR) return(NULL);
+    h.h_addrtype = AF_INET;
     h.h_name = (char *)hostName;
     h.h_addr_list = addrlist;
     addrlist[0] = (char *) &sin.sin_addr;
@@ -801,6 +802,7 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
  * This routine makes a TCP connection to a server.
  *
  * @param ip_address  name of host to connect to (may be dotted-decimal)
+ * @param interface   interface (dotted-decimal ip address) to connect through
  * @param port        port to connect to
  * @param sendBufSize size of socket's send buffer in bytes
  * @param rcvBufSize  size of socket's receive buffer in bytes
@@ -814,7 +816,7 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
  * @returns ET_ERROR_NETWORK/CMSG_NETWORK_ERROR if host name could not be resolved or could not connect
  *
  */
-int codanetTcpConnect(const char *ip_address, unsigned short port,
+int codanetTcpConnect(const char *ip_address, const char *interface, unsigned short port,
                       int sendBufSize, int rcvBufSize, int *fd, int *localPort)
 {
     int                 sockfd, err=0, isDottedDecimal=0;
@@ -861,7 +863,7 @@ int codanetTcpConnect(const char *ip_address, unsigned short port,
             }
             return(CODA_NETWORK_ERROR);
         }
-        return codanetTcpConnect2(inetaddr, port, sendBufSize, rcvBufSize, fd, localPort);
+        return codanetTcpConnect2(inetaddr, interface, port, sendBufSize, rcvBufSize, fd, localPort);
 
     }
 
@@ -900,7 +902,19 @@ int codanetTcpConnect(const char *ip_address, unsigned short port,
             return(CODA_SOCKET_ERROR);
         }
     }
-    
+
+    /* set the outgoing network interface */
+    if (interface != NULL && strlen(interface) > 0) {
+        err = codanetSetInterface(sockfd, interface);
+        if (err != CODA_OK) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sTcpConnect: error choosing network interface\n", codanetStr);
+            }
+            return(CODA_SOCKET_ERROR);
+        }
+    }
+
     memset((void *)&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port   = htons(port);
@@ -1084,6 +1098,7 @@ int codanetTcpConnect(const char *ip_address, unsigned short port,
  * This routine makes a TCP connection to a server.
  *
  * @param inetaddr    binary numeric address of host to connect to
+ * @param interface   interface (dotted-decimal ip address) to connect through
  * @param port        port to connect to
  * @param sendBufSize size of socket's send buffer in bytes
  * @param rcvBufSize  size of socket's receive buffer in bytes
@@ -1097,7 +1112,7 @@ int codanetTcpConnect(const char *ip_address, unsigned short port,
  * @returns ET_ERROR_NETWORK/CMSG_NETWORK_ERROR if host name could not be resolved or could not connect
  *
  */
-int codanetTcpConnect2(uint32_t inetaddr, unsigned short port,
+int codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short port,
                        int sendBufSize, int rcvBufSize, int *fd, int *localPort)
 {
     int                 sockfd, err=0;
@@ -1139,6 +1154,18 @@ int codanetTcpConnect2(uint32_t inetaddr, unsigned short port,
         }
     }
     
+    /* set the outgoing network interface */
+    if (interface != NULL && strlen(interface) > 0) {
+        err = codanetSetInterface(sockfd, interface);
+        if (err != CODA_OK) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sTcpConnect2: error choosing network interface\n", codanetStr);
+            }
+            return(CODA_SOCKET_ERROR);
+        }
+    }
+
     memset((void *)&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port   = htons(port);
@@ -1334,7 +1361,7 @@ int codanetStringToNumericIPaddr(const char *ip_address, struct sockaddr_in *add
             coda_err_abort(status, "Unlock gethostbyname Mutex");
         }
         if (codanetDebug >= CODA_DEBUG_ERROR) {
-            fprintf(stderr, "%sStringToNumericIPaddr: hostname error - %s\n", codanetStr, codanetHstrerror(h_errnop));
+            fprintf(stderr, "%sStringToNumericIPaddr: hostname error - %s\n", codanetStr, codanetHstrerror(h_errno));
         }
         return(CODA_NETWORK_ERROR);
     }
@@ -1375,6 +1402,8 @@ int codanetSetInterface(int fd, const char *ip_address) {
     int err;
     struct sockaddr_in netAddr;
     
+    memset(&netAddr, 0, sizeof(struct sockaddr_in));
+    
     err = codanetStringToNumericIPaddr(ip_address, &netAddr);
     if (err != CODA_OK) {
         return err;
@@ -1383,6 +1412,7 @@ int codanetSetInterface(int fd, const char *ip_address) {
     netAddr.sin_port = 0;         /* choose ephemeral port # */
 
     err = bind(fd, (struct sockaddr *) &netAddr, sizeof(netAddr));
+    if (err != 0) perror("error in codanetSetInterface: ");
     return err;
 }
 
@@ -2158,10 +2188,11 @@ int codanetLocalAddress(char *address)
  ******************************************************/
 
 /*****************************************************/
-/* from Stevens chapter 3 */
+/* From Stevens chapter 3. Convert network address structure
+ * into dotted-decimal IP address string (local static storage).
+ */
 static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
 {
-    int debug = 1;
     static char str[128]; /* Unix domain is largest */
 
     switch (sa->sa_family) {
@@ -2210,7 +2241,7 @@ static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
 
 /**
  * This is a routine taken from Stevens chapter 21
- * (combined mcast_set_if with sockfd_to_family).
+ * (combined mcast_set_if & sockfd_to_family).
  * It sets a socket to multicast from a given interface.
  *
  * @param sockfd  socket file descriptor from which to multicast
@@ -2324,7 +2355,7 @@ doioctl:
 
 
 /**
- * This routine get the network interface information about a computer.
+ * This routine gets the network interface information about a computer.
  * Any returned non-NULL pointer must be freed with the routine
  * et/cMsgNetFreeInterfaceInfo().
  *
@@ -3058,7 +3089,7 @@ int codanetGetNetworkInfoOrig(codaIpAddr **ipaddrs, codaNetInfo *info)
                         printf("%sGetNetworkInfo address   : %s\n", codanetStr, pChar);
                     }
                 }
-                }
+            }
 
             /* if the interface is broadcast enabled */
             if ((ifi->ifi_flags & IFF_BROADCAST) > 0) {
@@ -3254,12 +3285,13 @@ int codanetGetBroadcastAddrs(codaIpList **addrs, codaDotDecIpAddrs *bcaddrs)
 
 
 /**
- * This routine returns an allocated array of network interfaces names
- * and the array size in the arguments.
+ * This routine returns an allocated array of local network interfaces names
+ * and the array size in the arguments. To free all allocated memory,
+ * free each of ifNames' count elements, then free ifNames itself.
  *
- * @param ifNames pointer which gets filled with allocated array of interfaces names.
+ * @param ifNames pointer which gets filled with allocated array of local interfaces names.
  *                If NULL, nothing is returned here.
- * @param count   number if names returned.
+ * @param count   number of names returned.
  *                If NULL, nothing is returned here.
  *
  * @returns ET/CMSG_OK                        if successful
@@ -3330,6 +3362,182 @@ int codanetGetIfNames(char ***ifNames, int *count) {
     /* free memory */
     codanetFreeInterfaceInfo(ifihead);
     
+    return CODA_OK;
+}
+
+
+/**
+ * This routine returns an allocated array of local dotted-decimal IP addresses
+ * and the array size in the arguments. To free all allocated memory,
+ * free each of ipAddrs' count elements, then free ipAddrs itself.
+ *
+ * @param ipAddrs pointer which gets filled with allocated array of local dotted-decimal IP addresses.
+ *                If NULL, nothing is returned here.
+ * @param count   number of addresses returned.
+ *                If NULL, nothing is returned here.
+ * @param host    if NULL, return addrs of local host, else return address of given host.
+ *
+ * @returns ET/CMSG_OK                        if successful
+ * @returns ET/CMSG_ERROR                     if cannot find network interface or host info
+ * @returns ET_ERROR_NOMEM/CMSG_OUT_OF_MEMORY if no more memory
+ */
+int codanetGetIpAddrs(char ***ipAddrs, int *count, char *host) {
+
+    static char str[128];
+    char   **array, *pChar;
+    int    err, status, index=0, numIps=0, debug=0, hostIsLocal=0, h_errnop=0;
+    struct sockaddr *sa;
+    struct ifi_info *ifi, *ifihead;
+    struct in_addr  **pptr;
+    struct hostent  *hp;
+
+    
+    if (host != NULL) {
+        err = codanetNodeIsLocal(host, &hostIsLocal);
+        if (err != CODA_OK) {
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sGetIpaddrs: cannot find out if %s is local or not\n", codanetStr, host);
+            }
+            return CODA_ERROR;
+        }
+    }
+    else {
+        hostIsLocal = 1;
+    }
+
+    if (!hostIsLocal) {
+#ifndef VXWORKS
+        /* make gethostbyname thread-safe */
+        status = pthread_mutex_lock(&getHostByNameMutex);
+        if (status != 0) {
+            coda_err_abort(status, "Lock gethostbyname Mutex");
+        }
+#endif   
+        if ((hp = gethostbyname(host)) == NULL) {
+#ifndef VXWORKS
+            status = pthread_mutex_unlock(&getHostByNameMutex);
+            if (status != 0) {
+                coda_err_abort(status, "Unlock gethostbyname Mutex");
+            }
+#endif
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sGetIpaddrs: hostname error - %s\n", codanetStr, codanetHstrerror(h_errnop));
+            }
+            return(CODA_NETWORK_ERROR);
+        }
+  
+        pptr = (struct in_addr **) hp->h_addr_list;
+
+        if (hp->h_addrtype == AF_INET) {
+            /* first count the # of addresses */
+            for ( ; *pptr != NULL; pptr++) {
+                numIps++;
+            }
+
+            /* if none, return */
+            if (numIps < 1) {
+                if (count != NULL)   *count = 0;
+                if (ipAddrs != NULL) *ipAddrs = NULL;
+                return CODA_OK;
+            }
+
+            /* allocate mem for array */
+            array = (char **) malloc(numIps*sizeof(char *));
+            if (array == NULL) {
+                return CODA_OUT_OF_MEMORY;
+            }
+
+            pptr = (struct in_addr **) hp->h_addr_list;
+            for ( ; *pptr != NULL; pptr++) {
+                if (inet_ntop(hp->h_addrtype, *pptr, str, sizeof(str)) != NULL) {
+                    array[index++] = strdup(str);
+                    if (codanetDebug >= CODA_DEBUG_INFO) {
+                        printf("%sGetIpaddrs address : %s\n", codanetStr, str);
+                    }
+                }
+            }
+        }
+
+#ifndef VXWORKS
+        status = pthread_mutex_unlock(&getHostByNameMutex);
+        if (status != 0) {
+            coda_err_abort(status, "Unlock gethostbyname Mutex");
+        }
+#endif
+
+    }
+    
+    /* else the host is local. */
+    else {
+        /* Look through IPv4 interfaces + all aliases */
+        ifihead = ifi = codanetGetInterfaceInfo(AF_INET, 1);
+        if (ifi == NULL) {
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sGetIpaddrs: cannot find network interface info\n", codanetStr);
+            }
+            return CODA_ERROR;
+        }
+
+        /* first count # of IP addresses */
+        for (;ifi != NULL; ifi = ifi->ifi_next) {
+            /* ignore loopback */
+            if (ifi->ifi_flags & IFF_LOOPBACK) {
+                continue;
+            }
+    
+            /* if the interface is up */
+            if (ifi->ifi_flags & IFF_UP) {
+                numIps++;
+            }
+        }
+
+        /* if none, return */
+        if (numIps < 1) {
+            if (count != NULL)   *count = 0;
+            if (ipAddrs != NULL) *ipAddrs = NULL;
+            codanetFreeInterfaceInfo(ifihead);
+            return CODA_OK;
+        }
+
+        /* allocate mem for array */
+        array = (char **) malloc(numIps*sizeof(char *));
+        if (array == NULL) {
+            codanetFreeInterfaceInfo(ifihead);
+            return CODA_OUT_OF_MEMORY;
+        }
+    
+        ifi = ifihead;
+        for (;ifi != NULL; ifi = ifi->ifi_next) {
+            /* ignore loopback */
+            if (ifi->ifi_flags & IFF_LOOPBACK) {
+                continue;
+            }
+    
+            /* if the interface is up */
+            if (ifi->ifi_flags & IFF_UP) {
+                /* if there is an address listed ... */
+                if ( (sa = ifi->ifi_addr) != NULL) {
+                    /* copy IP address */
+                    if ((pChar = sock_ntop_host(sa, sizeof(*sa))) != NULL) {
+                        array[index++] = strdup(pChar);
+                        if (codanetDebug >= CODA_DEBUG_INFO) {
+                            printf("%sGetIpaddrs address : %s\n", codanetStr, pChar);
+                        }
+                    }
+                }
+            }
+        }
+        
+        /* free memory */
+        codanetFreeInterfaceInfo(ifihead);
+    }
+
+    /* ************************ */
+    /* send back data to caller */
+    /* ************************ */
+    if (count != NULL)   *count = numIps;
+    if (ipAddrs != NULL) *ipAddrs = array;
+        
     return CODA_OK;
 }
 
