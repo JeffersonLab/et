@@ -282,10 +282,12 @@ if useVxworks:
     if vxVersion == 5.5:
         vxbase = '/site/vxworks/5.5/ppc'
         vxInc  = [vxbase + '/target/h']
+        env.Append(CPPDEFINES = ['VXWORKS_5'])
     elif vxVersion == 6.0:
         vxbase = '/site/vxworks/6.0/ppc/gnu/3.3.2-vxworks60'
         vxInc  = ['/site/vxworks/6.0/ppc/vxworks-6.0/target/h',
                   '/site/vxworks/6.0/ppc/vxworks-6.0/target/h/wrn/coreip']
+        env.Append(CPPDEFINES = ['VXWORKS_6'])
     else:
         print 'Unknown version of vxWorks, exiting\n'
         raise SystemExit
