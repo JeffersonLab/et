@@ -32,7 +32,7 @@ int et_open_config_init(et_openconfig *sconfig)
 {
   et_open_config *sc;
   
-  sc = (et_open_config *) malloc(sizeof(et_open_config));
+  sc = (et_open_config *) calloc(1, sizeof(et_open_config));
   if (sc == NULL) {
     return ET_ERROR;
   }
@@ -340,12 +340,143 @@ int et_open_config_gettimeout(et_openconfig sconfig, struct timespec *val)
 }
 
 /*****************************************************/
+int et_open_config_addbroadcast(et_openconfig sconfig, const char *val)
+{
+    et_open_config *sc = (et_open_config *) sconfig;
+    size_t len;
+    int  i;
+    codaIpList *pBcastAddr, *pLast=NULL;
+     
+    if (sc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+  
+    if (val == NULL) {
+        return ET_ERROR;
+    }
+
+    /* Put all subnet addresses into the list. */
+    if (strcmp(val, ET_SUBNET_ALL) == 0) {
+        /* free existing broadcast info */
+        etNetFreeBroadcastAddrs(sc->bcastaddrs);
+        if (etNetGetBroadcastAddrs(&sc->bcastaddrs, NULL) == ET_ERROR) {
+            sc->bcastaddrs = NULL;
+        }
+        return ET_OK;
+    }
+
+    /* If we're here, user wants to add a specific subnet. */
+
+    /* Must be in dot decimal format. */
+    if (!codanetIsDottedDecimal(val, NULL)) {
+        fprintf(stderr, "et_open_config_addbroadcast: address must be in dot-decimal form\n");
+        return ET_ERROR;
+    }
+  
+   /* Once here, it's probably an address of the right value.
+    * Don't add it to the list if it's already there. */
+
+    /* if nothing on list, add it */
+    if (sc->bcastaddrs == NULL) {
+        pBcastAddr = (codaIpList *) calloc(1, sizeof(codaIpList));
+        if (pBcastAddr == NULL) {
+            return ET_ERROR;
+        }
+        strcpy(pBcastAddr->addr, val);
+        sc->bcastaddrs = pBcastAddr;
+        return ET_OK;
+    }
+    
+    pBcastAddr = sc->bcastaddrs;
+    while (pBcastAddr != NULL) {
+        if (strcmp(val, pBcastAddr->addr) == 0) {
+            /* it's already in the list */
+            return ET_OK;
+        }
+        pLast = pBcastAddr;
+        pBcastAddr = pBcastAddr->next;
+    }
+
+    /* not in list so put on end of list */
+    pBcastAddr = (codaIpList *) calloc(1, sizeof(codaIpList));
+    if (pBcastAddr == NULL) {
+        return ET_ERROR;
+    }
+    strcpy(pBcastAddr->addr, val);
+    pLast->next = pBcastAddr;
+
+    return ET_OK;
+}
+
+/*****************************************************/
+int et_open_config_removebroadcast(et_openconfig sconfig, const char *val)
+{
+    et_open_config *sc = (et_open_config *) sconfig;
+    size_t len;
+    int  i;
+    codaIpList *pBcastAddr, *pPrev=NULL, *pNext=NULL;
+     
+    if (sc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+  
+    if (val == NULL) {
+        return ET_ERROR;
+    }
+
+    /* if nothing on list, we're done */
+    if (sc->bcastaddrs == NULL) {
+        return ET_OK;
+    }
+
+    /* Remove all subnet addresses from the list. */
+    if (strcmp(val, ET_SUBNET_ALL) == 0) {
+        /* free existing broadcast info */
+        etNetFreeBroadcastAddrs(sc->bcastaddrs);
+        sc->bcastaddrs = NULL;
+        return ET_OK;
+    }
+
+    /* If we're here, user wants to remove a specific subnet. */
+    
+    /* Must be in dot decimal format. */
+    if (!codanetIsDottedDecimal(val, NULL)) {
+        fprintf(stderr, "et_open_config_removebroadcast: address must be in dot-decimal form\n");
+        return ET_ERROR;
+    }
+  
+    pBcastAddr = sc->bcastaddrs;
+    while (pBcastAddr != NULL) {
+        /* if it's in the list ... */
+        if (strcmp(val, pBcastAddr->addr) == 0) {
+            /* if we're at the head ... */
+            if (pPrev == NULL) {
+                /* next is now the head */
+                sc->bcastaddrs = pBcastAddr->next;
+            }
+            else {
+                pPrev->next = pBcastAddr->next;
+            }
+            
+            /* free what we are removing */
+            free(pBcastAddr);
+            
+            break;
+        }
+        
+        pPrev = pBcastAddr;
+        pBcastAddr = pBcastAddr->next;
+    }
+
+    return ET_OK;
+}
+
+/*****************************************************/
 int et_open_config_addmulticast(et_openconfig sconfig, const char *val)
 {
   et_open_config *sc = (et_open_config *) sconfig;
   size_t len;
-  int  firstnumber, i;
-  char firstint[4];
+  int  i, intVals[4];
   
   if (sc->init != ET_STRUCT_OK) {
     return ET_ERROR;
@@ -359,16 +490,16 @@ int et_open_config_addmulticast(et_openconfig sconfig, const char *val)
     return ET_ERROR;
   }
   
+  if (!codanetIsDottedDecimal(val, intVals)) {
+      fprintf(stderr, "et_open_config_addmulticast: address must be in dot-decimal form\n");
+      return ET_ERROR;
+  }
+  
   /* The address is in dotted-decimal form. If the first
    * number is between 224-239, its a multicast address.
    */
-  len = strcspn(val, ".");
-  strncpy(firstint, val, len);
-  firstint[len] = '\0';
-  firstnumber = atoi(firstint);
-  
-  if ((firstnumber < 224) || (firstnumber > 239)) {
-    fprintf(stderr, "et_open_config_addmulticast: bad value for multicast address\n");
+  if ((intVals[0] < 224) || (intVals[0] > 239)) {
+    fprintf(stderr, "et_open_config_addmulticast: bad value for address\n");
     return ET_ERROR;
   }
   

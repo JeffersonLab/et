@@ -71,7 +71,7 @@ extern "C" {
 #define ET_SERVER_PORT     11111 /* tcp server port */
 
 #define ET_MULTICAST_ADDR  "239.200.0.0"    /* random multicast addr */
-#define ET_BROADCAST_ADDR  "129.57.15.255"  /* daq group subnet */
+#define ET_BROADCAST_ADDR  "129.57.29.255"  /* jlab daq group subnet */
     
 #define ET_EVENT_GROUPS_MAX 500 /* max # of groups events are divided into */
 
@@ -228,9 +228,8 @@ extern "C" {
 #define ET_DIRECT    2
 #define ET_BROADANDMULTICAST 3
 
-/* options for et_open_config_add(remove)broadcastaddress */
-#define ET_SUBNET_DEFAULT  "default"  /* subnet assoc. with uname */
-#define ET_SUBNET_ALL      "all"      /* all subnets on host */
+/* options for et_open_config_add(remove)broadcast */
+#define ET_SUBNET_ALL  ".subnetsAll"     /* all subnets host is on */
 
 /* status of data in an event */
 #define ET_DATA_OK               0
@@ -630,6 +629,9 @@ extern int et_open_config_getaddress(et_openconfig sconfig, char *val);
 
 extern int et_open_config_sethost(et_openconfig sconfig, const char *val);
 extern int et_open_config_gethost(et_openconfig sconfig, char *val);
+
+extern int et_open_config_addbroadcast(et_openconfig sconfig, const char *val);
+extern int et_open_config_removebroadcast(et_openconfig sconfig, const char *val);
 
 extern int et_open_config_addmulticast(et_openconfig sconfig, const char *val);
 extern int et_open_config_removemulticast(et_openconfig sconfig, const char *val);
