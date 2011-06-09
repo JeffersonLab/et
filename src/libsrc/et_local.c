@@ -79,7 +79,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   etid->memsize = (size_t) etInfo.totalSize;
   etid->pmap    = (void *)      (pSharedMem);
   etid->sys     = (et_system *) (pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
-  
+
   if (etid->nselects != etid->sys->nselects) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etl_open: ET system & user have incompatible values for ET_STATION_SELECT_INTS\n");
