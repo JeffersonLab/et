@@ -170,7 +170,7 @@ static void *et_listen_thread(void *arg)
   int                ipAddrCount = config->netinfo.count;
 
   int                i, j, k, version, sockfd, nbytes, length, len, err;
-  int                magicInts[3], nameCount=0, debug=0;
+  int                magicInts[3], addrCount=0, debug=0;
   uint32_t           netint;
   size_t             bufsize;
   char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+1+5*sizeof(int)];
@@ -202,6 +202,7 @@ static void *et_listen_thread(void *arg)
 #endif
 
   /* Prepare output buffer we send in answer to inquiries:
+   *
    * (0)  ET magic numbers (3 ints)
    * (1)  ET version #
    * (2)  port of tcp server thread (not udp config->port)
@@ -213,39 +214,36 @@ static void *et_listen_thread(void *arg)
    * (6)  length of next string
    * (7)    hostname given by "uname" (used as a general
    *        identifier of this host no matter which interface is used)
-   * (8)  number of names for this IP addr starting with canonical
-   * (9)    32bit, net-byte ordered IPv4 address assoc with following name
-   * (10)   length of next string
-   * (11)       first name = canonical (if available)
-   * (12)   32bit, net-byte ordered IPv4 address assoc with following name
-   * (13)   length of next string
-   * (14)       first alias ...
+   * (8)  length of next string
+   * (9)    canonical name of host
+   * (10) number of IP addresses
+   * (11)   32bit, net-byte ordered IPv4 address assoc with following address
+   * (12)   length of next string
+   * (13)       first dotted-decimal IPv4 address
+   * (14)   32bit, net-byte ordered IPv4 address assoc with following address
+   * (15)   length of next string
+   * (16)       second dotted-decimal IPv4 address ...
    *
-   * All aliases are sent here.
+   * All known IP addresses are sent here both in numerical & dotted-decimal forms.
    *
-   * Note that for a response to a broadcast, only the names and IP addresses
-   * associated with the subnet of the broadcast are sent back. The first
-   * address sent will generally be the primary address. And the first name
-   * for a particular address will be the canonical name followed by the
-   * aliases. There may be an exception to this IF a single interface is
+   * Note that for a response to a broadcast, only the IP addresses
+   * associated with the subnet of the broadcast are sent back.
+   * There may be an exception to this IF a single interface is
    * configured to have 2 IP addresses - each on a different subnet.
    * (This is a practice best avoided in online data acquistion).
    *
    * However, if the broadcast address is the general address of 255.255.255.255,
-   * then send back all names and their IP addresses as this broadcast address
-   * is NOT associated with any particular subnet.
+   * then send back all IP addresses as this broadcast address is NOT
+   * associated with any particular subnet.
    * 
-   * In a response to a multicast packet, all names and addresses of the host
-   * are sent back. The first is the primary address from the first interface.
-   * And the first name for a particular address will be the canonical name
-   * followed by the aliases. 
+   * In a response to a multicast packet, all addresses of the host are sent back.
    * 
    */
   if (debug)
     printf("\n\net_listen_thread: listening on addr = %s\n", listenaddr);
 
   /* find length of necessary buffer */
-  bufsize = sizeof(magicInts) + 6*sizeof(int) + strlen(uname) + strlen(listenaddr) + 2 /* 2 NULLs */;
+  bufsize = sizeof(magicInts) + 7*sizeof(int) + strlen(uname) + strlen(pinfo[0].canon) + strlen(listenaddr) + 3 /* 3 NULLs */;
   
   /* look through the list of all IP addresses (and related data) */
   for (i=0; i < ipAddrCount; i++) {
@@ -254,32 +252,32 @@ static void *et_listen_thread(void *arg)
     if (cast == ET_BROADCAST &&
         strcmp("255.255.255.255",  listenaddr) != 0 &&
         strcmp(pinfo[i].broadcast, listenaddr) != 0)  {
-/*printf("et_listen_thread: broadcast addr %s of IP addr #%d, does NOT match our listening addr %s, so skip it\n",
-        pinfo[i].broadcast, i, listenaddr);*/
+        /*
+if (debug)
+printf("et_listen_thread: broadcast addr %s of IP addr #%d, does NOT match our listening addr %s, so skip it\n",
+        pinfo[i].broadcast, i, listenaddr);
+        */
         continue;
     }
 
-    if (debug)
-      printf("et_listen_thread: broadcast addr %s of IP addr #%d, MATCHES listening addr %s, so count names assoc. with it\n",
+if (debug)
+printf("et_listen_thread: broadcast addr %s of IP addr #%d, MATCHES listening addr %s, so count addrs assoc. with it\n",
               pinfo[i].broadcast, i, listenaddr);
     
-    nameCount += 1 + pinfo[i].aliasCount;
-    if (debug)
-      printf("et_listen_thread: number of names = %d\n", nameCount);
-      bufsize += 2*sizeof(int) + strlen(pinfo[i].canon) + 1;
-      for (j=0; j < pinfo[i].aliasCount; j++) {
-        bufsize += 2*sizeof(int) + strlen(pinfo[i].aliases[j]) + 1;
-      }
-    }
+    addrCount++;
+    bufsize += 2*sizeof(int) + strlen(pinfo[i].addr) + 1;
+  }
+
     
-    /* allocate packet's buffer */
-    if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
+  /* allocate packet's buffer */
+  if (debug) printf("et_listen_thread: malloc bufsize = %d\n", (int)bufsize);
+  if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
       if (etid->debug >= ET_DEBUG_SEVERE) {
-        et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
+          et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
       }
       exit(1);
-    }
-   
+  }
+
   /* ******************** */
   /* put data into buffer */
   /* ******************** */
@@ -324,8 +322,24 @@ static void *et_listen_thread(void *arg)
   memcpy(pbuf, uname, len);
   pbuf += len;
   
-   /* 8) number of host names to follow */
-  k = htonl(nameCount);
+  /* 8 & 9) canonical name if there is one */
+  len = strlen(pinfo[0].canon)+1;
+  if (len > 1) {
+    k = htonl(len);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+  
+    memcpy(pbuf, pinfo[0].canon, len);
+    pbuf += len;
+  }
+  else {
+      k = 0;
+      memcpy(pbuf, &k, sizeof(k));
+      pbuf += sizeof(k);
+  }
+  
+  /* 10) number of addresses to follow */
+  k = htonl(addrCount);
   memcpy(pbuf, &k, sizeof(k));
   pbuf += sizeof(k);
   
@@ -341,39 +355,21 @@ static void *et_listen_thread(void *arg)
       continue;
     }
     
-    /* 9) 32 bit IP address (already network byte ordered) of canonical name */
+    /* 11) 32 bit IP address (already network byte ordered) */
     netint = (uint32_t) pinfo[i].saddr.sin_addr.s_addr;
     memcpy(pbuf, &netint, sizeof(netint));
     pbuf += sizeof(netint);
 
-    /* 10 & 11) canonical name, length first */
-    len = strlen(pinfo[i].canon)+1;
+    /* 12 & 13) IP address (dotted-decimal), length first */
+    len = strlen(pinfo[i].addr)+1;
     k = htonl(len);
     memcpy(pbuf, &k, sizeof(k));
     pbuf += sizeof(k);
     if (debug)
-      printf("et_listen_thread: will send to cli, addr = %u, len = %d, name = %s\n", netint, len, pinfo[i].canon);
+        printf("et_listen_thread: will send to cli, addr = %u, len = %d, addr = %s\n", netint, len, pinfo[i].addr);
 
-    memcpy(pbuf, pinfo[i].canon, len);
+    memcpy(pbuf, pinfo[i].addr, len);
     pbuf += len;
-    
-    /* now send each alias, (32bit addr, len, string) */
-    for (j=0; j < pinfo[i].aliasCount; j++) {      
-      /* 12) 32 bit IP address (already network byte ordered) of name */
-      netint = (uint32_t) pinfo[i].saddr.sin_addr.s_addr;
-      memcpy(pbuf, &netint, sizeof(netint));
-      pbuf += sizeof(netint);
-
-      /* 13 & 14) alias, length first */
-      len = strlen(pinfo[i].aliases[j])+1;
-      k = htonl(len);
-      memcpy(pbuf, &k, sizeof(k));
-      pbuf += sizeof(k);
-      if (debug)
-        printf("et_listen_thread: will send to cli, addr = %u, len = %d, name = %s\n", netint, len, pinfo[i].aliases[j]);
-      memcpy(pbuf, pinfo[i].aliases[j], len);
-      pbuf += len;
-    }
   }
   
   /* release memory allocated in et_cast_thread */
