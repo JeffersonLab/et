@@ -43,7 +43,7 @@ char            *stationName, *systemName;
 
 int main(int argc,char **argv) {  
   int             j, status, swtch, numread, totalread=0;
-  int		  con[ET_STATION_SELECT_INTS];
+  int		      con[ET_STATION_SELECT_INTS];
   pthread_t       tid;
   et_statconfig   sconfig;
   et_event       *pe[CHUNK];
@@ -86,7 +86,7 @@ int main(int argc,char **argv) {
   
   /* open ET system */
   et_open_config_init(&openconfig);
-  /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
+  //et_open_config_sethost(openconfig, "ankaa");
   /* et_open_config_setwait(openconfig, ET_OPEN_WAIT);*/
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("et_client: et_open problems\n");
@@ -229,9 +229,13 @@ int main(int argc,char **argv) {
           int pri;
           size_t len;
           int *data;
+          int endian, swap;
           /* char *data; */
     
           for (j=0; j< numread; j++) {
+              et_event_needtoswap(pe[j], &swap);
+              et_event_getendian(pe[j], &endian);
+printf("et_client need to swap = %d, endian = %s\n", swap, (endian == ET_ENDIAN_BIG ? "BIG" : "LITTLE"));
               et_event_getdata(pe[j], (void **) &data);
               et_event_getpriority(pe[j], &pri);
               et_event_getlength(pe[j], &len);

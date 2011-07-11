@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
@@ -30,96 +31,240 @@
 #include <thread.h>
 #endif
 #include "et.h"
+
 /* recent versions of linux put float.h (and DBL_MAX) in a strange place */
 #define DOUBLE_MAX   1.7976931348623157E+308
 
-#define NUMLOOPS 100000
-#define CHUNK 100
-#define DBL_MAX   1.e+100
+#define NUMLOOPS 10000
 
 /* prototype */
 static void * signal_thread (void *arg);
 
 int main(int argc,char **argv)
-{  
-  int             i, j, size, status, startingVal=0;
-  double          freq=0.0, freq_tot=0.0, freq_avg=0.0;
-  int             iterations=1, count, totalCount;
-  et_att_id	  attach1;
-  et_sys_id       id;
-  et_openconfig   openconfig;
-  et_event       *pe[CHUNK];
-  struct timespec timeout;
-#if defined linux || defined __APPLE__
-  struct timeval  t1, t2;
-#else
-  struct timespec t1, t2;
-#endif
-  double          time;
-  sigset_t        sigblock;
-  pthread_t       tid;
-  
-  /* handy data for testing */
-  int   numbers[] = {0,1,2,3,4,5,6,7,8,9};
-  /*
-  char   *stuff[] = {"One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten"};
-  int   control[] = {17,8,-1,-1};
-  */
-  
-  if ((argc != 2) && (argc != 3)) {
-    printf("Usage: %s <et_filename> [<eventsize>]\n", argv[0]);
-    exit(1);
-  }
-  size = 10;
-  if (argc == 3) {
-    size = atoi(argv[2]);
-  }
-  
-  timeout.tv_sec  = 0;
-  timeout.tv_nsec = 1;
+{
+    int             i, j, c, i_tmp, status, swappedData;
+    int             startingVal=0, errflg=0, group=1, chunk=1, size=32, verbose=0, delay=0;
+    unsigned short  serverPort;
+    char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16], interface[16];
 
-  /*************************/
-  /* setup signal handling */
-  /*************************/
-  /* block all signals */
-  sigfillset(&sigblock);
-  status = pthread_sigmask(SIG_BLOCK, &sigblock, NULL);
-  if (status != 0) {
-    printf("%s: pthread_sigmask failure\n", argv[0]);
-    exit(1);
-  }
+    et_att_id	    attach1;
+    et_sys_id       id;
+    et_openconfig   openconfig;
+    et_event        **pe;
+    struct timespec timeout;
+#if defined __APPLE__
+    struct timeval  t1, t2;
+#else
+    struct timespec t1, t2;
+#endif
+    double          time;
+    sigset_t        sigblock;
+    pthread_t       tid;
+
+    /* statistics variables */
+    double          freq=0.0, freq_tot=0.0, freq_avg=0.0;
+    int             iterations=1, count, totalCount;
+
+    /* control int array for event header */
+    int control[] = {17,8,-1,-1,0,0};
+
+    /* 1 multiple character command-line option (host) */
+    static struct option long_options[] = { {"host", 1, NULL, 0}, {0, 0, 0, 0} };
+
+    memset(host, 0, 16);
+    memset(mcastAddr, 0, 16);
+    memset(et_name, 0, ET_FILENAME_LENGTH);
+
+    while ((c = getopt_long_only(argc, argv, "vn:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
+      
+        if (c == -1)
+            break;
+
+        switch (c) {
+            case 'c':
+                i_tmp = atoi(optarg);
+                if (i_tmp > 0 && i_tmp < 1001) {
+                    chunk = i_tmp;
+                    printf("Setting chunk to %d\n", chunk);
+                } else {
+                    printf("Invalid argument to -c. Must < 1001 & > 0.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 's':
+                i_tmp = atoi(optarg);
+                if (i_tmp > 0) {
+                    size = i_tmp;
+                } else {
+                    printf("Invalid argument to -s. Must be a positive integer.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'd':
+                delay = atoi(optarg);
+                if (delay < 0) {
+                    printf("Delay must be >= 0\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'p':
+                i_tmp = atoi(optarg);
+                if (i_tmp > 1023 && i_tmp < 65535) {
+                    serverPort = i_tmp;
+                } else {
+                    printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'g':
+                i_tmp = atoi(optarg);
+                if (i_tmp > 0 && i_tmp < 501) {
+                    group = i_tmp;
+                } else {
+                    printf("Invalid argument to -g. Must be 501 > g > 0.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'f':
+                if (strlen(optarg) >= ET_FILENAME_LENGTH) {
+                    fprintf(stderr, "ET file name is too long\n");
+                    exit(-1);
+                }
+                strcpy(et_name, optarg);
+                break;
+
+            case 'i':
+                if (strlen(optarg) > 15 || strlen(optarg) < 7) {
+                    fprintf(stderr, "interface address is bad\n");
+                    exit(-1);
+                }
+                strcpy(interface, optarg);
+                break;
+
+            case 0:
+                if (strlen(optarg) >= 255) {
+                    fprintf(stderr, "host name is too long\n");
+                    exit(-1);
+                }
+                strcpy(host, optarg);
+                break;
+
+            case 'v':
+                verbose = ET_DEBUG_INFO;
+                break;
+
+            case ':':
+            case 'h':
+            case '?':
+            default:
+                errflg++;
+        }
+    }
+    
+    if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
+        fprintf(stderr,
+                "usage: %s  %s\n%s",
+                argv[0],
+                "-f <ET name> -host <ET host> [-h] [-v] [-c <chunk size>] [-d <delay>]",
+                "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]\n");
+
+        fprintf(stderr, "          -host ET system's host\n");
+        fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
+        fprintf(stderr, "          -h help\n");
+        fprintf(stderr, "          -v verbose output\n");
+        fprintf(stderr, "          -c number of events in one get/put array\n");
+        fprintf(stderr, "          -d delay in millisec between each round of getting and putting events\n");
+        fprintf(stderr, "          -s event size in bytes\n");
+        fprintf(stderr, "          -g group from which to get new events (1,2,...)\n");
+        fprintf(stderr, "          -p ET server port\n");
+        fprintf(stderr, "          -i outgoing network interface IP address (dot-decimal)\n\n");
+        fprintf(stderr, "          This consumer works by making a direct connection to the");
+        fprintf(stderr, "          ET system's server port.");
+        exit(2);
+    }
+
+    /* delay is in milliseconds */
+    if (delay > 0) {
+        timeout.tv_sec  = delay/1000;
+        timeout.tv_nsec = (delay - (delay/1000)*1000)*1000000;
+    }
+
+    /* allocate some memory */
+    pe = (et_event **) calloc(chunk, sizeof(et_event *));
+    if (pe == NULL) {
+        printf("%s: out of memory\n", argv[0]);
+        exit(1);
+    }
+
+    /*************************/
+    /* setup signal handling */
+    /*************************/
+    /* block all signals */
+    sigfillset(&sigblock);
+    status = pthread_sigmask(SIG_BLOCK, &sigblock, NULL);
+    if (status != 0) {
+        printf("%s: pthread_sigmask failure\n", argv[0]);
+        exit(1);
+    }
 
 #ifdef sun
-  /* prepare to run signal handling thread concurrently */
-  thr_setconcurrency(thr_getconcurrency() + 1);
+    /* prepare to run signal handling thread concurrently */
+    thr_setconcurrency(thr_getconcurrency() + 1);
 #endif
 
-  /* spawn signal handling thread */
-  pthread_create(&tid, NULL, signal_thread, (void *)NULL);
-  
-  /* open ET system */
-  et_open_config_init(&openconfig);
-   /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
-   et_open_config_setwait(openconfig, ET_OPEN_WAIT);
-  if (et_open(&id, argv[1], openconfig) != ET_OK) {
-    printf("%s: et_open problems\n", argv[0]);
-    exit(1);
-  }
-  et_open_config_destroy(openconfig);
+    /* spawn signal handling thread */
+    pthread_create(&tid, NULL, signal_thread, (void *)NULL);
+
+    /******************/
+    /* open ET system */
+    /******************/
+    et_open_config_init(&openconfig);
+    et_open_config_setcast(openconfig, ET_DIRECT);
+    et_open_config_sethost(openconfig, host);
+    if (strlen(interface) > 6) {
+        et_open_config_setinterface(openconfig, interface);
+    }
+    
+    /* EXAMPLE: multicasting to find ET */
+    /*et_open_config_setcast(openconfig, ET_MULTICAST);*/
+    /*et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);*/
+    /*et_open_config_setmultiport(openconfig, 11112);*/
+    /*et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);*/
+
+    /* EXAMPLE: broadcasting to find ET */
+    /*et_open_config_setcast(openconfig, ET_BROADCAST);*/
+    /*et_open_config_addbroadcast(openconfig, "129.57.29.255");*/
+    /*et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);*/
+    
+    /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
+    
+    et_open_config_setwait(openconfig, ET_OPEN_WAIT);
+    if (et_open(&id, et_name, openconfig) != ET_OK) {
+        printf("%s: et_open problems\n", argv[0]);
+        exit(1);
+    }
+    et_open_config_destroy(openconfig);
  
-  /* set level of debug output (everything) */
-  et_system_setdebug(id, ET_DEBUG_INFO);
+    /* set level of debug output (everything) */
+    if (verbose) {
+        et_system_setdebug(id, ET_DEBUG_INFO);
+    }
   
-  /* attach to grandcentral station */
-  if (et_station_attach(id, ET_GRANDCENTRAL, &attach1) < 0) {
-    printf("%s: error in et_station_attach\n", argv[0]);
-    exit(1);
-  }
+    /* attach to grandcentral station */
+    if (et_station_attach(id, ET_GRANDCENTRAL, &attach1) < 0) {
+        printf("%s: error in et_station_attach\n", argv[0]);
+        exit(1);
+    }
   
 
-  while (et_alive(id)) {
-      /* read time for future statistics calculations */
-#if defined linux || defined __APPLE__
+    while (et_alive(id)) {
+        /* read time for future statistics calculations */
+#if defined __APPLE__
       gettimeofday(&t1, NULL);
 #else
       clock_gettime(CLOCK_REALTIME, &t1);
@@ -127,89 +272,84 @@ int main(int argc,char **argv)
       totalCount = 0;
       /* loop NUMLOOPS times before printing out statistics */
       for (j=0; j < NUMLOOPS ; j++) {
-          /*status = et_events_new_group(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, 1, &count);*/
-          status = et_events_new(id, attach1, pe, ET_SLEEP, NULL, size, CHUNK, &count);
-          /*status = et_event_new_group(id, attach1, &pe[0], ET_SLEEP, NULL, size, 1);*/
+          status = et_events_new_group(id, attach1, pe, ET_SLEEP, NULL, size, chunk, group, &count);
+          /*status = et_events_new(id, attach1, pe, ET_SLEEP, NULL, size, chunk, &count);*/
 
-          /*status = et_event_new(id, attach1, &pe[0], ET_SLEEP, NULL, size);*/
+          if (status == ET_OK) {
+              ;
+          }
+          else if (status == ET_ERROR_DEAD) {
+              printf("%s: ET system is dead\n", argv[0]);
+              break;
+          }
+          else if (status == ET_ERROR_TIMEOUT) {
+              printf("%s: got timeout\n", argv[0]);
+              break;
+          }
+          else if (status == ET_ERROR_EMPTY) {
+              printf("%s: no events\n", argv[0]);
+              break;
+          }
+          else if (status == ET_ERROR_BUSY) {
+              printf("%s: grandcentral is busy\n", argv[0]);
+              break;
+          }
+          else if (status == ET_ERROR_WAKEUP) {
+              printf("%s: someone told me to wake up\n", argv[0]);
+              break;
+          }
+          else if ((status == ET_ERROR_WRITE) || (status == ET_ERROR_READ)) {
+              printf("%s: socket communication error\n", argv[0]);
+              goto error;
+          }
+          else if (status != ET_OK) {
+              printf("%s: request error\n", argv[0]);
+              goto error;
+          }
 
-        if (status == ET_OK) {
-          ;
-        }
-        else if (status == ET_ERROR_DEAD) {
-          printf("%s: ET system is dead\n", argv[0]);
-          break;
-        }
-        else if (status == ET_ERROR_TIMEOUT) {
-          printf("%s: got timeout\n", argv[0]);
-          break;
-        }
-        else if (status == ET_ERROR_EMPTY) {
-          printf("%s: no events\n", argv[0]);
-          break;
-        }
-        else if (status == ET_ERROR_BUSY) {
-          printf("%s: grandcentral is busy\n", argv[0]);
-          break;
-        }
-        else if (status == ET_ERROR_WAKEUP) {
-          printf("%s: someone told me to wake up\n", argv[0]);
-          break;
-        }
-        else if ((status == ET_ERROR_WRITE) || (status == ET_ERROR_READ)) {
-          printf("%s: socket communication error\n", argv[0]);
-          break;
-        }
-        else if (status != ET_OK) {
-          printf("%s: request error\n", argv[0]);
-          goto error;
-        }
-
-        /*count = 1;*/
-
-        /* write data, set priority, set control values here */
-        if (1) {
-	      char *pdata;
-    	    for (i=0; i < count; i++) {
-              /* the following line will allow et_client modes 3 & 4 to work */
-              /* et_event_setcontrol(pe[i], control, 4); */
-	          et_event_getdata(pe[i], (void **) &pdata);
-              /*
-	          strcpy(pdata, stuff[i]);
-              et_event_setlength(pe[i], strlen(stuff[i])+1);
-	          */
-	    
-	          memcpy((void *)pdata, (const void *) &startingVal, sizeof(int));
-              et_event_setlength(pe[i], sizeof(int));
-              startingVal++;
-	       }
-        }
+          /* write data, set priority, set control values here */
+          if (1) {
+              char *pdata;
+              for (i=0; i < count; i++) {
+                  swappedData = ET_SWAP32(i + startingVal);
+                  et_event_getdata(pe[i], (void **) &pdata);
+                  memcpy((void *)pdata, (const void *) &swappedData, sizeof(int));
+                  
+                  et_event_setendian(pe[i], ET_ENDIAN_NOTLOCAL);
+                  et_event_setlength(pe[i], sizeof(int));
+                  et_event_setcontrol(pe[i], control, sizeof(control)/sizeof(int));
+              }
+              startingVal += count;
+          }
 	  
-        /* put events back into the ET system */
-        status = et_events_put(id, attach1, pe, count);
-        /*status = et_event_put(id, attach1, pe[0]);*/
-        if (status == ET_OK) {
-          ;
-        }
-        else if (status == ET_ERROR_DEAD) {
-          printf("%s: ET is dead\n", argv[0]);
-          break;
-        }
-        else if ((status == ET_ERROR_WRITE) || (status == ET_ERROR_READ)) {
-          printf("%s: socket communication error\n", argv[0]);
-          break;
-        }
-        else if (status != ET_OK) {
-          printf("%s: put error, status = %d\n", argv[0], status);
-          goto error;
-        }
-        
-        totalCount += count;
-        /*sleep(4);*/
+          /* put events back into the ET system */
+          status = et_events_put(id, attach1, pe, count);
+          if (status == ET_OK) {
+              ;
+          }
+          else if (status == ET_ERROR_DEAD) {
+              printf("%s: ET is dead\n", argv[0]);
+              break;
+          }
+          else if ((status == ET_ERROR_WRITE) || (status == ET_ERROR_READ)) {
+              printf("%s: socket communication error\n", argv[0]);
+              goto error;
+          }
+          else if (status != ET_OK) {
+              printf("%s: put error, status = %d\n", argv[0], status);
+              goto error;
+          }
+
+          totalCount += count;
+
+          if (delay > 0) {
+              nanosleep(&timeout, NULL);
+          }
+          
       } /* for NUMLOOPS */
   
       /* statistics */
-#if defined linux || defined __APPLE__
+#if defined __APPLE__
       gettimeofday(&t2, NULL);
       time = (double)(t2.tv_sec - t1.tv_sec) + 1.e-6*(t2.tv_usec - t1.tv_usec);
 #else
@@ -226,10 +366,11 @@ int main(int argc,char **argv)
       iterations++;
       printf("%s: %3.4g Hz,  %3.4g Hz Avg.\n", argv[0], freq, freq_avg);
       
-  } /* while(alive) */
+    } /* while(alive) */
     
   
-  error:
+    error:
+
     printf("%s: ERROR\n", argv[0]);
     exit(0);
 }

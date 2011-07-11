@@ -24,7 +24,7 @@
 #include <strings.h>
 #include <signal.h>
 #include <unistd.h>
-#include "et.h"
+#include "et_private.h"
 
 int main(int argc, char **argv)
 {  
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
   extern char  *optarg;
   extern int    optind;
 
-  char          *mcastAddr=NULL;
+  char          mcastAddr[ET_IPADDRSTRLEN];
   int           status, sig_num, serverPort=0, udpPort=0;
   int           et_verbose = ET_DEBUG_NONE, deleteFile=0;
   sigset_t      sigblockset, sigwaitset;
@@ -52,6 +52,7 @@ int main(int argc, char **argv)
   char *et_filename = NULL;
   char  et_name[ET_FILENAME_LENGTH];
 
+  memset(mcastAddr, 0, ET_IPADDRSTRLEN);
   
   while ((c = getopt(argc, argv, "vdn:s:p:u:m:a:f:g:")) != EOF) {
       
@@ -147,9 +148,10 @@ int main(int argc, char **argv)
       fprintf(stderr,
               "usage: %s  %s\n%s",
               argv[0],
-              "-v -r [-f file] [-n events] [-s evenSize] [-g groups]",
-              "       [-p TCP server port] [-u UDP port] [-a multicast address]");
+              "[-h] [-v] [-d] [-f file] [-n events] [-s evenSize] [-g groups]",
+              "                 [-p TCP server port] [-u UDP port] [-a multicast address]\n");
       
+      fprintf(stderr, "          -h for help\n");
       fprintf(stderr, "          -v for verbose output\n");
       fprintf(stderr, "          -d deletes an existing file first\n");
       fprintf(stderr, "          -f sets memory-mapped file name\n");
@@ -248,7 +250,7 @@ int main(int argc, char **argv)
   if (udpPort > 0) et_system_config_setport(config, udpPort);
   
   /* add multicast address to listen to  */
-  if (mcastAddr != NULL) {
+  if (strlen(mcastAddr) > 7) {
     status = et_system_config_addmulticast(config, mcastAddr);
     if (status != ET_OK) {
         printf("et_start: bad multicast address argument\n");

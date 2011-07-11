@@ -13,7 +13,7 @@
  *----------------------------------------------------------------------------*
  *
  * Description:
- *      ET system sample event producer
+ *      A very simple ET event producer
  *
  *----------------------------------------------------------------------------*/
 
@@ -39,6 +39,9 @@ main(int argc,char **argv)
   
   /* opening the ET system is the first thing we must do */
   et_open_config_init(&openconfig);
+  et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+  et_open_config_setcast(openconfig, ET_BROADCAST);
+
   if (et_open(&id, argv[1], openconfig) != ET_OK) {
     printf("et_producer: et_open problems\n");
     exit(1);
