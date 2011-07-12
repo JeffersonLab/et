@@ -20,7 +20,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.MappedByteBuffer;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 import org.jlab.coda.et.data.*;
 import org.jlab.coda.et.exception.*;
@@ -75,10 +74,16 @@ public class EtSystem {
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
      * @param debug  debug level (e.g. {@link EtConstants#debugInfo})
+     * @throws EtException if config is not self-consistent
      */
-    public EtSystem(EtSystemOpenConfig config, int debug) {
+    public EtSystem(EtSystemOpenConfig config, int debug) throws EtException {
 
         openConfig = new EtSystemOpenConfig(config);
+
+        if (!openConfig.selfConsistent()) {
+            throw new EtException("system open configuration is not self-consistent");
+        }
+
         sys = new EtSystemOpen(openConfig);
 
         if ((debug != EtConstants.debugNone)   &&
@@ -106,8 +111,9 @@ public class EtSystem {
      *
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
+     * @throws EtException if config is not self-consistent
      */
-    public EtSystem(EtSystemOpenConfig config) {
+    public EtSystem(EtSystemOpenConfig config) throws EtException {
 
         this(config, EtConstants.debugError);
     }
@@ -249,9 +255,15 @@ public class EtSystem {
         }
         catch (EtTooManyException ex) {
             if (debug >= EtConstants.debugError) {
+                int count = 1;
                 System.out.println("The following hosts responded:");
-                for (Map.Entry<String,Integer> entry : sys.getResponders().entrySet()) {
-                    System.out.println("  " + entry.getKey() + " at port " + entry.getValue());
+                for (Map.Entry<ArrayList<String>,Integer> entry : sys.getResponders().entrySet()) {
+                    System.out.println("  host #" + (count++) + " at port " + entry.getValue());
+                    ArrayList<String> addrList = entry.getKey();
+                    for (String s : addrList) {
+                        System.out.println("    " + s);
+                    }
+                    System.out.println();
                 }
             }
             throw ex;
@@ -444,7 +456,7 @@ public class EtSystem {
      * @return new station object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
@@ -477,7 +489,7 @@ public class EtSystem {
      * @return new station object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
@@ -511,7 +523,7 @@ public class EtSystem {
      * @return new station object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
@@ -1594,7 +1606,7 @@ public class EtSystem {
             evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
             evs[j].setId(EtUtils.bytesToInt(buffer, 20));
             // skip unused int here
-            evs[j].setByteOrder(EtUtils.bytesToInt(buffer, 28));
+            evs[j].setRawByteOrder(EtUtils.bytesToInt(buffer, 28));
             index = 32;   // skip unused int
             int[] control = new int[selectInts];
             for (int i=0; i < selectInts; i++) {
@@ -1768,7 +1780,7 @@ public class EtSystem {
                 out.writeInt(0); // not used
                 out.writeLong((long)evs[i].getLength());
                 out.writeInt(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift);
-                out.writeInt(evs[i].getByteOrder() == ByteOrder.LITTLE_ENDIAN ? EtConstants.endianLittle : EtConstants.endianBig);
+                out.writeInt(evs[i].getRawByteOrder());
                 out.writeInt(0); // not used
                 int[] control = evs[i].getControl();
                 for (int j=0; j < selectInts; j++) {
@@ -2207,7 +2219,7 @@ public class EtSystem {
      * @return ET system's host name
      */
     public String getHost() {
-        return sys.getHost();
+        return sys.getHostAddress();
     }
 
 
