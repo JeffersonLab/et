@@ -151,7 +151,8 @@ extern "C" {
 #define ET_STATION_PARALLEL      1  /* station is part of a group of stations in which
                                        events are flowing in parallel. */
 #define ET_STATION_PARALLEL_HEAD 2  /* station is head of a group of stations in which
-                                       events are flowing in parallel. */
+                                       events are flowing in parallel. Only used when
+                                       gathering monitoring data of stations (not for config).*/
 
 /* errors */
 #define ET_OK              0
