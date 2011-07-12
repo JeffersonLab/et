@@ -74,7 +74,7 @@ class SystemUdpServer extends Thread {
 
         if (config.getMulticastAddrs().size() > 0) {
             try {
-                System.out.println("setting up for multicast on port " + config.getMulticastPort());
+System.out.println("setting up for multicast on port " + config.getMulticastPort());
                 MulticastSocket sock = new MulticastSocket(config.getMulticastPort());
                 sock.setReceiveBufferSize(512);
                 sock.setSendBufferSize(512);
@@ -93,7 +93,7 @@ class SystemUdpServer extends Thread {
         }
 
         try {
-            System.out.println("setting up for broadcast on port " + config.getUdpPort());
+System.out.println("setting up for broadcast on port " + config.getUdpPort());
             DatagramSocket sock = new DatagramSocket(config.getUdpPort());
             sock.setBroadcast(true);
             sock.setReceiveBufferSize(512);
@@ -177,12 +177,12 @@ class ListeningThread extends Thread {
      * and respond with ET system information.
      */
     public void run() {
-
         // packet & buffer to receive UDP packets
         byte[] rBuffer = new byte[512]; // much larger than needed
         DatagramPacket rPacket = new DatagramPacket(rBuffer, 512);
 
         // Prepare output buffer we send in answer to inquiries:
+        //
         // (0)  ET magic numbers (3 ints)
         // (1)  ET version #
         // (2)  port of tcp server thread (not udp config->port)
@@ -194,15 +194,18 @@ class ListeningThread extends Thread {
         // (6)  length of next string
         // (7)    hostname given by "uname" (used as a general
         //        identifier of this host no matter which interface is used)
-        // (8)  number of names for this IP addr starting with canonical
-        // (9)    32bit, net-byte ordered IPv4 address assoc with following name
-        // (10)   length of next string
-        // (11)       first name = canonical
-        // (12)   32bit, net-byte ordered IPv4 address assoc with following name
-        // (13)   length of next string
-        // (14)       first alias ...
+
+        // (8)  length of next string
+        // (9)    canonical name of host
+        // (10) number of IP addresses
+        // (11)   32bit, net-byte ordered IPv4 address assoc with following address
+        // (12)   length of next string
+        // (13)       first dotted-decimal IPv4 address
+        // (14)   32bit, net-byte ordered IPv4 address assoc with following address
+        // (15)   length of next string
+        // (16)       second dotted-decimal IPv4 address ...
         //
-        // All aliases are sent here.
+        // All known IP addresses are sent here both in numerical & dotted-decimal forms.
         //
 
         // buffer for reading ET name
@@ -217,69 +220,72 @@ class ListeningThread extends Thread {
             String hostName = addr.getHostName();
 
             // the send buffer needs to be of byte size ...
-            int bufferSize = 11*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
+            int bufferSize = 10*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
             for (InetAddress netAddress : sys.getNetAddresses()) {
-                bufferSize += 8 + netAddress.getHostName().length() + 1;
+                bufferSize += 8 + netAddress.getHostAddress().length() + 1;
             }
 
             baos = new ByteArrayOutputStream(bufferSize);
             DataOutputStream dos = new DataOutputStream(baos);
 
-            // magic #s
+            // (0) magic #s
             dos.writeInt(EtConstants.magicNumbers[0]);
             dos.writeInt(EtConstants.magicNumbers[1]);
             dos.writeInt(EtConstants.magicNumbers[2]);
 
+            // (1), (2) & (3)
             dos.writeInt(EtConstants.version);
             dos.writeInt(config.getServerPort());
             dos.writeInt(cast);
 
-            // 0.0.0.0
+            // (4) & (5)  incomingAddress = 0.0.0.0 since this is Java
             dos.writeInt(incomingAddress.length() + 1);
             dos.write(incomingAddress.getBytes("ASCII"));
             dos.writeByte(0);
 
-            // Local host name (equivalent to uname?)
+            // (6) & (7) Local host name (equivalent to uname?)
             dos.writeInt(hostName.length() + 1);
             dos.write(hostName.getBytes("ASCII"));
             dos.writeByte(0);
 
-            // number of names/addrs to follow
-            dos.writeInt(sys.getNetAddresses().length);
-
-            // Send all names and 32 bit addresses associated with this host, starting w/ canonical name
-            int addr32 = 0;
-            for (int j = 0; j < 4; j++) {
-                addr32 = addr32 << 8 | (((int) (addr.getAddress())[j]) & 0xFF);
-            }
-// System.out.println("sending addr32 = " + addr32 + ", canon = " + canon);
-            dos.writeInt(addr32);
+            // (8) & (9) canonical host name
             dos.writeInt(canon.length() + 1);
             dos.write(canon.getBytes("ASCII"));
             dos.writeByte(0);
 
+            // (10) number of addresses to follow
+            dos.writeInt(sys.getNetAddresses().length);
+
+            // Send all addresses (32 bit and dot-decimal) associated with this host
+            int addr32;
             for (InetAddress netAddress : sys.getNetAddresses()) {
                 // convert array of 4 bytes into 32 bit network byte-ordered address
                 addr32 = 0;
                 for (int j = 0; j < 4; j++) {
                     addr32 = addr32 << 8 | (((int) (netAddress.getAddress())[j]) & 0xFF);
                 }
-// System.out.println("sending addr32 = " + addr32 + ", name = " + netAddress.getHostName());
+// System.out.println("sending addr32 = " + addr32 + ", IP addr = " + netAddress.getHostAddress());
+                // (11)
                 dos.writeInt(addr32);
-                dos.writeInt(netAddress.getHostName().length() + 1);
-                dos.write(netAddress.getHostName().getBytes("ASCII"));
+                // (12)
+                dos.writeInt(netAddress.getHostAddress().length() + 1);
+                // (13)
+                dos.write(netAddress.getHostAddress().getBytes("ASCII"));
                 dos.writeByte(0);
             }
 
             dos.flush();
         }
         catch (UnsupportedEncodingException ex) {
+            ex.printStackTrace();
             // this will never happen.
         }
         catch (UnknownHostException ex) {
+            ex.printStackTrace();
             // local host is always known
         }
         catch (IOException ex) {
+            ex.printStackTrace();
             // this will never happen since we're writing to array
         }
 
@@ -318,8 +324,8 @@ class ListeningThread extends Thread {
                 int magic2 = dis.readInt();
                 int magic3 = dis.readInt();
                 if (magic1 != EtConstants.magicNumbers[0] ||
-                        magic2 != EtConstants.magicNumbers[1] ||
-                        magic3 != EtConstants.magicNumbers[2])  {
+                    magic2 != EtConstants.magicNumbers[1] ||
+                    magic3 != EtConstants.magicNumbers[2])  {
 //System.out.println("SystemUdpServer:  Magic numbers did NOT match");
                     continue;
                 }
