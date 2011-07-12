@@ -49,7 +49,7 @@ class EtJniAccess {
 System.out.println("RETURNING ALREADY EXISTING ET SYSTEM NATIVE OBJECT");
                 EtJniAccess jni = classMap.get(etName);
                 jni.numberOpens++;
-                System.out.println("numberOpens = " + jni.numberOpens);
+System.out.println("numberOpens = " + jni.numberOpens);
                 return jni;
             }
 
@@ -57,7 +57,7 @@ System.out.println("RETURNING ALREADY EXISTING ET SYSTEM NATIVE OBJECT");
             jni.openLocalEtSystem(etName);
             jni.etSystemName = etName;
             jni.numberOpens = 1;
-            System.out.println("numberOpens = " + jni.numberOpens);
+System.out.println("numberOpens = " + jni.numberOpens);
             classMap.put(etName, jni);
 
             return jni;
