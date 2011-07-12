@@ -22,7 +22,6 @@ import java.net.*;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
@@ -439,11 +438,9 @@ class ClientThread extends Thread {
                             EtUtils.longToBytes((long)ev.getLength(),  buf,  4);
                             EtUtils.longToBytes((long)ev.getMemSize(), buf, 12);
                             EtUtils.intToBytes(ev.getPriority().getValue() |
-                                             ev.getDataStatus().getValue() << dataShift, buf, 20);
+                                               ev.getDataStatus().getValue() << dataShift, buf, 20);
                             EtUtils.intToBytes(ev.getId(), buf, 24);  // skip 4 bytes here
-                            EtUtils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
-                                             EtConstants.endianLittle : EtConstants.endianBig,
-                                             buf, 32);
+                            EtUtils.intToBytes(ev.getRawByteOrder(), buf, 32);
                             // arrays are initialized to zero so skip 0 values elements
                             int index = 36;
                             int[] control = ev.getControl();
@@ -595,9 +592,7 @@ class ClientThread extends Thread {
                                 EtUtils.intToBytes(ev.getPriority().getValue() |
                                                  ev.getDataStatus().getValue() << dataShift, buffer, index += 8);
                                 EtUtils.intToBytes(ev.getId(), buffer, index += 4); // skip 4 bytes here
-                                EtUtils.intToBytes(ev.getByteOrder() == ByteOrder.LITTLE_ENDIAN ?
-                                                 EtConstants.endianLittle : EtConstants.endianBig,
-                                                 buffer, index += 8);
+                                EtUtils.intToBytes(ev.getRawByteOrder(), buffer, index += 8);
                                 EtUtils.intToBytes(0, buffer, index += 4);
                                 int[] control = ev.getControl();
                                 for (int i = 0; i < selectInts; i++) {
@@ -650,7 +645,7 @@ class ClientThread extends Thread {
                             int priAndStat = EtUtils.bytesToInt(params, 20);
                             ev.setPriority(Priority.getPriority(priAndStat & priorityMask));
                             ev.setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-                            ev.setByteOrder(EtUtils.bytesToInt(params, 24));
+                            ev.setRawByteOrder(EtUtils.bytesToInt(params, 24));
                             // last parameter is ignored
 
                             int index = 24;
@@ -703,7 +698,7 @@ class ClientThread extends Thread {
                                 priAndStat = EtUtils.bytesToInt(params, 16);
                                 evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
                                 evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-                                evs[j].setByteOrder(EtUtils.bytesToInt(params, 20));
+                                evs[j].setRawByteOrder(EtUtils.bytesToInt(params, 20));
                                 index = 24;
                                 int[] control = new int[selectInts];
                                 for (int i = 0; i < selectInts; i++) {
@@ -720,7 +715,6 @@ class ClientThread extends Thread {
                                     in.readFully(evs[j].getData(), 0, evs[j].getLength());
                                 }
                             }
-
                             sys.putEvents(att, evs);
                             out.writeInt(ok);
                             out.flush();
