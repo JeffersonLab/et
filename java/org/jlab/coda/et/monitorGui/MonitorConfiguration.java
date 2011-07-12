@@ -94,7 +94,7 @@ public class MonitorConfiguration extends DefaultHandler {
     // window parameter reading of config file.
     public Point getWindowLocation() {return new Point(windowLocation);}
     public Dimension getWindowSize() {return new Dimension(windowSize);}
-    public Color[] getWindowColors() {return (Color[]) mainColors.clone();}
+    public Color[] getWindowColors() {return mainColors.clone();}
     
     // Methods for parsing window & color data from config file.
     public void loadWindowParameters(File file) throws IOException, SAXException {
@@ -371,11 +371,11 @@ public class MonitorConfiguration extends DefaultHandler {
                     while (tok.hasMoreTokens()) {
                         mAddrs[index++] = tok.nextToken();
                     }
-                    config = new EtSystemOpenConfig(etSystem, host,
-                                                  Arrays.asList(mAddrs), true,
-                                                  EtConstants.broadAndMulticast,
-                                                  dummy, broadcastPort, multicastPort, ttl,
-                                                  EtConstants.policyError);
+                    config = new EtSystemOpenConfig(etSystem, host, null,
+                                                    Arrays.asList(mAddrs), true,
+                                                    EtConstants.broadAndMulticast,
+                                                    dummy, broadcastPort, multicastPort, ttl,
+                                                    EtConstants.policyError);
                 }
                 else if (findMethod.equals("direct")) {
                     if (dataStorage.containsKey("location")) {
@@ -709,7 +709,7 @@ public class MonitorConfiguration extends DefaultHandler {
 	  }
 	  
 	  // Update period & splitPane divider position & orientation
-          MonitorSingleSystem singleMonitor = (MonitorSingleSystem) monitor.monitors.get(key);
+      MonitorSingleSystem singleMonitor = monitor.monitors.get(key);
 	  text.append("    <period>");
 	  text.append(singleMonitor.getUpdatePeriod());
 	  text.append("</period>\n    <dividerPosition>");
