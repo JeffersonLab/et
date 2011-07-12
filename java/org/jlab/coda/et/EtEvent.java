@@ -46,8 +46,9 @@ public interface EtEvent {
 
     /**
      * Gets the age of the event, either {@link Age#NEW} if a new event obtained through
-     * calling {@link EtSystem#newEvents} or {@link Age#USED} if obtained through calling
-     * {@link EtSystem#getEvents}.
+     * calling {@link EtSystem#newEvents(EtAttachment, org.jlab.coda.et.enums.Mode, int, int, int)}
+     * or {@link Age#USED} if obtained through calling
+     * {@link EtSystem#getEvents(EtAttachment, org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)}.
      *
      * @return age of the event.
      */
@@ -141,6 +142,12 @@ public interface EtEvent {
      */
     public ByteOrder getByteOrder();
 
+    /**
+     * Gets the raw byte order data (0x04030201 or 0x01020304).
+     * @return raw byte order data (0x04030201 or 0x01020304).
+     */
+    public int getRawByteOrder();
+
 
     // setters
 
@@ -152,7 +159,7 @@ public interface EtEvent {
      *
      * @param pri event priority
      */
-    void setPriority(Priority pri);
+    public void setPriority(Priority pri);
 
     /**
      * Sets the event's data length in bytes.
@@ -160,7 +167,7 @@ public interface EtEvent {
      * @param len data length
      * @throws EtException if length is less than zero
      */
-    void setLength(int len) throws EtException;
+    public void setLength(int len) throws EtException;
 
     /**
      * Sets the event's control array by copying it into the event.
@@ -168,7 +175,7 @@ public interface EtEvent {
      * @param con control array
      * @throws EtException if control array has the wrong number of elements
      */
-    void setControl(int[] con) throws EtException;
+    public void setControl(int[] con) throws EtException;
 
     /**
      * Set the event data's byte order.
@@ -177,7 +184,7 @@ public interface EtEvent {
     void setByteOrder(ByteOrder order);
 
     /**
-     * Set the event's byte order by using values consistent with C-based ET systems,
+     * Set the event data's byte order by using values consistent with C-based ET systems,
      * {@link EtConstants#endianBig}, {@link EtConstants#endianLittle}, {@link EtConstants#endianLocal},
      * {@link EtConstants#endianNotLocal}, or {@link EtConstants#endianSwitch}.
      *
@@ -185,6 +192,15 @@ public interface EtEvent {
      * @throws EtException if argument is a bad value
      */
     void setByteOrder(int endian) throws EtException;
+
+    /**
+     * Set the event data's byte order as big with 0x04030201 or
+     * as little with 0x01020304.
+     *
+     * @param byteOrder data's byte order as big with 0x04030201 or
+     *                  as little with 0x01020304.
+     */
+    void setRawByteOrder(int byteOrder) throws EtException;
 
 
     // miscellaneous
@@ -196,5 +212,5 @@ public interface EtEvent {
      *
      * @return <code>true</code> if swapping is needed, otherwise <code>false</code>
      */
-    boolean needToSwap();
+    public boolean needToSwap();
 }
