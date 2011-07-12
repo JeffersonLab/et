@@ -73,7 +73,7 @@ extern int h_errno;
 #include "etCommonNetwork.h"
 
 /* set debug level for network stuff here */
-int etDebug = 4;
+int etDebug = 0;
 
 #ifndef VXWORKS
 
@@ -864,7 +864,6 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
             return(CODA_NETWORK_ERROR);
         }
         return codanetTcpConnect2(inetaddr, interface, port, sendBufSize, rcvBufSize, fd, localPort);
-
     }
 
     
@@ -3634,7 +3633,7 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
         struct ip_mreq    mreq;
         struct sockaddr   *sa;
 
-        mreq.imr_multiaddr = castaddr;
+        memcpy(&mreq.imr_multiaddr, &castaddr, sizeof(struct in_addr));
 
         /* look through all IPv4 interfaces */
         ifihead = ifi = codanetGetInterfaceInfo(AF_INET, 0);
@@ -3655,13 +3654,17 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
                 /* if there is an address listed ... */
                 if ( (sa = ifi->ifi_addr) != NULL) {
                     /* accept multicast over this interface */
-                    printf("%sUdpReceive: joing %s on interface %s\n", codanetStr, address, ifi->ifi_name);
-                    mreq.imr_interface.s_addr = htonl(((struct sockaddr_in *) sa)->sin_addr.s_addr);
+/*printf("%sUdpReceive: joining %s on interface %s on port %hu\n", codanetStr, address, ifi->ifi_name, port);*/
+                    memcpy(&mreq.imr_interface,
+                            &((struct sockaddr_in *) sa)->sin_addr,
+                            sizeof(struct in_addr));
+
                     err = setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *) &mreq, sizeof(mreq));
                     if (err < 0) {
+                        perror("codaNetUdpReceive: ");
                         codanetFreeInterfaceInfo(ifihead);
                         if (codanetDebug >= CODA_DEBUG_ERROR) {
-                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error\n", codanetStr);
+                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error: %s\n", codanetStr);
                         }
                         return CODA_SOCKET_ERROR;
                     }
@@ -3674,7 +3677,7 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
     }
     
     /* only allow packets to this port & address to be received */
-  
+      
     err = bind(sockfd, (SA *) &servaddr, sizeof(servaddr));
     if (err < 0) {
         char errnostr[255];
@@ -3683,7 +3686,7 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sUdpReceive: bind error\n", codanetStr);
         return CODA_SOCKET_ERROR;
     }
-
+    
     if (fd != NULL) *fd = sockfd;
 
     return CODA_OK;
