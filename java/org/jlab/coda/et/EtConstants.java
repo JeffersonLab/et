@@ -318,6 +318,14 @@ public final class EtConstants {
     public static final int    errorNoRemote       = -12;
     /** Error when memory asked for is too big. */
     public static final int    errorTooBig         = -13;
+    /** Error when no memory available. */
+    public static final int    errorNoMemory       = -14;
+    /** Error when argument has bad value. */
+    public static final int    errorBadArg         = -15;
+    /** Error when socket error. */
+    public static final int    errorSocket         = -16;
+    /** Error when network error. */
+    public static final int    errorNetwork        = -17;
 
 
     // constants from private.h
