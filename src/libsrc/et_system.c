@@ -181,8 +181,8 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   size_data     = config->event_size * config->nevents;
   size = size_system + size_stations + size_histo + size_events + size_data;
   
-printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
-       size_system, size_stations, size_histo, size_events, size_data);
+//printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
+//       size_system, size_stations, size_histo, size_events, size_data);
 
   /* create the ET system memory */
   status = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
@@ -655,11 +655,11 @@ int et_system_close(et_sys_id id)
   
   /* stop broad/multicast listening threads */
   for (i=0; i < config.bcastaddrs.count; i++) {
-printf("et_system_close: stop listening thd on bcast = %s\n", config.bcastaddrs.addr[i]);
+//printf("et_system_close: stop listening thd on bcast = %s\n", config.bcastaddrs.addr[i]);
       et_sys_stopthread(config.bcastaddrs.tid[i]);
   }
   for (i=0; i < config.mcastaddrs.count; i++) {
-printf("et_system_close: stop listening thd on mcast = %s\n", config.mcastaddrs.addr[i]);
+//printf("et_system_close: stop listening thd on mcast = %s\n", config.mcastaddrs.addr[i]);
     et_sys_stopthread(config.mcastaddrs.tid[i]);
   }
 
