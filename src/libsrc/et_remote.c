@@ -293,7 +293,7 @@ printf("\nCALLING et_findserver FROM etr_open\n\n");
         goto error;
     }
 
-    /*printf("etr_open: We are OK\n");*/
+/*printf("etr_open: We are OK\n");*/
     return ET_OK;
 
 error:
@@ -2545,6 +2545,7 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
             for (j=0; j < ET_STATION_SELECT_INTS; j++) {
                 header[index+7+j] = htonl(evs[i]->control[j]);
             }
+
             /*
             printf("etr_events_put:   [0]  = %x\n", ntohl(header[index]));
             printf("etr_events_put:   [1]  = %x\n", ntohl(header[index+1]));
@@ -2557,7 +2558,13 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
             printf("etr_events_put:   [8]  = %d\n", ntohl(header[index+8]));
             printf("etr_events_put:   [9]  = %d\n", ntohl(header[index+9]));
             printf("etr_events_put:   [10] = %d\n", ntohl(header[index+10]));
+            if (ET_STATION_SELECT_INTS >= 6) {
+                printf("etr_events_put:   [11] = %d\n", ntohl(header[index+11]));
+                printf("etr_events_put:   [12] = %d\n", ntohl(header[index+12]));
+            }
+            printf("\n\n");
             */
+            
             /* send header if modifying header or whole event */
             iov[iov_bufs].iov_base = (void *) &header[index];
             iov[iov_bufs].iov_len  = headersize;
@@ -2586,7 +2593,7 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
             }
             nevents++;
             index += (7+ET_STATION_SELECT_INTS);
-            /*printf("etr_events_put: num events stored in header and iov, %d\n", nevents);*/
+/*printf("etr_events_put: num events stored in header and iov, %d\n", nevents);*/
         }
     }
 
