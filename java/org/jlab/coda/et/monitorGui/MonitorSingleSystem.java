@@ -895,7 +895,7 @@ public class MonitorSingleSystem {
 	}
 	
 	if (numLeaves > 1) {
-System.out.println("More than one leaf");
+//System.out.println("More than one leaf");
 	  // update through leaves that were reused
           leafCounter = numProcs > numLeaves ? numLeaves : numProcs;
 	  int[] leaves = new int[leafCounter];
@@ -906,10 +906,10 @@ System.out.println("More than one leaf");
 	  
 	  // remove leaves that aren't needed
 	  if (numLeaves > numProcs) {
-System.out.println("More leaves than processes");
+//System.out.println("More leaves than processes");
 	    for (int i=0; i < numLeaves-numProcs; i++) {
 	      node = (DefaultMutableTreeNode) processNode.getChildAt(i + numProcs);
-System.out.println("Remove node " + (i+numProcs) + " called " + node);
+//System.out.println("Remove node " + (i+numProcs) + " called " + node);
               treeModel.removeNodeFromParent(node);
 	    }
 	  }
