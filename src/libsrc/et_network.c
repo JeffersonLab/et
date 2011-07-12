@@ -157,7 +157,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                    et_open_config *config, int trys, struct timeval *waittime)
 {
     int          i, j, k, l, m, n, err, version, addrCount, castType, gotMatch=0, subnetCount=0, ipAddrCount=0;
-    int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=1, magicInts[3];
+    int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0, magicInts[3];
     const int    on=1, timeincr[]={0,1,2,3,4,5};
     uint32_t     addr;
     codaIpList   *baddr;
@@ -607,6 +607,21 @@ anotherpacket:
                     answer->castType = castType;
                     pbuf += sizeof(castType);
 
+                    if (debug) {
+                        if (castType == ET_BROADCAST) {
+                            printf("et_findserver: reply to broadcast\n");
+                        }
+                        else if (castType != ET_MULTICAST) {
+                            printf("et_findserver: reply to multicast\n");
+                        }
+                        else if (castType != ET_BROADANDMULTICAST) {
+                            printf("et_findserver: reply to broad & multicast\n");
+                        }
+                        else {
+                            printf("et_findserver: reply -> don't know if broad or multi casting\n");
+                        }
+                    }
+
                     /* get broad/multicast IP original packet sent to */
                     memcpy(&length, pbuf, sizeof(length));
                     length = ntohl(length);
@@ -726,7 +741,7 @@ anotherpacket:
         
         
             /* If host is local or we know its name. There may be many responses.
-             * Look only at the response that matches the host's name.
+             * Look only at the response that matches the host's address.
              */
             if ((strcmp(config->host, ET_HOST_REMOTE) != 0) &&
                 (strcmp(config->host, ET_HOST_ANYWHERE) != 0)) {
