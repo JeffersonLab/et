@@ -490,7 +490,8 @@ public class SystemCreate {
 
 
     /**
-     * Method for use by {@link #createStation} to grab all stations'
+     * Method for use by {@link #createStation(org.jlab.coda.et.EtStationConfig, String)}
+     * to grab all stations'
      * transfer locks and stop all event transfer before adding a new station to
      * the ET system's linked lists of stations.
      *
@@ -517,7 +518,7 @@ public class SystemCreate {
 
 
     /**
-     * Method for use by {@link #removeStation} to grab all stations'
+     * Method for use by {@link #removeStation(int)} to grab all stations'
      * transfer locks and stop all event transfer before removing a station from
      * the ET system's linked lists of stations.
      * 
@@ -537,7 +538,7 @@ public class SystemCreate {
 
 
     /**
-     * Method for use by {@link #removeStationFromList} to grab all stations'
+     * Method for use by {@link #removeStationFromList(StationLocal)} to grab all stations'
      * transfer locks and stop all event transfer before moving a station in
      * the ET system's linked lists of stations.
      *
@@ -1263,7 +1264,7 @@ public class SystemCreate {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
      */
     EtEventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
             throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
@@ -1321,7 +1322,7 @@ public class SystemCreate {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
      */
     List<EtEventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
             throws EtException, EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
@@ -1379,7 +1380,7 @@ public class SystemCreate {
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
      *     if the attachment has been commanded to wakeup,
-     *     {@link EventList#wakeUp}, {@link EventList#wakeUpAll}
+     *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
      */
     EtEventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
             throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
