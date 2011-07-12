@@ -1579,8 +1579,8 @@ public class Monitor extends JFrame {
                 // a direct udp packet is sent to that host on the udp port
                 // (as well as the specified multicast).
                 config = new EtSystemOpenConfig(etSystem, host,
-                                              Arrays.asList(addresses),
-                                              uPort, mPort, ttlval);
+                                                Arrays.asList(addresses),
+                                                uPort, mPort, ttlval);
             }
 
             else if (howToConnect.equals("broad & multicasting")) {
@@ -1604,11 +1604,11 @@ public class Monitor extends JFrame {
                 int tPort = tcpPort.getValue();
                 int ttlval = ttl.getValue();
 
-                config = new EtSystemOpenConfig(etSystem, host,
-                                              Arrays.asList(mAddresses), true,
-                                              EtConstants.broadAndMulticast,
-                                              tPort, uPort, mPort, ttlval,
-                                              EtConstants.policyError);
+                config = new EtSystemOpenConfig(etSystem, host, null,
+                                                Arrays.asList(mAddresses), true,
+                                                EtConstants.broadAndMulticast,
+                                                tPort, uPort, mPort, ttlval,
+                                                EtConstants.policyError);
             }
 
             else if (howToConnect.equals("direct connection")) {
@@ -1746,12 +1746,12 @@ public class Monitor extends JFrame {
         // once to each system.
         // Create unique name & enter into Map (hash table)
         String key;
-        if (open.getHost().indexOf(".") < 0) {
-            key = new String(config.getEtName() + " (" + open.getHost() + ")");
+        if (open.getHostAddress().indexOf(".") < 0) {
+            key = new String(config.getEtName() + " (" + open.getHostAddress() + ")");
         }
         else {
             key = new String(config.getEtName() + " (" +
-                    open.getHost().substring(0, open.getHost().indexOf(".")) + ")");
+                    open.getHostAddress().substring(0, open.getHostAddress().indexOf(".")) + ")");
         }
         if (connections.containsKey(key)) {
             open.disconnect();
