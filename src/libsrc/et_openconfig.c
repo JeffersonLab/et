@@ -637,7 +637,7 @@ int et_open_config_gethost(et_openconfig sconfig, char *val)
 
 /*****************************************************/
 /* Sets the local interface when using the network
- * to communicate with the Et system. */
+ * to connect to the Et system. */
 int et_open_config_setinterface(et_openconfig sconfig, const char *val)
 {
     et_open_config *sc = (et_open_config *) sconfig;
