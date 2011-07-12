@@ -92,7 +92,7 @@ public class StartEt {
             //config.setGroups(groups);
 
             // listen for multicasts at this address
-            //config.addMulticastAddr(Constants.multicastAddr);
+            config.addMulticastAddr(EtConstants.multicastAddr);
             // set tcp server port
             config.setServerPort(serverPort);
             // set port for listening for udp packets
