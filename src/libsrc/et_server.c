@@ -482,34 +482,22 @@ void *et_netserver(void *arg)
 
   /* open a listening socket */
 
-  /* if a server port was explicitly specified, use it and nothing else */
+  /* if a server port was explicitly specified, use it otherwise use default */
   if (config->serverport > 0) {
-    err = etNetTcpListen(0, (unsigned short)config->serverport, 0, 0, &listenfd);
-    if (err != ET_OK) {
-      if (etid->debug >= ET_DEBUG_SEVERE) {
-        et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
-      }
-      exit(1);
-    }
-    port = config->serverport;
+      port = config->serverport;
   }
-  /* else, start with default & keeping trying different port #s until one works */
   else {
-    for (i=0; i < trylimit; i++) {
-      err = etNetTcpListen(0, (unsigned short) (ET_SERVER_PORT+i), 0, 0, &listenfd);
-      if (err != ET_OK) {
-        if (etid->debug >= ET_DEBUG_INFO) {
-          et_logmsg("INFO", "et_netserver: tried but could not listen on port %d\n", ET_SERVER_PORT+i);
-        }
-        continue;
-      }
-      else {
-        port = ET_SERVER_PORT+i;
-        break;
-      }
-    }
+      port = ET_SERVER_PORT;
   }
   
+  err = etNetTcpListen(0, (unsigned short)port, 0, 0, &listenfd);
+  if (err != ET_OK) {
+    if (etid->debug >= ET_DEBUG_SEVERE) {
+      et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
+    }
+    exit(1);
+  }
+
   if (debug)
     printf("TCP server listening on port %d\n", port);
 
@@ -2275,21 +2263,28 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         {
           et_stat_id  stat_id;
           et_att_id   att;
-          int length, outgoing[2], transfer[3];
-          char host[ET_MAXHOSTNAMELEN];
+          int length, ipLength, outgoing[2], transfer[4];
+          char host[ET_MAXHOSTNAMELEN], interface[ET_IPADDRSTRLEN];
           pid_t pid;
 
           if (etNetTcpRead(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
-          stat_id = ntohl(transfer[0]);
-          pid     = ntohl(transfer[1]);
-          length  = ntohl(transfer[2]);
+          stat_id  = ntohl(transfer[0]);
+          pid      = ntohl(transfer[1]);
+          length   = ntohl(transfer[2]);
+          ipLength = ntohl(transfer[3]);
 
           if (length > 0) {
-            if (etNetTcpRead(connfd, (void *) host, length) != length) {
-              goto end;
-            }
+              if (etNetTcpRead(connfd, (void *) host, length) != length) {
+                  goto end;
+              }
+          }
+
+          if (ipLength > 0) {
+              if (etNetTcpRead(connfd, (void *) interface, ipLength) != ipLength) {
+                  goto end;
+              }
           }
 
           err = et_station_attach(id, stat_id, &att);
@@ -2302,7 +2297,10 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
              */
             etid->sys->attach[att].pid = pid;
             if (length > 0) {
-              strcpy(etid->sys->attach[att].host, host);
+                strcpy(etid->sys->attach[att].host, host);
+            }
+            if (ipLength > 0) {
+                strcpy(etid->sys->attach[att].interface, interface);
             }
           }
 
