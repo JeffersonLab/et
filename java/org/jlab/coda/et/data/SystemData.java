@@ -152,14 +152,14 @@ public class SystemData {
     private String interfaceAddresses[];
 
     /** Dotted-decimal multicast addresses the UDP server listens on.
-     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastStrings
-     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastAddrs
-     *  @see org.jlab.coda.et.system.SystemConfig#addMulticastAddr
-     *  @see org.jlab.coda.et.system.SystemConfig#removeMulticastAddr */
+     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastStrings()
+     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastAddrs()
+     *  @see org.jlab.coda.et.system.SystemConfig#addMulticastAddr(String)
+     *  @see org.jlab.coda.et.system.SystemConfig#removeMulticastAddr(String)  */
     private String multicastAddresses[];
 
     /** The ET system (file) name.
-     *  @see org.jlab.coda.et.system.SystemCreate#SystemCreate
+     *  @see org.jlab.coda.et.system.SystemCreate#SystemCreate(String)
      *  @see org.jlab.coda.et.system.SystemCreate#name */
     private String etName;
 
@@ -309,15 +309,15 @@ public class SystemData {
 
     /** Get the dotted-decimal multicast addresses the UDP server listens on.
      *  @return dotted-decimal multicast addresses the UDP server listens on
-     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastStrings
-     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastAddrs
-     *  @see org.jlab.coda.et.system.SystemConfig#addMulticastAddr
-     *  @see org.jlab.coda.et.system.SystemConfig#removeMulticastAddr */
+     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastStrings()
+     *  @see org.jlab.coda.et.system.SystemConfig#getMulticastAddrs()
+     *  @see org.jlab.coda.et.system.SystemConfig#addMulticastAddr(String)
+     *  @see org.jlab.coda.et.system.SystemConfig#removeMulticastAddr(String)  */
     public String[] getMulticastAddresses() {return multicastAddresses.clone();}
 
     /** Get the ET system (file) name.
      *  @return ET system (file) name
-     *  @see org.jlab.coda.et.system.SystemCreate#SystemCreate
+     *  @see org.jlab.coda.et.system.SystemCreate#SystemCreate(String)
      *  @see org.jlab.coda.et.system.SystemCreate#name */
     public String getEtName() {return etName;}
 
