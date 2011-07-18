@@ -90,6 +90,9 @@ public class AttachmentData {
     /**  Name of the station this attachment is associated with. */
     private String stationName;
 
+    /** IP address of the network interface the attachment is sending data through. */
+    private String ipAddress;
+
 
     // getters
 
@@ -167,6 +170,9 @@ public class AttachmentData {
      *  @return name of the station this attachment is associated with */
     public String getStationName() {return stationName;}
 
+    /** Get the IP address of the network interface the attachment is sending data through.
+     *  @return IP address of the network interface the attachment is sending data through. */
+    public String getIpAddress() {return ipAddress;}
 
     /**
      *  Reads the attachment information from an ET system over the network.
@@ -174,7 +180,7 @@ public class AttachmentData {
      *  @throws IOException if data read error
      */
     public void read(DataInputStream dis) throws IOException {
-        byte[] info = new byte[68];
+        byte[] info = new byte[72];
         dis.readFully(info);
 
         num         = EtUtils.bytesToInt(info,   0);
@@ -192,13 +198,15 @@ public class AttachmentData {
         // read strings, lengths first
         int length1 = EtUtils.bytesToInt(info, 60);
         int length2 = EtUtils.bytesToInt(info, 64);
+        int length3 = EtUtils.bytesToInt(info, 68);
 
-        if (length1 + length2 > 68) {
-            info = new byte[length1 + length2];
+        if (length1 + length2 + length3 > 72) {
+            info = new byte[length1 + length2 + length3];
         }
-        dis.readFully(info, 0, length1 + length2);
+        dis.readFully(info, 0, length1 + length2 + length3);
         host = new String(info, 0, length1 - 1, "US-ASCII");
         stationName = new String(info, length1, length2 - 1, "US-ASCII");
+        ipAddress = new String(info, length1+length2, length3 - 1, "US-ASCII");
     }
 }
 
