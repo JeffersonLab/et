@@ -440,6 +440,7 @@ struct et_proc {
  * events_make    : # of new events it requests
  * pid            : unix process id# of process that owns attachment
  * host           : hostname running process that owns attachment
+ * interface      : ip address of outgoing network interface (IPv4)
  */
  
 struct et_attach {
@@ -456,6 +457,7 @@ struct et_attach {
   uint64_t    events_make;
   pid_t       pid;
   char        host[ET_MAXHOSTNAMELEN];
+  char        interface[ET_IPADDRSTRLEN];
 };
 
 /*
