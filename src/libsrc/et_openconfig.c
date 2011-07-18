@@ -654,7 +654,7 @@ int et_open_config_setinterface(et_openconfig sconfig, const char *val)
         return ET_ERROR;
     }
   
-    if (strlen(val) > ET_FUNCNAME_LENGTH-1) {
+    if (strlen(val) > ET_IPADDRSTRLEN-1) {
         return ET_ERROR;
     }
   
@@ -668,7 +668,7 @@ int et_open_config_getinterface(et_openconfig sconfig, char *val)
     et_open_config *sc = (et_open_config *) sconfig;
   
     if (val != NULL) {
-        strcpy(val, sc->interface);
+        strncpy(val, sc->interface, ET_IPADDRSTRLEN-1);
     }
     return ET_OK;
 }
