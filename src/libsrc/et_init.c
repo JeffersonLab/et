@@ -103,6 +103,7 @@ void et_init_attachment(et_system *sys, et_att_id id)
   sys->attach[id].events_make = 0ULL;
   sys->attach[id].pid         = -1;
   strcpy(sys->attach[id].host, "CANNOT_FIND_HOST");
+  *sys->attach[id].interface  = '\0';
   sys->attach[id].status      = ET_ATT_UNUSED;
 }
 
@@ -325,7 +326,7 @@ int et_id_init(et_sys_id *id)
   etid->sockfd       = -1;
   etid->iov_max      = ET_IOV_MAX;
   etid->port         = 0;
- *etid->ethost       = '\0';
+  *etid->ethost      = '\0';
   /* find endian value */
   if (etNetLocalByteOrder(&etid->endian) != ET_OK) {
     et_logmsg("SEVERE", "et_id_init, strange byteorder\n");
