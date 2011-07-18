@@ -281,13 +281,13 @@ public class EvioProducer {
                              // set event's control array
                              //mevs[j].setControl(con);
                          }
+                         startingVal++;
                      }
 
                      // put events back into ET system
                      sys.putEvents(att, mevs);
                      count += mevs.length;
 
-                     startingVal++;
                  }
 
                  // calculate the event rate
