@@ -1874,7 +1874,7 @@ public class SystemCreate {
             return 4;
         }
 
-        int len1, len2;
+        int len1, len2, len3;
         int off = offset;
         int eventsOwned;
         int byteSize = 0;
@@ -1910,8 +1910,10 @@ public class SystemCreate {
             // read strings, lengths first
             len1 = att.getHost().length() + 1;
             len2 = att.getStation().getStationName().length() + 1;
+            len3 = att.getIpAddress().length() + 1;
             EtUtils.intToBytes(len1, info, off+=8);
             EtUtils.intToBytes(len2, info, off+=4);
+            EtUtils.intToBytes(len3, info, off+=4);
 //System.out.println("writeAttachments: len1 = " + len1 + ", len2 = " + len2);
             // write strings into array
             off += 4;
@@ -1926,12 +1928,17 @@ public class SystemCreate {
                 outString = att.getStation().getStationName().getBytes("ASCII");
                 System.arraycopy(outString, 0, info, off, outString.length);
                 off += outString.length;
-                info[off++] = 0; // C null terminator
+                info[off++] = 0;
+
+                outString = att.getIpAddress().getBytes("ASCII");
+                System.arraycopy(outString, 0, info, off, outString.length);
+                off += outString.length;
+                info[off++] = 0;
             }
             catch (UnsupportedEncodingException ex) {}
 
             // track size of all data stored in buffer
-            byteSize += 4*9 + 8*4 + len1 + len2;
+            byteSize += 4*10 + 8*4 + len1 + len2 + len3;
 
             // if more attachments now than space allowed for, skip rest
             if (++attCount >= attsMax) {
