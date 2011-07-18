@@ -55,6 +55,7 @@
 #include <sys/utsname.h>
 #include <inttypes.h>
 #include <arpa/inet.h>   /* htonl stuff */
+#include <netinet/in.h>
 #ifdef __APPLE__
 #include <ifaddrs.h>
 #endif
@@ -1697,6 +1698,54 @@ int codanetLocalByteOrder(int *endian)
 
 
 /**
+ * This routine returns the local IP address associated with a socket.
+ * Used only for IPv4 TCP sockets.
+ *
+ * @param sockfd socket file descriptor
+ * @param ipAddress array of at least 16 characters
+ *
+ * @returns ET/CMSG_OK    if successful
+ * @returns ET_ERROR_BADARG/CMSG_BAD_ARGUMENT if any arg has a bad value
+ * @returns ET/CMSG_ERROR if error
+ */
+int codanetLocalSocketAddress(int sockfd, char *ipAddress)
+{
+    int   err;
+    char *ip;
+    struct sockaddr_in *sa;
+
+#ifdef VXWORKS_5
+    struct sockaddr_in ss;
+    int len = sizeof(ss);
+#else
+    struct sockaddr_storage ss;
+    socklen_t len = sizeof(ss);
+#endif
+    
+    if (sockfd < 0 || ipAddress == NULL) return(CODA_BAD_ARGUMENT);
+    
+    if (getsockname(sockfd, (SA *) &ss, &len) < 0) {
+        return (CODA_ERROR);
+    }
+
+#ifdef VXWORKS_5
+    if (ss.sin_family == AF_INET) {
+#else
+    if (ss.ss_family == AF_INET) {
+#endif
+        sa = (struct sockaddr_in *) &ss;
+        ip = inet_ntoa(sa->sin_addr);
+        strncpy(ipAddress, ip, CODA_IPADDRSTRLEN-1);
+    }
+    else {
+        return (CODA_ERROR);
+    }
+
+    return(CODA_OK);
+}
+
+
+/**
  * This routine tells whether the given ip address is in dot-decimal notation or not.
  *
  * @param ipAddress ip address in string form
@@ -2254,22 +2303,15 @@ static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
  */
 int codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex) {
     int err;
-
 #ifdef VXWORKS_5
-
     struct sockaddr_in ss;
     int len = sizeof(ss);
-    
-    if (getsockname(sockfd, (SA *) &ss, &len) < 0) {
-        
 #else
-
     struct sockaddr_storage ss;
     socklen_t len = sizeof(ss);
-    
-    if (getsockname(sockfd, (SA *) &ss, &len) < 0) {
-        
 #endif
+
+    if (getsockname(sockfd, (SA *) &ss, &len) < 0) {
         return(CODA_ERROR);
     }
 
