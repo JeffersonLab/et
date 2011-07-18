@@ -1198,10 +1198,11 @@ class ClientThread extends Thread {
 
                         case EtConstants.netStatAtt: {
                             int err = ok;
-                            int statId = in.readInt();
-                            int pid    = in.readInt();
-                            int length = in.readInt();
-                            String host = null;
+                            int statId   = in.readInt();
+                            int pid      = in.readInt();
+                            int length   = in.readInt();
+                            int ipLength = in.readInt();
+                            String host = null, ipAddr = null;
                             AttachmentLocal att = null;
 
                             if (length > 0) {
@@ -1210,11 +1211,20 @@ class ClientThread extends Thread {
                                 host = new String(buf, 0, length - 1, "ASCII");
                             }
 
+                            if (ipLength > 0) {
+                                byte buf[] = new byte[ipLength];
+                                in.readFully(buf, 0, ipLength);
+                                ipAddr = new String(buf, 0, ipLength - 1, "ASCII");
+                            }
+
                             try {
                                 att = sys.attach(statId);
                                 att.setPid(pid);
                                 if (length > 0) {
                                     att.setHost(host);
+                                }
+                                if (ipLength > 0) {
+                                    att.setIpAddress(ipAddr);
                                 }
                                 // keep track of all attachments locally
                                 attachments.put(att.getId(), att);
