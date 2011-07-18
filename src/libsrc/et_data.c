@@ -418,7 +418,7 @@ int et_data_atts(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
   int             i, j, count, count1=0, count2=0, events_owned;
-  int             ints[17], hostlen, namelen;
+  int             ints[18], hostlen, namelen, iplen;
   size_t          intsize, bufsize, actualsize=0;
   et_station     *ps;
   et_event       *pe;
@@ -491,8 +491,10 @@ int et_data_atts(et_id *id, struct iovec *iov)
     /* length of strings */
     hostlen  = strlen(id->sys->attach[i].host)+1;
     namelen  = strlen(ps->name)+1;
+    iplen    = strlen(id->sys->attach[i].interface)+1;
     ints[15] = htonl(hostlen);
     ints[16] = htonl(namelen);
+    ints[17] = htonl(iplen);
 
     /* copy into buffer */
     memcpy((void *)pbuf, (void *) ints, sizeof(ints));
@@ -501,9 +503,11 @@ int et_data_atts(et_id *id, struct iovec *iov)
     pbuf += hostlen;
     memcpy((void *)pbuf, (void *) ps->name, namelen);
     pbuf += namelen;
+    memcpy((void *)pbuf, (void *) id->sys->attach[i].interface, iplen);
+    pbuf += iplen;
 
     /* track size of all data stored in buffer */
-    actualsize += sizeof(ints) + hostlen + namelen;
+    actualsize += sizeof(ints) + hostlen + namelen + iplen;
   }
 
   /* if we sent fewer attachments than we estimated at first, correct this */
@@ -755,7 +759,7 @@ static char *et_data_getstat(et_statdata *statdata, int count, char *buffer)
  ******************************************************/
 static char *et_data_getatt(et_attdata *attdata, int count, char *buffer)
 {
-  int i, ints[17], len1, len2;
+  int i, ints[18], len1, len2, len3;
 
   if ((count == 0) || (attdata == NULL) || (buffer == NULL)) {
     return buffer;
@@ -780,12 +784,15 @@ static char *et_data_getatt(et_attdata *attdata, int count, char *buffer)
     /* copy in strings */
     len1 = ntohl(ints[15]);
     len2 = ntohl(ints[16]);
+    len3 = ntohl(ints[17]);
     buffer += sizeof(ints);
 
     memcpy((void *)attdata->host, (void *)buffer, len1);
     buffer += len1;
     memcpy((void *)attdata->station,(void *)buffer, len2);
     buffer += len2;
+    memcpy((void *)attdata->interface,(void *)buffer, len3);
+    buffer += len3;
 
     /* go to the next element in attdata array */
     attdata++;

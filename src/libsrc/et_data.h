@@ -120,6 +120,7 @@ typedef struct et_attdata_t {
 
   char host[ET_MAXHOSTNAMELEN];     /* name of host running att */
   char station[ET_STATNAME_LENGTH]; /* name of station attached to */
+  char interface[ET_IPADDRSTRLEN];  /* IP address of interface data sent through */
 } et_attdata;
 
 
