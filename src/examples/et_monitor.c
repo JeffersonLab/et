@@ -23,6 +23,7 @@
 #include <strings.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <time.h>
 #include <errno.h>
 #include <pthread.h>
@@ -38,201 +39,225 @@ static int test_mutex(pthread_mutex_t *mp);
 /******************************************************/
 int main(int argc,char **argv)
 {  
-  int             c, counter, etdead, mode, errflg=0, locality, tmparg;
-  unsigned int    newheartbt, oldheartbt=0;
-  int             port = ET_BROADCAST_PORT;
-  extern char     *optarg;
-  extern int      optind, opterr, optopt;
-  uint64_t        prev_out;
-  struct timespec timeout, period;
-  double	  tperiod, hbperiod;
-  et_sys_id       sys_id;
-  et_id 	  *id;
-  et_openconfig   openconfig;
-  char            hostname[ET_MAXHOSTNAMELEN];
-  char            etname[ET_FILENAME_LENGTH];
-  char            *tmp_etname=NULL, *tmp_hostname=NULL;
+    int             c, counter, etdead, mode, errflg=0, locality, tmparg;
+    unsigned int    newheartbt, oldheartbt=0;
+    unsigned short  port = ET_BROADCAST_PORT, serverPort = ET_SERVER_PORT;
+    extern char     *optarg;
+    extern int      optind, opterr, optopt;
+    uint64_t        prev_out;
+    struct timespec timeout, period;
+    double	  tperiod, hbperiod;
+    et_sys_id       sys_id;
+    et_id 	  *id;
+    et_openconfig   openconfig;
+    char            hostname[ET_MAXHOSTNAMELEN];
+    char            etname[ET_FILENAME_LENGTH];
+    char            *tmp_etname=NULL, *tmp_hostname=NULL;
   
-  /* defaults */
-  mode = ET_HOST_AS_LOCAL;
-  period.tv_sec = 5;
-  period.tv_nsec = 0;
-  tperiod  = period.tv_sec + (1.e-9)*period.tv_nsec;
-  hbperiod = ET_BEAT_SEC   + (1.e-9)*ET_BEAT_NSEC;
+    /* defaults */
+    mode = ET_HOST_AS_LOCAL;
+    period.tv_sec = 5;
+    period.tv_nsec = 0;
+    tperiod  = period.tv_sec + (1.e-9)*period.tv_nsec;
+    hbperiod = ET_BEAT_SEC   + (1.e-9)*ET_BEAT_NSEC;
+
+    strcpy(hostname, "localhost");
   
-  /* decode command line options */
-  while ((c = getopt(argc, argv, "Hrf:t:p:h:")) != EOF) {
-    switch (c) {
-      case 'f':
-	if (strlen(optarg) >= ET_FILENAME_LENGTH) {
-          fprintf(stderr, "%s: ET file name is too long\n", argv[0]);
-          exit(-1);
-	}
-	strcpy(etname, optarg);
-	tmp_etname = etname;
-	break;
+    /* 1 multiple character command-line option (host) */
+    static struct option long_options[] = { {"host", 1, NULL, 0}, {0, 0, 0, 0} };
 
-      case 't':
-	tmparg = atoi(optarg);
-	if (tmparg <= 0) {
-	  fprintf(stderr, "%s: argument for -t <time period (sec)> must be integer >0\n\n", argv[0]);
-	  errflg++;
-          break;
-	}
-	period.tv_sec = tmparg;
-	tperiod = period.tv_sec + (1.e-9)*period.tv_nsec;
-       break;
+    /* decode command line options */
+    while ((c = getopt_long_only(argc, argv, "rf:t:p:u:", long_options, 0)) != EOF) {
+        switch (c) {
+            case 'f':
+                if (strlen(optarg) >= ET_FILENAME_LENGTH) {
+                    fprintf(stderr, "%s: ET file name is too long\n", argv[0]);
+                    exit(-1);
+                }
+                strcpy(etname, optarg);
+                tmp_etname = etname;
+                break;
 
-      case 'p':
-	tmparg = atoi(optarg);
-	if ((tmparg <= 1024) || (tmparg > 65535)) {
-	  fprintf(stderr, "%s: argument for -p <port #> must be integer > 1024 and < 65536\n\n", argv[0]);
-	  errflg++;
-          break;
-	}
-	port = tmparg;
-       break;
+            case 't':
+                tmparg = atoi(optarg);
+                if (tmparg <= 0) {
+                    fprintf(stderr, "%s: argument for -t <time period (sec)> must be integer >0\n\n", argv[0]);
+                    errflg++;
+                    break;
+                }
+                period.tv_sec = tmparg;
+                tperiod = period.tv_sec + (1.e-9)*period.tv_nsec;
+                break;
 
-      case 'h':
-	if (strlen(optarg) >= ET_MAXHOSTNAMELEN) {
-          fprintf(stderr, "host name is too long\n");
-          exit(-1);
-	}
-	strcpy(hostname, optarg);
-	tmp_hostname = hostname;
-	break;
+            case 'u':
+                tmparg = atoi(optarg);
+                if ((tmparg <= 1024) || (tmparg > 65535)) {
+                    fprintf(stderr, "%s: argument for -u <port #> must be integer > 1024 and < 65536\n\n", argv[0]);
+                    errflg++;
+                    break;
+                }
+                port = tmparg;
+                break;
 
-      case 'r':
-	mode = ET_HOST_AS_REMOTE;
-	break;
+            case 'p':
+                tmparg = atoi(optarg);
+                if ((tmparg <= 1024) || (tmparg > 65535)) {
+                    fprintf(stderr, "%s: argument for -p <port #> must be integer > 1024 and < 65536\n\n", argv[0]);
+                    errflg++;
+                    break;
+                }
+                serverPort = tmparg;
+                break;
 
-      case 'H':
+            case 0:
+                if (strlen(optarg) >= ET_MAXHOSTNAMELEN) {
+                    fprintf(stderr, "host name is too long\n");
+                    exit(-1);
+                }
+                strcpy(hostname, optarg);
+                tmp_hostname = hostname;
+                break;
+
+            case 'r':
+                mode = ET_HOST_AS_REMOTE;
+                break;
+
+            case 'h':
+            case 'H':
+                errflg++;
+                break;
+
+            case '?':
+                errflg++;
+        }
+    }
+  
+    for ( ; optind < argc; optind++) {
         errflg++;
-	break;
-
-      case '?':
-	errflg++;
     }
-  }
   
-  for ( ; optind < argc; optind++) {
-    errflg++;
-  }
-  
-  /* Check the ET system name */
-  if (tmp_etname == NULL) {
-    /* see if env variable SESSION is defined */
-    if ( (tmp_etname = getenv("SESSION")) == NULL ) {
-      fprintf(stderr, "%s: No ET file name given and SESSION env variable not defined\n", argv[0]);
-      exit(-1);
+    /* Check the ET system name */
+    if (tmp_etname == NULL) {
+        /* see if env variable SESSION is defined */
+        if ( (tmp_etname = getenv("SESSION")) == NULL ) {
+            fprintf(stderr, "%s: No ET file name given and SESSION env variable not defined\n", argv[0]);
+            exit(-1);
+        }
+        /* check length of name */
+        if ( (strlen(tmp_etname) + 12) >=  ET_FILENAME_LENGTH) {
+            fprintf(stderr, "%s: ET file name is too long\n", argv[0]);
+            exit(-1);
+        }
+        sprintf(etname, "%s%s", "/tmp/et_sys_", tmp_etname);
     }
-    /* check length of name */
-    if ( (strlen(tmp_etname) + 12) >=  ET_FILENAME_LENGTH) {
-      fprintf(stderr, "%s: ET file name is too long\n", argv[0]);
-      exit(-1);
+  
+    /* Check the host's name, look only locally by default */
+    if (tmp_hostname == NULL) {
+        strcpy(hostname, ET_HOST_LOCAL);
     }
-    sprintf(etname, "%s%s", "/tmp/et_sys_", tmp_etname);
-  }
-  
-  /* Check the host's name, look only locally by default */
-  if (tmp_hostname == NULL) {
-    strcpy(hostname, ET_HOST_LOCAL);
-  }
-  
-  if (errflg) {
-    printf("\nUsage: %s [-f <et_filename>] [-p <port#>] [-h <host>] [-t <time period (sec)>] [-r]\n\n", argv[0]);
-    printf("           Monitors an ET system given by -f <et_filename> (default = /tmp/et_sys_<SESSION>)\n");
-    printf("           Uses port specified by -p <port> for broadcasting on local subnets\n");
-    printf("           Updates information every -t <time period> seconds (default = 5)\n");
-    printf("           Will connect to local host as if remote with -r\n");
-    printf("           Assumes host is local unless specified by -h <host>\n");
-    printf("             which can be: localhost, .local, .remote,\n");
-    printf("             anywhere, <host name>, or <host IP address>\n\n");
-    exit(2);
-  }
-  
-  /* We open the ET system by broadcasting on local subnet to port */
-  et_open_config_init(&openconfig);
-  et_open_config_setmode(openconfig, mode);
-  et_open_config_sethost(openconfig, hostname);
-  et_open_config_setport(openconfig, port);
-  
-  timeout.tv_sec  = 5;
-  timeout.tv_nsec = 0;
-  et_open_config_settimeout(openconfig, timeout);
-  et_open_config_setwait(openconfig, ET_OPEN_WAIT);
-  
-  /* before we open things, find out if we're local or not */
-  locality = et_findlocality(etname, openconfig);
-printf("LOCALITY = %d\n", locality);  
-  /* if we're local, do an et_look not an et_open */
-  if (locality == ET_ERROR) {
-    printf("%s: cannot find ET system\n", argv[0]);
-    exit(1);
-  }
-  else if (locality != ET_REMOTE) {
-    if (et_look(&sys_id, etname) != ET_OK) {
-      printf("%s: et_attach problems\n", argv[0]);
-      exit(1);
-    }
-  }
-  else {
-    if (et_open(&sys_id, etname, openconfig) != ET_OK) {
-      printf("%s: et_attach problems\n", argv[0]);
-      exit(1);
-    }
-  }
-  et_open_config_destroy(openconfig);
-  id = (et_id *) sys_id;
     
-  /* initializations */
-  if (locality != ET_REMOTE) {
-    oldheartbt = id->sys->heartbeat;
-  }
-  prev_out = 0ULL;
-  counter  = 0;
-  etdead   = 0;
+    if (optind < argc || errflg) {
+        fprintf(stderr,
+                "usage: %s  %s\n%s\n\n",
+                argv[0],
+                "-f <ET name> [-h] [-r] [-host <ET host>] [-t <time period (sec)>]",
+                "                     [-p <ET server port>] [-u <udp port>]");
+
+        fprintf(stderr, "          -host ET system's host\n");
+        fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
+        fprintf(stderr, "          -h help\n");
+        fprintf(stderr, "          -r connect with local host as if remote\n");
+        fprintf(stderr, "          -t time period in seconds between updates\n");
+        fprintf(stderr, "          -p ET server port\n\n");
+        fprintf(stderr, "          This monitor works by making a direct connection to the\n");
+        fprintf(stderr, "          ET system's server port.");
+        exit(2);
+    }
+
+    /* We open the ET system by broadcasting on local subnet to port */
+    et_open_config_init(&openconfig);
+    et_open_config_setcast(openconfig, ET_DIRECT);
+    et_open_config_setmode(openconfig, mode);
+    et_open_config_sethost(openconfig, hostname);
+    et_open_config_setport(openconfig, port);
+    et_open_config_setserverport(openconfig, serverPort);
+
+    timeout.tv_sec  = 5;
+    timeout.tv_nsec = 0;
+    et_open_config_settimeout(openconfig, timeout);
+    et_open_config_setwait(openconfig, ET_OPEN_WAIT);
   
-  while (1) {
-    if (locality == ET_REMOTE) {
-      if (display_remotedata(sys_id, tperiod, &prev_out) != ET_OK) {
-        break;
-      }
+    /* before we open things, find out if we're local or not */
+    locality = et_findlocality(etname, openconfig);
+    printf("LOCALITY = %d\n", locality);
+    /* if we're local, do an et_look not an et_open */
+    if (locality == ET_ERROR) {
+        printf("%s: cannot find ET system\n", argv[0]);
+        exit(1);
+    }
+    else if (locality != ET_REMOTE) {
+        if (et_look(&sys_id, etname) != ET_OK) {
+            printf("%s: et_attach problems\n", argv[0]);
+            exit(1);
+        }
     }
     else {
-      /* see if ET system is alive or not */
-      if ((counter*tperiod) > hbperiod) {
-        newheartbt = id->sys->heartbeat;
-        if (oldheartbt == newheartbt) {
-	  etdead = 1;
-	}
-	else {
-	  etdead = 0;
-	}
-	oldheartbt = newheartbt;
-        counter = 0;
-      }
-      counter++;
-      if (display_localdata(sys_id, tperiod, &prev_out) != ET_OK) {
-        break;
-      }
-      if (etdead) {
-        printf("ET SYSTEM is DEAD!\n");
-        printf("*****************************************\n\n");
-      }
+        if (et_open(&sys_id, etname, openconfig) != ET_OK) {
+            printf("%s: et_attach problems\n", argv[0]);
+            exit(1);
+        }
     }
-    /*  wait for "period" before looking at another round of data */
-    nanosleep(&period, NULL);
-  }
+    et_open_config_destroy(openconfig);
+    id = (et_id *) sys_id;
+    
+    /* initializations */
+    if (locality != ET_REMOTE) {
+        oldheartbt = id->sys->heartbeat;
+    }
+    prev_out = 0ULL;
+    counter  = 0;
+    etdead   = 0;
   
-  if (locality == ET_REMOTE) {
-    et_close(sys_id);
-  }
-  else {
-    et_unlook(sys_id);
-  }
+    while (1) {
+        if (locality == ET_REMOTE) {
+            if (display_remotedata(sys_id, tperiod, &prev_out) != ET_OK) {
+                break;
+            }
+        }
+        else {
+            /* see if ET system is alive or not */
+            if ((counter*tperiod) > hbperiod) {
+                newheartbt = id->sys->heartbeat;
+                if (oldheartbt == newheartbt) {
+                    etdead = 1;
+                }
+                else {
+                    etdead = 0;
+                }
+                oldheartbt = newheartbt;
+                counter = 0;
+            }
+            counter++;
+            if (display_localdata(sys_id, tperiod, &prev_out) != ET_OK) {
+                break;
+            }
+            if (etdead) {
+                printf("ET SYSTEM is DEAD!\n");
+                printf("*****************************************\n\n");
+            }
+        }
+        /*  wait for "period" before looking at another round of data */
+        nanosleep(&period, NULL);
+    }
   
-  return 0;
+    if (locality == ET_REMOTE) {
+        et_close(sys_id);
+    }
+    else {
+        et_unlook(sys_id);
+    }
+  
+    return 0;
 }
 
 
@@ -446,12 +471,14 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
   /* user attachments */
   printf("  ATTACHMENTS:\n");
   for (i=0; i < data.natts; i++) {
-    printf("    att #%d, is at station(%s) on host(%s) at pid(%d)\n",
-	      data.attdata[i].num,
-	      data.attdata[i].station,
-	      data.attdata[i].host,
-	      data.attdata[i].pid);
-    printf("    proc(%d), ", data.attdata[i].proc);
+      printf("    att #%d, is at station(%s) on host(%s)\n",
+             data.attdata[i].num,
+             data.attdata[i].station,
+             data.attdata[i].host);
+      printf("               at pid(%d) from address(%s)\n",
+	      data.attdata[i].pid,
+          data.attdata[i].interface);
+      printf("             proc(%d), ", data.attdata[i].proc);
     if (data.attdata[i].blocked == 1) {
       printf("blocked(YES)");
     }
@@ -461,7 +488,7 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
     if (data.attdata[i].quit == 1) {
       printf(", (told to quit)");
     }
-    printf("\n      ");
+    printf("\n             ");
     printf("events:  make(%llu), get(%llu), put(%llu), dump(%llu)\n",
               data.attdata[i].events_make,
               data.attdata[i].events_get,
@@ -772,12 +799,15 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
       continue;
     }
     ps = id->stats + sys->attach[i].stat;
-    printf("    att #%d, is at station(%s) on host(%s) at pid(%d)\n",
-	      sys->attach[i].num,
-	      ps->name,
-	      sys->attach[i].host,
-	      sys->attach[i].pid);
-    printf("    proc(%d), ", sys->attach[i].proc);
+    printf("    att #%d, is at station(%s) on host(%s)\n",
+           sys->attach[i].num,
+           ps->name,
+           sys->attach[i].host);
+    printf("               at pid(%d) from address(%s)\n",
+           sys->attach[i].pid,
+           sys->attach[i].interface);
+
+    printf("             proc(%d), ", sys->attach[i].proc);
     if (sys->attach[i].blocked == 1) {
       printf("blocked(YES)");
     }
@@ -787,7 +817,7 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
     if (sys->attach[i].quit == 1) {
       printf(", (told to quit)");
     }
-    printf("\n      ");
+    printf("\n             ");
 
     printf("events:  make(%llu), get(%llu), put(%llu), dump(%llu)\n",
               sys->attach[i].events_make,
