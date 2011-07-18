@@ -33,6 +33,8 @@ public class StartEt {
                 "   java StartEt [-n <# of events>]\n" +
                 "                [-s <size of events (bytes)>]\n" +
                 "                [-p <server port>]\n" +
+                "                [-u <udp port>]\n" +
+                "                [-m <multicast port>]\n" +
                 "                [-debug]\n" +
                 "                [-h]\n" +
                 "                -f <file name>\n");
@@ -43,7 +45,10 @@ public class StartEt {
     }
 
     public static void main(String[] args) {
-        int numEvents = 3000, size = 128, serverPort = 11111;
+        int numEvents = 3000, size = 128;
+        int serverPort = EtConstants.serverPort;
+        int udpPort = EtConstants.broadcastPort;
+        int multicastPort = EtConstants.multicastPort;
         boolean debug = false;
         String file=null;
 
@@ -63,6 +68,14 @@ public class StartEt {
             }
             else if (args[i].equalsIgnoreCase("-p")) {
                 serverPort = Integer.parseInt(args[i + 1]);
+                i++;
+            }
+            else if (args[i].equalsIgnoreCase("-u")) {
+                udpPort = Integer.parseInt(args[i + 1]);
+                i++;
+            }
+            else if (args[i].equalsIgnoreCase("-m")) {
+                multicastPort = Integer.parseInt(args[i + 1]);
                 i++;
             }
             else if (args[i].equalsIgnoreCase("-s")) {
@@ -96,10 +109,10 @@ public class StartEt {
             // set tcp server port
             config.setServerPort(serverPort);
             // set port for listening for udp packets
-            config.setUdpPort(11111);
+            config.setUdpPort(udpPort);
             // set port for listening for multicast udp packets
             // (on Java this must be different than the udp port)
-            config.setMulticastPort(11112);
+            config.setMulticastPort(multicastPort);
             // set total number of events
             config.setNumEvents(numEvents);
             // set size of events in bytes
