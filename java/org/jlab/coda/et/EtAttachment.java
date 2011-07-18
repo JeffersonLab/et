@@ -15,11 +15,12 @@
 package org.jlab.coda.et;
 
 import java.io.*;
+
 import org.jlab.coda.et.exception.*;
 
 /**
  * This class defines an ET system user's attachment to a station.
- * Attachments can only be created by an ET system's {@link EtSystem#attach}
+ * Attachments can only be created by an ET system's {@link EtSystem#attach(EtStation)}
  * method. Attachments are means of designating the
  * ownership of events and keeping track of events.
  *
@@ -47,7 +48,8 @@ public class EtAttachment {
 
     /**
      * Constructor for creating an attachment to a specific ET system and station.
-     * Attachments can only be created by an ET system's {@link EtSystem#attach} method.
+     * Attachments can only be created by an ET system's {@link EtSystem#attach(EtStation)}
+     * method.
      *
      * @param station  station object
      * @param id       unique attachment id number
