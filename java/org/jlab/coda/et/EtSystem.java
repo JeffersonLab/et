@@ -886,14 +886,20 @@ public class EtSystem {
         try {host = InetAddress.getLocalHost().getHostName();}
         catch (UnknownHostException ex) { /* host = "unknown" */ }
 
+        // find interface (ip address) socket is using
+        String ipAddr = sock.getLocalAddress().getHostAddress();
+
         out.writeInt(EtConstants.netStatAtt);
         out.writeInt(station.getId());
         out.writeInt(-1); // no pid in Java
         out.writeInt(host.length() + 1);
+        out.writeInt(ipAddr.length() + 1);
 
-        // write host string
+        // write strings
         try {
             out.write(host.getBytes("ASCII"));
+            out.writeByte(0);
+            out.write(ipAddr.getBytes("ASCII"));
             out.writeByte(0);
         }
         catch (UnsupportedEncodingException ex) { /* never happen */ }
