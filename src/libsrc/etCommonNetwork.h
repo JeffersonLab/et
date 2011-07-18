@@ -85,6 +85,7 @@ extern int etDebug;
 #define   codanetLocalHost              etNetLocalHost
 #define   codanetLocalAddress           etNetLocalAddress
 #define   codanetLocalByteOrder         etNetLocalByteOrder
+#define   codanetLocalSocketAddress     etNetLocalSocketAddress
 
 #define   codanetNodeSame               etNetNodeSame
 #define   codanetNodeIsLocal            etNetNodeIsLocal
@@ -259,6 +260,7 @@ extern int   codanetTcpWritev(int fd, struct iovec iov[], int nbufs, int iov_max
 extern int   codanetLocalHost(char *host, int length);
 extern int   codanetLocalAddress(char *address);
 extern int   codanetLocalByteOrder(int *endian);
+extern int   codanetLocalSocketAddress(int sockfd, char *ipAddress);
 
 extern int   codanetIsDottedDecimal(const char *ipAddress, int *decimals);
 extern int   codanetOnSameSubnet(const char *ipAddress1, const char *ipAddress2,
