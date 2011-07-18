@@ -595,9 +595,9 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
 {
     et_id *etid = (et_id *) id;
     int sockfd = etid->sockfd;
-    int err, length, bufsize, incoming[2], transfer[4];
-    char *buf, *pbuf, host[ET_MAXHOSTNAMELEN];
-
+    int err, length, ipLength, bufsize, incoming[2], transfer[5];
+    char *buf, *pbuf, host[ET_MAXHOSTNAMELEN], ip[ET_IPADDRSTRLEN];
+    
     /* find name of our host */
     if (etNetLocalHost(host, ET_MAXHOSTNAMELEN) != ET_OK) {
         if (etid->debug >= ET_DEBUG_WARN) {
@@ -606,16 +606,28 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
         length = 0;
     }
     else {
-        length = strlen(host)+1;
+        length = strlen(host) + 1;
+    }
+
+    /* find the local socket's ip address */
+    if (etNetLocalSocketAddress(sockfd, ip) != ET_OK) {
+        if (etid->debug >= ET_DEBUG_WARN) {
+            et_logmsg("WARN", "etr_station_attach: cannot find socket ip address\n");
+        }
+        ipLength = 0;
+    }
+    else {
+        ipLength = strlen(ip) + 1;
     }
 
     transfer[0] = htonl(ET_NET_STAT_ATT);
     transfer[1] = htonl(stat_id);
     transfer[2] = htonl(getpid());
     transfer[3] = htonl(length);
+    transfer[4] = htonl(ipLength);
 
     /* send it all in one buffer */
-    bufsize = sizeof(transfer) + length;
+    bufsize = sizeof(transfer) + length + ipLength;
     if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_station_attach: cannot allocate memory\n");
@@ -625,6 +637,8 @@ int etr_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     memcpy(pbuf, transfer, sizeof(transfer));
     pbuf += sizeof(transfer);
     memcpy(pbuf, host, length);
+    pbuf += length;
+    memcpy(pbuf, ip, ipLength);
 
     et_tcp_lock(etid);
     if (etNetTcpWrite(sockfd, (void *) buf, bufsize) != bufsize) {
