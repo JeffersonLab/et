@@ -20,7 +20,7 @@ package org.jlab.coda.et.system;
  * ET system itself and not the user. Attachments are used to keep track of
  * event ownership and as places to conveniently keep some statistics and other
  * information on the "getting" of events. Attachments can only be created by an
- * ET system's {@link SystemCreate#attach} method.
+ * ET system's {@link SystemCreate#attach(int)} method.
  *
  * @author Carl Timmer
  */
@@ -37,6 +37,9 @@ class AttachmentLocal {
 
     /** Name of the host the attachment is residing on. */
     private String host;
+
+    /** IP address of the network interface the attachment is sending data through. */
+    private String ipAddress;
 
     /** Station the attachment is associated with. */
     private StationLocal station;
@@ -74,7 +77,7 @@ class AttachmentLocal {
 
     /**
      * Constructor. Attachments are only created by an ET system's
-     * {@link SystemCreate#attach} method.
+     * {@link SystemCreate#attach(int)} method.
      */
     AttachmentLocal() {
         id         = -1;
@@ -128,6 +131,22 @@ class AttachmentLocal {
      */
     public void setHost(String host) {
         this.host = host;
+    }
+
+    /**
+     * Get the IP address of the network interface the attachment is sending data through.
+     * @return IP address of the network interface the attachment is sending data through.
+     */
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    /**
+     * Set the IP address of the network interface the attachment is sending data through.
+     * @param ipAddress IP address of the network interface the attachment is sending data through.
+     */
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
     /**
