@@ -221,6 +221,7 @@ int main(int argc,char **argv)
     et_open_config_init(&openconfig);
     et_open_config_setcast(openconfig, ET_DIRECT);
     et_open_config_sethost(openconfig, host);
+    et_open_config_setserverport(openconfig, serverPort);
     if (strlen(interface) > 6) {
         et_open_config_setinterface(openconfig, interface);
     }

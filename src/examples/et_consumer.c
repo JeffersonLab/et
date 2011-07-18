@@ -235,6 +235,7 @@ int main(int argc,char **argv) {
     /* open ET system */
     et_open_config_init(&openconfig);
     et_open_config_sethost(openconfig, host);
+    et_open_config_setserverport(openconfig, serverPort);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
         exit(1);
