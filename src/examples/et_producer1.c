@@ -225,7 +225,7 @@ int main(int argc,char **argv)
     if (strlen(interface) > 6) {
         et_open_config_setinterface(openconfig, interface);
     }
-    
+
     /* EXAMPLE: multicasting to find ET */
     /*et_open_config_setcast(openconfig, ET_MULTICAST);*/
     /*et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);*/

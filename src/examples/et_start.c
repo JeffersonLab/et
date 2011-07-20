@@ -148,8 +148,8 @@ int main(int argc, char **argv)
       fprintf(stderr,
               "usage: %s  %s\n%s",
               argv[0],
-              "[-h] [-v] [-d] [-f file] [-n events] [-s evenSize] [-g groups]",
-              "                 [-p TCP server port] [-u UDP port] [-a multicast address]\n");
+              "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>] [-g <groups>]",
+              "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]\n");
       
       fprintf(stderr, "          -h for help\n");
       fprintf(stderr, "          -v for verbose output\n");
