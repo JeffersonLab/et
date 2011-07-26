@@ -1,5 +1,5 @@
 # scons build file for libet and libet_remote
-Import('env', 'libDir', 'incDir', 'archIncDir', 'archDir', 'debugSuffix')
+Import('env', 'archIncInstallDir', 'incInstallDir', 'libInstallDir', 'debugSuffix')
 import os
 from os import sep
 
@@ -8,12 +8,6 @@ headerList = ['et.h',
               'et_network.h',
               'etCommonNetwork.h',
               'et_data.h']
-
-linkList = [archIncDir + sep + 'et.h',
-            archIncDir + sep + 'et_private.h',
-            archIncDir + sep + 'et_network.h',
-            archIncDir + sep + 'etCommonNetwork.h',
-            archIncDir + sep + 'et_data.h']
 
 jniFileList = ['et_jni.c']
 
@@ -50,13 +44,13 @@ env.AppendUnique(CPPPATH = ['.'])
 etLib       = env.SharedLibrary(target = 'et'+debugSuffix,        source = fileList)
 etRemoteLib = env.SharedLibrary(target = 'et_remote'+debugSuffix, source = remoteFileList)
 jniLib      = env.SharedLibrary(target = 'et_jni'+debugSuffix,    source = jniFileList,
-                                LIBS = ['et'+debugSuffix], LIBPATH = [libDir])
+                                LIBS = ['et'+debugSuffix], LIBPATH = [libInstallDir])
 
-env.Alias("install", env.Install(target = incDir, source = headerList))
-env.Alias("install", env.Install(target = libDir, source = etLib))
-env.Alias("install", env.Install(target = libDir, source = etRemoteLib))
-env.Alias("install", env.Install(target = libDir, source = jniLib))
-# create symbolic links to installed header files
-env.Alias("install", env.CreateSymbolicLinks(target = linkList, source = env.Install(target = incDir, source = headerList)))
+env.Alias("install", env.Install(target = [incInstallDir, archIncInstallDir], source = headerList))
+env.Alias("install", env.Install(target = libInstallDir, source = etLib))
+env.Alias("install", env.Install(target = libInstallDir, source = etRemoteLib))
+env.Alias("install", env.Install(target = libInstallDir, source = jniLib))
 
+# make libraries by default, but do not install anything (even headers)
+Default(etLib, etRemoteLib, jniLib)
 

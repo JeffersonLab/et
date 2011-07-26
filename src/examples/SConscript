@@ -1,5 +1,5 @@
 # scons build file for et
-Import('env', 'binDir', 'libDir', 'archDir', 'execLibs', 'debugSuffix')
+Import('env', 'libInstallDir', 'binInstallDir', 'archDir', 'execLibs', 'debugSuffix')
 import re
 
  # lists of all C and C++ files
@@ -24,7 +24,7 @@ for fileName in fileList:
                                LIBS    = ['et'+debugSuffix] + execLibs,
                                LIBPATH = ['#src/libsrc/'+archDir],
                                CPPPATH = ['.','#src/libsrc'])
-    env.Alias('examples', env.Install(target = binDir, source = compiledFile))
+    env.Alias('examples', env.Install(target = binInstallDir, source = compiledFile))
 
 
 # example of how to compile a user-defined event selection routine
@@ -32,4 +32,4 @@ for fileName in fileList:
 #myUserSelectionFiles = ['et_userfunction.c']
 #env.AppendUnique(CPPPATH = ['.', '#src/libsrc'])
 #myLib = env.SharedLibrary(target = 'mylib'+debugSuffix, source = myUserSelectionFiles)
-#env.Alias("install", env.Install(target = libDir, source = myLib))
+#env.Alias("install", env.Install(target = libInstallDir, source = myLib))

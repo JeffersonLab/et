@@ -1,5 +1,5 @@
 # scons build file for et lib -  vxworks
-Import('env', 'libDir', 'incDir', 'debugSuffix')
+Import('env', 'archIncInstallDir', 'incInstallDir', 'libInstallDir', 'debugSuffix')
 
 remoteFileList = ['et_init.c',
                   'et_network.c',
@@ -13,5 +13,8 @@ remoteFileList = ['et_init.c',
 env.AppendUnique(CPPPATH = ['.'])
 etRemoteLib = env.SharedLibrary(target = 'et_remote'+debugSuffix, source = remoteFileList)
 
-env.Alias("install", env.Install(target = incDir, source = 'et.h'))
-env.Alias("install", env.Install(target = libDir, source = etRemoteLib))
+env.Alias("install", env.Install(target = [incInstallDir, archIncInstallDir], source = 'et.h'))
+env.Alias("install", env.Install(target = libInstallDir, source = etRemoteLib))
+
+# make library by default, but do not install anything (even headers)
+Default(etRemoteLib)

@@ -1,5 +1,5 @@
 # scons build file for et - vxworks
-Import('env', 'binDir')
+Import('env', 'binInstallDir')
 import re
 
 # All vxworks examples start by convention with 'vx'.
@@ -15,6 +15,5 @@ for fileName in fileList:
 
 # for vxworks all we need is the object
 for fileName in vxfileList:
-    objectFile = env.Object(env.AppendUnique(CPPPATH = ['.', '#src/regexp', '#src/libsrc', '#src/libsrc++']),
-                            source  = fileName)
-    env.Alias('examples', env.Install(target = binDir, source = objectFile))
+    objectFile = env.Object(env.AppendUnique(CPPPATH = ['.', '#src/libsrc']), source = fileName)
+    env.Alias('examples', env.Install(target = binInstallDir, source = objectFile))

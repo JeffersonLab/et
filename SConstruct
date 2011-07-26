@@ -63,6 +63,7 @@ def subdirsContaining(root, patterns):
 # Create a Builder to install symbolic links, where "source" is list of node objects
 # of the existing files, and "target" is a list of node objects of link files.
 # NOTE: link file must have same name as its source file.
+# Currently, this routine is not used.
 ####################################################################################
 def buildSymbolicLinks(target, source, env):    
     # For each file to create a link for ...
@@ -369,35 +370,75 @@ print "OSNAME = ", osname
 # hidden sub directory into which variant builds go
 archDir = '.' + osname + debugSuffix
 
+#########################################
+# Any external library & header locations
+#########################################
+
+# Read environmental variables
+codaHomeEnv   = os.getenv('CODA_HOME',"")
+installDirEnv = os.getenv('INSTALL_DIR', "")
+
+# location of libraries and include files
+libDir = []
+incDir = []
+
+# Get libs & includes first from "CODA_HOME".
+if codaHomeEnv != "":
+    libDir.append(codaHomeEnv + "/" + osname + '/lib')
+    incDir.append(codaHomeEnv + '/include')
+
+# Then try the user-specified "prefix".
+if prefix != '':
+    libDir.append(prefix + "/" + osname + '/lib')
+    incDir.append(prefix + '/include')
+
+# Then try "INSTALL_DIR".
+if installDirEnv != "":
+    libDir.append(installDirEnv + "/" + osname + '/lib')
+    incDir.append(installDirEnv + '/include')
+
 #########################
 # Install stuff
 #########################
 
-# Any user specifed command line installation path overrides default
-if prefix == '':
-    # determine install directories since nothing on command line
-    codaDirEnv    = os.getenv('CODA_HOME',"")
-    installDirEnv = os.getenv('INSTALL_DIR', "")    
-    if installDirEnv == "":
-        if codaDirEnv == "":
-            print "Need to define either CODA_HOME or INSTALL_DIR"
-            raise SystemExit
-        else:
-            prefix = codaDirEnv
-    else:
-        prefix = installDirEnv
-    print "Default install directory = ", prefix
-else:
-    print 'Cmdline install directory = ', prefix
+# are we going to install anything?
+installingStuff = False
+if 'install' in COMMAND_LINE_TARGETS or 'examples' in COMMAND_LINE_TARGETS :
+    installingStuff = True
 
-# set our install directories
-libDir = prefix + "/" + osname + '/lib'
-binDir = prefix + "/" + osname + '/bin'
-archIncDir = prefix + "/" + osname + '/include'
-incDir = prefix + '/include'
-print 'binDir = ', binDir
-print 'libDir = ', libDir
-print 'incDir = ', incDir
+# The installation directory is the user-specified "prefix" by
+# first choice, "INSTALL_DIR" secondly, and lastly "CODA_HOME".
+# Or it's possible no installation is being done.
+if not installingStuff:
+    libInstallDir = "dummy"
+    incInstallDir = "dummy"
+    binInstallDir = "dummy"
+    archIncInstallDir = "dummy2"
+    print 'no installation'
+    
+else:
+    if prefix != '':
+        installRoot = prefix
+
+    elif installDirEnv != "":
+        installRoot = installDirEnv
+        
+    elif codaHomeEnv != "":
+        installRoot = codaHomeEnv
+    
+    else:
+        print "Need to define INSTALL_DIR (or CODA_HOME) for installation"
+        raise SystemExit
+    
+    libInstallDir = installRoot + '/' + osname + '/lib'
+    incInstallDir = installRoot + '/include'
+    binInstallDir = installRoot + '/' + osname + '/bin'
+    archIncInstallDir = installRoot + '/' + osname + '/include'
+
+    # print our install directories
+    print 'bin install dir = ', binInstallDir
+    print 'lib install dir = ', libInstallDir
+    print 'inc install dirs = ', incInstallDir, ", ", archIncInstallDir
 
 # use "install" on command line to install libs & headers
 Help('install             install libs & headers\n')
@@ -414,7 +455,7 @@ Help('examples            install executable examples\n')
 
 # Because we're using JNI, we need access to <jni.h> when compiling.
 # If we are using a java installed in a non-standard place, then
-# this is located in <jdk>/include and possibl7 <jdk>/include/linux
+# this is located in <jdk>/include and possibly <jdk>/include/linux
 # which we'll want in our includes.
 # Do this by finding out where java (<jdk>/bin) is.
 javaPath = Popen('which java', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
@@ -423,7 +464,7 @@ javaIncPath = str(javaPath).rstrip().rstrip('java') + "../include"
 print 'javaIncPath = ', javaIncPath
 env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
 
-##########################
+#########################
 # Tar file
 #########################
 
@@ -456,7 +497,7 @@ Help('tar                 create tar file (in ./tar)\n')
 ######################################################
 
 # make available to lower level scons files
-Export('env incDir libDir binDir archIncDir archDir execLibs tarfile debugSuffix')
+Export('env incDir libDir archDir incInstallDir libInstallDir binInstallDir archIncInstallDir execLibs tarfile debugSuffix')
 
 # run lower level build files
 
