@@ -3408,15 +3408,15 @@ int codanetGetIfNames(char ***ifNames, int *count) {
 
 
 /**
- * This routine returns an allocated array of local dotted-decimal IP addresses
+ * This routine returns an allocated array of dotted-decimal IP addresses
  * and the array size in the arguments. To free all allocated memory,
  * free each of ipAddrs' count elements, then free ipAddrs itself.
  *
- * @param ipAddrs pointer which gets filled with allocated array of local dotted-decimal IP addresses.
+ * @param ipAddrs pointer which gets filled with allocated array of dotted-decimal IP addresses.
  *                If NULL, nothing is returned here.
  * @param count   number of addresses returned.
  *                If NULL, nothing is returned here.
- * @param host    if NULL, return addrs of local host, else return address of given host.
+ * @param host    if NULL, return addressess of local host, else return addresses of given host.
  *
  * @returns ET/CMSG_OK                        if successful
  * @returns ET/CMSG_ERROR                     if cannot find network interface or host info
