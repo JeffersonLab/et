@@ -74,9 +74,13 @@ public class EtSystem {
      * @param config EtSystemOpenConfig object to specify how to open the ET
      *               system of interest (copy is stored & used)
      * @param debug  debug level (e.g. {@link EtConstants#debugInfo})
-     * @throws EtException if config is not self-consistent
+     * @throws EtException if config is null or not self-consistent
      */
     public EtSystem(EtSystemOpenConfig config, int debug) throws EtException {
+
+        if (config == null) {
+            throw new EtException("Invalid arg");
+        }
 
         openConfig = new EtSystemOpenConfig(config);
 
@@ -127,10 +131,11 @@ public class EtSystem {
      * @param debug debug level (e.g. {@link EtConstants#debugInfo})
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws UnknownHostException
      *     if the host address(es) is(are) unknown
      * @throws EtException
+     *     if arg is null;
      *     if the responding ET system has the wrong name, runs a different
      *     version of ET, or has a different value for
      *     {@link EtConstants#stationSelectInts}
@@ -141,6 +146,10 @@ public class EtSystem {
      */
     public EtSystem(EtSystemOpen sys, int debug)  throws
             IOException, EtException, EtTooManyException {
+
+        if (sys == null) {
+            throw new EtException("Invalid arg");
+        }
 
         this.sys   = sys;
         openConfig = sys.getConfig();
@@ -232,7 +241,7 @@ public class EtSystem {
      * Open the ET system and set up buffered communication.
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws UnknownHostException
      *     if the host address(es) is(are) unknown
      * @throws EtException
@@ -352,8 +361,9 @@ public class EtSystem {
      * @param att attachment to wake up
      *
      * @throws IOException
-     *      if problems with network comunications
+     *      if problems with network communications
      * @throws EtException
+     *      if arg is null;
      *      if not connected to ET system;
      *      if the attachment object is invalid
      */
@@ -362,7 +372,7 @@ public class EtSystem {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!att.isUsable() || att.getSys() != this) {
+        if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
@@ -379,8 +389,9 @@ public class EtSystem {
      * @param station station whose attachments are to wake up
      *
      * @throws IOException
-     *      if problems with network comunications
+     *      if problems with network communications
      * @throws EtException
+     *      if arg is null;
      *      if not connected to ET system;
      *      if the station object is invalid
      */
@@ -389,7 +400,7 @@ public class EtSystem {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!station.isUsable() || station.getSys() != this) {
+        if (station == null || !station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
@@ -410,9 +421,14 @@ public class EtSystem {
      * @param config station configuration
      *
      * @throws EtException
+     *     if arg is null;
      *     if the station configuration is not self-consistent
      */
     private void configCheck(EtStationConfig config) throws EtException {
+
+        if (config == null) {
+            throw new EtException("Invalid arg");
+        }
 
         // USER mode means specifing a class
         if ((config.getSelectMode()  == EtConstants.stationSelectUser) &&
@@ -525,6 +541,7 @@ public class EtSystem {
      * @throws IOException
      *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
      *     if the position is less than 1 (GRAND_CENTRAL's spot);
@@ -545,6 +562,10 @@ public class EtSystem {
             throw new EtException("Not connected to ET system");
         }
 
+        if (name == null || config == null) {
+            throw new EtException("Invalid arg");
+        }
+
         // cannot create GrandCentral
         if (name.equals("GRAND_CENTRAL")) {
             throw new EtException("Cannot create GRAND_CENTRAL station");
@@ -552,14 +573,14 @@ public class EtSystem {
 
         // check value of position
         if (position != EtConstants.end && position < 1) {
-            throw new EtException("bad value for position");
+            throw new EtException("Bad value for position");
         }
 
         // check value of parallel position
         if ((parallelPosition != EtConstants.end) &&
             (parallelPosition != EtConstants.newHead) &&
             (parallelPosition  < 0)) {
-            throw new EtException("bad value for parallel position");
+            throw new EtException("Bad value for parallel position");
         }
 
         // check station configuration for self consistency
@@ -631,13 +652,13 @@ public class EtSystem {
         int statId = in.readInt();
 
         if (err ==  EtConstants.errorTooMany) {
-            throw new EtTooManyException("maximum number of stations already created");
+            throw new EtTooManyException("Maximum number of stations already created");
         }
         else if (err == EtConstants.errorExists) {
-            throw new EtExistsException("station already exists with different definition");
+            throw new EtExistsException("Station already exists with different definition");
         }
         else if (err ==  EtConstants.error) {
-            throw new EtException("trying to add incompatible parallel station, or\n" +
+            throw new EtException("Trying to add incompatible parallel station, or\n" +
                     "trying to add parallel station to head of existing parallel group, or\n" +
                     "cannot load select class");
         }
@@ -646,7 +667,7 @@ public class EtSystem {
         EtStation station = new EtStation(name, statId, this);
         station.setUsable(true);
         if (debug >= EtConstants.debugInfo) {
-            System.out.println("creating station " + name + " is done");
+            System.out.println("Creating station " + name + " is done");
         }
         
         return station;
@@ -659,8 +680,9 @@ public class EtSystem {
      * @param station station object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if attachments to the station still exist;
      *     if the station is GRAND_CENTRAL (which must always exist);
@@ -671,6 +693,10 @@ public class EtSystem {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
+        }
+
+        if (station == null) {
+            throw new EtException("Invalid station");
         }
 
         // cannot remove GrandCentral
@@ -705,8 +731,9 @@ public class EtSystem {
    * @param parallelPosition  position in list of parallel stations (starting at 0)
    *
    * @throws IOException
-   *     if problems with network comunications
+   *     if problems with network communications
    * @throws EtException
+   *     if arg is null;
    *     if not connected to ET system;
    *     if the station does not exist;
    *     if trying to move GRAND_CENTRAL;
@@ -723,6 +750,10 @@ public class EtSystem {
 
       if (!open) {
           throw new EtException("Not connected to ET system");
+      }
+
+      if (station == null) {
+          throw new EtException("Invalid station");
       }
 
       // cannot move GrandCentral
@@ -768,8 +799,9 @@ public class EtSystem {
      * @return position of a station in the main linked list of stations
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid
@@ -777,17 +809,17 @@ public class EtSystem {
     synchronized public int getStationPosition(EtStation station)
             throws IOException, EtException {
 
-        // GrandCentral is always first
-        if (station.getId() == 0) {
-            return 0;
-        }
-
         if (!open) {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!station.isUsable() || station.getSys() != this) {
+        if (station == null || !station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
+        }
+
+        // GrandCentral is always first
+        if (station.getId() == 0) {
+            return 0;
         }
 
         out.writeInt(EtConstants.netStatGPos);
@@ -815,8 +847,9 @@ public class EtSystem {
      * @return position of a station in the linked list of stations
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid
@@ -824,17 +857,17 @@ public class EtSystem {
     synchronized public int getStationParallelPosition(EtStation station)
             throws IOException, EtException {
 
-        // parallel position is 0 for serial stations (like GrandCentral)
-        if (station.getId() == 0) {
-            return 0;
-        }
-
         if (!open) {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!station.isUsable() || station.getSys() != this) {
+        if (station == null || !station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
+        }
+
+        // parallel position is 0 for serial stations (like GrandCentral)
+        if (station.getId() == 0) {
+            return 0;
         }
 
         out.writeInt(EtConstants.netStatGPos);
@@ -861,8 +894,9 @@ public class EtSystem {
      * @return an attachment object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid
@@ -877,7 +911,7 @@ public class EtSystem {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!station.isUsable() || station.getSys() != this) {
+        if (station == null || !station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
@@ -928,8 +962,9 @@ public class EtSystem {
      * @param att attachment object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the attachment object is invalid
      */
@@ -940,7 +975,7 @@ public class EtSystem {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!att.isUsable() || att.getSys() != this) {
+        if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
@@ -968,8 +1003,9 @@ public class EtSystem {
      *         and <code>false</code> otherwise
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid;
@@ -982,11 +1018,11 @@ public class EtSystem {
             throw new EtException("Not connected to ET system");
         }
 
-        if (!station.isUsable() || station.getSys() != this) {
+        if (station == null || !station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
         }
 
-        if (!att.isUsable() || att.getSys() != this) {
+        if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
         }
 
@@ -1012,8 +1048,9 @@ public class EtSystem {
      * @return <code>true</code> if a station exists, and
      *         <code>false</code> otherwise
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system
      */
     synchronized public boolean stationExists(String name)
@@ -1021,6 +1058,10 @@ public class EtSystem {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
+        }
+
+        if (name == null) {
+            throw new EtException("Invalid station name");
         }
 
         out.writeInt(EtConstants.netStatEx);
@@ -1046,8 +1087,9 @@ public class EtSystem {
      * @return station object
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if arg is null;
      *     if not connected to ET system;
      *     if the station does not exist
      */
@@ -1056,6 +1098,10 @@ public class EtSystem {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
+        }
+
+        if (name == null) {
+            throw new EtException("Invalid station name");
         }
 
         out.writeInt(EtConstants.netStatEx);
@@ -1074,7 +1120,10 @@ public class EtSystem {
             stat.setUsable(true);
             return stat;
         }
-        throw new EtException("station " + name + " does not exist");
+//        if (err == EtConstants.errorDead) {
+//
+//        }
+        throw new EtException("station " + name + ", err = " + err + ", does not exist");
     }
 
 
@@ -1098,7 +1147,7 @@ public class EtSystem {
      * @return an array of new events obtained from ET system. Count may be different from that requested.
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if not connected to ET system;
      *     if arguments have bad values;
@@ -1452,7 +1501,7 @@ public class EtSystem {
      * @return an array of events obtained from ET system. Count may be different from that requested.
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if not connected to ET system;
      *     if arguments have bad values;
@@ -1639,17 +1688,20 @@ public class EtSystem {
      * @param eventList  list of event objects
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid;
-     *     if offset and/or length args are not valid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
     public void putEvents(EtAttachment att, List<EtEvent> eventList)
             throws IOException, EtException, EtDeadException {
+
+        if (eventList == null) {
+            throw new EtException("Invalid eventList arg");
+        }
         putEvents(att, eventList.toArray(new EtEvent[eventList.size()]));
     }
 
@@ -1663,12 +1715,11 @@ public class EtSystem {
      * @param evs  array of event objects
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid;
-     *     if offset and/or length args are not valid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1689,9 +1740,8 @@ public class EtSystem {
      * @param length number of array elements to put
      *
      * @throws EtException
+     *     if invalid arg(s);
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid;
-     *     if offset and/or length args are not valid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1719,12 +1769,11 @@ public class EtSystem {
      * @param length number of array elements to put
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid;
-     *     if offset and/or length args are not valid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1733,6 +1782,10 @@ public class EtSystem {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
+        }
+
+        if (evs == null) {
+            throw new EtException("Invalid event array arg");
         }
 
         if (offset < 0 || length < 0 || offset + length > evs.length) {
@@ -1750,7 +1803,7 @@ public class EtSystem {
         int bytes = 0, numEvents = 0;
         int headerSize = 4*(7+selectInts);
 
-        for (int i=offset; i < length; i++) {
+        for (int i=offset; i < offset+length; i++) {
             // each event must be registered as owned by this attachment
             if (evs[i].getOwner() != att.getId()) {
                 throw new EtException("may not put event(s), not owner");
@@ -1829,8 +1882,8 @@ public class EtSystem {
      * @param length number of array elements to put
      *
      * @throws EtException
+     *     if invalid arg(s);
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1857,11 +1910,11 @@ public class EtSystem {
      * @param evs  array of event objects
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1882,16 +1935,21 @@ public class EtSystem {
      * @param eventList  list of event objects
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
     public void dumpEvents(EtAttachment att, List<EtEvent> eventList)
             throws IOException, EtException, EtDeadException {
+
+        if (eventList == null) {
+            throw new EtException("Invalid eventList arg");
+        }
+
         dumpEvents(att, eventList.toArray(new EtEvent[eventList.size()]));
     }
 
@@ -1908,11 +1966,11 @@ public class EtSystem {
      * @param length number of array elements to put
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
+     *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
-     *     if the attachment object is invalid
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1925,6 +1983,14 @@ public class EtSystem {
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
+        }
+
+        if (evs == null) {
+            throw new EtException("Invalid event array arg");
+        }
+
+        if (offset < 0 || length < 0 || offset + length > evs.length) {
+            throw new EtException("Bad offset or length argument(s)");
         }
 
         // find out how many we're sending
