@@ -1120,10 +1120,20 @@ public class EtSystem {
             stat.setUsable(true);
             return stat;
         }
-//        if (err == EtConstants.errorDead) {
-//
-//        }
-        throw new EtException("station " + name + ", err = " + err + ", does not exist");
+
+        if (err == EtConstants.errorDead) {
+            throw new EtException("stationNameToObject: ET is dead");
+        }
+        else if (err == EtConstants.errorRead ||
+                 err == EtConstants.errorWrite) {
+            throw new EtException("stationNameToObject: cannot communication with ET");
+        }
+        else if (err == EtConstants.errorRemote) {
+            throw new EtException("stationNameToObject: ET system is out of memory");
+        }
+        else {
+            throw new EtException("station " + name + " does not exist, err = " + err);
+        }
     }
 
 
@@ -1700,7 +1710,7 @@ public class EtSystem {
             throws IOException, EtException, EtDeadException {
 
         if (eventList == null) {
-            throw new EtException("Invalid eventList arg");
+            throw new EtException("Invalid event list arg");
         }
         putEvents(att, eventList.toArray(new EtEvent[eventList.size()]));
     }
@@ -1725,6 +1735,10 @@ public class EtSystem {
      */
     public void putEvents(EtAttachment att, EtEvent[] evs)
             throws IOException, EtException, EtDeadException {
+
+        if (evs == null) {
+            throw new EtException("Invalid event array arg");
+        }
         putEvents(att, evs, 0, evs.length);
     }
 
@@ -1832,7 +1846,7 @@ public class EtSystem {
         out.writeInt(numEvents);
         out.writeLong((long)bytes);
 
-        for (int i=offset; i < length; i++) {
+        for (int i=offset; i < offset+length; i++) {
             // send only if modifying an event (data or header) ...
             if (evs[i].getModify() != Modify.NOTHING) {
                 out.writeInt(evs[i].getId());
@@ -1920,6 +1934,10 @@ public class EtSystem {
      */
     public void dumpEvents(EtAttachment att, EtEvent[] evs)
             throws IOException, EtException, EtDeadException {
+
+        if (evs == null) {
+            throw new EtException("Invalid event array arg");
+        }
         dumpEvents(att, evs, 0, evs.length);
     }
 
@@ -1947,7 +1965,7 @@ public class EtSystem {
             throws IOException, EtException, EtDeadException {
 
         if (eventList == null) {
-            throw new EtException("Invalid eventList arg");
+            throw new EtException("Invalid event list arg");
         }
 
         dumpEvents(att, eventList.toArray(new EtEvent[eventList.size()]));
