@@ -46,6 +46,9 @@ int et_open_config_init(et_openconfig *sconfig)
   sc->udpport          = ET_BROADCAST_PORT;
   sc->multiport        = ET_MULTICAST_PORT;
   sc->serverport       = ET_SERVER_PORT;
+  sc->tcpSendBufSize   = 0;  /* use operating system default */
+  sc->tcpRecvBufSize   = 0;  /* use operating system default */
+  sc->tcpNoDelay       = 1;  /* on */
   sc->timeout.tv_sec   = 0;
   sc->timeout.tv_nsec  = 0;
   memset(sc->interface, 0, ET_IPADDRSTRLEN);
@@ -672,3 +675,47 @@ int et_open_config_getinterface(et_openconfig sconfig, char *val)
     }
     return ET_OK;
 }
+
+/*****************************************************/
+int et_open_config_settcp(et_openconfig sconfig, int rBufSize, int sBufSize, int noDelay)
+{
+    et_open_config *sc = (et_open_config *) sconfig;
+  
+    if (sc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+   
+    if (rBufSize < 0 || sBufSize < 0) {
+        return ET_ERROR;
+    }
+
+    if (noDelay < 0) noDelay = 1;
+
+    sc->tcpRecvBufSize = rBufSize;
+    sc->tcpSendBufSize = sBufSize;
+    sc->tcpNoDelay = noDelay;
+
+    return ET_OK;
+}
+
+/*****************************************************/
+int et_open_config_gettcp(et_openconfig sconfig, int *rBufSize, int *sBufSize, int *noDelay)
+{
+    et_open_config *sc = (et_open_config *) sconfig;
+  
+    if (rBufSize != NULL) {
+        *rBufSize = sc->tcpRecvBufSize;
+    }
+    
+    if (sBufSize != NULL) {
+        *sBufSize = sc->tcpSendBufSize;
+    }
+    
+    if (noDelay != NULL) {
+        *noDelay = sc->tcpNoDelay;
+    }
+    
+    return ET_OK;
+}
+
+

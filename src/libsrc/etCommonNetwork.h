@@ -239,16 +239,19 @@ typedef struct codaNetInfo_t {
 
     
 /* routine prototypes */
-extern int   codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize, int rcvBufSize, int *listenFd);
+extern int   codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize,
+                              int rcvBufSize, int noDelay, int *listenFd);
 extern int   codanetTcpConnect(const char *ip_address, const char *interface, unsigned short port,
-                               int rcvBufSize, int sendBufSize, int *fd, int *localPort);
+                               int sendBufSize, int rcvBufSize, int noDelay, int *fd, int *localPort);
 extern int   codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short port,
-                                int sendBufSize, int rcvBufSize, int *fd, int *localPort);
+                                int sendBufSize, int rcvBufSize, int noDelay, int *fd, int *localPort);
 extern int   codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
-                                      int sendBufSize, int rcvBufSize, struct timeval *timeout,
+                                      int sendBufSize, int rcvBufSize,
+                                      int noDelay, struct timeval *timeout,
                                       int *fd, int *localPort);
 extern int   codanetGetListeningSocket(int nonblocking, unsigned short startingPort,
-                                       int sendBufSize, int rcvBufSize, int *finalPort, int *fd);
+                                       int sendBufSize, int rcvBufSize, int noDelay,
+                                       int *finalPort, int *fd);
 extern int   codanetAccept(int fd, struct sockaddr *sa, socklen_t *salenptr);
 extern int   codanetUdpReceive(unsigned short port, const char *address, int multicast, int *fd);
 

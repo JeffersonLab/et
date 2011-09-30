@@ -461,26 +461,29 @@ struct et_attach {
 };
 
 /*
- * et_sys_config : Contains all info necessary to configure
- *               : an ET system.
+ * et_sys_config  : Contains all info necessary to configure
+ *                : an ET system.
  *----------------------------------------------------------
- * event_size   : event size in bytes
- * init         : =ET_STRUCT_OK if structure properly initialized
- * nevents      : total # of events
- * ntemps       : max # of temporary events allowed (<= nevents)
- * nstations    : max # of stations allowed
- * nprocesses   : max # of processes allowed to open ET system
- * nattachments : max # of attachments to stations allowed
- * groupCount   : # of event groups
- * groups       : array in which index is the group number and value is the
- *              : number of events in that group. There are "groupCount"
- *              : number of valid groups.
- * filename     : name of the ET system file
- * port         : broad/multicast port # for udp message
- * serverport   : port # for ET system's tcp server thread
- * netinfo      : holds all IP info
- * bcastaddrs   : holds all local subnet broadcast addrs (dotted-decimal)
- * mcastaddrs   : holds all multicast addresses to listen on (dotted-dec)
+ * event_size     : event size in bytes
+ * init           : =ET_STRUCT_OK if structure properly initialized
+ * nevents        : total # of events
+ * ntemps         : max # of temporary events allowed (<= nevents)
+ * nstations      : max # of stations allowed
+ * nprocesses     : max # of processes allowed to open ET system
+ * nattachments   : max # of attachments to stations allowed
+ * groupCount     : # of event groups
+ * groups         : array in which index is the group number and value is the
+ *                : number of events in that group. There are "groupCount"
+ *                : number of valid groups.
+ * filename       : name of the ET system file
+ * port           : broad/multicast port # for udp message
+ * serverport     : port # for ET system's tcp server thread
+ * tcpSendBufSize : size in bytes of TCP send    buffer of socket connecting to ET client
+ * tcpRecvBufSize : size in bytes of TCP receive buffer of socket connecting to ET client
+ * tcpNoDelay     : if 0, sockets have TCP_NODELAY option off, else on
+ * netinfo        : holds all IP info
+ * bcastaddrs     : holds all local subnet broadcast addrs (dotted-decimal)
+ * mcastaddrs     : holds all multicast addresses to listen on (dotted-dec)
  */
  
 typedef struct  et_sys_config_t {
@@ -497,6 +500,9 @@ typedef struct  et_sys_config_t {
   /* for remote use */
   int               port;
   int               serverport;
+  int               tcpSendBufSize;
+  int               tcpRecvBufSize;
+  int               tcpNoDelay;
   codaNetInfo       netinfo;
   codaDotDecIpAddrs bcastaddrs;
   codaDotDecIpAddrs mcastaddrs;
@@ -613,6 +619,9 @@ typedef struct et_system_t {
  *               : = ET_POLICY_FIRST - pick the first to respond
  *               : = ET_POLICY_LOCAL - pick the local system first and
  *               :   if it doesn't respond, the first that does
+ * tcpSendBufSize: size in bytes of TCP send    buffer of socket connecting to ET tcp server
+ * tcpRecvBufSize: size in bytes of TCP receive buffer of socket connecting to ET tcp server
+ * tcpNoDelay    : if 0, socket has TCP_NODELAY option off, else on
  * timeout       : max time to wait for ET system to appear if wait=ET_OPEN_WAIT
  * host          : name of host computer that has ET system. Defaults to 
  *               : local host if unset. If domain not included, assumed local.
@@ -638,6 +647,9 @@ typedef struct et_open_config_t {
   int             multiport;
   int             serverport;
   int             policy;
+  int             tcpSendBufSize;
+  int             tcpRecvBufSize;
+  int             tcpNoDelay;
   struct timespec timeout;
   char            host[ET_MAXHOSTNAMELEN];
   char            interface[ET_IPADDRSTRLEN];

@@ -51,6 +51,9 @@ int et_system_config_init(et_sysconfig* sconfig)
   sc->nattachments     = ET_ATTACHMENTS_MAX;
   sc->port             = ET_BROADCAST_PORT;
   sc->serverport       = 0;
+  sc->tcpSendBufSize   = 0;  /* use operating system default */
+  sc->tcpRecvBufSize   = 0;  /* use operating system default */
+  sc->tcpNoDelay       = 1;  /* on */
   sc->mcastaddrs.count = 0;
  *sc->filename         = '\0';
   sc->groupCount       = 1;
@@ -337,6 +340,48 @@ int et_system_config_setgroups(et_sysconfig sconfig, int groups[], int size)
 
   sc->groupCount = size;
   return ET_OK;
+}
+
+/*****************************************************/
+int et_system_config_settcp(et_sysconfig sconfig, int rBufSize, int sBufSize, int noDelay)
+{
+    et_sys_config *sc = (et_sys_config *) sconfig;
+  
+    if (sc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+   
+    if (rBufSize < 0 || sBufSize < 0) {
+        return ET_ERROR;
+    }
+
+    if (noDelay < 0) noDelay = 1;
+
+    sc->tcpRecvBufSize = rBufSize;
+    sc->tcpSendBufSize = sBufSize;
+    sc->tcpNoDelay = noDelay;
+
+    return ET_OK;
+}
+
+/*****************************************************/
+int et_system_config_gettcp(et_sysconfig sconfig, int *rBufSize, int *sBufSize, int *noDelay)
+{
+    et_sys_config *sc = (et_sys_config *) sconfig;
+  
+    if (rBufSize != NULL) {
+        *rBufSize = sc->tcpRecvBufSize;
+    }
+    
+    if (sBufSize != NULL) {
+        *sBufSize = sc->tcpSendBufSize;
+    }
+    
+    if (noDelay != NULL) {
+        *noDelay = sc->tcpNoDelay;
+    }
+
+    return ET_OK;
 }
 
 

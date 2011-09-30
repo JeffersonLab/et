@@ -128,17 +128,20 @@ uint64_t NTOH64(uint64_t n) {
  * This routine creates a TCP listening socket for a server.
  *
  * @param nonblocking != 0 if creating nonblocking socket (boolean)
- * @param port port to listen on
+ * @param port        port to listen on
  * @param sendBufSize size of socket's send buffer in bytes (<= 0 means use default)
  * @param rcvBufSize  size of socket's receive buffer in bytes (<= 0 means use default)
- * @param listenFd pointer to file descriptor which get filled in
+ * @param noDelay     0 if socket TCP_NODELAY is off, else it's on
+ * @param listenFd    pointer to file descriptor which get filled in
  *
  * @returns ET/CMSG_OK                        if successful
  * @returns ET_ERROR_BADARG/CMSG_BAD_ARGUMENT if listenFd is NULL or port < 1024
  * @returns ET_ERROR_SOCKET/CMSG_SOCKET_ERROR if socket could not be created or socket options could not be set.
  *
  */
-int codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize, int rcvBufSize, int *listenFd)
+int codanetTcpListen(int nonblocking, unsigned short port,
+                     int sendBufSize, int rcvBufSize,
+                     int noDelay, int *listenFd)
 {
     int                 listenfd, err, val;
     const int           on=1;
@@ -162,11 +165,13 @@ int codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize, int 
     servaddr.sin_port        = htons(port);
   
     /* don't wait for messages to cue up, send any message immediately */
-    err = setsockopt(listenfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
-    if (err < 0) {
-        close(listenfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpListen: setsockopt error\n", codanetStr);
-        return(CODA_SOCKET_ERROR);
+    if (noDelay) {
+        err = setsockopt(listenfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
+        if (err < 0) {
+            close(listenfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpListen: setsockopt error\n", codanetStr);
+            return(CODA_SOCKET_ERROR);
+        }
     }
    
     /* reuse this port after program quits */
@@ -251,6 +256,7 @@ int codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize, int 
  * @param startingPort port number at which to start looking for available port to listen on
  * @param sendBufSize  size of socket's send buffer in bytes (<= 0 means use default)
  * @param rcvBufSize   size of socket's receive buffer in bytes (<= 0 means use default)
+ * @param noDelay      0 if socket TCP_NODELAY is off, else it's on
  * @param port         pointer filled in with listening port number selected
  * @param fd           pointer filled in with file descriptor of listening socket
  *
@@ -260,7 +266,7 @@ int codanetTcpListen(int nonblocking, unsigned short port, int sendBufSize, int 
  */
 int codanetGetListeningSocket(int nonblocking, unsigned short startingPort,
                               int sendBufSize, int rcvBufSize,
-                              int *finalPort, int *fd) {
+                              int noDelay, int *finalPort, int *fd) {
                                
     unsigned short  i, port=startingPort, trylimit=1500;
     int listenFd;
@@ -268,7 +274,7 @@ int codanetGetListeningSocket(int nonblocking, unsigned short startingPort,
     /* for a limited number of times */
     for (i=0; i < trylimit; i++) {
         /* try to listen on a port */
-        if (codanetTcpListen(nonblocking, port, sendBufSize, rcvBufSize, &listenFd) != CODA_OK) {
+        if (codanetTcpListen(nonblocking, port, sendBufSize, rcvBufSize, noDelay, &listenFd) != CODA_OK) {
             if (codanetDebug >= CODA_DEBUG_WARN) {
                 fprintf(stderr, "%sGetListeningPort: tried but could not listen on port %hu\n", codanetStr, port);
             }
@@ -514,6 +520,7 @@ static int connectWithTimeout(int sockfd, struct sockaddr *pAddr, socklen_t addr
  * @param port        port to connect to
  * @param sendBufSize size of socket's send buffer in bytes
  * @param rcvBufSize  size of socket's receive buffer in bytes
+ * @param noDelay     0 if socket TCP_NODELAY is off, else it's on
  * @param timeout     pointer to struct containing timeout for connection to be made
  * @param fd          pointer which gets filled in with file descriptor
  * @param localPort   pointer which gets filled in with local (ephemeral) port number
@@ -526,7 +533,8 @@ static int connectWithTimeout(int sockfd, struct sockaddr *pAddr, socklen_t addr
  * @returns ET_ERROR_NETWORK/CMSG_NETWORK_ERROR if host name could not be resolved or could not connect
  */
 int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
-                             int sendBufSize, int rcvBufSize, struct timeval *timeout,
+                             int sendBufSize, int rcvBufSize,
+                             int noDelay, struct timeval *timeout,
                              int *fd, int *localPort)
 {
     int                 res, sockfd, err=0;
@@ -557,11 +565,13 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
     }
 
     /* don't wait for messages to cue up, send any message immediately */
-    err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
-    if (err < 0) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: setsockopt error\n", codanetStr);
-        return(CODA_SOCKET_ERROR);
+    if (noDelay) {
+        err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
+        if (err < 0) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: setsockopt error\n", codanetStr);
+            return(CODA_SOCKET_ERROR);
+        }
     }
 
     /* set send buffer size unless default specified by a value <= 0 */
@@ -807,6 +817,7 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
  * @param port        port to connect to
  * @param sendBufSize size of socket's send buffer in bytes
  * @param rcvBufSize  size of socket's receive buffer in bytes
+ * @param noDelay     0 if socket TCP_NODELAY is off, else it's on
  * @param fd          pointer which gets filled in with file descriptor
  * @param localPort   pointer which gets filled in with local (ephemeral) port number
  *
@@ -818,7 +829,7 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
  *
  */
 int codanetTcpConnect(const char *ip_address, const char *interface, unsigned short port,
-                      int sendBufSize, int rcvBufSize, int *fd, int *localPort)
+                      int sendBufSize, int rcvBufSize, int noDelay, int *fd, int *localPort)
 {
     int                 sockfd, err=0, isDottedDecimal=0;
     const int           on=1;
@@ -864,7 +875,7 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
             }
             return(CODA_NETWORK_ERROR);
         }
-        return codanetTcpConnect2(inetaddr, interface, port, sendBufSize, rcvBufSize, fd, localPort);
+        return codanetTcpConnect2(inetaddr, interface, port, sendBufSize, rcvBufSize, noDelay, fd, localPort);
     }
 
     
@@ -876,11 +887,13 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
     }
 
     /* don't wait for messages to cue up, send any message immediately */
-    err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
-    if (err < 0) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: setsockopt error\n", codanetStr);
-        return(CODA_SOCKET_ERROR);
+    if (noDelay) {
+        err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
+        if (err < 0) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: setsockopt error\n", codanetStr);
+            return(CODA_SOCKET_ERROR);
+        }
     }
 
     /* set send buffer size unless default specified by a value <= 0 */
@@ -1102,6 +1115,7 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
  * @param port        port to connect to
  * @param sendBufSize size of socket's send buffer in bytes
  * @param rcvBufSize  size of socket's receive buffer in bytes
+ * @param noDelay     0 if socket TCP_NODELAY is off, else it's on
  * @param fd          pointer which gets filled in with file descriptor
  * @param localPort   pointer which gets filled in with local (ephemeral) port number
  *
@@ -1113,7 +1127,7 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
  *
  */
 int codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short port,
-                       int sendBufSize, int rcvBufSize, int *fd, int *localPort)
+                       int sendBufSize, int rcvBufSize, int noDelay, int *fd, int *localPort)
 {
     int                 sockfd, err=0;
     const int           on=1;
@@ -1127,11 +1141,13 @@ int codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short 
     }
     
     /* don't wait for messages to cue up, send any message immediately */
-    err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
-    if (err < 0) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect2: setsockopt error\n", codanetStr);
-        return(CODA_SOCKET_ERROR);
+    if (noDelay) {
+        err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
+        if (err < 0) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect2: setsockopt error\n", codanetStr);
+            return(CODA_SOCKET_ERROR);
+        }
     }
   
     /* set send buffer size unless default specified by a value <= 0 */

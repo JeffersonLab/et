@@ -107,14 +107,16 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
             if (inetaddr == 0) {
 et_logmsg("INFO","etr_open: etNetTcpConnect to host %s on port %d\n",ethost,port);
               if (etNetTcpConnect(ethost, config->interface, (unsigned short)port,
-                                  0, 0, &sockfd, NULL) == ET_OK) {
+                  config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
+                  &sockfd, NULL) == ET_OK) {
                   break;
               }
             }
             else {
 et_logmsg("INFO","etr_open: etNetTcpConnect2 to address %u on port %d\n",inetaddr,port);
               if (etNetTcpConnect2(inetaddr, config->interface, (unsigned short)port,
-                                   0, 0, &sockfd, NULL) == ET_OK) {
+                  config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
+                  &sockfd, NULL) == ET_OK) {
                   break;
               }
             }

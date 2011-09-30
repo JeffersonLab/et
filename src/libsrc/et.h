@@ -567,6 +567,9 @@ extern int et_system_config_getaddress(et_sysconfig sconfig, char *val);
 extern int et_system_config_addmulticast(et_sysconfig sconfig, const char *val);
 extern int et_system_config_removemulticast(et_sysconfig sconfig, const char *val);
 
+extern int et_system_config_settcp(et_sysconfig sconfig, int rBufSize, int sBufSize, int noDelay);
+extern int et_system_config_gettcp(et_sysconfig sconfig, int *rBufSize, int *sBufSize, int *noDelay);
+
 /*************************************************************/
 /*      routines to store & read system information          */
 /*************************************************************/
@@ -642,6 +645,10 @@ extern int et_open_config_getpolicy(et_openconfig sconfig, int *val);
 
 extern int et_open_config_setinterface(et_openconfig sconfig, const char *val);
 extern int et_open_config_getinterface(et_openconfig sconfig, char *val);
+
+extern int et_open_config_settcp(et_openconfig sconfig, int rBufSize, int sBufSize, int noDelay);
+extern int et_open_config_gettcp(et_openconfig sconfig, int *rBufSize, int *sBufSize, int *noDelay);
+
 
 /*************************************************************
  * routines to store and read system bridge parameters used  *

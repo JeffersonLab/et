@@ -490,7 +490,8 @@ void *et_netserver(void *arg)
       port = ET_SERVER_PORT;
   }
   
-  err = etNetTcpListen(0, (unsigned short)port, 0, 0, &listenfd);
+  err = etNetTcpListen(0, (unsigned short)port, config->tcpSendBufSize,
+                       config->tcpRecvBufSize, config->tcpNoDelay, &listenfd);
   if (err != ET_OK) {
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
