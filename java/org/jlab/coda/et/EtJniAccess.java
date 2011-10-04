@@ -46,10 +46,10 @@ class EtJniAccess {
 
             // See if we've already opened the ET system being asked for, if so, return that
             if (classMap.containsKey(etName)) {
-System.out.println("RETURNING ALREADY EXISTING ET SYSTEM NATIVE OBJECT");
+//System.out.println("USE ALREADY EXISTING ET JNI OBJECT for et -> " + etName);
                 EtJniAccess jni = classMap.get(etName);
                 jni.numberOpens++;
-System.out.println("numberOpens = " + jni.numberOpens);
+//System.out.println("numberOpens = " + jni.numberOpens);
                 return jni;
             }
 
@@ -57,7 +57,8 @@ System.out.println("numberOpens = " + jni.numberOpens);
             jni.openLocalEtSystem(etName);
             jni.etSystemName = etName;
             jni.numberOpens = 1;
-System.out.println("numberOpens = " + jni.numberOpens);
+//System.out.println("CREATING ET JNI OBJECT for et -> " + etName);
+//System.out.println("numberOpens = " + jni.numberOpens);
             classMap.put(etName, jni);
 
             return jni;
@@ -120,10 +121,10 @@ System.out.println("numberOpens = " + jni.numberOpens);
         try {
             classLock.lock();
             numberOpens--;
-System.out.println("close: numberOpens = " + numberOpens);
+//System.out.println("close: numberOpens = " + numberOpens);
             if (numberOpens < 1) {
                 classMap.remove(etSystemName);
-System.out.println("close: really close local ET system");
+//System.out.println("close: really close local ET system");
                 closeLocalEtSystem(localEtId);
             }
         }
