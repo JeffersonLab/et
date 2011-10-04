@@ -1147,15 +1147,17 @@ public class EtSystemOpen {
             }
         }
 
+        // Open the ET system, waiting if requested & necessary
+        if (debug >= EtConstants.debugInfo) {
+            System.out.println("connect(): try to connect to ET system " +
+                                       (mapLocalSharedMemory ? "locally" : "remotely"));
+        }
+
         // If user only wants to use sockets, don't map memory
         if (config.isConnectRemotely()) {
             mapLocalSharedMemory = false;
         }
-
-        // Open the ET system, waiting if requested & necessary
-        if (debug >= EtConstants.debugInfo) {
-            System.out.println("connect: try to connect to ET system");
-        }
+//System.out.println("connect(): map local shared memory = " + mapLocalSharedMemory);
 
         boolean gotConnection = false;
         IOException ioException = null;
@@ -1179,12 +1181,17 @@ public class EtSystemOpen {
                     // If IP address fails, perhaps another will work
                     for (String ha : hostAddresses) {
                         try {
+//System.out.println("connect(): try creating socket to " + ha + " on port " + tcpPort);
                             sock = new Socket(ha, tcpPort);        // IOEx
                             connectionHost = ha;
+//System.out.println("connect(): success creating socket");
                             break;
                         }
                         catch (IOException e) {
                             ioex = e;
+                        }
+                        catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
 
@@ -1219,7 +1226,17 @@ public class EtSystemOpen {
                     }
 
                     // Make actual TCP connection
-                    sock.connect(new InetSocketAddress(connectionHost, tcpPort)); // IOEx
+                    if (!sock.isConnected()) {
+//System.out.println("connect(): connect existing socket to host " + connectionHost + " on port " + tcpPort);
+                        try {
+                            sock.connect(new InetSocketAddress(connectionHost, tcpPort), 250); // IOEx, SocketTimeoutEx
+                        }
+                        catch (SocketTimeoutException e) {
+//System.out.println("connect(): timed out, try again");
+                            t2 = System.currentTimeMillis();
+                            continue;
+                        }
+                    }
                 }
                 catch (SocketException ex) {
                 }
@@ -1233,8 +1250,14 @@ public class EtSystemOpen {
                 ioException = e;
                 try {Thread.sleep(250);}
                 catch (InterruptedException e1) {}
-                t2 = System.currentTimeMillis();
             }
+            catch (Exception e) {
+// System.out.println("           FAILED connection to ET (non-IO)");
+                try {Thread.sleep(250);}
+                catch (InterruptedException e1) {}
+            }
+
+            t2 = System.currentTimeMillis();
         }
 
         if (!gotConnection) {
