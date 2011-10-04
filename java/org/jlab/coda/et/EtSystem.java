@@ -300,8 +300,12 @@ public class EtSystem {
         try {
             // Are we using JNI? If so, close the ET system it opened.
             if (sys.isMapLocalSharedMemory()) {
+//System.out.println("   Close et sys JNI object");
                 sys.getJni().close();
             }
+//            else {
+//System.out.println("   Do NOT close et sys JNI object since NO local shared memory");
+//            }
 
             out.writeInt(EtConstants.netClose);  // close and forcedclose do the same thing in java
             out.flush();
