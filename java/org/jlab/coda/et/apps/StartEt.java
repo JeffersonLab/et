@@ -35,6 +35,9 @@ public class StartEt {
                 "                [-p <server port>]\n" +
                 "                [-u <udp port>]\n" +
                 "                [-m <multicast port>]\n" +
+                "                [-rb <TCP receive buffer size (bytes)>]\n" +
+                "                [-sb <TCP send buffer size (bytes)>]\n" +
+                "                [-nd] (turn on TCP no-delay)\n" +
                 "                [-debug]\n" +
                 "                [-h]\n" +
                 "                -f <file name>\n");
@@ -49,6 +52,8 @@ public class StartEt {
         int serverPort = EtConstants.serverPort;
         int udpPort = EtConstants.broadcastPort;
         int multicastPort = EtConstants.multicastPort;
+        int recvBufSize=0, sendBufSize=0;
+        boolean noDelay = false;
         boolean debug = false;
         String file=null;
 
@@ -81,6 +86,17 @@ public class StartEt {
             else if (args[i].equalsIgnoreCase("-s")) {
                 size = Integer.parseInt(args[i + 1]);
                 i++;
+            }
+            else if (args[i].equalsIgnoreCase("-rb")) {
+                recvBufSize = Integer.parseInt(args[i + 1]);
+                i++;
+            }
+            else if (args[i].equalsIgnoreCase("-sb")) {
+                sendBufSize = Integer.parseInt(args[i + 1]);
+                i++;
+            }
+            else if (args[i].equalsIgnoreCase("-nd")) {
+                noDelay = true;
             }
             else if (args[i].equalsIgnoreCase("-debug")) {
                 debug = true;
@@ -117,9 +133,22 @@ public class StartEt {
             config.setNumEvents(numEvents);
             // set size of events in bytes
             config.setEventSize(size);
+            // set tcp receive buffer size in bytes
+            if (recvBufSize > 0) {
+                config.setTcpRecvBufSize(recvBufSize);
+            }
+            // set tcp send buffer size in bytes
+            if (sendBufSize > 0) {
+                config.setTcpSendBufSize(sendBufSize);
+            }
+            // set tcp no-delay
+            if (noDelay) {
+                config.setNoDelay(noDelay);
+            }
             // set debug level
-            if (debug)
+            if (debug) {
                 config.setDebug(EtConstants.debugInfo);
+            }
             // create an active ET system
             SystemCreate sys = new SystemCreate(file, config);
         }

@@ -55,6 +55,18 @@ public class SystemConfig {
      */
     private int debug;
 
+    /** ET server's TCP send buffer size in bytes. */
+    private int tcpSendBufSize;
+
+    /** ET server's TCP receive buffer size in bytes. */
+    private int tcpRecvBufSize;
+
+    /**
+     * ET server's socket's no-delay setting.
+     * <code>True</code> if no delay, else <code>false</code>.
+     */
+    private boolean noDelay;
+
     /** UDP port number for thread responding to users' broadcasts looking for the
      *  ET system. */
     private int udpPort;
@@ -106,6 +118,9 @@ public class SystemConfig {
         attachmentsMax  = config.attachmentsMax;
         debug           = config.debug;
         udpPort         = config.udpPort;
+        tcpRecvBufSize  = config.tcpRecvBufSize;
+        tcpSendBufSize  = config.tcpSendBufSize;
+        noDelay         = config.noDelay;
         serverPort      = config.serverPort;
         multicastPort   = config.multicastPort;
         multicastAddrs  = new HashSet<InetAddress>(config.multicastAddrs);
@@ -116,47 +131,65 @@ public class SystemConfig {
     // public gets
 
 
-    /** Gets the total number of events.
+    /** Get the total number of events.
      *  @return total number of events */
     public int getNumEvents() {return numEvents;}
 
-    /** Gets the size of the normal events in bytes.
+    /** Get the size of the normal events in bytes.
      *  @return size of normal events in bytes */
     public int getEventSize() {return eventSize;}
 
-    /** Gets the array of how many events in each group.
+    /** Get the array of how many events in each group.
      *  @return array of how many events in each group */
     public int[] getGroups() {return groups.clone();}
 
-    /** Gets the maximum number of stations.
+    /** Get the maximum number of stations.
      *  @return maximum number of stations */
     public int getStationsMax() {return stationsMax;}
 
-    /** Gets the maximum number of attachments.
+    /** Get the maximum number of attachments.
      *  @return maximum number of attachments */
     public int getAttachmentsMax() {return attachmentsMax;}
 
-    /** Gets the debug level.
+    /** Get the debug level.
      *  @return debug level */
     public int getDebug() {return debug;}
 
-    /** Gets the udp port number.
+    /** Get the TCP receive buffer size in bytes.
+     *  @return TCP receive buffer size in bytes */
+    public int getTcpSendBufSize() {
+        return tcpSendBufSize;
+    }
+
+    /** Get the TCP send buffer size in bytes.
+     *  @return TCP send buffer size in bytes */
+    public int getTcpRecvBufSize() {
+        return tcpRecvBufSize;
+    }
+
+    /** Get the TCP no-delay setting.
+     *  @return TCP no-delay setting */
+    public boolean isNoDelay() {
+        return noDelay;
+    }
+
+    /** Get the udp port number.
      *  @return udp port number */
     public int getUdpPort() {return udpPort;}
 
-    /** Gets the tcp server port number.
+    /** Get the tcp server port number.
      *  @return tcp server port number */
     public int getServerPort() {return serverPort;}
 
-    /** Gets the multicast port number.
+    /** Get the multicast port number.
      *  @return multicast port number */
     public int getMulticastPort() {return multicastPort;}
 
-    /** Gets the set of multicast addresses.
+    /** Get the set of multicast addresses.
      *  @return set of multicast addresses */
     public Set<InetAddress> getMulticastAddrs() {return new HashSet<InetAddress>(multicastAddrs);}
 
-    /** Gets the multicast addresses as a String array.
+    /** Get the multicast addresses as a String array.
      *  @return multicast addresses as a String array */
     public String[] getMulticastStrings() {
         if (multicastAddrs == null) {
@@ -214,7 +247,7 @@ public class SystemConfig {
 
 
     /**
-     * Sets the total number of events.
+     * Set the total number of events.
      * @param num total number of events
      * @throws EtException
      *     if the argument is less than 1
@@ -229,7 +262,7 @@ public class SystemConfig {
 
 
     /**
-     * Sets the event size in bytes.
+     * Set the event size in bytes.
      * @param size event size in bytes
      * @throws EtException
      *     if the argument is less than 1 byte
@@ -243,7 +276,7 @@ public class SystemConfig {
 
 
     /**
-     * Sets the number of events in each group. Used with mulitple producers who want to
+     * Set the number of events in each group. Used with mulitple producers who want to
      * guarantee available events for each producer.
      *
      * @param groups array defining number of events in each group
@@ -264,7 +297,7 @@ public class SystemConfig {
     }
 
     /**
-     * Sets the maximum number of stations.
+     * Set the maximum number of stations.
      * @param num maximum number of stations
      * @throws EtException
      *     if the argument is less than 2
@@ -278,7 +311,7 @@ public class SystemConfig {
 
 
     /**
-     * Sets the maximum number of attachments.
+     * Set the maximum number of attachments.
      * @param num maximum number of attachments
      * @throws EtException
      *     if the argument is less than 1
@@ -292,7 +325,7 @@ public class SystemConfig {
 
 
     /**
-     * Sets the debug level.
+     * Set the debug level.
      * @param level debug level
      * @throws EtException
      *     if the argument has a bad value
@@ -306,6 +339,47 @@ public class SystemConfig {
             throw new EtException("bad debug value");
         }
         debug = level;
+    }
+
+
+    /**
+     * Set the TCP send buffer size in bytes. A value of 0
+     * means use the operating system default.
+     *
+     * @param tcpSendBufSize TCP send buffer size in bytes
+     * @throws EtException
+     *     if the argument is less than 0
+     */
+    public void setTcpSendBufSize(int tcpSendBufSize) throws EtException {
+        if (tcpSendBufSize < 0) {
+            throw new EtException("buffer size must be >= than 0");
+        }
+        this.tcpSendBufSize = tcpSendBufSize;
+    }
+
+
+    /**
+     * Set the TCP receive buffer size in bytes. A value of 0
+     * means use the operating system default.
+     *
+     * @param tcpRecvBufSize TCP receive buffer size in bytes
+     * @throws EtException
+     *     if the argument is less than 0
+     */
+    public void setTcpRecvBufSize(int tcpRecvBufSize) throws EtException {
+        if (tcpRecvBufSize < 0) {
+            throw new EtException("buffer size must be >= than 0");
+        }
+        this.tcpRecvBufSize = tcpRecvBufSize;
+    }
+
+
+    /**
+     * Set the TCP no-delay setting. It is off by default.
+     * @param noDelay TCP no-delay setting
+     */
+    public void setNoDelay(boolean noDelay) {
+        this.noDelay = noDelay;
     }
 
 

@@ -45,19 +45,23 @@ class SystemTcpServer extends Thread {
     /** Et system object. */
     private SystemCreate sys;
 
+    /** Et system config object. */
+    private SystemConfig config;
+
 
     /** Createes a new SystemTcpServer object.
      *  @param sys ET system object */
     SystemTcpServer(SystemCreate sys) {
         this.sys = sys;
-        port = sys.getConfig().getServerPort();
+        config   = sys.getConfig();
+        port     = config.getServerPort();
     }
 
 
     /** Start thread to listen for connections and spawn off communication
      *  handling threads. */
     public void run() {
-        if (sys.getConfig().getDebug() >= EtConstants.debugInfo) {
+        if (config.getDebug() >= EtConstants.debugInfo) {
             System.out.println("Running TCP Server Thread");
         }
 
@@ -78,8 +82,11 @@ class SystemTcpServer extends Thread {
             // Create channel and bind to port. If that isn't possible, exit.
             ServerSocketChannel serverChannel = ServerSocketChannel.open();
             serverChannel.socket().setReuseAddress(true);
-            serverChannel.socket().bind(new InetSocketAddress(port));
             serverChannel.socket().setSoTimeout(2000);
+            if (config.getTcpRecvBufSize() > 0) {
+                serverChannel.socket().setReceiveBufferSize(config.getTcpRecvBufSize());
+            }
+            serverChannel.socket().bind(new InetSocketAddress(port));
 
             while (true) {
                 // socket to client created
@@ -103,11 +110,14 @@ class SystemTcpServer extends Thread {
                 // Set reading timeout to 1/2 second so dead clients
                 // can be found by reading on a socket.
                 sock.setSoTimeout(500);
+                // set send buffer size, receive buffer size is set above in server socket
+                if (config.getTcpSendBufSize() > 0) {
+                    sock.setSendBufferSize(sys.getConfig().getTcpSendBufSize());
+                }
                 // Set tcpNoDelay so no packets are delayed
-                sock.setTcpNoDelay(true);
-                // set buffer size
-                sock.setReceiveBufferSize(65535);
-                sock.setSendBufferSize(65535);
+                if (config.isNoDelay()) {
+                    sock.setTcpNoDelay(config.isNoDelay());
+                }
 
                 // Check to see if this is a legitimate client or some imposter.
                 // Don't want to block on read here since it may not be a real client
@@ -222,8 +232,23 @@ class ClientThread extends Thread {
 
         try {
             // buffered communication streams for efficiency
-            in  = new DataInputStream(new  BufferedInputStream(sock.getInputStream(),   65535));
-            out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), 65535));
+            if (config.getTcpRecvBufSize() > 0) {
+                in  = new DataInputStream(new  BufferedInputStream(sock.getInputStream(),
+                                                                   config.getTcpRecvBufSize())
+                                         );
+            }
+            else {
+                in  = new DataInputStream(new  BufferedInputStream(sock.getInputStream(), 200000));
+            }
+
+            if (config.getTcpRecvBufSize() > 0) {
+                out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(),
+                                                                    config.getTcpSendBufSize())
+                                          );
+            }
+            else {
+                out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), 130000));
+            }
 
             int endian = in.readInt();
             int length = in.readInt();
