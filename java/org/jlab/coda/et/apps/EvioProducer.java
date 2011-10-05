@@ -259,7 +259,7 @@ public class EvioProducer {
              for (int i = 0; i < 50; i++) {
                  while (count < 30000L) {
                      // get array of new events
-                     mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
+                     mevs = sys.newEvents(att, Mode.SLEEP, false, 0, chunk, size, group);
 
                      if (delay > 0) Thread.sleep(delay);
 

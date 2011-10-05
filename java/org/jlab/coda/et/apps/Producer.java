@@ -206,7 +206,7 @@ public class Producer {
 
             while (true) {
                 // get array of new events
-                mevs = sys.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
+                mevs = sys.newEvents(att, Mode.SLEEP, false, 0, chunk, size, group);
 
                 if (delay > 0) Thread.sleep(delay);
 
