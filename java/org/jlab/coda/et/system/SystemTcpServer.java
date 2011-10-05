@@ -238,7 +238,7 @@ class ClientThread extends Thread {
                                          );
             }
             else {
-                in  = new DataInputStream(new  BufferedInputStream(sock.getInputStream(), 200000));
+                in  = new DataInputStream(new  BufferedInputStream(sock.getInputStream(), sock.getReceiveBufferSize()));
             }
 
             if (config.getTcpRecvBufSize() > 0) {
@@ -247,7 +247,7 @@ class ClientThread extends Thread {
                                           );
             }
             else {
-                out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), 130000));
+                out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
             }
 
             int endian = in.readInt();
