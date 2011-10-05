@@ -141,22 +141,25 @@ public class EtEventImpl implements EtEvent {
     /**
      * Creates an event object for ET system users when connecting to ET systems
      * over the network. Called by
-     * {@link EtSystem#getEvents(EtAttachment , org.jlab.coda.et.enums.Mode, org.jlab.coda.et.enums.Modify, int, int)},
+     * {@link EtSystem#getEvents(EtAttachment, org.jlab.coda.et.enums.Mode,Modify,int,int)},
      * and
-     * {@link EtSystem#newEvents(EtAttachment , org.jlab.coda.et.enums.Mode, int, int, int, int)}.
+     * {@link EtSystem#newEvents(EtAttachment, org.jlab.coda.et.enums.Mode,boolean,int,int,int,int)}.
      *
      * @param size   size of the data array in bytes.
      * @param limit  limit on the size of the data array in bytes. Only used
      *               for C-based ET systems.
      * @param isJava is ET system Java based?
+     * @param noBuffer forget about allocating byte array and ByteBuffer?
      */
-    EtEventImpl(int size, int limit, boolean isJava) {
+    EtEventImpl(int size, int limit, boolean isJava, boolean noBuffer) {
         memSize     = size;
         sizeLimit   = limit;
         this.isJava = isJava;
-        data        = new byte[size];
         control     = new int[numSelectInts];
-        dataBuffer  = ByteBuffer.wrap(data);
+        if (!noBuffer) {
+            data        = new byte[size];
+            dataBuffer  = ByteBuffer.wrap(data);
+        }
         init();
     }
 
@@ -549,8 +552,15 @@ public class EtEventImpl implements EtEvent {
     }
 
     /**
-     * Sets the event's data buffer (backed by data array).
-     * @param dataBuffer event's data buffer
+     * Sets the event's data buffer (must be backed by data array).
+     * This is used when reading data from shared memory and
+     * also if remote user gets new events with the no-allocate flag
+     * set. In the latter case, the user must set the data buffer
+     * explicitly or an exception will result when trying to put the
+     * event back. In any case, using this method should only be done
+     * by the expert user.
+     *
+     * @param dataBuffer event's data buffer (must be backed by data array)
      */
     public void setDataBuffer(ByteBuffer dataBuffer) {
         this.dataBuffer = dataBuffer;
