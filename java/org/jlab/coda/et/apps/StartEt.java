@@ -14,6 +14,7 @@
 
 package org.jlab.coda.et.apps;
 
+import java.io.File;
 import java.lang.*;
 
 import org.jlab.coda.et.*;
@@ -29,18 +30,27 @@ public class StartEt {
 
     /** Method to print out correct program command line usage. */
     private static void usage() {
-        System.out.println("\nUsage:\n" +
-                "   java StartEt [-n <# of events>]\n" +
-                "                [-s <size of events (bytes)>]\n" +
-                "                [-p <server port>]\n" +
-                "                [-u <udp port>]\n" +
-                "                [-m <multicast port>]\n" +
-                "                [-rb <TCP receive buffer size (bytes)>]\n" +
-                "                [-sb <TCP send buffer size (bytes)>]\n" +
-                "                [-nd] (turn on TCP no-delay)\n" +
-                "                [-debug]\n" +
-                "                [-h]\n" +
-                "                -f <file name>\n");
+
+        System.out.println("\nUsage: java StartEt [-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>]\n" +
+                             "                    [-g <groups>] [-p <TCP server port>] [-u <UDP port>]\n" +
+                             "                    [-m <UDP multicast port>] [-a <multicast address>]\n" +
+                             "                    [-rb <buf size>] [-sb <buf size>] [-nd]\n\n" +
+
+        "          -h for help\n" +
+        "          -v for verbose output\n" +
+        "          -d deletes an existing file first\n" +
+        "          -f sets memory-mapped file name\n" +
+        "          -n sets number of events\n" +
+        "          -s sets event size in bytes\n" +
+        "          -g sets number of groups to divide events into\n" +
+        "          -p sets TCP server port #\n" +
+        "          -u sets UDP broadcast port #\n" +
+        "          -m sets UDP multicast port #\n" +
+        "          -a sets multicast address\n" +
+        "          -rb TCP receive buffer size (bytes)\n" +
+        "          -sb TCP send    buffer size (bytes)\n" +
+        "          -nd use TCP_NODELAY option\n");
+
     }
 
 
@@ -52,10 +62,13 @@ public class StartEt {
         int serverPort = EtConstants.serverPort;
         int udpPort = EtConstants.broadcastPort;
         int multicastPort = EtConstants.multicastPort;
-        int recvBufSize=0, sendBufSize=0;
-        boolean noDelay = false;
+        int recvBufSize = 0, sendBufSize = 0;
+        int numGroups = 1;
         boolean debug = false;
-        String file=null;
+        boolean noDelay = false;
+        boolean deleteFile = false;
+        String file = null;
+        String mcastAddr = null;
 
         // loop over all args
         for (int i = 0; i < args.length; i++) {
@@ -98,8 +111,19 @@ public class StartEt {
             else if (args[i].equalsIgnoreCase("-nd")) {
                 noDelay = true;
             }
-            else if (args[i].equalsIgnoreCase("-debug")) {
+            else if (args[i].equalsIgnoreCase("-v")) {
                 debug = true;
+            }
+            else if (args[i].equalsIgnoreCase("-g")) {
+                numGroups = Integer.parseInt(args[i + 1]);
+                i++;
+            }
+            else if (args[i].equalsIgnoreCase("-a")) {
+                mcastAddr = args[i + 1];
+                i++;
+            }
+            else if (args[i].equalsIgnoreCase("-d")) {
+                deleteFile = true;
             }
             else {
                 usage();
@@ -108,20 +132,37 @@ public class StartEt {
         }
 
         if (file == null) {
+            String et_filename = System.getenv("SESSION");
+            if (et_filename == null) {
+                System.out.println("No ET file name given and SESSION env variable not defined");
+                usage();
+                System.exit(-1);
+            }
+
+            file = "/tmp/et_sys_" + et_filename;
+        }
+
+        // check length of name
+        if (file.length() >=  EtConstants.fileNameLengthMax) {
+            System.out.println("ET file name is too long");
             usage();
             System.exit(-1);
         }
-        
+
+        if (deleteFile) {
+            File f = new File(file);
+            f.delete();
+        }
+
         try {
             System.out.println("STARTING ET SYSTEM");
             // ET system configuration object
             SystemConfig config = new SystemConfig();
 
-            //int[] groups = {30,30,40};
-            //config.setGroups(groups);
-
             // listen for multicasts at this address
-            config.addMulticastAddr(EtConstants.multicastAddr);
+            if (mcastAddr != null) {
+                config.addMulticastAddr(mcastAddr);
+            }
             // set tcp server port
             config.setServerPort(serverPort);
             // set port for listening for udp packets
@@ -149,6 +190,30 @@ public class StartEt {
             if (debug) {
                 config.setDebug(EtConstants.debugInfo);
             }
+
+            // divide events into equal groups and any leftovers into another group */
+            if (numGroups > 1) {
+                int addgroup=0;
+
+                int n = numEvents / numGroups;
+                int r = numEvents % numGroups;
+                if (r > 0) {
+                    addgroup = 1;
+                }
+
+                int[] groups = new int[numGroups+addgroup];
+
+                for (int i=0; i < numGroups; i++) {
+                    groups[i] = n;
+                }
+
+                if (addgroup > 0) {
+                    groups[numGroups] = r;
+                }
+
+                config.setGroups(groups);
+            }
+
             // create an active ET system
             SystemCreate sys = new SystemCreate(file, config);
         }
