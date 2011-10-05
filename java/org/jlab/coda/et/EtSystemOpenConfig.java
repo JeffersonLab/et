@@ -89,6 +89,18 @@ public class EtSystemOpenConfig {
     /** If no ET system is available, how many milliseconds do we wait while trying to open it? */
     private long waitTime;
 
+    /** TCP send buffer size in bytes. */
+    private int tcpSendBufSize;
+
+    /** TCP receive buffer size in bytes. */
+    private int tcpRecvBufSize;
+
+    /**
+     * TCP socket's no-delay setting.
+     * <code>True</code> if no delay, else <code>false</code>.
+     */
+    private boolean noDelay;
+
 
     /**
      * No arg constructor.
@@ -383,6 +395,9 @@ public class EtSystemOpenConfig {
         responsePolicy       = config.responsePolicy;
         waitTime             = config.waitTime;
         networkInterface     = config.networkInterface;
+        tcpRecvBufSize       = config.tcpRecvBufSize;
+        tcpSendBufSize       = config.tcpSendBufSize;
+        noDelay              = config.noDelay;
     }
 
 
@@ -484,12 +499,28 @@ public class EtSystemOpenConfig {
      *  @return the number of milliseconds we wait while trying to open ET system */
     public long getWaitTime() {return waitTime;}
 
-    /**
-     * Get the network interface used for connecting to the ET system.
-     * @return the network interface used for connecting to the ET system or null if none specified.
-     */
+    /** Get the network interface used for connecting to the ET system.
+     *  @return the network interface used for connecting to the ET system or null if none specified. */
     public String getNetworkInterface() {
         return networkInterface;
+    }
+
+    /** Get the TCP receive buffer size in bytes.
+     *  @return TCP receive buffer size in bytes */
+    public int getTcpSendBufSize() {
+        return tcpSendBufSize;
+    }
+
+    /** Get the TCP send buffer size in bytes.
+     *  @return TCP send buffer size in bytes */
+    public int getTcpRecvBufSize() {
+        return tcpRecvBufSize;
+    }
+
+    /** Get the TCP no-delay setting.
+     *  @return TCP no-delay setting */
+    public boolean isNoDelay() {
+        return noDelay;
     }
 
 
@@ -730,4 +761,44 @@ public class EtSystemOpenConfig {
         }
         this.networkInterface = networkInterface;
     }
+
+    /**
+     * Set the TCP send buffer size in bytes. A value of 0
+     * means use the operating system default.
+     *
+     * @param tcpSendBufSize TCP send buffer size in bytes
+     * @throws EtException
+     *     if the argument is less than 0
+     */
+    public void setTcpSendBufSize(int tcpSendBufSize) throws EtException {
+        if (tcpSendBufSize < 0) {
+            throw new EtException("buffer size must be >= than 0");
+        }
+        this.tcpSendBufSize = tcpSendBufSize;
+    }
+
+    /**
+     * Set the TCP receive buffer size in bytes. A value of 0
+     * means use the operating system default.
+     *
+     * @param tcpRecvBufSize TCP receive buffer size in bytes
+     * @throws EtException
+     *     if the argument is less than 0
+     */
+    public void setTcpRecvBufSize(int tcpRecvBufSize) throws EtException {
+        if (tcpRecvBufSize < 0) {
+            throw new EtException("buffer size must be >= than 0");
+        }
+        this.tcpRecvBufSize = tcpRecvBufSize;
+    }
+
+    /**
+     * Set the TCP no-delay setting. It is off by default.
+     * @param noDelay TCP no-delay setting
+     */
+    public void setNoDelay(boolean noDelay) {
+        this.noDelay = noDelay;
+    }
+
+
 }
