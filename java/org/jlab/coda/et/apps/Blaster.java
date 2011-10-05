@@ -261,17 +261,6 @@ public class Blaster {
                     avgEventRate = 1000.0 * totalEventCount / totalT;
                     avgByteRate  = 1000.0 * totalByteCount  / totalT;
 
-//                    System.out.println("eventCount = " + eventCount + ", byteCount = " + byteCount);
-//                    System.out.println("eventRate  = " + eventRate + ", byteRate = " + byteRate);
-//                    System.out.println("avgEventRate  = " + avgEventRate + ", avgByteRate = " + avgByteRate);
-//                    System.out.println("time  = " + time + ", total time = " + totalT);
-
-
-//                    System.out.println("evRate: " + String.format("%g", eventRate) +
-//                                       " Hz,  " + String.format("%g", avgEventRate) +
-//                                        " avg;  byteRate: " + String.format("%g", byteRate) +
-//                                       " Hz,  " + String.format("%g", avgByteRate));
-
                     System.out.printf("evRate: %3.4g Hz,  %3.4g avg;  byteRate: %3.4g bytes/sec,  %3.4g avg\n",
                                        eventRate, avgEventRate, byteRate, avgByteRate);
 
