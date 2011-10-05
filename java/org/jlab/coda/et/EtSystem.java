@@ -171,8 +171,21 @@ public class EtSystem {
 
             // buffer communication streams for efficiency
             sock = sys.getSocket();
-            in   = new DataInputStream( new BufferedInputStream( sock.getInputStream(),  65535));
-            out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), 65535));
+
+            if (openConfig.getTcpRecvBufSize() > 0) {
+                in = new DataInputStream(new BufferedInputStream(sock.getInputStream(), openConfig.getTcpRecvBufSize()));
+            }
+            else {
+                in = new DataInputStream( new BufferedInputStream( sock.getInputStream(), sock.getReceiveBufferSize()));
+            }
+
+            if (openConfig.getTcpSendBufSize() > 0) {
+                out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), openConfig.getTcpSendBufSize()));
+            }
+            else {
+                out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
+            }
+
             open = true;
         }
         else {
@@ -283,8 +296,20 @@ public class EtSystem {
         sock = sys.getSocket();
 
         // buffer communication streams for efficiency
-        in   = new DataInputStream( new BufferedInputStream( sock.getInputStream(),  65535));
-        out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), 65535));
+        if (openConfig.getTcpRecvBufSize() > 0) {
+            in = new DataInputStream(new BufferedInputStream(sock.getInputStream(), openConfig.getTcpRecvBufSize()));
+        }
+        else {
+            in = new DataInputStream( new BufferedInputStream( sock.getInputStream(),  sock.getReceiveBufferSize()));
+        }
+
+        if (openConfig.getTcpSendBufSize() > 0) {
+            out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), openConfig.getTcpSendBufSize()));
+        }
+        else {
+            out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
+        }
+
         open = true;
     }
 
@@ -1186,7 +1211,7 @@ public class EtSystem {
                    EtEmptyException, EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
 
-        return newEvents(att, mode, microSec, count, size, 1);
+        return newEvents(att, mode, false, microSec, count, size, 1);
     }
 
 
@@ -1264,6 +1289,9 @@ public class EtSystem {
      *                  whether to wait for some by sleeping {@link Mode#SLEEP},
      *                  to wait for a set time {@link Mode#TIMED},
      *                  or to return immediately {@link Mode#ASYNC}.
+     * @param noBuffer  if <code>true</code>, the new events are to have no byte array and
+     *                  no associated ByteBuffer created. Also the user must supply the
+     *                  ByteBuffer using {@link EtEventImpl#setDataBuffer(java.nio.ByteBuffer)}.
      * @param microSec  the number of microseconds to wait if a timed wait is specified
      * @param count     the number of events desired
      * @param size      the size of events in bytes
@@ -1294,8 +1322,8 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec,
-                                          int count, int size, int group)
+    synchronized public EtEvent[] newEvents(EtAttachment att, Mode mode, boolean noBuffer,
+                                            int microSec, int count, int size, int group)
             throws IOException, EtException, EtDeadException,
                    EtEmptyException,   EtBusyException,
                    EtTimeoutException, EtWakeUpException  {
@@ -1416,7 +1444,7 @@ public class EtSystem {
         }
 
         for (int j=0; j < numEvents; j++) {
-            evs[j] = new EtEventImpl(size, (int)sizeLimit, isJava);
+            evs[j] = new EtEventImpl(size, (int)sizeLimit, isJava, noBuffer);
             evs[j].setId(EtUtils.bytesToInt(buffer, index+=4));
             evs[j].setModify(Modify.ANYTHING);
             evs[j].setOwner(att.getId());
@@ -1667,7 +1695,7 @@ public class EtSystem {
                     memSize = length;
                 }
             }
-            evs[j] = new EtEventImpl((int)memSize, (int)memSize, isJava);
+            evs[j] = new EtEventImpl((int)memSize, (int)memSize, isJava, false);
             evs[j].setLength((int)length);
             evs[j].getDataBuffer().limit((int)length);
             priAndStat = EtUtils.bytesToInt(buffer, 16);
@@ -1792,6 +1820,7 @@ public class EtSystem {
      *     if invalid arg(s);
      *     if not connected to ET system;
      *     if events are not owned by this attachment;
+     *     if null data buffer & whole event's being modified;
      * @throws EtDeadException
      *     if the ET system processes are dead
      */
@@ -1867,7 +1896,7 @@ public class EtSystem {
                 // send data only if modifying whole event
                 if (evs[i].getModify() == Modify.ANYTHING) {
                     ByteBuffer buf = evs[i].getDataBuffer();
-                    // buf should never be null
+                    if (buf == null) throw new EtException("null data buffer");
                     if (!buf.hasArray()) {
 //System.out.println("Memory mapped buffer does NOT have a backing array !!!");
                         for (int j=0; j<evs[i].getLength(); j++) {
