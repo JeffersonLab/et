@@ -959,7 +959,7 @@ public class EtSystemOpen {
      * Connect to ET system's server.
      *
      * @throws IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws EtException
      *     if the responing ET system has the wrong name, runs a different version
      *     of ET, or has a different value for {@link EtConstants#stationSelectInts}
@@ -1209,15 +1209,21 @@ public class EtSystemOpen {
 
                 try {
                     // Set NoDelay option for fast response
-                    sock.setTcpNoDelay(true);
+                    if (config.isNoDelay()) {
+                        sock.setTcpNoDelay(true);
+                    }
                     // Set reading timeout to 2 second so dead ET sys
                     // can be found by reading on a socket.
                     sock.setSoTimeout(2000);
                     // Set KeepAlive so we can tell if ET system is dead
                     sock.setKeepAlive(true);
-                    // Set buffer size
-                    sock.setReceiveBufferSize(65535);
-                    sock.setSendBufferSize(65535);
+                    // Set buffer sizes
+                    if (config.getTcpRecvBufSize() > 0) {
+                        sock.setReceiveBufferSize(config.getTcpRecvBufSize());
+                    }
+                    if (config.getTcpSendBufSize() > 0) {
+                        sock.setSendBufferSize(config.getTcpSendBufSize());
+                    }
 
                     // Pick outgoing interface & ephemeral port BEFORE connecting
                     if (config.getNetworkInterface() != null) {
