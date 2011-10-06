@@ -1292,6 +1292,7 @@ public class EtSystem {
      * @param noBuffer  if <code>true</code>, the new events are to have no byte array and
      *                  no associated ByteBuffer created. Also the user must supply the
      *                  ByteBuffer using {@link EtEventImpl#setDataBuffer(java.nio.ByteBuffer)}.
+     *                  Only used if connecting remotely.
      * @param microSec  the number of microseconds to wait if a timed wait is specified
      * @param count     the number of events desired
      * @param size      the size of events in bytes
