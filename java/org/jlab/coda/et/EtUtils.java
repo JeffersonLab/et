@@ -110,7 +110,7 @@ public class EtUtils {
      * @param off offset into the byte array
      */
     public static void shortToBytes(short shortVal, byte[] b, int off) {
-        shortToBytes(shortVal, ByteOrder.BIG_ENDIAN, b, off);
+        shortToBytes(shortVal, null, b, off);
     }
 
     /**
@@ -120,7 +120,7 @@ public class EtUtils {
      * @param off offset into the byte array
      */
     public static void intToBytes(int intVal, byte[] b, int off) {
-        intToBytes(intVal, ByteOrder.BIG_ENDIAN, b, off);
+        intToBytes(intVal, null, b, off);
     }
 
     /**
@@ -130,7 +130,7 @@ public class EtUtils {
      * @param off offset into the byte array
      */
     public static void longToBytes(long longVal, byte[] b, int off) {
-        longToBytes(longVal, ByteOrder.BIG_ENDIAN, b, off);
+        longToBytes(longVal, null, b, off);
     }
 
 
@@ -231,7 +231,7 @@ public class EtUtils {
      * @return short value
      */
     public static short bytesToShort(byte[] b, int off) {
-        return bytesToShort(b, ByteOrder.BIG_ENDIAN, off);
+        return bytesToShort(b, null, off);
     }
 
     /**
@@ -242,7 +242,7 @@ public class EtUtils {
      * @return integer value
      */
     public static int bytesToInt(byte[] b, int off) {
-        return bytesToInt(b, ByteOrder.BIG_ENDIAN, off);
+        return bytesToInt(b, null, off);
     }
 
     /**
@@ -252,7 +252,7 @@ public class EtUtils {
      * @return long value
      */
     public static long bytesToLong(byte[] b, int off) {
-        return bytesToLong(b, ByteOrder.BIG_ENDIAN, off);
+        return bytesToLong(b, null, off);
     }
 
     /**
