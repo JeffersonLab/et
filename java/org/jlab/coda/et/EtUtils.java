@@ -14,11 +14,95 @@
 
 package org.jlab.coda.et;
 
+import java.nio.ByteOrder;
+
 /**
  * Collection of methods to help manipulate bytes in arrays.
  * @author timmer
  */
 public class EtUtils {
+
+    /**
+     * Turn short into byte array.
+     * Avoids creation of new byte array with each call.
+     *
+     * @param data short to convert
+     * @param byteOrder byte order of returned bytes (big endian if null)
+     * @param dest array in which to store returned bytes
+     * @param off offset into dest array where returned bytes are placed
+     * @throws org.jlab.coda.jevio.EvioException if dest is null or too small or offset negative
+     */
+    public static void shortToBytes(short data, ByteOrder byteOrder, byte[] dest, int off) {
+
+        if (byteOrder == null || byteOrder == ByteOrder.BIG_ENDIAN) {
+            dest[off  ] = (byte)(data >>> 8);
+            dest[off+1] = (byte)(data      );
+        }
+        else {
+            dest[off  ] = (byte)(data      );
+            dest[off+1] = (byte)(data >>> 8);
+        }
+    }
+
+
+    /**
+      * Turn int into byte array.
+      * Avoids creation of new byte array with each call.
+      *
+      * @param data int to convert
+      * @param byteOrder byte order of returned bytes (big endian if null)
+      * @param dest array in which to store returned bytes
+      * @param off offset into dest array where returned bytes are placed
+      */
+     public static void intToBytes(int data, ByteOrder byteOrder, byte[] dest, int off) {
+
+         if (byteOrder == null || byteOrder == ByteOrder.BIG_ENDIAN) {
+             dest[off  ] = (byte)(data >> 24);
+             dest[off+1] = (byte)(data >> 16);
+             dest[off+2] = (byte)(data >>  8);
+             dest[off+3] = (byte)(data      );
+         }
+         else {
+             dest[off  ] = (byte)(data      );
+             dest[off+1] = (byte)(data >>  8);
+             dest[off+2] = (byte)(data >> 16);
+             dest[off+3] = (byte)(data >> 24);
+         }
+     }
+
+     /**
+      * Turn long into byte array.
+      * Avoids creation of new byte array with each call.
+      *
+      * @param data long to convert
+      * @param byteOrder byte order of returned bytes (big endian if null)
+      * @param dest array in which to store returned bytes
+      * @param off offset into dest array where returned bytes are placed
+      */
+     public static void longToBytes(long data, ByteOrder byteOrder, byte[] dest, int off) {
+
+         if (byteOrder == null || byteOrder == ByteOrder.BIG_ENDIAN) {
+             dest[off  ] = (byte)(data >> 56);
+             dest[off+1] = (byte)(data >> 48);
+             dest[off+2] = (byte)(data >> 40);
+             dest[off+3] = (byte)(data >> 32);
+             dest[off+4] = (byte)(data >> 24);
+             dest[off+5] = (byte)(data >> 16);
+             dest[off+6] = (byte)(data >>  8);
+             dest[off+7] = (byte)(data      );
+         }
+         else {
+             dest[off  ] = (byte)(data      );
+             dest[off+1] = (byte)(data >>  8);
+             dest[off+2] = (byte)(data >> 16);
+             dest[off+3] = (byte)(data >> 24);
+             dest[off+4] = (byte)(data >> 32);
+             dest[off+5] = (byte)(data >> 40);
+             dest[off+6] = (byte)(data >> 48);
+             dest[off+7] = (byte)(data >> 56);
+         }
+     }
+
     /**
      * Copies a short value into 2 bytes of a byte array.
      * @param shortVal short value
@@ -26,8 +110,128 @@ public class EtUtils {
      * @param off offset into the byte array
      */
     public static void shortToBytes(short shortVal, byte[] b, int off) {
-        b[off]   = (byte) ((shortVal & 0xff00) >>> 8);
-        b[off+1] = (byte)  (shortVal & 0x00ff);
+        shortToBytes(shortVal, ByteOrder.BIG_ENDIAN, b, off);
+    }
+
+    /**
+     * Copies an integer value into 4 bytes of a byte array.
+     * @param intVal integer value
+     * @param b byte array
+     * @param off offset into the byte array
+     */
+    public static void intToBytes(int intVal, byte[] b, int off) {
+        intToBytes(intVal, ByteOrder.BIG_ENDIAN, b, off);
+    }
+
+    /**
+     * Copies an long (64 bit) value into 8 bytes of a byte array.
+     * @param longVal long value
+     * @param b byte array
+     * @param off offset into the byte array
+     */
+    public static void longToBytes(long longVal, byte[] b, int off) {
+        longToBytes(longVal, ByteOrder.BIG_ENDIAN, b, off);
+    }
+
+
+    /**
+     * Turn section of byte array into a short.
+     *
+     * @param data byte array to convert
+     * @param byteOrder byte order of supplied bytes (big endian if null)
+     * @param off offset into data array
+     * @return short converted from byte array
+     */
+    public static short bytesToShort(byte[] data, ByteOrder byteOrder, int off) {
+
+        if (byteOrder == null || byteOrder == ByteOrder.BIG_ENDIAN) {
+            return (short)(
+                (0xff & data[  off]) << 8 |
+                (0xff & data[1+off])
+            );
+        }
+        else {
+            return (short)(
+                (0xff & data[  off]) |
+                (0xff & data[1+off] << 8)
+            );
+        }
+    }
+
+    /**
+     * Turn section of byte array into an int.
+     *
+     * @param data byte array to convert
+     * @param byteOrder byte order of supplied bytes (big endian if null)
+     * @param off offset into data array
+     * @return int converted from byte array
+     */
+    public static int bytesToInt(byte[] data, ByteOrder byteOrder, int off) {
+
+        if (byteOrder == null || byteOrder == ByteOrder.BIG_ENDIAN) {
+            return (
+                (0xff & data[  off]) << 24 |
+                (0xff & data[1+off]) << 16 |
+                (0xff & data[2+off]) <<  8 |
+                (0xff & data[3+off])
+            );
+        }
+        else {
+            return (
+                (0xff & data[  off])       |
+                (0xff & data[1+off]) <<  8 |
+                (0xff & data[2+off]) << 16 |
+                (0xff & data[3+off]) << 24
+            );
+        }
+    }
+
+    /**
+     * Turn section of byte array into a long.
+     *
+     * @param data byte array to convert
+     * @param byteOrder byte order of supplied bytes (big endian if null)
+     * @param off offset into data array
+     * @return long converted from byte array
+     */
+    public static long bytesToLong(byte[] data, ByteOrder byteOrder, int off) {
+
+        if (byteOrder == null || byteOrder == ByteOrder.BIG_ENDIAN) {
+            return (
+                // Convert to longs before shift because digits
+                // are lost with ints beyond the 32-bit limit
+                (long)(0xff & data[  off]) << 56 |
+                (long)(0xff & data[1+off]) << 48 |
+                (long)(0xff & data[2+off]) << 40 |
+                (long)(0xff & data[3+off]) << 32 |
+                (long)(0xff & data[4+off]) << 24 |
+                (long)(0xff & data[5+off]) << 16 |
+                (long)(0xff & data[6+off]) <<  8 |
+                (long)(0xff & data[7+off])
+            );
+        }
+        else {
+            return (
+                (long)(0xff & data[  off])       |
+                (long)(0xff & data[1+off]) <<  8 |
+                (long)(0xff & data[2+off]) << 16 |
+                (long)(0xff & data[3+off]) << 24 |
+                (long)(0xff & data[4+off]) << 32 |
+                (long)(0xff & data[5+off]) << 40 |
+                (long)(0xff & data[6+off]) << 48 |
+                (long)(0xff & data[7+off]) << 56
+            );
+        }
+    }
+
+    /**
+     * Converts 2 bytes of a byte array into a short.
+     * @param b byte array
+     * @param off offset into the byte array (0 = start at first element)
+     * @return short value
+     */
+    public static short bytesToShort(byte[] b, int off) {
+        return bytesToShort(b, ByteOrder.BIG_ENDIAN, off);
     }
 
     /**
@@ -38,23 +242,7 @@ public class EtUtils {
      * @return integer value
      */
     public static int bytesToInt(byte[] b, int off) {
-        return ((b[off]     & 0xff) << 24 |
-                (b[off + 1] & 0xff) << 16 |
-                (b[off + 2] & 0xff) <<  8 |
-                 b[off + 3] & 0xff);
-    }
-
-    /**
-     * Copies an integer value into 4 bytes of a byte array.
-     * @param intVal integer value
-     * @param b byte array
-     * @param off offset into the byte array
-     */
-    public static void intToBytes(int intVal, byte[] b, int off) {
-      b[off]   = (byte) ((intVal & 0xff000000) >>> 24);
-      b[off+1] = (byte) ((intVal & 0x00ff0000) >>> 16);
-      b[off+2] = (byte) ((intVal & 0x0000ff00) >>>  8);
-      b[off+3] = (byte)  (intVal & 0x000000ff);
+        return bytesToInt(b, ByteOrder.BIG_ENDIAN, off);
     }
 
     /**
@@ -64,33 +252,8 @@ public class EtUtils {
      * @return long value
      */
     public static long bytesToLong(byte[] b, int off) {
-      return ((b[off]   & 0xffL) << 56 |
-              (b[off+1] & 0xffL) << 48 |
-              (b[off+2] & 0xffL) << 40 |
-              (b[off+3] & 0xffL) << 32 |
-              (b[off+4] & 0xffL) << 24 |
-              (b[off+5] & 0xffL) << 16 |
-              (b[off+6] & 0xffL) <<  8 |
-               b[off+7] & 0xffL);
+        return bytesToLong(b, ByteOrder.BIG_ENDIAN, off);
     }
-
-    /**
-     * Copies an long (64 bit) value into 8 bytes of a byte array.
-     * @param longVal long value
-     * @param b byte array
-     * @param off offset into the byte array
-     */
-    public static void longToBytes(long longVal, byte[] b, int off) {
-        b[off]   = (byte) ((longVal & 0xff00000000000000L) >>> 56);
-        b[off+1] = (byte) ((longVal & 0x00ff000000000000L) >>> 48);
-        b[off+2] = (byte) ((longVal & 0x0000ff0000000000L) >>> 40);
-        b[off+3] = (byte) ((longVal & 0x000000ff00000000L) >>> 32);
-        b[off+4] = (byte) ((longVal & 0x00000000ff000000L) >>> 24);
-        b[off+5] = (byte) ((longVal & 0x0000000000ff0000L) >>> 16);
-        b[off+6] = (byte) ((longVal & 0x000000000000ff00L) >>>  8);
-        b[off+7] = (byte)  (longVal & 0x00000000000000ffL);
-    }
-
 
     /**
      * Swaps 4 bytes of a byte array in place.
@@ -110,16 +273,6 @@ public class EtUtils {
     }
 
     /**
-     * Converts 2 bytes of a byte array into a short.
-     * @param b byte array
-     * @param off offset into the byte array (0 = start at first element)
-     * @return short value
-     */
-    public static short bytesToShort(byte[] b, int off) {
-        return (short) (((b[off]&0xff) << 8) | (b[off+1]&0xff));
-    }
-
-    /**
      * Swaps 2 bytes of a byte array in place.
      * @param b byte array
      * @param off offset into the byte array
@@ -131,4 +284,8 @@ public class EtUtils {
         b[off+1] = b1;
         b[off]   = b2;
     }
+
+
+
+
 }
