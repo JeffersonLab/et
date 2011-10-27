@@ -15,6 +15,7 @@
 package org.jlab.coda.et;
 
 import java.lang.*;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.io.*;
 import java.net.*;
@@ -1874,6 +1875,9 @@ public class EtSystem {
             return;
         }
 
+        int indx;
+        int[] control;
+        byte[] header = new byte[headerSize];
 
         out.writeInt(EtConstants.netEvsPut);
         out.writeInt(att.getId());
@@ -1883,16 +1887,20 @@ public class EtSystem {
         for (int i=offset; i < offset+length; i++) {
             // send only if modifying an event (data or header) ...
             if (evs[i].getModify() != Modify.NOTHING) {
-                out.writeInt(evs[i].getId());
-                out.writeInt(0); // not used
-                out.writeLong((long)evs[i].getLength());
-                out.writeInt(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift);
-                out.writeInt(evs[i].getRawByteOrder());
-                out.writeInt(0); // not used
-                int[] control = evs[i].getControl();
-                for (int j=0; j < selectInts; j++) {
-                    out.writeInt(control[j]);
+                EtUtils.intToBytes(evs[i].getId(), ByteOrder.BIG_ENDIAN, header, 0);
+                // skip 1 int here
+                EtUtils.longToBytes((long) evs[i].getLength(), ByteOrder.BIG_ENDIAN, header, 8);
+                EtUtils.intToBytes(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift,
+                                   ByteOrder.BIG_ENDIAN, header, 16);
+                EtUtils.intToBytes(evs[i].getRawByteOrder(), ByteOrder.BIG_ENDIAN, header, 20);
+                indx = 28;  // skip 1 int here
+                control = evs[i].getControl();
+                for (int j=0; j < selectInts; j++,indx+=4) {
+                    EtUtils.intToBytes(control[j], ByteOrder.BIG_ENDIAN, header, indx);
                 }
+                // Much Faster to put header data into byte array and write
+                // it out once instead of writing each int and long.
+                out.write(header);
 
                 // send data only if modifying whole event
                 if (evs[i].getModify() == Modify.ANYTHING) {
