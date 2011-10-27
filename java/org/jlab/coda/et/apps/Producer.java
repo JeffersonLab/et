@@ -33,12 +33,13 @@ public class Producer {
 
 
     private static void usage() {
-        System.out.println("\nUsage: java Producer -f <ET name> -host <ET host> [-h] [-v] [-c <chunk size>] [-d <delay>]\n" +
+        System.out.println("\nUsage: java Producer -f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-d <delay>]\n" +
                 "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]\n\n" +
                 "       -host  ET system's host\n" +
                 "       -f     ET system's (memory-mapped file) name\n" +
                 "       -h     help\n" +
                 "       -v     verbose output\n" +
+                "       -r     act as remote (TCP) client even if ET system is local\n" +
                 "       -c     number of events in one get/put array\n" +
                 "       -d     delay in millisec between each round of getting and putting events\n" +
                 "       -s     event size in bytes\n" +
@@ -59,6 +60,7 @@ public class Producer {
         int size  = 32;
         int chunk = 1;
         boolean verbose = false;
+        boolean remote  = false;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equalsIgnoreCase("-f")) {
@@ -148,6 +150,9 @@ public class Producer {
             else if (args[i].equalsIgnoreCase("-v")) {
                 verbose = true;
             }
+            else if (args[i].equalsIgnoreCase("-r")) {
+                remote = true;
+            }
             else {
                 usage();
                 return;
@@ -162,6 +167,7 @@ public class Producer {
         try {
             // Make a direct connection to ET system's tcp server
             EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
+            config.setConnectRemotely(remote);
 
             // EXAMPLE: Broadcast to find ET system
             //EtSystemOpenConfig config = new EtSystemOpenConfig();
@@ -211,7 +217,7 @@ public class Producer {
                 if (delay > 0) Thread.sleep(delay);
 
                 // example of how to manipulate events
-                if (true) {
+                if (false) {
                     for (int j = 0; j < mevs.length; j++) {
                         // put integer (j + startingVal) into data buffer
                         int swappedData = Integer.reverseBytes(j + startingVal);
