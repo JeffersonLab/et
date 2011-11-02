@@ -226,6 +226,34 @@ public class EtEventImpl implements EtEvent {
         this.owner = owner;
     }
 
+    /**
+     * Creates an event object by duplicating another.
+     *
+     * @param ev event to duplicate
+     */
+    EtEventImpl(EtEventImpl ev) {
+        this.isJava     = ev.isJava;
+        this.memSize    = ev.memSize;
+        this.sizeLimit  = ev.sizeLimit;
+        this.dataStatus = ev.dataStatus;
+        this.id         = ev.id;
+        this.age        = ev.age;
+        this.owner      = ev.owner;
+        this.group      = ev.group;
+        this.modify     = ev.modify;
+        this.length     = ev.length;
+        this.priority   = ev.priority;
+        this.byteOrder  = ev.byteOrder;
+
+        this.control    = ev.control.clone();
+        this.data       = ev.data.clone();
+
+        this.dataBuffer = ByteBuffer.wrap(data);
+        this.dataBuffer.limit(ev.dataBuffer.limit());
+        this.dataBuffer.position(ev.dataBuffer.position());
+        // Cannot copy the mark, oh well.
+    }
+
     /** Initialize an event's fields. Called for an event each time it passes
      *  through GRAND_CENTRAL station. */
     public void init() {
