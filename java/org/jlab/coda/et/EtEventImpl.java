@@ -201,6 +201,46 @@ public class EtEventImpl implements EtEvent {
 
     /**
      * Creates an event object for ET system users when connecting to local, C-based ET systems
+     * and using native methods to call et_events_get. The ByteBuffer object is created in JNI
+     * code and directly "wraps" the et data pointer from the ET event obtained through
+     * et_events_get.
+     * Tons of args since it's a lot easier in
+     * JNI to call one method with lots of args then to call lots of set methods on one object.
+     *
+     * @param size      {@link #memSize}
+     * @param limit     {@link #sizeLimit}
+     * @param status    {@link #dataStatus}
+     * @param id        {@link #id}
+     * @param age       {@link #age}
+     * @param owner     {@link #owner}
+     * @param modify    {@link #modify}
+     * @param length    {@link #length}
+     * @param priority  {@link #modify}
+     * @param byteOrder {@link #byteOrder}
+     * @param control   {@link #control}
+     * @param buffer    {@link #dataBuffer}
+     */
+    EtEventImpl(int size, int limit, int status, int id, int age, int owner,
+                int modify, int length, int priority, int byteOrder, int[] control,
+                ByteBuffer buffer) {
+
+        isJava         = false;
+        memSize        = size;
+        sizeLimit      = limit;
+        dataStatus     = DataStatus.getStatus(status);
+        this.id        = id;
+        this.age       = Age.getAge(age);
+        this.owner     = owner;
+        this.modify    = Modify.getModify(modify);
+        this.length    = length;
+        this.priority  = Priority.getPriority(priority);
+        this.byteOrder = byteOrder;
+        this.control   = control;
+        dataBuffer     = buffer;
+    }
+
+    /**
+     * Creates an event object for ET system users when connecting to local, C-based ET systems
      * and using native methods to call et_events_new_group.
      * No data array or buffer are created since we will be using shared
      * memory and it will be taken care of later.
@@ -231,7 +271,7 @@ public class EtEventImpl implements EtEvent {
      *
      * @param ev event to duplicate
      */
-    EtEventImpl(EtEventImpl ev) {
+    public EtEventImpl(EtEventImpl ev) {
         this.isJava     = ev.isJava;
         this.memSize    = ev.memSize;
         this.sizeLimit  = ev.sizeLimit;
