@@ -195,6 +195,29 @@ class EtJniAccess {
 
 
     /**
+     * Get array of integers from the local, C-based ET system containing all information
+     * necessary to construct an array of events.
+     *
+     * @param etId   ET system id
+     * @param attId  attachment id
+     * @param mode   if there are no events available, this parameter specifies
+     *               whether to wait for some by sleeping {@link EtConstants#sleep},
+     *               to wait for a set time {@link EtConstants#timed},
+     *               or to return immediately {@link EtConstants#async}.
+     * @param sec    the number of seconds to wait if a timed wait is specified
+     * @param nsec   the number of nanoseconds to wait if a timed wait is specified
+     * @param count  number of events desired. Size may be different from that requested.
+     *
+     * @return array of events obtained from ET system. Count may be different from that requested.
+     *
+     * @throws EtException     for variety of general errors
+     * @throws EtDeadException if ET system is dead
+     */
+    native int[] getEventsInfo(long etId, int attId, int mode, int sec, int nsec, int count)
+            throws EtException, EtDeadException;
+
+
+    /**
      * Get new (unused) events from a specified group of such events from the local, C-based ET system.
      *
      * @param etId   ET system id
