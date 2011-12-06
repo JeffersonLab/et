@@ -76,7 +76,7 @@
 
     <!-- Compile all source -->
     <target name="compile" depends="prepare" description="Compiles all source code.">
-        <javac destdir="${build.classes}" debug="${javac.debug}" >
+        <javac destdir="${build.classes}" debug="${javac.debug}" optimize="yes" >
             <src path="${src.dir}" />
             <classpath refid="classpath" />
         </javac>
