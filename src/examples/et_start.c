@@ -24,6 +24,7 @@
 #include <strings.h>
 #include <signal.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "et_private.h"
 
 int main(int argc, char **argv)
@@ -35,6 +36,7 @@ int main(int argc, char **argv)
   char          mcastAddr[ET_IPADDRSTRLEN];
   int           status, sig_num, serverPort=0, udpPort=0;
   int           et_verbose = ET_DEBUG_NONE, deleteFile=0;
+  int           sendBufSize=0, recvBufSize=0, noDelay=0;
   sigset_t      sigblockset, sigwaitset;
   et_sysconfig  config;
   et_sys_id     id;
@@ -52,10 +54,19 @@ int main(int argc, char **argv)
   char *et_filename = NULL;
   char  et_name[ET_FILENAME_LENGTH];
 
+  /* multiple character command-line options */
+  static struct option long_options[] = {
+      {"rb",   1, NULL, 1},
+      {"sb",   1, NULL, 2},
+      {"nd",   0, NULL, 3},
+      {0, 0, 0, 0}
+  };
+
+
   memset(mcastAddr, 0, ET_IPADDRSTRLEN);
   
-  while ((c = getopt(argc, argv, "vdn:s:p:u:m:a:f:g:")) != EOF) {
-      
+  while ((c = getopt_long_only(argc, argv, "vdn:s:p:u:m:a:f:g:", long_options, 0)) != EOF) {
+
        if (c == -1)
           break;
 
@@ -136,6 +147,28 @@ int main(int argc, char **argv)
               et_verbose = ET_DEBUG_INFO;
               break;
 
+          case 1:
+              i_tmp = atoi(optarg);
+              if (i_tmp < 1) {
+                  printf("Invalid argument to -rb. Recv buffer size must be > 0.\n");
+                  exit(-1);
+              }
+              recvBufSize = i_tmp;
+              break;
+
+          case 2:
+              i_tmp = atoi(optarg);
+              if (i_tmp < 1) {
+                  printf("Invalid argument to -rb. Send buffer size must be > 0.\n");
+                  exit(-1);
+              }
+              sendBufSize = i_tmp;
+              break;
+
+          case 3:
+              noDelay = 1;
+              break;
+
           case ':':
           case 'h':
           case '?':
@@ -146,10 +179,11 @@ int main(int argc, char **argv)
     
   if (optind < argc || errflg){
       fprintf(stderr,
-              "usage: %s  %s\n%s",
+              "usage: %s  %s\n%s\n%s",
               argv[0],
               "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>] [-g <groups>]",
-              "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]\n");
+              "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
+              "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n");
       
       fprintf(stderr, "          -h for help\n");
       fprintf(stderr, "          -v for verbose output\n");
@@ -161,6 +195,9 @@ int main(int argc, char **argv)
       fprintf(stderr, "          -p sets TCP server port #\n");
       fprintf(stderr, "          -u sets UDP (broadcast &/or multicast) port #\n");
       fprintf(stderr, "          -a sets multicast address\n");
+      fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
+      fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
+      fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
       exit(2);
   }
 
@@ -248,6 +285,9 @@ int main(int argc, char **argv)
   
   /* set UDP (broadcast/multicast) port */
   if (udpPort > 0) et_system_config_setport(config, udpPort);
+
+  /* set server's TCP parameters */
+  et_system_config_settcp(config, recvBufSize, sendBufSize, noDelay);
   
   /* add multicast address to listen to  */
   if (strlen(mcastAddr) > 7) {
