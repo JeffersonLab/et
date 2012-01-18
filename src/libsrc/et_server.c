@@ -240,7 +240,7 @@ static void *et_listen_thread(void *arg)
    * 
    */
   if (debug)
-    printf("\n\net_listen_thread: listening on addr = %s\n", listenaddr);
+    printf("\n\net_listen_thread: listening on addr = %s @ port %d\n", listenaddr, config->port);
 
   /* find length of necessary buffer */
   bufsize = sizeof(magicInts) + 7*sizeof(int) + strlen(uname) + strlen(pinfo[0].canon) + strlen(listenaddr) + 3 /* 3 NULLs */;
