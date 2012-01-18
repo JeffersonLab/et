@@ -117,7 +117,7 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
     }
     else if (err == ET_ERROR_TOOMANY) {
       /* many systems responded */
-      et_logmsg("ERROR", "et_findlocality, multiple ET systems reponded\n");
+      et_logmsg("ERROR", "et_findlocality, multiple ET systems responded\n");
       return err;
     }
     
