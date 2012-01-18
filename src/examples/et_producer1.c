@@ -178,8 +178,8 @@ int main(int argc,char **argv)
         fprintf(stderr, "          -g group from which to get new events (1,2,...)\n");
         fprintf(stderr, "          -p ET server port\n");
         fprintf(stderr, "          -i outgoing network interface IP address (dot-decimal)\n\n");
-        fprintf(stderr, "          This consumer works by making a direct connection to the");
-        fprintf(stderr, "          ET system's server port.");
+        fprintf(stderr, "          This consumer works by making a direct connection to the\n");
+        fprintf(stderr, "          ET system's server port.\n");
         exit(2);
     }
 
