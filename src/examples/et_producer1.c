@@ -39,7 +39,7 @@ static void * signal_thread (void *arg);
 int main(int argc,char **argv)
 {
     int             i, j, c, i_tmp, status, swappedData, numRead;
-    int             startingVal=0, errflg=0, group=1, chunk=1, size=32, verbose=0, delay=0;
+    int             startingVal=0, errflg=0, group=1, chunk=1, size=32, verbose=0, delay=0, remote=0;
     unsigned short  serverPort = ET_SERVER_PORT;
     char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16], interface[16];
 
@@ -70,7 +70,7 @@ int main(int argc,char **argv)
     memset(mcastAddr, 0, 16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vn:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vrn:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
       
         if (c == -1)
             break;
@@ -153,6 +153,10 @@ int main(int argc,char **argv)
                 verbose = ET_DEBUG_INFO;
                 break;
 
+            case 'r':
+                remote = 1;
+                break;
+
             case ':':
             case 'h':
             case '?':
@@ -165,13 +169,14 @@ int main(int argc,char **argv)
         fprintf(stderr,
                 "usage: %s  %s\n%s\n\n",
                 argv[0],
-                "-f <ET name> -host <ET host> [-h] [-v] [-c <chunk size>] [-d <delay>]",
+                "-f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-d <delay>]",
                 "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]");
 
         fprintf(stderr, "          -host ET system's host\n");
         fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
         fprintf(stderr, "          -h help\n");
         fprintf(stderr, "          -v verbose output\n");
+        fprintf(stderr, "          -r act as remote (TCP) client even if ET system is local\n");
         fprintf(stderr, "          -c number of events in one get/put array\n");
         fprintf(stderr, "          -d delay in millisec between each round of getting and putting events\n");
         fprintf(stderr, "          -s event size in bytes\n");
@@ -219,25 +224,31 @@ int main(int argc,char **argv)
     /* open ET system */
     /******************/
     et_open_config_init(&openconfig);
-    et_open_config_setcast(openconfig, ET_DIRECT);
-    et_open_config_sethost(openconfig, host);
-    et_open_config_setserverport(openconfig, serverPort);
-    if (strlen(interface) > 6) {
-        et_open_config_setinterface(openconfig, interface);
-    }
+
+    /* EXAMPLE: direct connection to ET */
+   et_open_config_setcast(openconfig, ET_DIRECT);
+   et_open_config_sethost(openconfig, host);
+   et_open_config_setserverport(openconfig, serverPort);
+   if (strlen(interface) > 6) {
+       et_open_config_setinterface(openconfig, interface);
+   }
 
     /* EXAMPLE: multicasting to find ET */
-    /*et_open_config_setcast(openconfig, ET_MULTICAST);*/
-    /*et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);*/
-    /*et_open_config_setmultiport(openconfig, 11112);*/
-    /*et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);*/
-
+    /*
+    et_open_config_setcast(openconfig, ET_MULTICAST);
+    et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
+    et_open_config_setmultiport(openconfig, 11112);
+    et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    */
+   
     /* EXAMPLE: broadcasting to find ET */
     /*et_open_config_setcast(openconfig, ET_BROADCAST);*/
     /*et_open_config_addbroadcast(openconfig, "129.57.29.255");*/
     /*et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);*/
     
-    /*et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);*/
+    if (remote) {
+        et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+    }
     
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
