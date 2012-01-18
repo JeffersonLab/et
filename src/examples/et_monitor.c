@@ -170,7 +170,7 @@ int main(int argc,char **argv)
         fprintf(stderr, "          -t time period in seconds between updates\n");
         fprintf(stderr, "          -p ET server port\n\n");
         fprintf(stderr, "          This monitor works by making a direct connection to the\n");
-        fprintf(stderr, "          ET system's server port.");
+        fprintf(stderr, "          ET system's server port.\n");
         exit(2);
     }
 
