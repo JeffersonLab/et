@@ -226,7 +226,7 @@ int main(int argc, char **argv)
   }
 
   if (deleteFile) {
-    remove(et_filename);
+    remove(et_name);
   }
   
   /********************************/
