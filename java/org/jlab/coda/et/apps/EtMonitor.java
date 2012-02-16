@@ -120,6 +120,7 @@ public class EtMonitor {
 
           // create ET system object with debugging output
           EtSystem sys = new EtSystem(config, EtConstants.debugError);
+          sys.open();
           AllData etData = new AllData();
 
 /*
@@ -142,6 +143,7 @@ public class EtMonitor {
                   display(sys, etData);
               }
               catch (EtException ex) {
+                  ex.printStackTrace();
                   System.out.print("\n*****************************************\n");
                   System.out.print("*   Error getting data from ET system   *");
                   System.out.print("\n*****************************************\n");
