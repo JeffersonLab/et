@@ -150,7 +150,7 @@ class EtJniAccess {
      * @param evs    array of events
      * @param length number of events to be put (starting at index of 0)
      * 
-     * @throws EtException     for variety of general errors
+     * @throws EtException for variety of general errors
      * @throws EtDeadException if ET system is dead
      */
     native void putEvents(long etId, int attId, EtEventImpl[] evs, int length)
@@ -187,8 +187,21 @@ class EtJniAccess {
      *
      * @return array of events obtained from ET system. Count may be different from that requested.
      *
-     * @throws EtException     for variety of general errors
-     * @throws EtDeadException if ET system is dead
+     * @throws EtException
+     *     if general errors
+     * @throws EtDeadException
+     *     if the ET system process is dead
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     native EtEventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException;
@@ -210,8 +223,21 @@ class EtJniAccess {
      *
      * @return array of events obtained from ET system. Count may be different from that requested.
      *
-     * @throws EtException     for variety of general errors
-     * @throws EtDeadException if ET system is dead
+     * @throws EtException
+     *     if general errors
+     * @throws EtDeadException
+     *     if the ET system process is dead
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     native int[] getEventsInfo(long etId, int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException;
@@ -236,13 +262,21 @@ class EtJniAccess {
      *
      * @return array of unused events obtained from ET system. Count may be different from that requested.
      *
-     * @throws EtException        for variety of general errors
-     * @throws EtDeadException    if ET system is dead
-     * @throws EtWakeUpException  if told to stop sleeping (before timeout) while trying to get events
-     * @throws EtTimeoutException if timed out on {@link EtConstants#timed} option
-     * @throws EtEmptyException   if no events available in {@link EtConstants#async} mode
-     * @throws EtBusyException    if cannot get access to events due to activity of other
-     *                            processes when in {@link EtConstants#async} mode
+     * @throws EtException
+     *     if general errors
+     * @throws EtDeadException
+     *     if the ET system process is dead
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
+     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException,        EtDeadException, EtWakeUpException,
