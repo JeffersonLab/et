@@ -113,7 +113,7 @@ et_logmsg("INFO","etr_open: etNetTcpConnect to host %s on port %d\n",ethost,port
               }
             }
             else {
-et_logmsg("INFO","etr_open: etNetTcpConnect2 to address %u on port %d\n",inetaddr,port);
+et_logmsg("INFO","etr_open: etNetTcpConnect2 to address %u (host %s) on port %d\n",inetaddr,ethost,port);
               if (etNetTcpConnect2(inetaddr, config->interface, (unsigned short)port,
                   config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
                   &sockfd, NULL) == ET_OK) {
