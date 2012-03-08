@@ -1501,7 +1501,8 @@ public class EtSystem {
         EtEventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
         //-------------------------------------------------------------------------------------
-        // The following code is no longer needed since memory mapped file is no longer used.
+        // The following code is no longer needed since memory
+        // mapped file is no longer directly used here.
         //-------------------------------------------------------------------------------------
 
         // set all events' data arrays to point to shared memory correctly
