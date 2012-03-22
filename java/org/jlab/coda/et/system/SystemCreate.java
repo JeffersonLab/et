@@ -1427,6 +1427,8 @@ public class SystemCreate {
      * @param eventArray   array of event objects
      */
     void putEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
+        if (eventArray.length < 1) return;
+
         // mark events as used and as owned by system
         for (EtEventImpl ev : eventArray) {
 //System.out.println("putEvents: set age & owner of event " + i);
@@ -1449,6 +1451,8 @@ public class SystemCreate {
      * @param eventList   list of event objects
      */
     private void putEvents(AttachmentLocal att, ArrayList<EtEventImpl> eventList) {
+        if (eventList.size() < 1) return;
+
 //System.out.println("putEvents: got in, array length = " + eventList.length);
         // mark events as used and as owned by system
         for (EtEventImpl ev : eventList) {
@@ -1473,6 +1477,8 @@ public class SystemCreate {
      * @param eventArray   array of event objects
      */
     void dumpEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
+        if (eventArray.length < 1) return;
+
         // mark as owned by system
         for (EtEventImpl ev : eventArray) {
             ev.setOwner(EtConstants.system);
@@ -1496,6 +1502,8 @@ public class SystemCreate {
      * @param eventList   list of event objects
      */
     private void dumpEvents(AttachmentLocal att, ArrayList<EtEventImpl> eventList) {
+        if (eventList.size() < 1) return;
+
         for (EtEventImpl ev : eventList) {
             ev.setOwner(EtConstants.system);
         }
