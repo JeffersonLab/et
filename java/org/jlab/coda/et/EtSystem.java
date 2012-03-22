@@ -2294,6 +2294,11 @@ System.out.println("  getEvents, timed out");
             return;
         }
 
+        // If nothing was modified, we're done, just return.
+        if (numEvents == 0) {
+            return;
+        }
+
         out.writeInt(EtConstants.netEvsDump);
         out.writeInt(att.getId());
         out.writeInt(numEvents);
