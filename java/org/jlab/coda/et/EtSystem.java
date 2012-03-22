@@ -2087,6 +2087,11 @@ System.out.println("  getEvents, timed out");
             return;
         }
 
+        // If nothing was modified, we're done, just return.
+        if (numEvents == 0) {
+            return;
+        }
+
         int indx;
         int[] control;
         byte[] header = new byte[headerSize];
