@@ -166,16 +166,16 @@ class AttachmentLocal {
     }
 
     /**
-     * Is this attachment to wake up or return after returning from blocking read?
-     * @return <code>true</code> if this attachment is to wake up or return after returning from blocking read
+     * Is this attachment to wake up or return during blocking read?
+     * @return <code>true</code> if this attachment is to wake up or return during blocking read
      */
     public boolean isWakeUp() {
         return wakeUp;
     }
 
     /**
-     * Set the flag to wake up or return after returning from blocking read.
-     * @param wakeUp flag to wake up or return after returning from blocking read
+     * Set the flag to wake up or return during blocking read.
+     * @param wakeUp flag to wake up or return during blocking read
      */
     public void setWakeUp(boolean wakeUp) {
         this.wakeUp = wakeUp;
