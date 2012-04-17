@@ -1451,9 +1451,12 @@ public class EtSystem {
                         throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                     }
                     else if (err == EtConstants.errorTimeout) {
-                        // Give other synchronized methods a chance to run
-                        wait = true;
-                        continue;
+                        if (mode == Mode.SLEEP) {
+                            // Give other synchronized methods a chance to run
+                            wait = true;
+                            continue;
+                        }
+                        throw new EtTimeoutException("no events within timeout");
                     }
                 }
 
@@ -1829,9 +1832,12 @@ public class EtSystem {
                         throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                     }
                     else if (err == EtConstants.errorTimeout) {
-                        // Give other synchronized methods a chance to run
-                        wait = true;
-                        continue;
+                        if (mode == Mode.SLEEP) {
+                            // Give other synchronized methods a chance to run
+                            wait = true;
+                            continue;
+                        }
+                        throw new EtTimeoutException("no events within timeout");
                     }
                 }
 
