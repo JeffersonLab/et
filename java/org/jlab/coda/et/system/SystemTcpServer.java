@@ -378,10 +378,21 @@ class ClientThread extends Thread {
 
                             try {
                                 if (mode == EtConstants.timed) {
+                                    // If we've been told to wake up, do so.
+                                    if (att.isWakeUp()) {
+                                        att.setWakeUp(false);
+                                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                                    }
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.getEvents(att, mode, uSec, 1);
                                 }
                                 else if (mode == EtConstants.sleep) {
+                                    // NOTE: currently the sleep mode on the client side is implemented
+                                    // with timed waits because otherwise the client sleeps inside
+                                    // of synchronized code, blocking all other API calls that talk
+                                    // over the network. Thus the following comment and accompanying
+                                    // code are irrelevant.
+
                                     // There's a problem if we have a remote client that is waiting
                                     // for another event by sleeping and the events stop flowing. In
                                     // that case, the client can be killed and the ET system does NOT
@@ -499,6 +510,11 @@ class ClientThread extends Thread {
 
                             try {
                                 if (mode == EtConstants.timed) {
+                                    // If we've been told to wake up, do so.
+                                    if (att.isWakeUp()) {
+                                        att.setWakeUp(false);
+                                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                                    }
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.getEvents(att, mode, uSec, count);
                                 }
@@ -765,6 +781,11 @@ class ClientThread extends Thread {
 
                             try {
                                 if (mode == EtConstants.timed) {
+                                    // If we've been told to wake up, do so.
+                                    if (att.isWakeUp()) {
+                                        att.setWakeUp(false);
+                                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                                    }
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.newEvents(att, mode, uSec, 1, (int)size);
                                 }
@@ -870,6 +891,11 @@ class ClientThread extends Thread {
 
                             try {
                                 if (mode == EtConstants.timed) {
+                                    // If we've been told to wake up, do so.
+                                    if (att.isWakeUp()) {
+                                        att.setWakeUp(false);
+                                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                                    }
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evs = sys.newEvents(att, mode, uSec, count, (int)size);
                                 }
@@ -1024,6 +1050,11 @@ class ClientThread extends Thread {
 
                             try {
                                 if (mode == EtConstants.timed) {
+                                    // If we've been told to wake up, do so.
+                                    if (att.isWakeUp()) {
+                                        att.setWakeUp(false);
+                                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                                    }
                                     int uSec = sec * 1000000 + nsec / 1000;
                                     evList = sys.newEvents(att, mode, uSec, count, (int)size, group);
                                 }
@@ -1184,9 +1215,12 @@ class ClientThread extends Thread {
                             AttachmentLocal att = attachments.get(new Integer(attId));
                             if (att != null) {
                                 att.getStation().getInputList().wakeUp(att);
-                                if (att.isSleepMode()) {
-                                    att.setWakeUp(true);
-                                }
+                                // UPDATE: the client side, when talking over sockets, also
+                                // implements SLEEP mode as a series of TIMED mode call.
+                                // Thus the wake up must be set for them as well.
+                                //if (att.isSleepMode()) {
+                                att.setWakeUp(true);
+                                //}
                             }
                         }
                         break;
@@ -1199,17 +1233,21 @@ class ClientThread extends Thread {
                                 for (StationLocal stat : sys.getStations()) {
                                     if (stat.getStationId() == statId) {
                                         // Since attachments which sleep when getting events don't
-                                        // really sleep but do a timed wait, they occasionally are
+                                        // really sleep (here on server side) but do a timed wait,
+                                        // they occasionally are
                                         // not in a get method but are checking the status of the
                                         // tcp connection. This means they don't know to wake up.
                                         // Solve this problem by setting all the station's
                                         // attachment's wake up flags, so that the next call to
                                         // getEvents will make them all wake up.
 
+                                        // UPDATE: the client side, when talking over sockets, also
+                                        // implements SLEEP mode as a series of TIMED mode call.
+                                        // Thus the wake up must be set for them as well.
                                         for (AttachmentLocal att : stat.getAttachments()) {
-                                            if (att.isSleepMode()) {
-                                                att.setWakeUp(true);
-                                            }
+                                        //    if (att.isSleepMode()) {
+                                            att.setWakeUp(true);
+                                        //    }
                                         }
 
                                         stat.getInputList().wakeUpAll();
