@@ -987,6 +987,7 @@ public class EtSystemOpen {
         dos.flush();
 
         // read what ET's tcp server sends back
+// TODO: add "groups" to the info the ET server sends the client
         if (dis.readInt() != EtConstants.ok) {
             throw new EtException("found the wrong ET system");
         }
