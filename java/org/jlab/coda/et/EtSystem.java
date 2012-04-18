@@ -1378,12 +1378,24 @@ public class EtSystem {
         // may block all usage of this API's synchronized methods.
         // Use repeated calls in TIMED mode. In between those calls,
         // allow other synchronized code to run (such as wakeUpAll).
+        int iterations = 1;
+        int newTimeInterval = 200000;  // (in microsec) wait .2 second intervals for each get
         Mode netMode = mode;
         if (mode == Mode.SLEEP) {
             netMode = Mode.TIMED;
-            microSec = 100000; // wait .1 seconds for each getEvents()
-            sec = microSec/1000000;
-            nsec = (microSec - sec*1000000) * 1000;
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+        }
+        // Also, if there is a long time designated for TIMED mode,
+        // break it up into repeated smaller time chunks for the
+        // reason mentioned above. Don't break it up if timeout <= 1 sec.
+        else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+            // How many times do we call getEvents() with this new timeout value?
+            // It will be an over estimate unless timeout is evenly divisible by .2 seconds.
+            iterations = microSec/newTimeInterval;
+            if (microSec % newTimeInterval > 0) iterations++;
         }
 
         byte[] buffer = new byte[36];
@@ -1451,7 +1463,8 @@ public class EtSystem {
                         throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                     }
                     else if (err == EtConstants.errorTimeout) {
-                        if (mode == Mode.SLEEP) {
+                        // Only get here if using SLEEP or TIMED modes
+                        if (mode == Mode.SLEEP || iterations-- > 0) {
                             // Give other synchronized methods a chance to run
                             wait = true;
                             continue;
@@ -1748,7 +1761,7 @@ public class EtSystem {
 
         // Do we get things locally through JNI?
         if (sys.isMapLocalSharedMemory()) {
-            // Value of "open" valid if synchronized
+            // Value of "open" valid only if synchronized
             synchronized (this) {
                 if (!open) {
                     throw new EtException("Not connected to ET system");
@@ -1761,12 +1774,24 @@ public class EtSystem {
         // may block all usage of this API's synchronized methods.
         // Use repeated calls in TIMED mode. In between those calls,
         // allow other synchronized code to run (such as wakeUpAll).
+        int iterations = 1;
+        int newTimeInterval = 200000;  // (in microsec) wait .2 second intervals for each get
         Mode netMode = mode;
         if (mode == Mode.SLEEP) {
             netMode = Mode.TIMED;
-            microSec = 100000; // wait .1 seconds for each getEvents()
-            sec = microSec/1000000;
-            nsec = (microSec - sec*1000000) * 1000;
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+        }
+        // Also, if there is a long time designated for TIMED mode,
+        // break it up into repeated smaller time chunks for the
+        // reason mentioned above. Don't break it up if timeout <= 1 sec.
+        else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+            // How many times do we call getEvents() with this new timeout value?
+            // It will be an over estimate unless timeout is evenly divisible by .2 seconds.
+            iterations = microSec/newTimeInterval;
+            if (microSec % newTimeInterval > 0) iterations++;
         }
 
         EtEventImpl[] evs;
@@ -1832,7 +1857,8 @@ public class EtSystem {
                         throw new EtWakeUpException("attachment " + att.getId() + " woken up");
                     }
                     else if (err == EtConstants.errorTimeout) {
-                        if (mode == Mode.SLEEP) {
+                        // Only get here if using SLEEP or TIMED modes
+                        if (mode == Mode.SLEEP || iterations-- > 0) {
                             // Give other synchronized methods a chance to run
                             wait = true;
                             continue;
