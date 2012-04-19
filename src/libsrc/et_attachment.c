@@ -26,9 +26,9 @@ int et_wakeup_attachment(et_sys_id id, et_att_id att)
 {
   int status;
   et_id      *etid = (et_id *) id;
-  et_stat_id  stat_id = etid->sys->attach[att].stat;
-  et_station *ps = etid->grandcentral + stat_id;
-  et_list    *pl = &ps->list_in, *pl_gc = &etid->grandcentral->list_in;
+  et_stat_id  stat_id;
+  et_station *ps;
+  et_list    *pl, *pl_gc;
 
   if (att < 0) {
     if (etid->debug >= ET_DEBUG_ERROR) {
@@ -41,6 +41,11 @@ int et_wakeup_attachment(et_sys_id id, et_att_id att)
     return etr_wakeup_attachment(id, att);
   }
   
+  stat_id = etid->sys->attach[att].stat;
+  ps = etid->grandcentral + stat_id;
+  pl = &ps->list_in;
+  pl_gc = &etid->grandcentral->list_in;
+
   if (att >= etid->sys->config.nattachments) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_wakeup_attachment, bad argument\n");
@@ -109,7 +114,7 @@ int et_wakeup_all(et_sys_id id, et_stat_id stat_id)
     att = ps->data.att[i];
     if (att > -1) {
       if ((etid->sys->attach[att].blocked == ET_ATT_BLOCKED) ||
-	  (etid->sys->attach[att].sleep   == ET_ATT_SLEEP)) {
+	      (etid->sys->attach[att].sleep == ET_ATT_SLEEP)) {
         etid->sys->attach[att].quit = ET_ATT_QUIT;
         if (etid->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_wakeup_all, waking up attachment %d\n", att);
