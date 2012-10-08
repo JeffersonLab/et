@@ -182,6 +182,15 @@ public final class EtConstants {
      *  @see EtStationConfig#setFlowMode(int)  */
     public static final int    stationParallelHead    = 2;
 
+    // name length limits
+
+    /** Maximum characters allowed in et file name. */
+    public static final int    fileNameLenMax      = 99;
+    /** Maximum characters allowed in station name. */
+    public static final int    stationNameLenMax   = 47;
+    /** Maximum characters allowed in station filter function name. */
+    public static final int    functionNameLenMax  = 47;
+
     // station defaults
 
     /** A default input list cue size for a nonblocking station.
