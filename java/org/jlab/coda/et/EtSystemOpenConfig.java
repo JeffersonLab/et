@@ -149,6 +149,8 @@ public class EtSystemOpenConfig {
      *               {@link EtConstants#policyLocal}, or {@link EtConstants#policyError}
      *
      * @throws EtException
+     *     if null or blank etName;
+     *     if etName too long;
      *     if method value is not valid;
      *     if method is not direct and no broad/multicast addresses were specified;
      *     if method is direct and no actual host name was specified;
@@ -169,6 +171,10 @@ public class EtSystemOpenConfig {
             throw new EtException("Bad ET system name");
         }
 
+        if (etName.length() > EtConstants.fileNameLengthMax) {
+            throw new EtException("ET system name too long (> " + EtConstants.fileNameLengthMax + " chars)");
+        }
+
         host = hostName;
         if (host == null || host.equals("")) {
             if (method != EtConstants.broadcast) {
@@ -186,6 +192,8 @@ public class EtSystemOpenConfig {
         boolean noMulticastAddrs = true;
         if ((mAddrs == null) || (mAddrs.size() < 1)) {
             multicastAddrs = new HashSet<String>(10);
+            multicastAddrs.add(EtConstants.multicastAddr);
+            noMulticastAddrs = false;
         }
         else {
             multicastAddrs = new HashSet<String>(mAddrs);
