@@ -80,8 +80,9 @@ public class EtStationConfig implements Serializable {
      * Determine the method of filtering events for selection into the station's
      * input list. A value of {@link EtConstants#stationSelectAll} applies no
      * filtering, {@link EtConstants#stationSelectMatch} applies a builtin
-     * method for selection ({@link org.jlab.coda.et.system.StationLocal#select}), and
-     * {@link EtConstants#stationSelectUser} allows the user to define a selection
+     * method for selection
+     * ({@link org.jlab.coda.et.system.StationLocal#select(org.jlab.coda.et.system.SystemCreate, org.jlab.coda.et.system.StationLocal, EtEvent)}),
+     * and {@link EtConstants#stationSelectUser} allows the user to define a selection
      * method. If the station is part of a single group of parallel stations, a
      * value of {@link EtConstants#stationSelectRRobin} distributes events among the
      * parallel stations using a round robin algorithm. Similarly, if the station
@@ -374,26 +375,38 @@ public class EtStationConfig implements Serializable {
      * Sets the station's user-defined select function.
      *
      * @param func name of the user-defined select function
+     * @throws EtException if argument is too long
      */
-    public void setSelectFunction(String func) {
+    public void setSelectFunction(String func) throws EtException {
+        if (func.length() > EtConstants.functionNameLenMax) {
+            throw new EtException("arg is too long (> " + EtConstants.functionNameLenMax + " chars)");
+        }
         selectFunction = func;
     }
 
     /**
      * Sets the library containing the user-defined select function.
      *
-     * @param lib name of the library containg the user-defined select function
+     * @param lib name of the library containing the user-defined select function
+     * @throws EtException if argument is too long
      */
-    public void setSelectLibrary(String lib) {
+    public void setSelectLibrary(String lib) throws EtException {
+        if (lib.length() > EtConstants.fileNameLenMax) {
+            throw new EtException("arg is too long (> " + EtConstants.fileNameLenMax + " chars)");
+        }
         selectLibrary = lib;
     }
 
     /**
      * Sets the class containing the user-defined select method.
      *
-     * @param sClass name of the class containg the user-defined select method
+     * @param sClass name of the class containing the user-defined select method
+     * @throws EtException if argument is too long
      */
-    public void setSelectClass(String sClass) {
+    public void setSelectClass(String sClass) throws EtException {
+        if (sClass.length() > EtConstants.fileNameLenMax) {
+            throw new EtException("arg is too long (> " + EtConstants.fileNameLenMax + " chars)");
+        }
         selectClass = sClass;
     }
 }
