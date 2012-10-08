@@ -105,6 +105,13 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
     }
     return ET_ERROR;
   }
+
+  if (wait == ET_TIMED && deltatime == NULL) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_event_new, specify a time for ET_TIMED mode\n");
+      }
+      return ET_ERROR;
+  }
   
   if (etid->locality == ET_REMOTE) {
     return etr_event_new(id, att, pe, mode, deltatime, size);
@@ -140,7 +147,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
       return status;
     }
   }
-  else if (deltatime != NULL) {
+  else {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -173,12 +180,6 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
       }
       return status;
     }
-  }
-  else {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_event_new, specify a time for ET_TIMED mode\n");
-    }
-    return ET_ERROR;
   }
     
   /* make a temporary buffer for extra large event */
@@ -282,6 +283,13 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
     return ET_ERROR;
   }
     
+  if (wait == ET_TIMED && deltatime == NULL) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_events_new, specify a time for ET_TIMED mode\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (etid->locality == ET_REMOTE) {
     return etr_events_new(id, att, pe, mode, deltatime, size, num, nread);
   }
@@ -323,7 +331,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
       return status;
     }
   }
-  else if (deltatime != NULL) {
+  else {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -356,12 +364,6 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
       }
       return status;
     }
-  }
-  else {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_events_new, specify a time for ET_TIMED mode\n");
-    }
-    return ET_ERROR;
   }
   
   /* make a temporary buffer for extra large event */
@@ -473,6 +475,13 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
         return ET_ERROR;
     }
 
+    if (wait == ET_TIMED && deltatime == NULL) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_events_new_group, specify a time for ET_TIMED mode\n");
+        }
+        return ET_ERROR;
+    }
+  
     if (etid->locality == ET_REMOTE) {
         return etr_events_new_group(id, att, pe, mode, deltatime, size, num, group, nread);
     }
@@ -520,7 +529,7 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
             return status;
         }
     }
-    else if (deltatime != NULL) {
+    else {
         /* translate a delta time into an absolute time */
         int nsec_total;
 
@@ -554,12 +563,6 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
             }
             return status;
         }
-    }
-    else {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_events_new_group, specify a time for ET_TIMED mode\n");
-        }
-        return ET_ERROR;
     }
 
     /* make a temporary buffer for extra large event */
@@ -656,6 +659,13 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
     return ET_ERROR;
   }
   
+  if (wait == ET_TIMED && deltatime == NULL) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_event_get, specify a time for ET_TIMED mode\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (etid->locality == ET_REMOTE) {
     return etr_event_get(id, att, pe, mode, deltatime);
   }
@@ -699,7 +709,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
       return status;
     }
   }
-  else if (deltatime != NULL) {
+  else {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -732,12 +742,6 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
       }
       return status;
     }
-  }
-  else {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_event_get, specify a time for ET_TIMED mode\n");
-    }
-    return ET_ERROR;
   }
   
   /* if NOT temp buffer, translate data pointer */
@@ -800,6 +804,13 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
     return ET_ERROR;
   }
   
+  if (wait == ET_TIMED && deltatime == NULL) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_events_get, specify a time for ET_TIMED mode\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (etid->locality == ET_REMOTE) {
     return etr_events_get(id, att, pe, mode, deltatime, num, nread);
   }
@@ -839,7 +850,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
       return status;
     }
   }
-  else if (deltatime != NULL) {
+  else {
     /* translate a delta time into an absolute time */
     int nsec_total;
     
@@ -872,12 +883,6 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
       }
       return status;
     }
-  }
-  else {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_events_get, specify a time for ET_TIMED mode\n");
-    }
-    return ET_ERROR;
   }
   
   for (i=0; i < numread ; i++) {

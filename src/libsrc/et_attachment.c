@@ -37,6 +37,8 @@ int et_wakeup_attachment(et_sys_id id, et_att_id att)
     return ET_ERROR;
   }
   
+printf("et_wakeup_all, locality = %d\n", etid->locality);
+
   if (etid->locality != ET_LOCAL) {
     return etr_wakeup_attachment(id, att);
   }
@@ -89,8 +91,8 @@ int et_wakeup_all(et_sys_id id, et_stat_id stat_id)
   int i, status;
   et_att_id att;
   et_id *etid = (et_id *) id;
-  et_station *ps = etid->grandcentral + stat_id;
-  et_list    *pl = &ps->list_in, *pl_gc = &etid->grandcentral->list_in;
+  et_station *ps;
+  et_list    *pl, *pl_gc;
 
   if (stat_id < 0) {
     if (etid->debug >= ET_DEBUG_ERROR) {
@@ -103,6 +105,10 @@ int et_wakeup_all(et_sys_id id, et_stat_id stat_id)
     return etr_wakeup_all(id, stat_id);
   }
   
+  ps = etid->grandcentral + stat_id;
+  pl = &ps->list_in;
+  pl_gc = &etid->grandcentral->list_in;
+
   if (stat_id >= etid->sys->config.nstations) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_wakeup_all, bad argument\n");

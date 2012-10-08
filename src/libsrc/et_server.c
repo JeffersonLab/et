@@ -838,13 +838,22 @@ static void et_command_loop(et_threadinfo *info)
           wait = incoming[1];
 
           if (wait == ET_TIMED) {
-            deltatime.tv_sec  = incoming[2];
-            deltatime.tv_nsec = incoming[3];
-            err = et_event_get(id, att, &event, wait, &deltatime);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                  deltatime.tv_sec  = incoming[2];
+                  deltatime.tv_nsec = incoming[3];
+                  err = et_event_get(id, att, &event, wait, &deltatime);
+              }
           }
           else if (wait == ET_SLEEP) {
             /* There's a problem if we have a remote client that is waiting
-             * for another event by sleeping and the events stop flowing. In
+              * for another event by sleeping and the events stop flowing. In
              * that case, the client can be killed and the ET system does NOT
              * know about it. Since this thread will be stuck in et_event_get,
              * it will not immediately detect the break in the socket - at least
@@ -922,9 +931,18 @@ static void et_command_loop(et_threadinfo *info)
           num  = incoming[2];
 
           if (wait == ET_TIMED) {
-            deltatime.tv_sec  = incoming[3];
-            deltatime.tv_nsec = incoming[4];
-            err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                  deltatime.tv_sec  = incoming[3];
+                  deltatime.tv_nsec = incoming[4];
+                  err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
+              }
           }
           else if (wait == ET_SLEEP) {
             /* There's a problem if we have a Linux client that is waiting
@@ -1068,9 +1086,18 @@ static void et_command_loop(et_threadinfo *info)
           size = ET_64BIT_UINT(incoming[2], incoming[3]);
 
           if (mode == ET_TIMED) {
-            deltatime.tv_sec  = incoming[4];
-            deltatime.tv_nsec = incoming[5];
-            err = et_event_new(id, att, &event, mode, &deltatime, size);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                  deltatime.tv_sec  = incoming[4];
+                  deltatime.tv_nsec = incoming[5];
+                  err = et_event_new(id, att, &event, mode, &deltatime, size);
+              }
           }
           else if (mode == ET_SLEEP) {
             /* There's a problem if we have a remote client that is waiting
@@ -1154,9 +1181,18 @@ static void et_command_loop(et_threadinfo *info)
           num  = incoming[4];
 
           if (mode == ET_TIMED) {
-            deltatime.tv_sec  = incoming[5];
-            deltatime.tv_nsec = incoming[6];
-            err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                  deltatime.tv_sec  = incoming[5];
+                  deltatime.tv_nsec = incoming[6];
+                  err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
+              }
           }
           else if (mode == ET_SLEEP) {
               /* There's a problem if we have a remote client that is waiting
@@ -1249,10 +1285,19 @@ static void et_command_loop(et_threadinfo *info)
           group = incoming[5];
 
           if (mode == ET_TIMED) {
-            deltatime.tv_sec  = incoming[6];
-            deltatime.tv_nsec = incoming[7];
-            err = et_events_new_group(id, att, events, mode, &deltatime,
-                    size, num, group, &nevents);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                  deltatime.tv_sec  = incoming[6];
+                  deltatime.tv_nsec = incoming[7];
+                  err = et_events_new_group(id, att, events, mode, &deltatime,
+                                            size, num, group, &nevents);
+              }
           }
           else if (mode == ET_SLEEP) {
               struct timeval timeout;
@@ -1393,9 +1438,18 @@ static void et_command_loop(et_threadinfo *info)
           modify &= (ET_MODIFY | ET_MODIFY_HEADER);
           
           if (wait == ET_TIMED) {
-            deltatime.tv_sec  = ntohl(incoming[3]);
-            deltatime.tv_nsec = ntohl(incoming[4]);
-            err = et_event_get(id, att, &event, wait, &deltatime);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                deltatime.tv_sec  = ntohl(incoming[3]);
+                deltatime.tv_nsec = ntohl(incoming[4]);
+                err = et_event_get(id, att, &event, wait, &deltatime);
+              }
           }
           else if (wait == ET_SLEEP) {
             /* There's a problem if we have a remote client that is waiting
@@ -1542,11 +1596,20 @@ static void et_command_loop(et_threadinfo *info)
           dumpEvents = modify & ET_DUMP;
           /* Are we going to modify the event or its header remotely? */
           modify &= (ET_MODIFY | ET_MODIFY_HEADER);
-
+          
           if (wait == ET_TIMED) {
-            deltatime.tv_sec  = ntohl(incoming[4]);
-            deltatime.tv_nsec = ntohl(incoming[5]);
-            err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
+              etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+              /* before going further, check here if we're to wake up */
+              if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                  etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                  etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                  err = ET_ERROR_WAKEUP;
+              }
+              else {
+                deltatime.tv_sec  = ntohl(incoming[4]);
+                deltatime.tv_nsec = ntohl(incoming[5]);
+                err = et_events_get(id, att, events, wait, &deltatime, num, &nevents);
+              }
           }
           else if (wait == ET_SLEEP) {
             /* There's a problem if we have a remote client that is waiting
@@ -1831,9 +1894,18 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 #endif
                   
           if (mode == ET_TIMED) {
-            deltatime.tv_sec  = ntohl(incoming[4]);
-            deltatime.tv_nsec = ntohl(incoming[5]);
-            err = et_event_new(id, att, &pe, mode, &deltatime, size);
+            etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+            /* before going further, check here if we're to wake up */
+            if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                err = ET_ERROR_WAKEUP;
+            }
+            else {
+                deltatime.tv_sec  = ntohl(incoming[4]);
+                deltatime.tv_nsec = ntohl(incoming[5]);
+                err = et_event_new(id, att, &pe, mode, &deltatime, size);
+            }
           }
           else if (mode == ET_SLEEP) {
             /* There's a problem if we have a remote client that is waiting
@@ -1932,9 +2004,18 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 #endif
 
             if (mode == ET_TIMED) {
-                deltatime.tv_sec  = ntohl(incoming[5]);
-                deltatime.tv_nsec = ntohl(incoming[6]);
-                err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
+                etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+                /* before going further, check here if we're to wake up */
+                if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                    etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                    etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                    err = ET_ERROR_WAKEUP;
+                }
+                else {
+                    deltatime.tv_sec  = ntohl(incoming[5]);
+                    deltatime.tv_nsec = ntohl(incoming[6]);
+                    err = et_events_new(id, att, events, mode, &deltatime, size, num, &nevents);
+                }
             }
             else if (mode == ET_SLEEP) {
                 /* There's a problem if we have a remote client that is waiting
@@ -2047,10 +2128,19 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 #endif
 
             if (mode == ET_TIMED) {
-                deltatime.tv_sec  = ntohl(incoming[6]);
-                deltatime.tv_nsec = ntohl(incoming[7]);
-                err = et_events_new_group(id, att, events, mode, &deltatime,
+                etid->sys->attach[att].sleep = ET_ATT_SLEEP;
+                /* before going further, check here if we're to wake up */
+                if (etid->sys->attach[att].quit == ET_ATT_QUIT) {
+                    etid->sys->attach[att].sleep = ET_ATT_NOSLEEP;
+                    etid->sys->attach[att].quit  = ET_ATT_CONTINUE;
+                    err = ET_ERROR_WAKEUP;
+                }
+                else {
+                    deltatime.tv_sec  = ntohl(incoming[6]);
+                    deltatime.tv_nsec = ntohl(incoming[7]);
+                    err = et_events_new_group(id, att, events, mode, &deltatime,
                         size, num, group, &nevents);
+                }
             }
             else if (mode == ET_SLEEP) {
                 /* There's a problem if we have a remote client that is waiting
@@ -2243,6 +2333,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
           att = ntohl(att);
 
+printf("ET SERVER: got wake-up-all cmd for att id = %d\n", (int)att);
           et_wakeup_attachment(id, att);
         }
         break;
@@ -2255,6 +2346,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             goto end;
           }
           stat_id = ntohl(stat_id);
+printf("ET SERVER: got wake-up-all cmd for station id = %d\n", (int)stat_id);
 
           et_wakeup_all(id, stat_id);
         }
