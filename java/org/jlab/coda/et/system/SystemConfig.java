@@ -276,7 +276,7 @@ public class SystemConfig {
 
 
     /**
-     * Set the number of events in each group. Used with mulitple producers who want to
+     * Set the number of events in each group. Used with multiple producers who want to
      * guarantee available events for each producer.
      *
      * @param groups array defining number of events in each group
