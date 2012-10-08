@@ -576,6 +576,7 @@ public class EtSystem {
      *     if the select method's class cannot be loaded;
      *     if the position is less than 1 (GRAND_CENTRAL's spot);
      *     if the name is GRAND_CENTRAL (already taken);
+     *     if the name is too long;
      *     if the configuration's cue size is too big;
      *     if the configuration needs a select class name
      * @throws EtExistsException
@@ -599,6 +600,11 @@ public class EtSystem {
         // cannot create GrandCentral
         if (name.equals("GRAND_CENTRAL")) {
             throw new EtException("Cannot create GRAND_CENTRAL station");
+        }
+
+        // cannot create GrandCentral
+        if (name.length() > EtConstants.stationNameLenMax) {
+            throw new EtException("Station name too long (> " + EtConstants.stationNameLenMax + " chars)");
         }
 
         // check value of position
@@ -1445,7 +1451,7 @@ public class EtSystem {
                 }
 
                 if (err < EtConstants.ok) {
-                    if (debug >= EtConstants.error) {
+                    if (debug >= EtConstants.error && err != EtConstants.errorTimeout) {
                         System.out.println("error in ET system (newEvents), err = " + err);
                     }
 
@@ -1467,7 +1473,11 @@ public class EtSystem {
                         if (mode == Mode.SLEEP || iterations-- > 0) {
                             // Give other synchronized methods a chance to run
                             wait = true;
+// System.out.println("implement sleep with another timed mode call (newEvents)");
                             continue;
+                        }
+                        if (debug >= EtConstants.error) {
+                            System.out.println("newEvents timeout");
                         }
                         throw new EtTimeoutException("no events within timeout");
                     }
@@ -1840,7 +1850,7 @@ public class EtSystem {
                 }
 
                 if (err < EtConstants.ok) {
-                    if (debug >= EtConstants.error) {
+                    if (debug >= EtConstants.error && err != EtConstants.errorTimeout) {
                         System.out.println("error in ET system (getEvents), err = " + err);
                     }
 
@@ -1862,6 +1872,9 @@ public class EtSystem {
                             // Give other synchronized methods a chance to run
                             wait = true;
                             continue;
+                        }
+                        if (debug >= EtConstants.error) {
+                            System.out.println("error in ET system (getEvents), timeout");
                         }
                         throw new EtTimeoutException("no events within timeout");
                     }
