@@ -39,6 +39,7 @@ int main(int argc,char **argv) {
     int             flowMode=ET_STATION_SERIAL, position=1, pposition=1;
     int             errflg=0, chunk=1, size=32, qSize=0, verbose=0, blocking=1;
     int		        con[ET_STATION_SELECT_INTS];
+    int             sendBufSize=0, recvBufSize=0, noDelay=0;
     unsigned short  serverPort = ET_SERVER_PORT;
     char            stationName[ET_STATNAME_LENGTH], et_name[ET_FILENAME_LENGTH];
     char            host[256], mcastAddr[16];
@@ -68,6 +69,9 @@ int main(int argc,char **argv) {
       {"nb",   0, NULL, 2},
       {"pos",  1, NULL, 3},
       {"ppos", 1, NULL, 4},
+      {"rb",   1, NULL, 5},
+      {"sb",   1, NULL, 6},
+      {"nd",   0, NULL, 7},
       {0,0,0,0}};
     
       memset(host, 0, 16);
@@ -166,6 +170,31 @@ int main(int argc,char **argv) {
                   }
                   break;
 
+                  /* case rb */
+              case 5:
+                  i_tmp = atoi(optarg);
+                  if (i_tmp < 1) {
+                      printf("Invalid argument to -rb. Recv buffer size must be > 0.\n");
+                      exit(-1);
+                  }
+                  recvBufSize = i_tmp;
+                  break;
+
+                  /* case sb */
+              case 6:
+                  i_tmp = atoi(optarg);
+                  if (i_tmp < 1) {
+                      printf("Invalid argument to -sb. Send buffer size must be > 0.\n");
+                      exit(-1);
+                  }
+                  sendBufSize = i_tmp;
+                  break;
+
+                  /* case nd */
+              case 7:
+                  noDelay = 1;
+                  break;
+
               case 'v':
                   verbose = ET_DEBUG_INFO;
                   break;
@@ -184,7 +213,8 @@ int main(int argc,char **argv) {
                   argv[0],
                   "-f <ET name> -host <ET host> -s <station name> [-h] [-v] [-nb]",
                   "                    [-p <ET server port>] [-c <chunk size>] [-q <queue size>]",
-                  "                    [-pos <station position>] [-ppos <parallel station position>]");
+                  "                    [-pos <station position>] [-ppos <parallel station position>]",
+                  "                    [-rb <buf size>] [-sb <buf size>] [-nd]");
 
           fprintf(stderr, "          -host ET system's host\n");
           fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
@@ -197,6 +227,9 @@ int main(int argc,char **argv) {
           fprintf(stderr, "          -q  queue size if creating nonblocking station\n");
           fprintf(stderr, "          -pos position of created station in station list (1,2,...)\n");
           fprintf(stderr, "          -ppos position of created station within a group of parallel stations (-1=end, -2=head)\n\n");
+          fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
+          fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
+          fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
           fprintf(stderr, "          This consumer works by making a direct connection\n");
           fprintf(stderr, "          to the ET system's server port.\n\n");
           exit(2);
@@ -236,6 +269,8 @@ int main(int argc,char **argv) {
     et_open_config_init(&openconfig);
     et_open_config_sethost(openconfig, host);
     et_open_config_setserverport(openconfig, serverPort);
+    /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
+    et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
         exit(1);

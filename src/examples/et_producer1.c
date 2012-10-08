@@ -40,6 +40,7 @@ int main(int argc,char **argv)
 {
     int             i, j, c, i_tmp, status, swappedData, numRead;
     int             startingVal=0, errflg=0, group=1, chunk=1, size=32, verbose=0, delay=0, remote=0;
+    int             sendBufSize=0, recvBufSize=0, noDelay=0;
     unsigned short  serverPort = ET_SERVER_PORT;
     char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16], interface[16];
 
@@ -63,8 +64,14 @@ int main(int argc,char **argv)
     /* control int array for event header */
     int control[] = {17,8,-1,-1,0,0};
 
-    /* 1 multiple character command-line option (host) */
-    static struct option long_options[] = { {"host", 1, NULL, 0}, {0, 0, 0, 0} };
+    /* 4 multiple character command-line options */
+    static struct option long_options[] =
+    { {"host", 1, NULL, 1},
+      {"rb",   1, NULL, 2},
+      {"sb",   1, NULL, 3},
+      {"nd",   0, NULL, 4},
+      {0,0,0,0}
+    };
 
     memset(host, 0, 16);
     memset(mcastAddr, 0, 16);
@@ -89,7 +96,7 @@ int main(int argc,char **argv)
 
             case 's':
                 i_tmp = atoi(optarg);
-                if (i_tmp > 0) {
+                if (i_tmp > -1) {
                     size = i_tmp;
                 } else {
                     printf("Invalid argument to -s. Must be a positive integer.\n");
@@ -141,12 +148,37 @@ int main(int argc,char **argv)
                 strcpy(interface, optarg);
                 break;
 
-            case 0:
+            case 1:
                 if (strlen(optarg) >= 255) {
                     fprintf(stderr, "host name is too long\n");
                     exit(-1);
                 }
                 strcpy(host, optarg);
+                break;
+
+                /* case rb */
+            case 2:
+                i_tmp = atoi(optarg);
+                if (i_tmp < 1) {
+                    printf("Invalid argument to -rb. Recv buffer size must be > 0.\n");
+                    exit(-1);
+                }
+                recvBufSize = i_tmp;
+                break;
+
+                /* case sb */
+            case 3:
+                i_tmp = atoi(optarg);
+                if (i_tmp < 1) {
+                    printf("Invalid argument to -sb. Send buffer size must be > 0.\n");
+                    exit(-1);
+                }
+                sendBufSize = i_tmp;
+                break;
+
+                /* case nd */
+            case 4:
+                noDelay = 1;
                 break;
 
             case 'v':
@@ -170,7 +202,9 @@ int main(int argc,char **argv)
                 "usage: %s  %s\n%s\n\n",
                 argv[0],
                 "-f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-d <delay>]",
-                "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]");
+                "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]",
+                "                     [-rb <buf size>] [-sb <buf size>] [-nd]");
+
 
         fprintf(stderr, "          -host ET system's host\n");
         fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
@@ -183,6 +217,9 @@ int main(int argc,char **argv)
         fprintf(stderr, "          -g group from which to get new events (1,2,...)\n");
         fprintf(stderr, "          -p ET server port\n");
         fprintf(stderr, "          -i outgoing network interface IP address (dot-decimal)\n\n");
+        fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
+        fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
+        fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
         fprintf(stderr, "          This consumer works by making a direct connection to the\n");
         fprintf(stderr, "          ET system's server port.\n");
         exit(2);
@@ -229,6 +266,8 @@ int main(int argc,char **argv)
    et_open_config_setcast(openconfig, ET_DIRECT);
    et_open_config_sethost(openconfig, host);
    et_open_config_setserverport(openconfig, serverPort);
+   /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
+   et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
    if (strlen(interface) > 6) {
        et_open_config_setinterface(openconfig, interface);
    }
@@ -317,6 +356,7 @@ int main(int argc,char **argv)
 
         /* write data, set priority, set control values here */
         if (1) {
+            /*
             char *pdata;
             for (i=0; i < numRead; i++) {
                 swappedData = ET_SWAP32(i + startingVal);
@@ -328,6 +368,10 @@ int main(int argc,char **argv)
                 et_event_setcontrol(pe[i], control, sizeof(control)/sizeof(int));
             }
             startingVal += numRead;
+            */
+            for (i=0; i < numRead; i++) {
+                et_event_setlength(pe[i], size);
+            }
         }
 
         /* put events back into the ET system */
