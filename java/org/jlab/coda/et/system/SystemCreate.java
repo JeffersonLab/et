@@ -112,12 +112,12 @@ public class SystemCreate {
 
 
     /**
-     * COnstructor that creates a new ET system with specified parameters and starts it running.
+     * Constructor that creates a new ET system with specified parameters and starts it running.
      *
      * @param name     file name
      * @param config   ET system configuration
      * @throws EtException
-     *     if the file already exists or cannot be created
+     *     if the file already exists, cannot be created, arg is null, or bad name
      */
     public SystemCreate (String name, SystemConfig config) throws EtException {
 
@@ -127,6 +127,14 @@ public class SystemCreate {
                 System.out.println("Number of events in groups does not equal total number of events");
             }
             throw new EtException("Number of events in groups does not equal total number of events");
+        }
+
+        if (name == null || config == null) {
+            throw new EtException("arg is null");
+        }
+
+        if (name.length() > EtConstants.fileNameLengthMax) {
+            throw new EtException("ET system name too long (> " + EtConstants.fileNameLengthMax + " chars)");
         }
 
         this.name = name;
