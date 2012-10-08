@@ -314,4 +314,103 @@ int et_wait_for_alive(et_sys_id id)
     return etn_wait_for_alive(id);
   }
   return etl_wait_for_alive(id);
-} 
+}
+
+
+/**
+ * This routine returns a string describing the given error condition.
+ * The returned string is a static char array. This means it is not
+ * thread-safe and will be overwritten on subsequent calls.
+ *
+ * @param error error condition
+ *
+ * @returns error string
+ */
+char *et_perror(int error) {
+
+    static char temp[256];
+
+    switch(error) {
+
+        case ET_OK:
+            sprintf(temp, "ET_OK:  action completed successfully\n");
+            break;
+
+        case ET_ERROR:
+            sprintf(temp, "ET_ERROR:  generic error\n");
+            break;
+
+        case ET_ERROR_TOOMANY:
+            sprintf(temp, "ET_ERROR_TOOMANY:  too many items already exist\n");
+            break;
+
+        case ET_ERROR_EXISTS:
+            sprintf(temp, "ET_ERROR_EXISTS:  already exists\n");
+            break;
+
+        case ET_ERROR_WAKEUP:
+            sprintf(temp, "ET_ERROR_WAKEUP:  sleeping routine woken up by command\n");
+            break;
+
+        case ET_ERROR_TIMEOUT:
+            sprintf(temp, "ET_ERROR_TIMEOUT:  timed out\n");
+            break;
+
+        case ET_ERROR_EMPTY:
+            sprintf(temp, "ET_ERROR_EMPTY:  no events available in async mode\n");
+            break;
+
+        case ET_ERROR_BUSY:
+            sprintf(temp, "ET_ERROR_BUSY:  ET system is busy in async mode\n");
+            break;
+
+        case ET_ERROR_DEAD:
+            sprintf(temp, "ET_ERROR_DEAD:  ET system is dead\n");
+            break;
+
+        case ET_ERROR_READ:
+            sprintf(temp, "ET_ERROR_READ:  read error\n");
+            break;
+
+        case ET_ERROR_WRITE:
+            sprintf(temp, "ET_ERROR_WRITE:  write error\n");
+            break;
+
+        case ET_ERROR_REMOTE:
+            sprintf(temp, "ET_ERROR_REMOTE:  cannot allocate memory in remote application (not server)\n");
+            break;
+
+        case ET_ERROR_NOREMOTE:
+            sprintf(temp, "ET_ERROR_NOREMOTE:  (currently not used)\n");
+            break;
+
+        case ET_ERROR_TOOBIG:
+            sprintf(temp, "ET_ERROR_TOOBIG:  client is 32 bits & server is 64 (or vice versa) and event is too big for one\n");
+            break;
+
+        case ET_ERROR_NOMEM:
+            sprintf(temp, "ET_ERROR_NOMEM:  cannot allocate memory\n");
+            break;
+
+        case ET_ERROR_BADARG:
+            sprintf(temp, "ET_ERROR_BADARG:  bad arg given to function\n");
+            break;
+
+        case ET_ERROR_SOCKET:
+            sprintf(temp, "ET_ERROR_SOCKET:  socket option could not be set\n");
+            break;
+
+        case ET_ERROR_NETWORK:
+            sprintf(temp, "ET_ERROR_NETWORK:  host name or address could not be resolved, or cannot connect\n");
+            break;
+
+
+        default:
+            sprintf(temp, "?et_perror...no such error: %d\n",error);
+            break;
+    }
+
+    return(temp);
+}
+
+

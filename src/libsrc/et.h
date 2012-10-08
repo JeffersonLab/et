@@ -416,6 +416,7 @@ extern int  et_system_start(et_sys_id* id, et_sysconfig sconfig);
 extern int  et_system_close(et_sys_id id);
 extern int  et_alive(et_sys_id id);
 extern int  et_wait_for_alive(et_sys_id id);
+extern char* et_perror(int err);
 
 /* attachment functions */
 extern int  et_wakeup_attachment(et_sys_id id, et_att_id att);
