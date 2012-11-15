@@ -452,6 +452,7 @@ Help('examples            install executable examples\n')
 ##################################################
 # Special Include Directory for java header files
 ##################################################
+javaHomeInc = os.getenv('JAVA_HOME',"") + "/include"
 
 # Because we're using JNI, we need access to <jni.h> when compiling.
 # If we are using a java installed in a non-standard place, then
@@ -462,6 +463,7 @@ javaPath = Popen('which java', shell=True, stdout=PIPE, stderr=PIPE).communicate
 # strip whitespace on end, then "java" on end
 javaIncPath = str(javaPath).rstrip().rstrip('java') + "../include"
 print 'javaIncPath = ', javaIncPath
+env.AppendUnique(CPPPATH = [javaIncPath, javaHomeInc])
 env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
 
 #########################
