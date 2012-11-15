@@ -452,19 +452,25 @@ Help('examples            install executable examples\n')
 ##################################################
 # Special Include Directory for java header files
 ##################################################
-javaHomeInc = os.getenv('JAVA_HOME',"") + "/include"
 
 # Because we're using JNI, we need access to <jni.h> when compiling.
-# If we are using a java installed in a non-standard place, then
-# this is located in <jdk>/include and possibly <jdk>/include/linux
-# which we'll want in our includes.
-# Do this by finding out where java (<jdk>/bin) is.
-javaPath = Popen('which java', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
-# strip whitespace on end, then "java" on end
-javaIncPath = str(javaPath).rstrip().rstrip('java') + "../include"
-print 'javaIncPath = ', javaIncPath
-env.AppendUnique(CPPPATH = [javaHomeInc, javaHomeInc + "/linux"])
-env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
+# If JAVA_HOME is defined, use that
+javaHome = os.getenv('JAVA_HOME',"")
+javaHomeInc = javaHome + "/include"
+
+if javaHome != "":
+    print 'javaHomeInc = ', javaHomeInc
+    env.AppendUnique(CPPPATH = [javaHomeInc, javaHomeInc + "/linux"])
+else:
+    # If we are using a java installed in a non-standard place, then
+    # this is located in <jdk>/include and possibly <jdk>/include/linux
+    # which we'll want in our includes.
+    # Do this by finding out where java (<jdk>/bin) is.
+    javaPath = Popen('which java', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
+    # strip whitespace on end, then "java" on end
+    javaIncPath = str(javaPath).rstrip().rstrip('java') + "../include"
+    print 'javaIncPath = ', javaIncPath
+    env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
 
 #########################
 # Tar file
