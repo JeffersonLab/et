@@ -463,7 +463,7 @@ javaPath = Popen('which java', shell=True, stdout=PIPE, stderr=PIPE).communicate
 # strip whitespace on end, then "java" on end
 javaIncPath = str(javaPath).rstrip().rstrip('java') + "../include"
 print 'javaIncPath = ', javaIncPath
-env.AppendUnique(CPPPATH = [javaIncPath, javaHomeInc])
+env.AppendUnique(CPPPATH = [javaHomeInc, javaHomeInc + "/linux"])
 env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
 
 #########################
