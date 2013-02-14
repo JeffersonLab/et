@@ -72,7 +72,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   size_t       size, size_old_used, size_events, size_data,
                size_system, size_stations, size_histo, total_size;
   int          i, err, status, status_old, num_try, try_max,
-               creating=0, groupsDiffer=0;
+               groupsDiffer=0;
   unsigned int hbeat;
 #ifdef sun
   int          con, con_add;
@@ -250,7 +250,6 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   }
   
   /* everything's OK so start up a new ET system */
-  creating = 1;
 
   /* memory has been mapped by now, fill first
      ET_INITIAL_SHARED_MEM_DATA_BYTES bytes with
@@ -451,13 +450,8 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   
   error:
     pthread_attr_destroy(&attr);
-    if (creating) {
-      munmap(etid->pmap, etid->memsize);
-      unlink(config->filename);
-    }
-    else {
-      munmap(etid->pmap, etid->memsize);
-    }
+    munmap(etid->pmap, etid->memsize);
+    unlink(config->filename);
     et_id_destroy(*id);
     /* set signal handling back to the way it was in calling thread */
     pthread_sigmask(SIG_SETMASK, &oldset, NULL);
