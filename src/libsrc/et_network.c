@@ -786,7 +786,7 @@ if (debug) printf("et_findserver: got a match to local or specific: %s\n", answe
                 /* if our policy is to return an error for more than 1 response ... */
                 if ((config->policy == ET_POLICY_ERROR) && (numresponses > 1)) {
                     /* print error message and return */
-if (debug) fprintf(stderr, "et_findserver: %d responses to broad/multicast -\n", numresponses);
+if (debug) printf("et_findserver: %d responses to broad/multicast -\n", numresponses);
                     j = 1;
                     answer = answer_first;
                     while (answer != NULL) {
