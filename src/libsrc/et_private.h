@@ -305,7 +305,6 @@ typedef struct et_list_t {
  * call         : =ET_FIX_DUMP if fixing after et_station_(n)dump call or
  *              : =ET_FIX_READ if fixing after et_station_(n)read call
  */
- 
 #define ET_FIX_READ 0
 #define ET_FIX_DUMP 1
 
