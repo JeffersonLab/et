@@ -26,7 +26,7 @@
 #include "org_jlab_coda_et_EtJniAccess.h"
 
 
-static int debug = 1;
+static int debug = 0;
 static int localByteOrder;
 
 /* cache some frequently used values */
