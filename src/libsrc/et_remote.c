@@ -124,9 +124,7 @@ et_logmsg("INFO","etr_open: etNetTcpConnect2 to address %u (host %s) on port %d\
         else {
             /* else find port# & name of ET server by broad/multicasting */
 et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filename,ethost);
-printf("\nCALLING et_findserver FROM etr_open\n\n");
             if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config)) == ET_OK) {
-                printf("etr_open: calling et_findserver SUCCESS\n");
                 continue;
             }
         }
