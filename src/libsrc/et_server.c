@@ -2333,7 +2333,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
           att = ntohl(att);
 
-printf("ET SERVER: got wake-up-all cmd for att id = %d\n", (int)att);
+/*printf("ET SERVER: got wake-up-all cmd for att id = %d\n", (int)att);*/
           et_wakeup_attachment(id, att);
         }
         break;
@@ -2346,7 +2346,7 @@ printf("ET SERVER: got wake-up-all cmd for att id = %d\n", (int)att);
             goto end;
           }
           stat_id = ntohl(stat_id);
-printf("ET SERVER: got wake-up-all cmd for station id = %d\n", (int)stat_id);
+/*printf("ET SERVER: got wake-up-all cmd for station id = %d\n", (int)stat_id);*/
 
           et_wakeup_all(id, stat_id);
         }
