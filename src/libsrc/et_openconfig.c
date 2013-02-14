@@ -63,7 +63,7 @@ int et_open_config_init(et_openconfig *sconfig)
   
   if (etNetGetNetworkInfo(&sc->netinfo, NULL) != ET_OK) {
     sc->netinfo = NULL;
-    printf("et_open_config_init: error in etNetGetNetworkInfo\n");
+    fprintf(stderr, "et_open_config_init: error in etNetGetNetworkInfo\n");
   }
   
   sc->init = ET_STRUCT_OK;
