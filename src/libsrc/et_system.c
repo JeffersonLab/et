@@ -65,7 +65,6 @@ static void  et_fix_stations(et_id *id);
 static void  et_fix_attachments(et_id *id);
 static void  et_fix_natts(et_id *id);
 static void  et_fix_nprocs(et_id *id);
-static void  et_fix_system(et_id *id);
 
 
 int et_system_start (et_sys_id* id, et_sysconfig sconfig)
@@ -187,6 +186,16 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   /* create the ET system memory */
   status = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
   
+  /* general error trying to create mapped memory */
+  if (status != ET_OK && status != ET_ERROR_EXISTS) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_system_start, can't create or attach to ET system\n");
+      }
+      pthread_attr_destroy(&attr);
+      et_id_destroy(*id);
+      return ET_ERROR;
+  }
+  
   /* if the ET system file already exists ... */
   if (status == ET_ERROR_EXISTS) {
     /* First look at the existing ET system to make sure it's what we want. 
@@ -226,249 +235,87 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       et_id_destroy(*id);
       return ET_ERROR;
     }
-      
-    /* if trying to create ET system of different size, shape, smell ... */
-    if (config->groupCount != etid->sys->config.groupCount) {
-      groupsDiffer++;
-    }
-    else {
-      for (i=0; i < config->groupCount; i++) {
-        if (config->groups[i] != etid->sys->config.groups[i]) {
-          groupsDiffer++;
-          break;
-        }
-      }
-    }
-    
-    if ( groupsDiffer                                             ||
-        (size                   != size_old_used)                 ||
-        (config->nstations      != etid->sys->config.nstations)   ||
-        (config->nevents        != etid->sys->config.nevents)     ||
-        (config->event_size     != etid->sys->config.event_size)  ||
-        (config->nprocesses      < etid->sys->config.nprocesses)  ||
-        (config->nattachments    < etid->sys->config.nattachments)||
-        (ET_STATION_SELECT_INTS != etid->sys->nselects))            {
-        
-      /* The existing ET system is not what we want! First find out 
-       * whether there are active clients on this system.
-       */
-      int have_client=0;
-      for (i=0; i < etid->sys->config.nprocesses ; i++) {
-        if (etid->sys->proc[i].status == ET_PROC_OPEN) {
-          hbeat = etid->sys->proc[i].heartbeat;
-          nanosleep(&beat,NULL);
-          if (hbeat != etid->sys->proc[i].heartbeat) {
-            /* this process is alive */
-            have_client++;
-            break;
-          }
-        }
-      }
-      
-      if (have_client) {
+
+    /* Delete unused ET file and continue */
+    err = unlink(config->filename);
+    if (err != 0) {
         if (etid->debug >= ET_DEBUG_ERROR) {
-          et_logmsg("ERROR", "et_system_start, existing ET system has a different configuration\n");
-          et_logmsg("ERROR", "                 and still has active clients.\n");
+            et_logmsg("ERROR", "et_system_start, cannot delete unused, existing ET file\n");
         }
-      }
-      else {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-          et_logmsg("ERROR", "et_system_start, existing ET system has a different configuration\n");
-          et_logmsg("ERROR", "                 and no clients, delete the file and try again.\n");
-        }
-      }
-      
-      pthread_attr_destroy(&attr);
-      munmap((void *) pSharedMem, etid->memsize);
-      et_id_destroy(*id);
-      return ET_ERROR;
-    }
-    
-    /* if trying to create an identical ET system, ... */
-    else {
-      if (etid->debug >= ET_DEBUG_WARN) {
-        et_logmsg("WARN", "et_system_start, can't create ET system mem, so attaching to it\n");
-      }
-      /*
-       * Wait over one monitor period to make sure all clients detect ET death
-       * & adjust themselves before re-initializing the mapped memory.
-       */
-      nanosleep(&monitor, NULL);
-      
-      etid->offset    = 0;
-      etid->pmap      = (void *)       (pSharedMem);
-      etid->sys       = (et_system *)  (pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
-      etid->stats     = (et_station *) (etid->sys + 1);
-      etid->histogram = (int *)        (etid->stats + config->nstations);
-      etid->events    = (et_event *)   (etid->histogram + (config->nevents + 1));
-      etid->data      = (char *)       (etid->events + config->nevents);
-      etid->grandcentral = etid->stats;
-      
-      if (etid->debug >= ET_DEBUG_INFO) {
-        et_logmsg("INFO", "et_system_start, ET map   : ptr = %p\n", etid->pmap);
-        et_logmsg("INFO", "et_system_start, ET sys   : ptr = %p, size = %d\n", etid->sys, size_system);
-        et_logmsg("INFO", "et_system_start, ET stats : ptr = %p, size = %d\n", etid->stats, size_stations);
-        et_logmsg("INFO", "et_system_start, ET histo : ptr = %p, size = %d\n", etid->histogram, size_histo);
-        et_logmsg("INFO", "et_system_start, ET events: ptr = %p, size = %d\n", etid->events, size_events);
-        et_logmsg("INFO", "et_system_start, ET data  : ptr = %p, size = %d\n", etid->data, size_data);
-      }
-
-      /* store system config info */
-      etid->sys->config = *config;
-      /* Fix any inconsistancies and unresolved problems from a possible
-       * previous ET system crash (and perhaps client crashes as well).
-       */
-      et_fix_system(etid);
-      /* This is used to translate ET pointers between processes.*/
-      etid->sys->pmap = (void *) pSharedMem;
-#ifdef sun
-      /* keep track of thread concurrency increase */
-      etid->sys->con_add = con_add;
-#endif
-
-      /* Fill grand_central station input list with all events */
-      pe = etid->events;
-      for (i=0 ; i < etid->sys->config.nevents ; i++) {
-        if (et_llist_write_gc(etid, &pe, 1) != ET_OK) {
-          if (etid->debug >= ET_DEBUG_SEVERE) {
-            et_logmsg("SEVERE", "et_system_start, error filling grandcentral station\n") ;
-          }
-          pthread_attr_destroy(&attr);
-          munmap(etid->pmap, etid->memsize);
-          et_id_destroy(*id);
-          return ET_ERROR;
-        }
-        pe++;
-      }
-      /* Do not include this refilling of GrandCentral with events in
-       * the general statistics keeping 
-       */
-      etid->grandcentral->list_in.events_in =
-         etid->grandcentral->list_in.events_in - etid->sys->config.nevents;
-
-      /* wait up to ET_WAIT_FOR_THREADS seconds for a thread to start */
-      try_max = (etid->sys->hz)*ET_WAIT_FOR_THREADS;
-      waitforme.tv_sec  = 0;
-      waitforme.tv_nsec = 1000000000/(etid->sys->hz);
-
-      /* Add "conductor" threads for all active/idle stations */
-      for (ps = etid->grandcentral + etid->sys->stat_head;; ps = etid->grandcentral + ps->next) {
-        /* keep track of current station status */
-        status_old = ps->data.status;
-        /* fool system into thinking that we are creating each station */
-        ps->data.status = ET_STATION_CREATING;
-        status = pthread_create(&thd_id, &attr, et_conductor, (void *) etid);
-        if (status != 0) {
-          err_abort(status, "Create et_conductor thd");
-        }
-        /* wait until conductor thread has started */
-        num_try = 0;
-        while ((ps->data.status != ET_STATION_IDLE)   &&
-               (ps->data.status != ET_STATION_ACTIVE) &&
-               (num_try++ < try_max)) {
-          nanosleep(&waitforme, NULL);
-        }
-        if (num_try > try_max) {
-          if (etid->debug >= ET_DEBUG_SEVERE) {
-            et_logmsg("SEVERE", "et_system_start, CANNOT start conductor\n");
-          }
-          pthread_attr_destroy(&attr);
-          munmap(etid->pmap, etid->memsize);
-          et_id_destroy(*id);
-          return ET_ERROR;
-        }
-        
-        /* restore original value of station's status */
-        ps->data.status = status_old;
-        
-        if ((ps->num == etid->sys->stat_tail) || (ps->next < 0)) {
-          break;
-        }
-      }
-    }
-    
-    if (etid->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_system_start, Restarting ET system ...\n");
-    }
-  }
-  /* general error trying to create mapped memory */
-  else if (status != ET_OK) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_system_start, can't create or attach to ET system\n");
-    }
-    pthread_attr_destroy(&attr);
-    et_id_destroy(*id);
-    return ET_ERROR;
-  }
-  /* everything's OK so start up a new ET system */
-  else if (status == ET_OK) {
-    creating = 1;
-
-    /* memory has been mapped by now, fill first
-       ET_INITIAL_SHARED_MEM_DATA_BYTES bytes with
-       useful data */
-    et_mem_write_first_block(pSharedMem,
-                             (uint32_t) sizeof(et_event),
-                             (uint64_t) config->event_size,
-                             (uint64_t) (ET_INITIAL_SHARED_MEM_DATA_BYTES +
-                                         size_system + size_stations + size_histo),
-                             (uint64_t) (ET_INITIAL_SHARED_MEM_DATA_BYTES + size_system +
-                                         size_stations + size_histo + size_events),
-                             (uint64_t) total_size,
-                             (uint64_t) size);
-    
-    /* fill in id structure */
-    etid->memsize   = total_size;
-    etid->offset    = 0;
-    etid->pmap      = (void *)       (pSharedMem);
-    etid->sys       = (et_system *)  ((char *)pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
-    etid->stats     = (et_station *) (etid->sys + 1);
-    etid->histogram = (int *)        (etid->stats + config->nstations);
-    etid->events    = (et_event *)   (etid->histogram + (config->nevents + 1));
-    etid->data      = (char *)       (etid->events + config->nevents);
-    etid->grandcentral = etid->stats;
-
-    if (etid->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_system_start, ET map   : ptr = %p\n", etid->pmap);
-      et_logmsg("INFO", "et_system_start, ET sys   : ptr = %p, size = %d\n", etid->sys, size_system);
-      et_logmsg("INFO", "et_system_start, ET stats : ptr = %p, size = %d\n", etid->stats, size_stations);
-      et_logmsg("INFO", "et_system_start, ET histo : ptr = %p, size = %d\n", etid->histogram, size_histo);
-      et_logmsg("INFO", "et_system_start, ET events: ptr = %p, size = %d\n", etid->events, size_events);
-      et_logmsg("INFO", "et_system_start, ET data  : ptr = %p, size = %d\n", etid->data, size_data);
-    }
- 
-    /* initialize et_system mem, mutexes. Do this first */
-    et_init_mem_sys(etid, config);
-    /* This is used to translate ET pointers between processes.*/
-    etid->sys->pmap = (void *) pSharedMem;
-    
-#ifdef sun
-    /* keep track of thread concurrency increase */
-    etid->sys->con_add = con_add;
-#endif
-
-    /* initialize station mem, llist & station mutexes */
-    et_init_mem_station(etid);
- 
-    /* initialize histogram mem */
-    et_init_histogram(etid);
-    
-    /* initialize event mem and data */
-    et_init_mem_event(etid);
-
-    /* make the station that stores all events */
-    if (et_grandcentral_station_create(etid) < 0) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_system_start, cannot create grandcentral station\n");
-      }
-      pthread_attr_destroy(&attr);
-      munmap(etid->pmap, etid->memsize);
-      unlink(config->filename);
-      et_id_destroy(*id);
-      goto error;
+        pthread_attr_destroy(&attr);
+        munmap((void *) pSharedMem, etid->memsize);
+        et_id_destroy(*id);
+        return ET_ERROR;
     }
   }
   
+  /* everything's OK so start up a new ET system */
+  creating = 1;
+
+  /* memory has been mapped by now, fill first
+     ET_INITIAL_SHARED_MEM_DATA_BYTES bytes with
+     useful data */
+  et_mem_write_first_block(pSharedMem,
+                           (uint32_t) sizeof(et_event),
+                           (uint64_t) config->event_size,
+                           (uint64_t) (ET_INITIAL_SHARED_MEM_DATA_BYTES +
+                                       size_system + size_stations + size_histo),
+                           (uint64_t) (ET_INITIAL_SHARED_MEM_DATA_BYTES + size_system +
+                                       size_stations + size_histo + size_events),
+                           (uint64_t) total_size,
+                           (uint64_t) size);
+
+  /* fill in id structure */
+  etid->memsize   = total_size;
+  etid->offset    = 0;
+  etid->pmap      = (void *)       (pSharedMem);
+  etid->sys       = (et_system *)  ((char *)pSharedMem + ET_INITIAL_SHARED_MEM_DATA_BYTES);
+  etid->stats     = (et_station *) (etid->sys + 1);
+  etid->histogram = (int *)        (etid->stats + config->nstations);
+  etid->events    = (et_event *)   (etid->histogram + (config->nevents + 1));
+  etid->data      = (char *)       (etid->events + config->nevents);
+  etid->grandcentral = etid->stats;
+
+  if (etid->debug >= ET_DEBUG_INFO) {
+    et_logmsg("INFO", "et_system_start, ET map   : ptr = %p\n", etid->pmap);
+    et_logmsg("INFO", "et_system_start, ET sys   : ptr = %p, size = %d\n", etid->sys, size_system);
+    et_logmsg("INFO", "et_system_start, ET stats : ptr = %p, size = %d\n", etid->stats, size_stations);
+    et_logmsg("INFO", "et_system_start, ET histo : ptr = %p, size = %d\n", etid->histogram, size_histo);
+    et_logmsg("INFO", "et_system_start, ET events: ptr = %p, size = %d\n", etid->events, size_events);
+    et_logmsg("INFO", "et_system_start, ET data  : ptr = %p, size = %d\n", etid->data, size_data);
+  }
+
+  /* initialize et_system mem, mutexes. Do this first */
+  et_init_mem_sys(etid, config);
+  /* This is used to translate ET pointers between processes.*/
+  etid->sys->pmap = (void *) pSharedMem;
+
+#ifdef sun
+  /* keep track of thread concurrency increase */
+  etid->sys->con_add = con_add;
+#endif
+
+  /* initialize station mem, llist & station mutexes */
+  et_init_mem_station(etid);
+
+  /* initialize histogram mem */
+  et_init_histogram(etid);
+
+  /* initialize event mem and data */
+  et_init_mem_event(etid);
+
+  /* make the station that stores all events */
+  if (et_grandcentral_station_create(etid) < 0) {
+    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_logmsg("ERROR", "et_system_start, cannot create grandcentral station\n");
+    }
+    pthread_attr_destroy(&attr);
+    munmap(etid->pmap, etid->memsize);
+    unlink(config->filename);
+    et_id_destroy(*id);
+    goto error;
+  }
+
   /************************************************
    *      Start system threads.      
    *      Same code from here on whether starting
@@ -1487,185 +1334,6 @@ static void et_fix_nprocs(et_id *id)
   return;
 }
 
-/************************************************/
-/* used when restarting an ET system to put
- * things into a consistent state.
- */
-static void et_fix_system(et_id *id)
-{
-  et_system  *sys = id->sys;
-  et_stat_id stat;
-  et_station *ps, *pstat, *pstat2, *pnext, *nextparallel;
-  et_list    *pl;
-  int numprocs = sys->config.nprocesses;
-  int numstats = sys->config.nstations;
-  int             i, j, inlist;
-  unsigned int    oldheartbt[ET_PROCESSES_MAX];
-  struct timespec timeout;
- 
-  timeout.tv_sec  = ET_BEAT_SEC + 1;
-  timeout.tv_nsec = ET_BEAT_NSEC;
-  
-  /* record heartbeat values */ 
-  for (i=0; i < numprocs ; i++) {
-    oldheartbt[i] = sys->proc[i].heartbeat;
-  }
-  
-  /* wait to make sure we give all hearts a chance to beat once */
-  nanosleep(&timeout, NULL);
-  
-  /* unlock system, station, & transfer mutexes */
-  et_fix_mutexes(id);
-  et_transfer_unlock_all(id);
-  /* unlock station lists' mutexes */
-  ps = id->grandcentral;
-  for (i=0; i < numstats; i++) {
-    pl = &ps->list_in;
-    et_llist_unlock(pl);
-    pl = &ps->list_out;
-    et_llist_unlock(pl);
-    ps++;
-  }
-  
-  /* reset some elements in sys structure */
-  sys->asthread     = ET_THREAD_KEEP;
-  sys->heartbeat    = 0;
-  sys->mainpid      = getpid();
-  sys->ntemps       = 0;
-  
-  /* initialize event structures and data */
-  et_init_mem_event(id);
-  
-  /* fix linked list of active/idle stations */  
-  et_fix_linkedlist(id);
-  
-  /* check out the stations */
-  ps = id->grandcentral;
-  for (i=0; i < numstats; i++) {
-    /* initialize if station not in use */
-    if ((ps->data.status != ET_STATION_ACTIVE) &&
-        (ps->data.status != ET_STATION_IDLE))    {
-      et_init_station(ps);
-      continue;
-    }
-
-    /* if a "used" station is not in active/idle linked list, remove it */
-    inlist = 0;
-    pstat  = id->grandcentral + sys->stat_head;
-
-    while (pstat->next > -1) {
-      pnext = id->grandcentral + pstat->next;
-      if (pnext->num == ps->num) {
-        inlist = 1;
-        goto foundIt;
-      }
-
-      if (pnext->config.flow_mode == ET_STATION_PARALLEL) {
-        pstat2 = pnext;
-        while (pstat2->nextparallel > -1) {
-          nextparallel = id->grandcentral + pstat2->nextparallel;
-          if (nextparallel->num == ps->num) {
-            inlist = 1;
-            goto foundIt;
-          }
-          pstat2 = nextparallel;
-        }
-      }
-      pstat = pnext;
-    }
-
-    foundIt:
-
-    if (!inlist) {
-      et_init_station(ps);
-      continue;
-    }
-    
-    /* idle stations have no attachments by definition */
-    if (ps->data.status == ET_STATION_IDLE) {
-      ps->data.nattachments = 0;
-      for (j=0 ; j < ET_ATTACHMENTS_MAX; j++) {
-        ps->data.att[j] = -1;
-      }
-    }
-    
-    /* reinitialize various parts of a station */
-    ps->conductor = ET_THREAD_KEEP;
-    /* fix struct */
-    ps->fix.in.first    = NULL;
-    ps->fix.in.start    = 0;
-    ps->fix.in.cnt      = 0;
-    ps->fix.in.num      = 0;
-    ps->fix.in.call     = ET_FIX_READ;
-    ps->fix.in.eventsin = 0ULL;
-    ps->fix.out.start   = 0;
-    ps->fix.out.cnt     = 0;
-    ps->fix.out.num     = 0;
-    /* input list */
-    pl = &ps->list_in;
-    pl->cnt        = 0;
-    pl->lasthigh   = 0;
-    pl->firstevent = NULL;
-    pl->lastevent  = NULL;
-    /* output list */
-    pl = &ps->list_out;
-    pl->cnt        = 0;
-    pl->lasthigh   = 0;
-    pl->firstevent = NULL;
-    pl->lastevent  = NULL;
-
-    ps++;
-  }
-  
-  /* reinit dead or unused processes */
-  for (i=0; i < numprocs ; i++) {
-    if (sys->proc[i].status != ET_PROC_OPEN) {
-      et_init_process(sys, i);
-      continue;
-    }
-    /* if no more heartbeat, it's dead */
-    if (sys->proc[i].heartbeat == oldheartbt[i]) {
-      if (id->debug >= ET_DEBUG_INFO) {
-        et_logmsg("INFO", "set_fix_system, removed process %d\n", i);
-      }
-      /* If we remove a process, make sure we first remove any of its
-       * attachments, then check to see if removing those attachments
-       * made any stations idle (we removed the last attachment to a
-       * station).
-       */
-       
-      for (j=0; j < sys->config.nattachments; j++) {
-        if (sys->proc[i].att[j] == -1) {
-          continue;
-        }
-        stat = sys->attach[j].stat;
-        ps = id->grandcentral + stat;
-        if ((ps->data.nattachments == 1) && (stat != ET_GRANDCENTRAL)) {
-          ps->data.status = ET_STATION_IDLE;
-          ps->data.nattachments--;
-          ps->data.att[j] = -1;
-          sys->attach[j].num = -1;
-          sys->attach[j].status = ET_ATT_UNUSED;
-          sys->nattachments--;
-        }
-      }
-        
-      et_init_process(sys, i);
-      continue;
-    }
-  }
-  
-  /* fix attachments - this will remove attachments destroyed 
-   * by any removal of stations that we did above.
-   */
-  et_fix_attachments(id);
-  /* fix et process number */
-  et_fix_nprocs(id);
-  /* fix <x>.nattachments numbers */
-  et_fix_natts(id);
-  
- return;
-}
 
 /************************************************/
 /* thread to watch for addition of new stations */
