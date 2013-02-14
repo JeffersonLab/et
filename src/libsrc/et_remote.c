@@ -425,7 +425,6 @@ int etr_wakeup_attachment(et_sys_id id, et_att_id att)
     et_id *etid = (et_id *) id;
     int transfer[2], sockfd = etid->sockfd;
 
-printf("etr_wakeup_all, locality = %d\n", etid->locality);
     transfer[0] = htonl(ET_NET_WAKE_ATT);
     transfer[1] = htonl(att);
 
