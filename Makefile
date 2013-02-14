@@ -56,8 +56,8 @@ doc:
 	ant javadoc;
 
 tar:
-	-$(RM) tar/et-12.0.tar.gz;
-	tar -X tar/tarexclude -C .. -c -z -f tar/et-12.0.tar.gz $(LOCAL_DIR)
+	-$(RM) tar/et-14.0.tar.gz;
+	tar -X tar/tarexclude -C .. -c -z -f tar/et-14.0.tar.gz $(LOCAL_DIR)
 
 # Use this pattern rule for all other targets
 %:

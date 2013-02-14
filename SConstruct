@@ -23,7 +23,7 @@ from subprocess import Popen, PIPE
 os.umask(022)
 
 # Software version
-versionMajor = '12'
+versionMajor = '14'
 versionMinor = '0'
 
 # determine the os and machine names
