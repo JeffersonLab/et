@@ -66,7 +66,7 @@ void et_logmsg (char *sev, char *fmt, ...)
 
 /******************************************************
  * Decide whether we are looking for the ET system locally,
- * locally on Linux or some other non-mutex-sharing operating
+ * locally on some non-mutex-sharing operating
  * system, or remotely.
  *****************************************************/
 int et_findlocality(const char *filename, et_openconfig openconfig)
@@ -203,7 +203,7 @@ int et_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 
   
   /* Decide whether we are looking for the ET system locally,
-   * locally on Linux or some other non-mutex-sharing operating
+   * locally on some non-mutex-sharing operating
    * system, remotely, or anywhere.
    */
   locality = et_findlocality(filename, openconfig);
