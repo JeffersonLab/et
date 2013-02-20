@@ -395,13 +395,9 @@ int etl_close(et_sys_id id)
   }
   
   if (et_alive(id)) {
-    /* read station data */
-    et_station_lock(etid->sys);
-
     /* check for this process' attachments to stations */
     for (i=0; i < etid->sys->config.nattachments; i++) {
       if (etid->sys->proc[etid->proc].att[i] != -1) {
-        et_station_unlock(etid->sys);
         et_mem_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_close, detach from all stations first\n");
@@ -409,8 +405,7 @@ int etl_close(et_sys_id id)
         return ET_ERROR;
       }
     }
-    et_station_unlock(etid->sys);
- 
+
     et_system_lock(etid->sys);
     etid->sys->nprocesses--;
     et_init_process(etid->sys, etid->proc);
