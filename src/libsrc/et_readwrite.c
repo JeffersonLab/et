@@ -1103,11 +1103,8 @@ int et_station_nread(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
       }
       while (pl->cnt < 1) {
           sys->attach[att].blocked = ET_ATT_BLOCKED;
-printf("1\n");
           status = pthread_cond_timedwait(&pl->cread, &pl->mutex, time);
-printf("2\n");
           sys->attach[att].blocked = ET_ATT_UNBLOCKED;
-printf("3\n");
           if (status == ETIMEDOUT) {
               et_llist_unlock(pl);
               return ET_ERROR_TIMEOUT;
