@@ -836,7 +836,14 @@ int etn_event_put(et_sys_id id, et_att_id att, et_event *ev)
   int err=ET_OK, transfer[4];
   et_event *p;
 
-  /* If temp buffer, unmap it from this process' mem.
+  if (ev->length > ev->memsize) {
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "etn_event_put, data length is too large!\n");
+      }
+      return ET_ERROR;
+  }
+
+ /* If temp buffer, unmap it from this process' mem.
    * Restore old values for data pointer.
    */
   if (ev->temp != ET_EVENT_TEMP) {
@@ -897,6 +904,16 @@ int etn_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
   int i, err=ET_OK, transfer[3];
   et_event **events;
   struct iovec iov[2];
+
+  for (i=0; i < num; i++) {
+      /* if length bigger than memory size, we got problems  */
+      if (evs[i]->length > evs[i]->memsize) {
+          if (etid->debug >= ET_DEBUG_ERROR) {
+              et_logmsg("ERROR", "etn_events_put, 1 or more data lengths are too large!\n");
+          }
+          return ET_ERROR;
+      }
+  }
 
   /* for translating event pointers back into ET system's space */
   if ( (events = (et_event **) malloc(num*sizeof(et_event *))) == NULL) {
