@@ -170,9 +170,10 @@ extern "C" {
 #define ET_ERROR_NOREMOTE -12
 #define ET_ERROR_TOOBIG   -13
 #define ET_ERROR_NOMEM    -14
-#define ET_ERROR_BADARG   -15 /* Changed, Added */
-#define ET_ERROR_SOCKET   -16 /* Changed, Added */
-#define ET_ERROR_NETWORK  -17 /* Changed, Added */
+#define ET_ERROR_BADARG   -15
+#define ET_ERROR_SOCKET   -16
+#define ET_ERROR_NETWORK  -17
+#define ET_ERROR_CLOSED   -18 /* Changed, Added */
 
 /* debug levels */
 #define ET_DEBUG_NONE   0

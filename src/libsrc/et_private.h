@@ -668,6 +668,7 @@ typedef struct et_open_config_t {
  * lang           : language this ET system was written in:
  *                : ET_LANG_C, ET_LANG_CPP, or ET_LANG_JAVA
  * alive          : is system alive? 1 = yes, 0 = no
+ * closed         : has et_close been called? 1 = yes, 0 = no
  * bit64          : 1 if the ET system connected to is a 64 bit executable, else 0
  * proc           : unique process id# for processes connected to an
  *                : ET system. It's an index into data stored in the
@@ -699,7 +700,8 @@ typedef struct et_open_config_t {
  * for REMOTE client use:
  * locality       : =ET_LOCAL if process is on same machine as ET system,
  *                : =ET_REMOTE if process is on another machine
- *                : =ET_LOCAL_LINUX if process is on same Linux machine as ET
+ *                : =ET_LOCAL_NOSHARE if process is on same machine as ET
+ *                : but cannot shared mutexes between processes
  * sockfd         : client's socket connection to ET server
  * endian         : endian of client's node (ET_ENDIAN_BIG or
  *                : ET_ENDIAN_LITTLE in et_network.h)
@@ -715,13 +717,16 @@ typedef struct et_open_config_t {
  * events         : ptr to start of et_event structures
  * data           : ptr to event data
  * grandcentral   : ptr to grandcentral station
- * mutex          : for thread-safe remote communications
+ * mutex          : pthread mutex for thread-safe remote communications
+ * sharedMemlock  : pthread read-write lock for preventing access of unmapped
+ *                : memory after calling et_close()
  */
  
 typedef struct  et_id_t {
   int              init;
   int              lang;
   int              alive;
+  int              closed;
   int              bit64;
   et_proc_id       proc;
   int              race;
@@ -752,6 +757,9 @@ typedef struct  et_id_t {
   char            *data;
   et_station      *grandcentral;
   pthread_mutex_t  mutex;
+#ifndef VXWORKS
+  pthread_rwlock_t sharedMemlock;
+#endif
 } et_id;
 
 /*
@@ -972,6 +980,10 @@ extern void et_transfer_unlock_all(et_id *id);
 
 extern void et_tcp_lock(et_id *id);
 extern void et_tcp_unlock(et_id *id);
+
+extern void et_memRead_lock(et_id *id);
+extern void et_memWrite_lock(et_id *id);
+extern void et_mem_unlock(et_id *id);
 
 extern int  et_mutex_locked(pthread_mutex_t *pmutex);
 

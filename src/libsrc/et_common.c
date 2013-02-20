@@ -404,6 +404,9 @@ char *et_perror(int error) {
             sprintf(temp, "ET_ERROR_NETWORK:  host name or address could not be resolved, or cannot connect\n");
             break;
 
+        case ET_ERROR_CLOSED:
+            sprintf(temp, "ET_ERROR_CLOSED:  et_close() as been called, id is now invalid\n");
+            break;
 
         default:
             sprintf(temp, "?et_perror...no such error: %d\n",error);

@@ -293,6 +293,7 @@ int et_id_init(et_sys_id *id)
   
   etid->lang         = ET_LANG_C;
   etid->alive        = 0;
+  etid->closed       = 0;
 #ifdef _LP64
   etid->bit64        = 1;
 #else
@@ -334,19 +335,32 @@ int et_id_init(et_sys_id *id)
   }
   /* default is user is on same host as system */
   etid->systemendian = etid->endian;
+  
   /* initialize mutex for thread-safe TCP */
-#ifdef VXWORKS
-  etid->mutex  = semBCreate(SEM_Q_FIFO, SEM_FULL);
-  if (etid->mutex == NULL) {
-    et_logmsg("SEVERE","et_id_init could not allocate a semaphore.\n");
-    exit(1);
-  }
-#else
   pthread_mutex_init(&etid->mutex, NULL);
+  
+#ifndef VXWORKS
+
+#ifndef linux
+      /* Up to & including solaris 10 / MacOS 10.7, pthread_rwlockattr_setkind_np is not supported */
+      pthread_rwlock_init(&etid->sharedMemlock, NULL);
+#else
+  {
+      /* Give preference to writer lock (to et_close & et_station_detach).
+       * Default is to give preference to the reader lock. */
+      pthread_rwlockattr_t attr;
+      pthread_rwlockattr_init(&attr);
+      pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+      /* Isnitialize mutex for protecting shared mem from close() */
+      pthread_rwlock_init(&etid->sharedMemlock, &attr);
+      pthread_rwlockattr_destroy(&attr);
+  }
+#endif
+
 #endif
   
   /* sign that we're done with init */
-  etid->init         = ET_STRUCT_OK;
+  etid->init = ET_STRUCT_OK;
   
   *id = (et_sys_id) etid;
   return ET_OK;
@@ -356,9 +370,15 @@ int et_id_init(et_sys_id *id)
 void et_id_destroy(et_sys_id id)
 {
   et_id *etid = (et_id *) id;
+  
   if (etid != NULL) {
+    pthread_mutex_destroy(&etid->mutex);
+#ifndef VXWORKS
+    pthread_rwlock_destroy(&etid->sharedMemlock);
+#endif
     free(etid);
   }
+  
   etid = NULL;
   return;
 }

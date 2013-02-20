@@ -378,9 +378,16 @@ int etl_close(et_sys_id id)
 #ifdef sun
   int con;
 #endif
-    
+
+  /* Don't allow simultaneous access of shared mem as we're about to unmap it */
+  et_memWrite_lock(etid);
+
+  /* Record that fact that close has been called so no more access of shared mem */
+  etid->closed = 1;
+  
   /* ET system must call et_system_close, not et_close */
   if (etid->proc == ET_SYS) {
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_WARN) {
       et_logmsg("WARN", "et_close, calling et_system_close instead for ET system process\n");
     }
@@ -388,16 +395,22 @@ int etl_close(et_sys_id id)
   }
   
   if (et_alive(id)) {
+    /* read station data */
+    et_station_lock(etid->sys);
+
     /* check for this process' attachments to stations */
     for (i=0; i < etid->sys->config.nattachments; i++) {
       if (etid->sys->proc[etid->proc].att[i] != -1) {
+        et_station_unlock(etid->sys);
+        et_mem_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_close, detach from all stations first\n");
         }
         return ET_ERROR;
       }
     }
-  
+    et_station_unlock(etid->sys);
+ 
     et_system_lock(etid->sys);
     etid->sys->nprocesses--;
     et_init_process(etid->sys, etid->proc);
@@ -428,6 +441,8 @@ int etl_close(et_sys_id id)
       et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");
     }
   }
+  
+  et_mem_unlock(etid);
   et_id_destroy(id);
  
   return ET_OK;

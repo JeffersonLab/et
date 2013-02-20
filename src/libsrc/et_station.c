@@ -404,11 +404,35 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
   if (etid->locality != ET_LOCAL) {
     return etr_station_create_at(id, stat_id, stat_name, sconfig, position, parallelposition);
   }
+
+  /*
+  * Don't create station if ET is dead, but need to make an
+  * exception for GRAND_CENTRAL as it must be created before
+  * the ET system heartbeat is started.
+  */
+  if (!et_alive(id) && (isGrandCentral == 0)) {
+      if (p_auto_station) {
+          et_station_config_destroy(p_auto_station);
+      }
+      return ET_ERROR_DEAD;
+  }
+
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_create_at, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
   
   /* Check configuration for self-consistancy. Do it after calling remote routine
-   * since it's gotta look at shared memory.
-   */
+   * since it's gotta look at shared memory. */
   if (et_station_config_check(etid, sc) == ET_ERROR) {
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_create_at, station configuration is not self-consistant\n");
     }  
@@ -416,18 +440,6 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
       et_station_config_destroy(p_auto_station);
     }
     return ET_ERROR;
-  }
-
-  /*
-   * Don't create station if ET is dead, but need to make an
-   * exception for GRAND_CENTRAL as it must be created before
-   * the ET system heartbeat is started.
-   */
-  if (!et_alive(id) && (isGrandCentral == 0)) {
-    if (p_auto_station) {
-      et_station_config_destroy(p_auto_station);
-    }
-    return ET_ERROR_DEAD;
   }
 
   et_station_lock(sys);
@@ -461,6 +473,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
         if (equal == 1) {
           /* station definitions are the same, so return ET_OK */
           et_station_unlock(sys);
+          et_mem_unlock(etid);
           if (p_auto_station) {
             et_station_config_destroy(p_auto_station);
           }
@@ -469,8 +482,9 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
       }
     }
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_create_at, station \"%s\" already exists and is defined differently, has a user-defined selection functionm, or is being created\n",stat_name);
+      et_logmsg("ERROR", "et_station_create_at, station \"%s\" already exists and is defined differently, has a user-defined selection function, or is being created\n",stat_name);
     }  
     if (p_auto_station) {
       et_station_config_destroy(p_auto_station);
@@ -480,6 +494,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
   
   if (sys->nstations >= sys->config.nstations) {
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_create_at, too many stations already, cannot create\n",stat_name);
     }
@@ -504,6 +519,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
     /* this should never happen */
     sys->nstations--;
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_station_create_at, algorithm problem\n");
     }
@@ -535,6 +551,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
   if (isGrandCentral) {
     /* sys->stat_head = sys->stat_tail = ET_GRANDCENTRAL; */
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     return ET_OK;
   }
   
@@ -555,7 +572,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
   
   /* Signal station creation thread to add one more */
   status = pthread_cond_signal(&sys->statadd);
-  if(status != 0) {
+  if (status != 0) {
     err_abort(status, "Signal add station");
   }
    
@@ -580,6 +597,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
     sys->nstations--;
     et_init_station(ps);
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_station_create_at, CANNOT start conductor, remove station %s\n", stat_name);
     }
@@ -602,11 +620,13 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
     ps->data.status = ET_STATION_UNUSED;   
     sys->nstations--;
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     return ET_ERROR;
   }
   
   et_transfer_unlock_all(etid);
   et_station_unlock(sys);
+  et_mem_unlock(etid);
  
   /* set value to be returned */
   *stat_id = this_station;
@@ -655,17 +675,30 @@ int et_station_remove(et_sys_id id, et_stat_id stat_id)
   waitforme.tv_sec  = 0;
   waitforme.tv_nsec = 500000000; /* 0.5 sec */
   
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
+  }
+
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_remove, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
   if (stat_id >= sys->config.nstations) {
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_remove, bad station id\n");
     }
     return ET_ERROR;
   }
     
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
-  }
-
   /* grab mutex since attaching process may activate station */
   et_station_lock(sys);
 
@@ -675,6 +708,7 @@ int et_station_remove(et_sys_id id, et_stat_id stat_id)
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_remove, can't remove %s - still have attachments\n", ps->name);
     }
+    et_mem_unlock(etid);
     return ET_ERROR;
   }
   /* since no attached processes, station is idle with no events */   
@@ -725,7 +759,8 @@ int et_station_remove(et_sys_id id, et_stat_id stat_id)
   
   sys->nstations--;
   et_station_unlock(sys);
-  
+  et_mem_unlock(etid);
+ 
   if (etid->debug >= ET_DEBUG_INFO) {
     et_logmsg("INFO", "et_station_remove, ps = %p, status = ET_STATION_UNUSED\n", ps);
   }
@@ -741,9 +776,9 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
   et_system *sys = etid->sys;
   et_station *ps = etid->grandcentral + stat_id;
   
-  if (stat_id < 0) {
+  if (stat_id < 0 || att == NULL) {
     if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_attach, bad station id\n");
+      et_logmsg("ERROR", "et_station_attach, bad id or att arg\n");
     }
     return ET_ERROR;
   }
@@ -752,17 +787,30 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     return etr_station_attach(id, stat_id, att);
   }
   
-  if (stat_id >= sys->config.nstations) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_attach, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
       
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_attach, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
+  if (stat_id >= sys->config.nstations) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_attach, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   /* read/modify station data */
   et_station_lock(sys);
     
@@ -772,6 +820,7 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_attach, station %s is not active or idle\n", ps->name);
     }
+    et_mem_unlock(etid);
     return ET_ERROR;
   }
 
@@ -782,6 +831,7 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_attach, too many attachments to station %s\n", ps->name);
     }
+    et_mem_unlock(etid);
     return ET_ERROR_TOOMANY;
   }
    
@@ -792,6 +842,7 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
   if (sys->nattachments >= sys->config.nattachments) {
     et_system_unlock(sys);
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_attach, too many attachments to ET system\n");
     }
@@ -808,6 +859,7 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
   if (my_index < 0) {
     et_system_unlock(sys);
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_station_attach, algorithm problem\n");
     }
@@ -857,7 +909,8 @@ int et_station_attach(et_sys_id id, et_stat_id stat_id, et_att_id *att)
     et_transfer_unlock_all(etid);
   }
   et_station_unlock(sys);
-  
+  et_mem_unlock(etid);
+ 
   *att = my_index;
  
   if (etid->debug >= ET_DEBUG_INFO) {
@@ -887,17 +940,32 @@ int et_station_detach(et_sys_id id, et_att_id att)
     return etr_station_detach(id, att);
   }
   
-  if (att >= sys->config.nattachments) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_detach, bad attachment id\n");
-    }
-    return ET_ERROR;
-  }
-
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
   
+  /* Protection from (local) et_close() unmapping shared memory.
+   * Make it grab the write as opposed to read lock as the effect of detaching
+   * is similar to the effect of closing on et_events_get/put/new/dump. */
+  et_memWrite_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_attach, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
+  if (att >= sys->config.nattachments) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_detach, bad attachment id\n");
+      }
+      return ET_ERROR;
+  }
+
   /* don't lock if doing ET system repair/cleanup since already locked */
   if (etid->cleanup != 1) {
     et_station_lock(sys);
@@ -906,6 +974,7 @@ int et_station_detach(et_sys_id id, et_att_id att)
   /* see which station we're attached to */
   if (etid->sys->attach[att].stat < 0) {
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_detach, not attached any station!\n");
     }
@@ -960,14 +1029,16 @@ int et_station_detach(et_sys_id id, et_att_id att)
   
   /* next block is only valid for users or ET server, but NOT ET system cleanup */
   if (etid->cleanup != 1) {
-    et_station_unlock(sys);
     /* ET server has no proc data stored */
     if (etid->proc != ET_SYS) {
       sys->proc[etid->proc].nattachments--;
       sys->proc[etid->proc].att[att] = -1;
     }
     et_system_unlock(sys);
+    et_station_unlock(sys);
   }
+  
+  et_mem_unlock(etid);
   
   if (etid->debug >= ET_DEBUG_INFO) {
     et_logmsg("INFO", "et_station_detach, done\n");
@@ -1028,15 +1099,28 @@ int et_station_setposition(et_sys_id id, et_stat_id stat_id, int position,
     return etr_station_setposition(id, stat_id, position, parallelposition);
   }
   
-  if (stat_id >= sys->config.nstations) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setposition, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
+  }
+  
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setposition, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
+  if (stat_id >= sys->config.nstations) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setposition, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   /* grab station lock otherwise station status may change */
@@ -1046,6 +1130,7 @@ int et_station_setposition(et_sys_id id, et_stat_id stat_id, int position,
   if ((ps->data.status != ET_STATION_IDLE) &&
       (ps->data.status != ET_STATION_ACTIVE)) {
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_setposition, station not defined or being created\n");
     }
@@ -1071,6 +1156,7 @@ int et_station_setposition(et_sys_id id, et_stat_id stat_id, int position,
   
   et_transfer_unlock_all(etid);
   et_station_unlock(sys);
+  et_mem_unlock(etid);
   
   return err;
 }
@@ -1104,15 +1190,28 @@ int et_station_getposition(et_sys_id id, et_stat_id stat_id, int *position,
     return etr_station_getposition(id, stat_id, position, parallelposition);
   }
   
-  if (stat_id >= sys->config.nstations) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getposition, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
+  }
+  
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getposition, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
+  if (stat_id >= sys->config.nstations) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getposition, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   /* grab station lock otherwise station status may change */
@@ -1122,6 +1221,7 @@ int et_station_getposition(et_sys_id id, et_stat_id stat_id, int *position,
   if ((ps->data.status != ET_STATION_IDLE) &&
       (ps->data.status != ET_STATION_ACTIVE)) {
     et_station_unlock(sys);
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_getposition, station not defined or being created\n");
     }
@@ -1136,6 +1236,7 @@ int et_station_getposition(et_sys_id id, et_stat_id stat_id, int *position,
   
   et_transfer_unlock_all(etid);
   et_station_unlock(sys);
+  et_mem_unlock(etid);
       
   return err;
 }
@@ -1153,27 +1254,43 @@ int et_station_isattached(et_sys_id id, et_stat_id stat_id, et_att_id att)
     return etr_station_isattached(id, stat_id, att);
   }
   
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
+  }
+  
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_isattached, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
   if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_isattached, bad station id\n");
     }
     return ET_ERROR;
   }
   if ((att < 0) || (att >= etid->sys->config.nattachments)) {
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_isattached, bad attachment id\n");
     }
     return ET_ERROR;
   }
 
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
-  }
-  
   if (ps->data.att[att] == att) {
-    return 1;
+      et_mem_unlock(etid);
+      return 1;
   }
   
+  et_mem_unlock(etid); 
   return 0;
 }
 
@@ -1197,17 +1314,32 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name)
     return ET_ERROR_DEAD;
   }
     
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_exists, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
   for (num=0; num < etid->sys->config.nstations ; num++) {
     if (ps->data.status != ET_STATION_UNUSED) {
       if (strcmp(ps->name, stat_name) == 0) {
         if (stat_id != NULL) {
           *stat_id = num;
         }
+        et_mem_unlock(etid);
         return 1;
       }
     }
     ps++;
   }
+  
+  et_mem_unlock(etid);
   return 0;
 }
 
@@ -1237,18 +1369,32 @@ int et_station_getattachments(et_sys_id id, et_stat_id stat_id, int *numatts)
     return etr_station_getattachments(id, stat_id, numatts);
   }
   
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getattachments, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
   
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getattachments, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getattachments, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
+    et_mem_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_getattachments, station is unused\n");
     }
@@ -1259,6 +1405,7 @@ int et_station_getattachments(et_sys_id id, et_stat_id stat_id, int *numatts)
     *numatts = ps->data.nattachments;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1272,21 +1419,36 @@ int et_station_getstatus(et_sys_id id, et_stat_id stat_id, int *status)
     return etr_station_getstatus(id, stat_id, status);
   }
     
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getstatus, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
   
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getstatus, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getstatus, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
+
   if (status != NULL) {
     *status = ps->data.status;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1300,21 +1462,35 @@ int et_station_getinputcount(et_sys_id id, et_stat_id stat_id, int *cnt)
     return etr_station_getinputcount(id, stat_id, cnt);
   }
   
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getinputcount, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
+  }
+  
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getinputcount, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getinputcount, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (cnt != NULL) {
     *cnt = ps->list_in.cnt;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1328,21 +1504,35 @@ int et_station_getoutputcount(et_sys_id id, et_stat_id stat_id, int *cnt)
     return etr_station_getoutputcount(id, stat_id, cnt);
   }
   
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getoutputcount, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
+  }
+  
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getoutputcount, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getoutputcount, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (cnt != NULL) {
     *cnt = ps->list_out.cnt;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1358,28 +1548,43 @@ int et_station_getblock(et_sys_id id, et_stat_id stat_id, int *block)
     return etr_station_getblock(id, stat_id, block);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getblock, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getblock, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getblock, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getblock, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getblock, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (block != NULL) {
     *block = ps->config.block_mode;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1408,32 +1613,47 @@ int et_station_setblock(et_sys_id id, et_stat_id stat_id, int block)
     return etr_station_setblock(id, stat_id, block);
   }
   
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
+  }
+
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setblock, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
   if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setblock, bad station id\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setblock, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (((ps->config.select_mode == ET_STATION_SELECT_RROBIN) ||
        (ps->config.select_mode == ET_STATION_SELECT_EQUALCUE)) &&
        (block ==  ET_STATION_NONBLOCKING)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setblock, cannot set rrobin or equalcue station to nonblocking\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setblock, cannot set rrobin or equalcue station to nonblocking\n");
+      }
+      return ET_ERROR;
   }
   
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
-  }
-
   et_station_lock(etid->sys);
     /* et_transfer_lock_all(etid); */
       ps->config.block_mode = block;
     /* et_transfer_unlock_all(etid); */
   et_station_unlock(etid->sys);
-  
+  et_mem_unlock(etid);
+ 
   return ET_OK;
 }
 
@@ -1447,28 +1667,43 @@ int et_station_getuser(et_sys_id id, et_stat_id stat_id, int *user)
     return etr_station_getuser(id, stat_id, user);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getuser, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getuser, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getuser, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getuser, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getuser, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (user != NULL) {
     *user = ps->config.user_mode;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1496,20 +1731,34 @@ int et_station_setuser(et_sys_id id, et_stat_id stat_id, int user)
     return etr_station_setuser(id, stat_id, user);
   }
   
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setuser, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
+      return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setuser, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setuser, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   et_station_lock(etid->sys);
     ps->config.user_mode = user;
   et_station_unlock(etid->sys);
+  et_mem_unlock(etid);
   
   return ET_OK;
 }
@@ -1524,28 +1773,43 @@ int et_station_getrestore(et_sys_id id, et_stat_id stat_id, int *restore)
     return etr_station_getrestore(id, stat_id, restore);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getrestore, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getrestore, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getrestore, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getrestore, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getrestore, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (restore != NULL) {
     *restore = ps->config.restore_mode;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1575,30 +1839,46 @@ int et_station_setrestore(et_sys_id id, et_stat_id stat_id, int restore)
     return etr_station_setrestore(id, stat_id, restore);
   }
   
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
+  }
+
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setrestore, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
   if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setrestore, bad station id\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setrestore, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (((ps->config.select_mode == ET_STATION_SELECT_RROBIN) ||
        (ps->config.select_mode == ET_STATION_SELECT_EQUALCUE)) &&
        (restore ==  ET_STATION_RESTORE_IN)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
+
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_setblock, cannot set rrobin or equalcue station to restore to input list\n");
     }
     return ET_ERROR;
   }
 
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
-  }
-
   et_station_lock(etid->sys);
     ps->config.restore_mode = restore;
   et_station_unlock(etid->sys);
-  
+  et_mem_unlock(etid);
+ 
   return ET_OK;
 }
 
@@ -1613,28 +1893,43 @@ int et_station_getprescale(et_sys_id id, et_stat_id stat_id, int *prescale)
     return etr_station_getprescale(id, stat_id, prescale);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getprescale, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getprescale, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getprescale, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getprescale, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getprescale, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (prescale != NULL) {
     *prescale = ps->config.prescale;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1663,24 +1958,39 @@ int et_station_setprescale(et_sys_id id, et_stat_id stat_id, int prescale)
     return etr_station_setprescale(id, stat_id, prescale);
   }
   
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
+  }
+
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setprescale, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
   if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setprescale, bad station id\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setprescale, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (((ps->config.select_mode == ET_STATION_SELECT_RROBIN) ||
        (ps->config.select_mode == ET_STATION_SELECT_EQUALCUE)) &&
        (prescale != 1)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
+
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_setblock, prescale for rrobin or equalcue station must be 1\n");
     }
     return ET_ERROR;
-  }
-
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
   }
 
   et_station_lock(etid->sys);
@@ -1688,7 +1998,8 @@ int et_station_setprescale(et_sys_id id, et_stat_id stat_id, int prescale)
       ps->config.prescale = prescale;
     et_llist_unlock(pl);
   et_station_unlock(etid->sys);
-  
+  et_mem_unlock(etid);
+ 
   return ET_OK;
 }
 
@@ -1702,28 +2013,43 @@ int et_station_getcue(et_sys_id id, et_stat_id stat_id, int *cue)
     return etr_station_getcue(id, stat_id, cue);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getcue, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getcue, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getcue, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getcue, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getcue, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (cue != NULL) {
     *cue = ps->config.cue;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1745,29 +2071,44 @@ int et_station_setcue(et_sys_id id, et_stat_id stat_id, int cue)
     return etr_station_setcue(id, stat_id, cue);
   }
   
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
+  }
+
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setcue, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
   if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setcue, bad station id\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setcue, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if ((cue < 1) || (cue > etid->sys->config.nevents)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setcue, bad cue value\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setcue, bad cue value\n");
+      }
+      return ET_ERROR;
   }
   
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
-  }
-
   et_station_lock(etid->sys);
     et_llist_lock(pl);
       ps->config.cue = cue;
     et_llist_unlock(pl);
   et_station_unlock(etid->sys);
+  et_mem_unlock(etid);
   
   return ET_OK;
 }
@@ -1783,22 +2124,36 @@ int et_station_getselectwords(et_sys_id id, et_stat_id stat_id, int select[])
     return etr_station_getselectwords(id, stat_id, select);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getselectwords, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
     return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getselectwords, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getselectwords, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getselectwords, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+        et_logmsg("ERROR", "et_station_getselectwords, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (select != NULL) {
@@ -1807,6 +2162,7 @@ int et_station_getselectwords(et_sys_id id, et_stat_id stat_id, int select[])
     }
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1830,17 +2186,30 @@ int et_station_setselectwords(et_sys_id id, et_stat_id stat_id, int select[])
     return etr_station_setselectwords(id, stat_id, select);
   }
   
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_setselectwords, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
+      return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setselectwords, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_setselectwords, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   et_station_lock(etid->sys);
     et_llist_lock(pl);
       for (i=0; i < ET_STATION_SELECT_INTS; i++) {
@@ -1848,7 +2217,8 @@ int et_station_setselectwords(et_sys_id id, et_stat_id stat_id, int select[])
       }
     et_llist_unlock(pl);
   et_station_unlock(etid->sys);
-  
+  et_mem_unlock(etid);
+
   return ET_OK;
 }
 
@@ -1862,19 +2232,33 @@ int et_station_getselect(et_sys_id id, et_stat_id stat_id, int *select)
     return etr_station_getselect(id, stat_id, select);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getselect, bad station id\n");
-    }
-    return ET_ERROR;
-  }
-  
   if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
+      return ET_ERROR_DEAD;
   }
 
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getselect, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getselect, bad station id\n");
+      }
+      return ET_ERROR;
+  }
+  
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_getselect, station is unused\n");
     }
     return ET_ERROR;
@@ -1884,6 +2268,7 @@ int et_station_getselect(et_sys_id id, et_stat_id stat_id, int *select)
     *select = ps->config.select_mode;
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1905,19 +2290,33 @@ int et_station_getlib(et_sys_id id, et_stat_id stat_id, char *lib)
     return etr_station_getlib(id, stat_id, lib);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getlib, bad station id\n");
-    }
-    return ET_ERROR;
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
   }
   
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getlib, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getlib, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_station_getlib, station is unused\n");
     }
     return ET_ERROR;
@@ -1927,6 +2326,7 @@ int et_station_getlib(et_sys_id id, et_stat_id stat_id, char *lib)
     strcpy(lib, ps->config.lib);
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1947,28 +2347,43 @@ int et_station_getclass(et_sys_id id, et_stat_id stat_id, char *classs)
     return etr_station_getclass(id, stat_id, classs);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getclass, bad station id\n");
-    }
-    return ET_ERROR;
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
   }
   
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getclass, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getclass, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getclass, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getclass, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (classs != NULL) {
     strcpy(classs, ps->config.classs);
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 
@@ -1989,28 +2404,43 @@ int et_station_getfunction(et_sys_id id, et_stat_id stat_id, char *function)
     return etr_station_getfunction(id, stat_id, function);
   }
 
-  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getfunction, bad station id\n");
-    }
-    return ET_ERROR;
+  if (!et_alive(id)) {
+      return ET_ERROR_DEAD;
   }
   
-  if (!et_alive(id)) {
-    return ET_ERROR_DEAD;
+  /* Protection from (local) et_close() unmapping shared memory */
+  et_memRead_lock(etid);
+
+  /* Has caller already called et_close()? */
+  if (etid->closed) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getfunction, et id is closed\n");
+      }
+      return ET_ERROR_CLOSED;
+  }
+  
+  if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getfunction, bad station id\n");
+      }
+      return ET_ERROR;
   }
   
   if (ps->data.status == ET_STATION_UNUSED) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_station_getfunction, station is unused\n");
-    }
-    return ET_ERROR;
+      et_mem_unlock(etid);
+      if (etid->debug >= ET_DEBUG_ERROR) {
+          et_logmsg("ERROR", "et_station_getfunction, station is unused\n");
+      }
+      return ET_ERROR;
   }
   
   if (function != NULL) {
     strcpy(function, ps->config.fname);
   }
   
+  et_mem_unlock(etid);
   return ET_OK;
 }
 

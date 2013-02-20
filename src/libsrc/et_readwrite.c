@@ -69,6 +69,7 @@ void et_station_unlock(et_system *sys)
     err_abort(status, "Failed station unlock");
   }
 }
+/*******************************************************/  
 
 void et_llist_lock(et_list *pl)
 {
@@ -90,6 +91,7 @@ void et_llist_unlock(et_list *pl)
   }
 }
 
+/*******************************************************/  
 void et_system_lock(et_system *sys)
 {
   int status;
@@ -109,6 +111,7 @@ void et_system_unlock(et_system *sys)
     err_abort(status, "Failed system unlock");
   }
 }
+/*******************************************************/  
 
 void et_transfer_lock(et_station *ps)
 {
@@ -129,6 +132,7 @@ void et_transfer_unlock(et_station *ps)
     err_abort(status, "Failed transfer unlock");
   }
 }
+/*******************************************************/  
 
 void et_transfer_lock_all(et_id *id)
 {
@@ -152,26 +156,57 @@ void et_transfer_unlock_all(et_id *id)
   }
 }
 
+/*******************************************************/  
 void et_tcp_lock(et_id *id)
 {
-  int status;
+    int status;
   
-  status = pthread_mutex_lock(&id->mutex);
-  if (status != 0) {
-    err_abort(status, "Failed tcp lock");
-  }
+    status = pthread_mutex_lock(&id->mutex);
+    if (status != 0) {
+        err_abort(status, "Failed tcp lock");
+    }
 }
 
 void et_tcp_unlock(et_id *id)
 {
-  int status;
+    int status;
   
-  status = pthread_mutex_unlock(&id->mutex);
-  if (status != 0) {
-    err_abort(status, "Failed tcp unlock");
-  }
+    status = pthread_mutex_unlock(&id->mutex);
+    if (status != 0) {
+        err_abort(status, "Failed tcp unlock");
+    }
+}
+/*******************************************************/  
+
+void et_memRead_lock(et_id *id)
+{
+    int status;
+  
+    status = pthread_rwlock_rdlock(&id->sharedMemlock);
+    if (status != 0) {
+        err_abort(status, "Failed mem read lock");
+    }
 }
 
+void et_memWrite_lock(et_id *id)
+{
+    int status;
+  
+    status = pthread_rwlock_wrlock(&id->sharedMemlock);
+    if (status != 0) {
+        err_abort(status, "Failed mem write lock");
+    }
+}
+
+void et_mem_unlock(et_id *id)
+{
+    int status;
+  
+    status = pthread_rwlock_unlock(&id->sharedMemlock);
+    if (status != 0) {
+        err_abort(status, "Failed mem unlock");
+    }
+}
 
 /*****************************************************/
 int et_mutex_locked(pthread_mutex_t *pmutex)
@@ -1068,8 +1103,11 @@ int et_station_nread(et_id *id, et_stat_id stat_id, et_event *pe[], int mode,
       }
       while (pl->cnt < 1) {
           sys->attach[att].blocked = ET_ATT_BLOCKED;
+printf("1\n");
           status = pthread_cond_timedwait(&pl->cread, &pl->mutex, time);
+printf("2\n");
           sys->attach[att].blocked = ET_ATT_UNBLOCKED;
+printf("3\n");
           if (status == ETIMEDOUT) {
               et_llist_unlock(pl);
               return ET_ERROR_TIMEOUT;
