@@ -2723,6 +2723,14 @@ int etr_event_put(et_sys_id id, et_att_id att, et_event *ev)
     int i, err=ET_OK, iov_bufs, transfer[9+ET_STATION_SELECT_INTS];
     struct iovec iov[2];
 
+    /* if length bigger than memory size, we got problems  */
+    if (ev->length > ev->memsize) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_event_put, data length is too large!\n");
+        }
+        return ET_ERROR;
+    }
+
     /* if we're changing an event or writing a new event ... */
     if (ev->modify > 0) {
         /* Do not send back datastatus bits since they
@@ -2813,6 +2821,16 @@ int etr_events_put(et_sys_id id, et_att_id att, et_event *evs[], int num)
     bytes      = 0ULL;
     index      = 0;
     headersize = (7+ET_STATION_SELECT_INTS)*sizeof(int);
+
+    for (i=0; i < num; i++) {
+        /* if length bigger than memory size, we got problems  */
+        if (evs[i]->length > evs[i]->memsize) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "etr_events_put, 1 or more data lengths are too large!\n");
+            }
+            return ET_ERROR;
+        }
+    }
 
     for (i=0; i < num; i++) {
         /* if modifying an event ... */
