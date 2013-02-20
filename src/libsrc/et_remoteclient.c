@@ -41,27 +41,23 @@
 /******************************************************/
 void et_tcp_lock(et_id *id)
 {
-#ifndef VXWORKS  
   int status;
 
   status = pthread_mutex_lock(&id->mutex);
   if (status != 0) {
     err_abort(status, "Failed tcp lock");
   }
-#endif
 }
 
 /******************************************************/
 void et_tcp_unlock(et_id *id)
 {
-#ifndef VXWORKS  
   int status;
 
   status = pthread_mutex_unlock(&id->mutex);
   if (status != 0) {
     err_abort(status, "Failed tcp unlock");
   }
-#endif
 }
 
 /******************************
