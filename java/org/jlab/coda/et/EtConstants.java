@@ -335,6 +335,8 @@ public final class EtConstants {
     public static final int    errorSocket         = -16;
     /** Error when network error. */
     public static final int    errorNetwork        = -17;
+    /** Error when network error. */
+    public static final int    errorClosed         = -18;
 
 
     // constants from private.h
