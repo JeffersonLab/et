@@ -503,6 +503,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
@@ -510,13 +514,16 @@ public class EtSystem {
      *     if the name is GRAND_CENTRAL (already taken);
      *     if the configuration's cue size is too big;
      *     if the configuration needs a select class name
+     *     if the configuration inconsistent
+     *     if trying to add incompatible parallel station;
+     *     if trying to add parallel station to head of existing parallel group;
      * @throws EtExistsException
      *     if the station already exists but with a different configuration
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     public EtStation createStation(EtStationConfig config, String name)
-            throws IOException, EtException,
+            throws IOException, EtDeadException, EtClosedException, EtException,
                    EtExistsException, EtTooManyException {
 
         return createStation(config, name, EtConstants.end, EtConstants.end);
@@ -536,6 +543,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
@@ -543,14 +554,17 @@ public class EtSystem {
      *     if the name is GRAND_CENTRAL (already taken);
      *     if the configuration's cue size is too big;
      *     if the configuration needs a select class name
+     *     if the configuration inconsistent
+     *     if trying to add incompatible parallel station;
+     *     if trying to add parallel station to head of existing parallel group;
      * @throws EtExistsException
      *     if the station already exists but with a different configuration
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
     public EtStation createStation(EtStationConfig config, String name, int position)
-            throws IOException, EtException,
-            EtExistsException, EtTooManyException {
+            throws IOException, EtDeadException, EtClosedException, EtException,
+                   EtExistsException, EtTooManyException {
         return createStation(config, name, position, EtConstants.end);
     }
 
@@ -570,6 +584,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
@@ -578,7 +596,10 @@ public class EtSystem {
      *     if the name is GRAND_CENTRAL (already taken);
      *     if the name is too long;
      *     if the configuration's cue size is too big;
-     *     if the configuration needs a select class name
+     *     if the configuration needs a select class name;
+     *     if the configuration inconsistent
+     *     if trying to add incompatible parallel station;
+     *     if trying to add parallel station to head of existing parallel group;
      * @throws EtExistsException
      *     if the station already exists but with a different configuration
      * @throws EtTooManyException
@@ -586,7 +607,7 @@ public class EtSystem {
      */
     synchronized public EtStation createStation(EtStationConfig config, String name,
                                               int position, int parallelPosition)
-            throws IOException, EtException,
+            throws IOException, EtDeadException, EtClosedException, EtException,
                    EtExistsException, EtTooManyException {
 
         if (!open) {
@@ -687,13 +708,19 @@ public class EtSystem {
         int err = in.readInt();
         int statId = in.readInt();
 
-        if (err ==  EtConstants.errorTooMany) {
+        if (err == EtConstants.errorDead) {
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            throw new EtClosedException("ET is closed");
+        }
+        else if (err ==  EtConstants.errorTooMany) {
             throw new EtTooManyException("Maximum number of stations already created");
         }
         else if (err == EtConstants.errorExists) {
             throw new EtExistsException("Station already exists with different definition");
         }
-        else if (err ==  EtConstants.error) {
+        else if (err < EtConstants.ok) {
             throw new EtException("Trying to add incompatible parallel station, or\n" +
                     "trying to add parallel station to head of existing parallel group, or\n" +
                     "cannot load select class");
@@ -717,6 +744,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
@@ -725,7 +756,8 @@ public class EtSystem {
      *     if the station does not exist;
      *     if the station object is invalid
      */
-    synchronized public void removeStation(EtStation station) throws IOException, EtException {
+    synchronized public void removeStation(EtStation station)
+            throws IOException, EtDeadException, EtClosedException,  EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -750,11 +782,19 @@ public class EtSystem {
         out.flush();
 
         int err = in.readInt();
-        if (err ==  EtConstants.error) {
+        if (err == EtConstants.errorDead) {
+            station.setUsable(false);
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            station.setUsable(false);
+            throw new EtClosedException("ET is closed");
+        }
+        else if (err < EtConstants.ok) {
             throw new EtException("Either no such station exists " +
                                   "or remove all attachments before removing station");
         }
-        
+
         station.setUsable(false);
     }
 
@@ -768,6 +808,10 @@ public class EtSystem {
    *
    * @throws IOException
    *     if problems with network communications
+   * @throws EtDeadException
+   *     if the ET system processes are dead
+   * @throws EtClosedException
+   *     if the ET system is closed
    * @throws EtException
    *     if arg is null;
    *     if not connected to ET system;
@@ -782,7 +826,7 @@ public class EtSystem {
    */
   synchronized public void setStationPosition(EtStation station, int position,
                                               int parallelPosition)
-          throws IOException, EtException {
+      throws IOException, EtDeadException, EtClosedException,  EtException {
 
       if (!open) {
           throw new EtException("Not connected to ET system");
@@ -821,7 +865,15 @@ public class EtSystem {
       out.flush();
 
       int err = in.readInt();
-      if (err ==  EtConstants.error) {
+      if (err == EtConstants.errorDead) {
+          station.setUsable(false);
+          throw new EtDeadException("ET is dead");
+      }
+      else if (err == EtConstants.errorClosed) {
+          station.setUsable(false);
+          throw new EtClosedException("ET is closed");
+      }
+      else if (err < EtConstants.ok) {
           station.setUsable(false);
           throw new EtException("station does not exist");
       }
@@ -836,6 +888,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
@@ -843,7 +899,7 @@ public class EtSystem {
      *     if station object is invalid
      */
     synchronized public int getStationPosition(EtStation station)
-            throws IOException, EtException {
+            throws IOException, EtDeadException, EtClosedException,  EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -866,11 +922,20 @@ public class EtSystem {
         int position = in.readInt();
         // skip parallel position info
         in.skipBytes(4);
-        if (err ==  EtConstants.error) {
+
+        if (err == EtConstants.errorDead) {
+            station.setUsable(false);
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            station.setUsable(false);
+            throw new EtClosedException("ET is closed");
+        }
+        else if (err < EtConstants.ok) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
-        
+
         return position;
     }
 
@@ -884,6 +949,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
@@ -891,7 +960,7 @@ public class EtSystem {
      *     if station object is invalid
      */
     synchronized public int getStationParallelPosition(EtStation station)
-            throws IOException, EtException {
+        throws IOException, EtDeadException, EtClosedException,  EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -914,7 +983,16 @@ public class EtSystem {
         // skip main position info
         in.skipBytes(4);
         int pPosition = in.readInt();
-        if (err ==  EtConstants.error) {
+
+        if (err == EtConstants.errorDead) {
+            station.setUsable(false);
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            station.setUsable(false);
+            throw new EtClosedException("ET is closed");
+        }
+        else if (err < EtConstants.ok) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
@@ -931,17 +1009,21 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
-     *     if the station does not exist;
+     *     if the station does not exist or is not in active/idle state;
      *     if station object is invalid
      * @throws EtTooManyException
-     *     if no more attachments are allowed to the station;
-     *     if no more attachments are allowed to ET system
+     *     if no more attachments are allowed to the station and/or ET system
      */
     synchronized public EtAttachment attach(EtStation station)
-            throws IOException, EtException, EtTooManyException {
+            throws IOException, EtDeadException, EtClosedException,
+                   EtException, EtTooManyException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -977,12 +1059,21 @@ public class EtSystem {
 
         int err = in.readInt();
         int attId = in.readInt();
-        if (err ==  EtConstants.error) {
+
+        if (err == EtConstants.errorDead) {
             station.setUsable(false);
-            throw new EtException("station does not exist");
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            station.setUsable(false);
+            throw new EtClosedException("ET is closed");
         }
         else if (err ==  EtConstants.errorTooMany) {
-            throw new EtTooManyException("no more attachments allowed to either station or system");
+            throw new EtTooManyException("no more attachments allowed to station or system");
+        }
+        else if (err < EtConstants.ok) {
+            station.setUsable(false);
+            throw new EtException("station does not exist or not idle/active");
         }
 
         EtAttachment att = new EtAttachment(station, attId, this);
@@ -999,13 +1090,18 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
+     *     if not attached to station;
      *     if the attachment object is invalid
      */
     synchronized public void detach(EtAttachment att)
-            throws IOException, EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -1018,9 +1114,18 @@ public class EtSystem {
         out.writeInt(EtConstants.netStatDet);
         out.writeInt(att.getId());
         out.flush();
-        // always returns ok
-        in.readInt();
+        int err = in.readInt();
         att.setUsable(false);
+
+        if (err == EtConstants.errorDead) {
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            throw new EtClosedException("ET is closed");
+        }
+        else if (err < EtConstants.ok) {
+            throw new EtException("not attached to station");
+        }
     }
 
 
@@ -1040,6 +1145,10 @@ public class EtSystem {
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
@@ -1048,7 +1157,7 @@ public class EtSystem {
      *     if attachment object is invalid
      */
     synchronized public boolean stationAttached(EtStation station, EtAttachment att)
-            throws IOException, EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -1067,11 +1176,20 @@ public class EtSystem {
         out.writeInt(att.getId());
         out.flush();
         int err = in.readInt();
-        if (err == EtConstants.error) {
+
+        if (err == EtConstants.errorDead) {
+            station.setUsable(false);
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            station.setUsable(false);
+            throw new EtClosedException("ET is closed");
+        }
+        else if (err < EtConstants.ok) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
-        
+
         return (err == 1);
     }
 
@@ -1085,12 +1203,16 @@ public class EtSystem {
      *         <code>false</code> otherwise
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system
      */
     synchronized public boolean stationExists(String name)
-            throws IOException, EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -1111,6 +1233,14 @@ public class EtSystem {
         int err = in.readInt();
         // skip main position info
         in.skipBytes(4);
+
+        if (err == EtConstants.errorDead) {
+            throw new EtDeadException("ET is dead");
+        }
+        else if (err == EtConstants.errorClosed) {
+            throw new EtClosedException("ET is closed");
+        }
+
         // id is ignored here since we can't return it as a C function can
         return (err == 1);
     }
@@ -1120,17 +1250,20 @@ public class EtSystem {
      * Gets a station's object representation from its name.
      *
      * @param name station name
-     * @return station object
+     * @return station object, or null if no such station exists
      *
      * @throws IOException
      *     if problems with network communications
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
      *     if not connected to ET system;
-     *     if the station does not exist
      */
     synchronized public EtStation stationNameToObject(String name)
-            throws IOException, EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -1158,18 +1291,13 @@ public class EtSystem {
         }
 
         if (err == EtConstants.errorDead) {
-            throw new EtException("stationNameToObject: ET is dead");
+            throw new EtDeadException("ET is dead");
         }
-        else if (err == EtConstants.errorRead ||
-                 err == EtConstants.errorWrite) {
-            throw new EtException("stationNameToObject: cannot communication with ET");
+        else if (err == EtConstants.errorClosed) {
+            throw new EtClosedException("ET is closed");
         }
-        else if (err == EtConstants.errorRemote) {
-            throw new EtException("stationNameToObject: ET system is out of memory");
-        }
-        else {
-            throw new EtException("station " + name + " does not exist, err = " + err);
-        }
+
+        return null;
     }
 
 
@@ -1201,6 +1329,8 @@ public class EtSystem {
      *     for other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1214,9 +1344,8 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec, int count, int size)
-            throws IOException, EtException, EtDeadException,
-                   EtEmptyException, EtBusyException,
-                   EtTimeoutException, EtWakeUpException  {
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
 
         return newEvents(att, mode, false, microSec, count, size, 1);
     }
@@ -1246,6 +1375,8 @@ public class EtSystem {
      *     if arguments have bad values, attachment object is invalid, or other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1259,8 +1390,8 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private EtEvent[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size, int group)
-            throws EtException,        EtDeadException, EtWakeUpException,
-                   EtTimeoutException, EtBusyException, EtEmptyException  {
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException {
 
         EtEventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
                                                     mode, sec, nsec, count, size, group);
@@ -1319,6 +1450,8 @@ public class EtSystem {
      *     for other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1333,9 +1466,8 @@ public class EtSystem {
      */
     public EtEvent[] newEvents(EtAttachment att, Mode mode, boolean noBuffer,
                                             int microSec, int count, int size, int group)
-            throws IOException, EtException, EtDeadException,
-                   EtEmptyException,   EtBusyException,
-                   EtTimeoutException, EtWakeUpException  {
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
 
         if (mode == null) {
             throw new EtException("Invalid mode");
@@ -1546,6 +1678,8 @@ public class EtSystem {
      *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1559,9 +1693,8 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private EtEvent[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
-            throws EtException, EtDeadException,
-                   EtEmptyException, EtBusyException,
-                   EtTimeoutException, EtWakeUpException {
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException {
 
         EtEventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
@@ -1614,6 +1747,8 @@ public class EtSystem {
      *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1627,9 +1762,8 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     private EtEvent[] getEventsJNINew(int attId, int mode, int sec, int nsec, int count)
-            throws EtException, EtDeadException,
-                   EtEmptyException, EtBusyException,
-                   EtTimeoutException, EtWakeUpException {
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException {
 
         int[] evInfo = sys.getJni().getEventsInfo(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
 
@@ -1718,6 +1852,8 @@ public class EtSystem {
      *     for other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1731,9 +1867,8 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     public EtEvent[] getEvents(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
-            throws IOException, EtException, EtDeadException,
-                   EtEmptyException, EtBusyException,
-                   EtTimeoutException, EtWakeUpException  {
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
 
         if (att == null|| !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
@@ -1776,8 +1911,8 @@ public class EtSystem {
                 if (!open) {
                     throw new EtException("Not connected to ET system");
                 }
+                return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
             }
-            return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
         }
 
         // When using the network, do NOT use SLEEP mode because that
@@ -1874,7 +2009,7 @@ public class EtSystem {
                             continue;
                         }
                         if (debug >= EtConstants.error) {
-                            System.out.println("error in ET system (getEvents), timeout");
+//System.out.println("error in ET system (getEvents), timeout");
                         }
                         throw new EtTimeoutException("no events within timeout");
                     }
@@ -1976,6 +2111,8 @@ public class EtSystem {
      *     for other general errors
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -1988,10 +2125,9 @@ public class EtSystem {
      *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
-    synchronized public EtEvent[] getEventsOrig(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
-            throws IOException, EtException, EtDeadException,
-                   EtEmptyException, EtBusyException,
-                   EtTimeoutException, EtWakeUpException  {
+    synchronized private EtEvent[] getEventsOrig(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -2162,9 +2298,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     public void putEvents(EtAttachment att, List<EtEvent> eventList)
-            throws IOException, EtException, EtDeadException {
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (eventList == null) {
             throw new EtException("Invalid event list arg");
@@ -2189,9 +2327,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     public void putEvents(EtAttachment att, EtEvent[] evs)
-            throws IOException, EtException, EtDeadException {
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (evs == null) {
             throw new EtException("Invalid event array arg");
@@ -2215,9 +2355,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     private void putEventsJNI(int attId, EtEvent[] evs, int offset, int length)
-            throws EtException, EtDeadException {
+            throws EtException, EtDeadException, EtClosedException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
         EtEventImpl[] events = new EtEventImpl[length];
@@ -2248,9 +2390,11 @@ System.out.println("  getEvents, timed out");
      *     if null data buffer & whole event's being modified;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    synchronized public void putEventsOrig(EtAttachment att, EtEvent[] evs, int offset, int length)
-            throws IOException, EtException, EtDeadException {
+    synchronized private void putEventsOrig(EtAttachment att, EtEvent[] evs, int offset, int length)
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -2365,9 +2509,11 @@ System.out.println("  getEvents, timed out");
      *     if null data buffer & whole event's being modified;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     synchronized public void putEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
-            throws IOException, EtException, EtDeadException {
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
@@ -2495,9 +2641,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     private void dumpEventsJNI(int attId, EtEvent[] evs, int offset, int length)
-            throws EtException, EtDeadException {
+            throws EtException, EtDeadException, EtClosedException {
 
         // C interface has no offset (why did I do that again?), so compensate for that
         EtEventImpl[] events = new EtEventImpl[length];
@@ -2526,9 +2674,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     public void dumpEvents(EtAttachment att, EtEvent[] evs)
-            throws IOException, EtException, EtDeadException {
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (evs == null) {
             throw new EtException("Invalid event array arg");
@@ -2555,9 +2705,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     public void dumpEvents(EtAttachment att, List<EtEvent> eventList)
-            throws IOException, EtException, EtDeadException {
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (eventList == null) {
             throw new EtException("Invalid event list arg");
@@ -2586,9 +2738,11 @@ System.out.println("  getEvents, timed out");
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
     synchronized public void dumpEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
-            throws IOException, EtException, EtDeadException {
+            throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (!open) {
             throw new EtException("Not connected to ET system");
