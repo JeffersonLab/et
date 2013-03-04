@@ -152,9 +152,10 @@ class EtJniAccess {
      * 
      * @throws EtException for variety of general errors
      * @throws EtDeadException if ET system is dead
+     * @throws EtClosedException if ET system is closed
      */
     native void putEvents(long etId, int attId, EtEventImpl[] evs, int length)
-            throws EtException, EtDeadException;
+            throws EtException, EtDeadException, EtClosedException;
 
 
     /**
@@ -167,9 +168,10 @@ class EtJniAccess {
      *
      * @throws EtException for variety of general errors
      * @throws EtDeadException if ET system is dead
+     * @throws EtClosedException if ET system is closed
      */
     native void dumpEvents(long etId, int attId, EtEventImpl[] evs, int length)
-            throws EtException, EtDeadException;
+            throws EtException, EtDeadException, EtClosedException;
 
 
     /**
@@ -191,6 +193,8 @@ class EtJniAccess {
      *     if general errors
      * @throws EtDeadException
      *     if the ET system process is dead
+     * @throws EtClosedException
+     *     if ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -204,7 +208,8 @@ class EtJniAccess {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     native EtEventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count)
-            throws EtException, EtDeadException;
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException;
 
 
     /**
@@ -227,6 +232,8 @@ class EtJniAccess {
      *     if general errors
      * @throws EtDeadException
      *     if the ET system process is dead
+     * @throws EtClosedException
+     *     if ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -240,7 +247,8 @@ class EtJniAccess {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     native int[] getEventsInfo(long etId, int attId, int mode, int sec, int nsec, int count)
-            throws EtException, EtDeadException;
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException;
 
 
     /**
@@ -266,6 +274,8 @@ class EtJniAccess {
      *     if general errors
      * @throws EtDeadException
      *     if the ET system process is dead
+     * @throws EtClosedException
+     *     if ET system is closed
      * @throws EtEmptyException
      *     if the mode is asynchronous and the station's input list is empty
      * @throws EtBusyException
@@ -279,6 +289,6 @@ class EtJniAccess {
      *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
      */
     native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
-            throws EtException,        EtDeadException, EtWakeUpException,
-                   EtTimeoutException, EtBusyException, EtEmptyException;
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException;
 }
