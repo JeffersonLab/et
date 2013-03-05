@@ -1272,7 +1272,7 @@ public class EtSystemOpen {
                 catch (InterruptedException e1) {}
             }
             catch (Exception e) {
-// System.out.println("           FAILED connection to ET (non-IO)");
+System.out.println("           FAILED connection to ET (wrong ET version?)");
                 try {Thread.sleep(250);}
                 catch (InterruptedException e1) {}
             }
