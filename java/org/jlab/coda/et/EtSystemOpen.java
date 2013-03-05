@@ -274,6 +274,8 @@ public class EtSystemOpen {
     /**
      * Finds the ET system's tcp server port number and host.
      *
+     * @param totalWait total waiting time in milliseconds, ignored if < 80
+     *                  in which case it will try for 7 seconds if no response
      * @return <code>true</code> if server found, else <code>false</code>
      *
      * @throws java.io.IOException
@@ -285,14 +287,25 @@ public class EtSystemOpen {
      *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    private boolean findServerPort() throws IOException, UnknownHostException, EtTooManyException {
+    private boolean findServerPort(int totalWait) throws IOException,
+                                                         UnknownHostException,
+                                                         EtTooManyException {
 
         boolean match = noMatch;
         int     status, totalPacketsSent = 0, sendPacketLimit = 4;
-        int     timeOuts[] = {100, 2000, 4000, 7000};
-        int     waitTime, socketTimeOut = 20000; // socketTimeOut > sum of timeOuts
+        int     timeOuts[] = {100, 1000, 2000, 4000};
+        int     waitTime, socketTimeOut = 8000; // socketTimeOut > sum of timeOuts
         String  specifiedHost = null;
         HashSet<String> knownHostIpAddrs = new HashSet<String>();
+
+        if (totalWait >= 80) {
+            waitTime = (totalWait - 10)/7;
+            timeOuts[0] = 10;
+            timeOuts[1] =   waitTime;
+            timeOuts[2] = 2*waitTime;
+            timeOuts[3] = 4*waitTime;
+            socketTimeOut = totalWait + 1000;
+        }
 
         // clear out any previously stored objects
         responders.clear();
@@ -1138,7 +1151,7 @@ public class EtSystemOpen {
             }
 
             // Send a UDP broad or multicast packet to find ET TCP server & port
-            if (!findServerPort()) {    // IOEx, UnknownHostEx, EtTooMany
+            if (!findServerPort((int)config.getWaitTime())) {    // IOEx, UnknownHostEx, EtTooMany
                 throw new EtException("Cannot find ET system");
             }
 
