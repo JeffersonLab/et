@@ -241,6 +241,83 @@ if (debug) printf("getEvents (native) : filled array!\n");
 }
 
 
+/* Keep a copy of the original routine around just in case. */
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    newEvents
+ * Signature: (JIIIIIII)[Lorg/jlab/coda/et/EtEventImpl;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
+        (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
+         jint sec, jint nsec, jint count, jint size, jint group)
+{
+    int i, j, numread, status;
+    et_event *pe[count];
+    jclass clazz;
+    jboolean isCopy;
+    jobjectArray eventArray;
+    jobject event;
+
+    /* translate timeout */
+    struct timespec deltaTime;
+    deltaTime.tv_sec  = sec;
+    deltaTime.tv_nsec = nsec;
+
+    if (debug) printf("newEvents (native) : will attempt to get new events\n");
+    
+    /* reading array of up to "count" events */
+    status = et_events_new_group((et_sys_id)etId, (et_att_id)attId, pe, mode,
+                                  &deltaTime, size, count, group, &numread);
+    if (status != ET_OK) {
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else if (status == ET_ERROR_WAKEUP) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
+        }
+        else if (status == ET_ERROR_TIMEOUT) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
+        }
+        else if (status == ET_ERROR_BUSY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
+        }
+        else if (status == ET_ERROR_EMPTY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        
+        (*env)->ThrowNew(env, clazz, "newEvents (native): cannot get new events");
+        return;
+    }
+
+    /* create array of EventImpl objects */
+    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
+
+    /* 50% faster to do it this way than how it's done in getEvents() above ... */
+
+    /* fill array */
+    for (i=0; i < numread; i++) {
+        /* create event object */
+        event = (*env)->NewObject(env, eventImplClass, constrMethodId1, /* constructor args ... */
+        (jint)pe[i]->memsize, (jint)pe[i]->place, (jint)pe[i]->owner);
+
+        /* put event in array */
+        (*env)->SetObjectArrayElement(env, eventArray, i, event);
+        (*env)->DeleteLocalRef(env, event);
+    }
+
+    if (debug) printf("newEvents (native) : filled array!\n");
+
+    /* return the array */
+    return eventArray;
+}
+
+
 /*
  * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    getEventsInfo
@@ -460,80 +537,3 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
 
     return;
 }
-
-/*
- * Class:     org_jlab_coda_et_EtJniAccess
- * Method:    newEvents
- * Signature: (JIIIIIII)[Lorg/jlab/coda/et/EtEventImpl;
- */
-JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
-        (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
-         jint sec, jint nsec, jint count, jint size, jint group)
-{
-    int i, j, numread, status;
-    et_event *pe[count];
-    jclass clazz;
-    jboolean isCopy;
-    jobjectArray eventArray;
-    jobject event;
-
-    /* translate timeout */
-    struct timespec deltaTime;
-    deltaTime.tv_sec  = sec;
-    deltaTime.tv_nsec = nsec;
-
-if (debug) printf("newEvents (native) : will attempt to get new events\n");
-    
-    /* reading array of up to "count" events */
-    status = et_events_new_group((et_sys_id)etId, (et_att_id)attId, pe, mode,
-                                  &deltaTime, size, count, group, &numread);
-    if (status != ET_OK) {
-        if (status == ET_ERROR_DEAD) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
-        }
-        else if (status == ET_ERROR_WAKEUP) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
-        }
-        else if (status == ET_ERROR_TIMEOUT) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
-        }
-        else if (status == ET_ERROR_CLOSED) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
-        }
-        else if (status == ET_ERROR_BUSY) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
-        }
-        else if (status == ET_ERROR_EMPTY) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
-        }
-        else {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
-        }
-        
-        (*env)->ThrowNew(env, clazz, "newEvents (native): cannot get new events");
-        return;
-    }
-
-    /* create array of EventImpl objects */
-    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
-
-    /* fill array */
-    for (i=0; i < numread; i++) {
-        /* create event object */
-        event = (*env)->NewObject(env, eventImplClass, constrMethodId1, /* constructor args ... */
-                                  (jint)pe[i]->memsize, (jint)pe[i]->place, (jint)pe[i]->owner);
-
-        /* put event in array */
-        (*env)->SetObjectArrayElement(env, eventArray, i, event);
-        (*env)->DeleteLocalRef(env, event);
-    }
-
-if (debug) printf("newEvents (native) : filled array!\n");
-
-    /* return the array */
-    return eventArray;
-}
-
-
-
-
