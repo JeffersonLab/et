@@ -515,7 +515,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_READ;
   }
 
-  if (err < 0) {
+  if (err != ET_OK) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, error in server\n");
@@ -612,7 +612,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_READ;
   }
 
-  if (err < 0) {
+  if (err != ET_OK) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, error in server\n");
@@ -784,7 +784,7 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_READ;
   }
 
-  if (err < 0) {
+  if (err != ET_OK) {
     et_tcp_unlock(etid);
     return err;
   }
