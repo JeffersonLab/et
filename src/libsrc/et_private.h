@@ -51,7 +51,7 @@ extern "C" {
 #endif
 
 /* Version Number of this ET software package release */
-#define ET_VERSION 12      /* treated as an int */
+#define ET_VERSION 14      /* treated as an int */
 #define ET_VERSION_MINOR 0 /* treated as an int */
 
 /* Language of ET software package - implementation 
