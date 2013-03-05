@@ -1583,7 +1583,7 @@ public class EtSystem {
                 }
 
                 if (err < EtConstants.ok) {
-                    if (debug >= EtConstants.error && err != EtConstants.errorTimeout) {
+                    if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
                         System.out.println("error in ET system (newEvents), err = " + err);
                     }
 
@@ -1608,7 +1608,7 @@ public class EtSystem {
 // System.out.println("implement sleep with another timed mode call (newEvents)");
                             continue;
                         }
-                        if (debug >= EtConstants.error) {
+                        if (debug >= EtConstants.debugError) {
                             System.out.println("newEvents timeout");
                         }
                         throw new EtTimeoutException("no events within timeout");
@@ -1985,7 +1985,7 @@ public class EtSystem {
                 }
 
                 if (err < EtConstants.ok) {
-                    if (debug >= EtConstants.error && err != EtConstants.errorTimeout) {
+                    if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
                         System.out.println("error in ET system (getEvents), err = " + err);
                     }
 
@@ -2008,7 +2008,7 @@ public class EtSystem {
                             wait = true;
                             continue;
                         }
-                        if (debug >= EtConstants.error) {
+                        if (debug >= EtConstants.debugError) {
 //System.out.println("error in ET system (getEvents), timeout");
                         }
                         throw new EtTimeoutException("no events within timeout");
@@ -2201,7 +2201,7 @@ public class EtSystem {
         }
 
         if (err < EtConstants.ok) {
-            if (debug >= EtConstants.error) {
+            if (debug >= EtConstants.debugError) {
                 System.out.println("error in ET system (getEvents), err = " + err);
             }
 
