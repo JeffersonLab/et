@@ -172,6 +172,9 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         else if (status == ET_ERROR_TIMEOUT) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
         }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
+        }
         else if (status == ET_ERROR_BUSY) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
         }
@@ -240,102 +243,6 @@ if (debug) printf("getEvents (native) : filled array!\n");
 
 /*
  * Class:     org_jlab_coda_et_EtJniAccess
- * Method:    getEvents
- * Signature: (JIIIIII)[Lorg/jlab/coda/et/EtEvent;
- */
-JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_getEventsOrig
-        (JNIEnv *env , jobject thisObj, jlong etId, jint attId,
-         jint mode, jint sec, jint nsec, jint count)
-{
-    int i, j, numread, status, biteOrder;
-    et_event *pe[count];
-    jclass clazz;
-    jboolean isCopy;
-    jint* intArrayElems;
-    jintArray controlInts;
-    jobjectArray eventArray;
-    jobject event;
-
-    /* translate timeout */
-    struct timespec deltaTime;
-    deltaTime.tv_sec  = sec;
-    deltaTime.tv_nsec = nsec;
-
-    if (debug) printf("getEvents (native) : will attempt to get events\n");
-
-    /* reading array of up to "count" events */
-    status = et_events_get((et_sys_id)etId, (et_att_id)attId, pe, mode, &deltaTime, count, &numread);
-    if (status != ET_OK) {
-        if (status == ET_ERROR_DEAD) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
-        }
-        else if (status == ET_ERROR_WAKEUP) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
-        }
-        else if (status == ET_ERROR_TIMEOUT) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
-        }
-        else if (status == ET_ERROR_BUSY) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
-        }
-        else if (status == ET_ERROR_EMPTY) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
-        }
-        else {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
-        }
-        
-        (*env)->ThrowNew(env, clazz, "getEvents (native): cannot get events");
-        return;
-    }
-
-    /* create array of EventImpl objects */
-    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
-
-    /* fill array */
-    for (i=0; i < numread; i++) {
-        /*printf("getEvents (native) : data for event %d = %d\n", i, *((int *)pe[i]->pdata));*/
-
-        /* create control int array */
-        controlInts   = (*env)->NewIntArray(env, ET_STATION_SELECT_INTS);
-        intArrayElems = (*env)->GetIntArrayElements(env, controlInts, &isCopy);
-        for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-            intArrayElems[j] = pe[i]->control[j];
-        }
-        if (isCopy == JNI_TRUE) {
-            (*env)->ReleaseIntArrayElements(env, controlInts, intArrayElems, 0);
-        }
-        
-        /* If we're on a little endian machine, int args will be swapped as
-        they go through the jni interface. We don't want this for the int
-        designating the byte order, so swap it here to compensate. */
-        biteOrder = pe[i]->byteorder;
-        if (localByteOrder == ET_ENDIAN_LITTLE) {
-            biteOrder = ET_SWAP32(biteOrder);
-        }
-
-        /* create event object */
-        event = (*env)->NewObject(env, eventImplClass, constrMethodId2, /* constructor args ... */
-        (jint)pe[i]->memsize, (jint)pe[i]->memsize, (jint)pe[i]->datastatus,
-        (jint)pe[i]->place,   (jint)pe[i]->age,     (jint)pe[i]->owner,
-        (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
-        (jint)biteOrder, controlInts);
-       
-        /* put event in array */
-        (*env)->SetObjectArrayElement(env, eventArray, i, event);
-        (*env)->DeleteLocalRef(env, event);
-        (*env)->DeleteLocalRef(env, controlInts);
-    }
-
-    if (debug) printf("getEvents (native) : filled array!\n");
-   
-    /* return the array */
-    return eventArray;
-}
-
-
-/*
- * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    getEventsInfo
  * Signature: (JIIIII)[I
  */
@@ -369,6 +276,9 @@ JNIEXPORT jintArray JNICALL Java_org_jlab_coda_et_EtJniAccess_getEventsInfo
         }
         else if (status == ET_ERROR_TIMEOUT) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
         }
         else if (status == ET_ERROR_BUSY) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
@@ -489,6 +399,9 @@ if (debug) printf("putEvents (native) : put 'em back\n");
         if (status == ET_ERROR_DEAD) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
         }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
+        }
         else {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         }
@@ -535,6 +448,9 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
         if (status == ET_ERROR_DEAD) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
         }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
+        }
         else {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         }
@@ -580,6 +496,9 @@ if (debug) printf("newEvents (native) : will attempt to get new events\n");
         }
         else if (status == ET_ERROR_TIMEOUT) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
         }
         else if (status == ET_ERROR_BUSY) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
