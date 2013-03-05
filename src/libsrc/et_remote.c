@@ -2585,7 +2585,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
             free(newevents);
             return err;
         }
-        else if (err < 0) {
+        else if (err != ET_OK) {
             et_tcp_unlock(etid);
             free(newevents);
             return err;
