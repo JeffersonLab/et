@@ -410,6 +410,76 @@ public class EtSystemOpenConfig {
 
 
     /**
+     * Method to create a string representation of this object
+     * @return  string representation of this object
+     */
+    public String toString() {
+        StringBuilder builder = new StringBuilder(300);
+        builder.append("      name = ");    builder.append(name);
+        builder.append("\n      host = ");  builder.append(host);
+        builder.append("\n  tcp port = ");  builder.append(tcpPort);
+        builder.append("\n  udp port = ");  builder.append(udpPort);
+        builder.append("\nmcast port = ");  builder.append(multicastPort);
+        builder.append("\ntcp  nodelay = ");  builder.append(noDelay);
+        builder.append("\ntcp recv buf = ");  builder.append(tcpRecvBufSize);
+        builder.append("\ntcp send buf = ");  builder.append(tcpSendBufSize);
+        builder.append("\nwait time (ms) = ");  builder.append(waitTime);
+        builder.append("\nconnect remotely = ");  builder.append(connectRemotely);
+        builder.append("\nnetwork IF = ");  builder.append(networkInterface);
+        builder.append("\nttl = ");  builder.append(ttl);
+
+        builder.append("\nmcast addrs = ");
+        for (String s : multicastAddrs) {
+            builder.append(s); builder.append(", ");
+        }
+
+        builder.append("\nbcast addrs = ");
+        for (String s : broadcastAddrs) {
+            builder.append(s); builder.append(", ");
+        }
+
+        builder.append("\nnetwork contact = ");
+        switch (networkContactMethod) {
+            case  EtConstants.broadcast:
+                builder.append("broadcast");
+                break;
+            case  EtConstants.multicast:
+                builder.append("multicast");
+                break;
+
+            case  EtConstants.direct:
+                builder.append("direct");
+                break;
+
+            case  EtConstants.broadAndMulticast:
+                builder.append("broad & multicast");
+                break;
+
+            default:
+        }
+
+        builder.append("\nmultiple responses policy = ");
+
+        switch (networkContactMethod) {
+            case  EtConstants.policyFirst:
+                builder.append("choose first");
+                break;
+            case  EtConstants.policyLocal:
+                builder.append("choose local");
+                break;
+
+            case  EtConstants.policyError:
+                builder.append("throw exception");
+                break;
+
+            default:
+        }
+
+        return builder.toString();
+    }
+
+
+    /**
      * Determine if vital parameters are set and all settings are self consistent.
      * @return <code>true</code> if setting are self consistent, else <code>false</code>
      */
