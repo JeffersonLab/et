@@ -417,6 +417,7 @@ public class EtSystemOpenConfig {
         StringBuilder builder = new StringBuilder(300);
         builder.append("      name = ");    builder.append(name);
         builder.append("\n      host = ");  builder.append(host);
+        builder.append("\n   version = ");  builder.append(EtConstants.version);
         builder.append("\n  tcp port = ");  builder.append(tcpPort);
         builder.append("\n  udp port = ");  builder.append(udpPort);
         builder.append("\nmcast port = ");  builder.append(multicastPort);
