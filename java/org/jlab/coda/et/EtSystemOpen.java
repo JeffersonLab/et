@@ -1266,13 +1266,13 @@ public class EtSystemOpen {
                 break;
             }
             catch (IOException e) {
-//System.out.println("           FAILED connection to ET, try again?");
+System.out.println("           FAILED connection to ET: " + e.getMessage());
                 ioException = e;
                 try {Thread.sleep(250);}
                 catch (InterruptedException e1) {}
             }
             catch (Exception e) {
-System.out.println("           FAILED connection to ET (wrong ET version?)");
+System.out.println("           FAILED connection to ET: " + e.getMessage());
                 try {Thread.sleep(250);}
                 catch (InterruptedException e1) {}
             }
