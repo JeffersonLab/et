@@ -62,8 +62,9 @@ int main(int argc, char **argv)
       {0, 0, 0, 0}
   };
 
-
+  /* Use default multicast address */
   memset(mcastAddr, 0, ET_IPADDRSTRLEN);
+  strcpy(mcastAddr, ET_MULTICAST_ADDR);
   
   while ((c = getopt_long_only(argc, argv, "vdn:s:p:u:m:a:f:g:", long_options, 0)) != EOF) {
 
@@ -221,8 +222,7 @@ int main(int argc, char **argv)
   }
 
   if (et_verbose) {
-    printf("et_start: asking for %d byte events.\n", event_size);
-    printf("et_start: asking for %d events.\n", nevents);
+      printf("et_start: ET version %d; %d - %d byte-sized events\n", ET_VERSION, nevents, event_size);
   }
 
   if (deleteFile) {
