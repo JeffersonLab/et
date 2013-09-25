@@ -394,12 +394,14 @@ public class EtSystem {
      *      if problems with network communications
      * @throws EtException
      *      if arg is null;
-     *      if not connected to ET system;
      *      if the attachment object is invalid
+     * @throws EtClosedException
+   *     if the ET system is closed
      */
-    synchronized public void wakeUpAttachment(EtAttachment att) throws IOException, EtException {
+    synchronized public void wakeUpAttachment(EtAttachment att)
+            throws IOException, EtException, EtClosedException {
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException ("Not connected to ET system");
         }
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
@@ -422,12 +424,14 @@ public class EtSystem {
      *      if problems with network communications
      * @throws EtException
      *      if arg is null;
-     *      if not connected to ET system;
      *      if the station object is invalid
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    synchronized public void wakeUpAll(EtStation station) throws IOException, EtException {
+    synchronized public void wakeUpAll(EtStation station)
+            throws IOException, EtException, EtClosedException {
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (station == null || !station.isUsable() || station.getSys() != this) {
@@ -590,7 +594,6 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if the select method's class cannot be loaded;
      *     if the position is less than 1 (GRAND_CENTRAL's spot);
      *     if the name is GRAND_CENTRAL (already taken);
@@ -611,7 +614,7 @@ public class EtSystem {
                    EtExistsException, EtTooManyException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (name == null || config == null) {
@@ -750,17 +753,16 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if attachments to the station still exist;
      *     if the station is GRAND_CENTRAL (which must always exist);
      *     if the station does not exist;
      *     if the station object is invalid
      */
     synchronized public void removeStation(EtStation station)
-            throws IOException, EtDeadException, EtClosedException,  EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (station == null) {
@@ -814,7 +816,6 @@ public class EtSystem {
    *     if the ET system is closed
    * @throws EtException
    *     if arg is null;
-   *     if not connected to ET system;
    *     if the station does not exist;
    *     if trying to move GRAND_CENTRAL;
    *     if position is < 1 (GRAND_CENTRAL is always first);
@@ -826,10 +827,10 @@ public class EtSystem {
    */
   synchronized public void setStationPosition(EtStation station, int position,
                                               int parallelPosition)
-      throws IOException, EtDeadException, EtClosedException,  EtException {
+      throws IOException, EtDeadException, EtClosedException, EtException {
 
       if (!open) {
-          throw new EtException("Not connected to ET system");
+          throw new EtClosedException("Not connected to ET system");
       }
 
       if (station == null) {
@@ -894,15 +895,14 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid
      */
     synchronized public int getStationPosition(EtStation station)
-            throws IOException, EtDeadException, EtClosedException,  EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (station == null || !station.isUsable() || station.getSys() != this) {
@@ -955,15 +955,14 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid
      */
     synchronized public int getStationParallelPosition(EtStation station)
-        throws IOException, EtDeadException, EtClosedException,  EtException {
+        throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (station == null || !station.isUsable() || station.getSys() != this) {
@@ -1015,7 +1014,6 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if the station does not exist or is not in active/idle state;
      *     if station object is invalid
      * @throws EtTooManyException
@@ -1026,7 +1024,7 @@ public class EtSystem {
                    EtException, EtTooManyException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (station == null || !station.isUsable() || station.getSys() != this) {
@@ -1096,7 +1094,6 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if not attached to station;
      *     if the attachment object is invalid
      */
@@ -1104,7 +1101,7 @@ public class EtSystem {
             throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
@@ -1151,7 +1148,6 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      *     if the station does not exist;
      *     if station object is invalid;
      *     if attachment object is invalid
@@ -1160,7 +1156,7 @@ public class EtSystem {
             throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (station == null || !station.isUsable() || station.getSys() != this) {
@@ -1209,13 +1205,12 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system
      */
     synchronized public boolean stationExists(String name)
             throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (name == null) {
@@ -1260,13 +1255,12 @@ public class EtSystem {
      *     if the ET system is closed
      * @throws EtException
      *     if arg is null;
-     *     if not connected to ET system;
      */
     synchronized public EtStation stationNameToObject(String name)
             throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (name == null) {
@@ -1443,7 +1437,6 @@ public class EtSystem {
      * @throws IOException
      *     if problems with network communications
      * @throws EtException
-     *     if not connected to ET system;
      *     if arguments have bad values;
      *     if attachment object is invalid;
      *     if group number is too high;
@@ -1506,7 +1499,7 @@ public class EtSystem {
             // Value of "open" valid if synchronized
             synchronized (this) {
                 if (!open) {
-                    throw new EtException("Not connected to ET system");
+                    throw new EtClosedException("Not connected to ET system");
                 }
             }
             return newEventsJNI(att.getId(), mode.getValue(), sec, nsec, count, size, group);
@@ -1561,7 +1554,7 @@ public class EtSystem {
 
             synchronized (this) {
                 if (!open) {
-                    throw new EtException("Not connected to ET system");
+                    throw new EtClosedException("Not connected to ET system");
                 }
 
                 out.write(buffer);
@@ -1845,7 +1838,6 @@ public class EtSystem {
      * @throws IOException
      *     if problems with network communications
      * @throws EtException
-     *     if not connected to ET system;
      *     if arguments have bad values;
      *     if the attachment's station is GRAND_CENTRAL;
      *     if the attachment object is invalid;
@@ -1909,7 +1901,7 @@ public class EtSystem {
             // Value of "open" valid only if synchronized
             synchronized (this) {
                 if (!open) {
-                    throw new EtException("Not connected to ET system");
+                    throw new EtClosedException("Not connected to ET system");
                 }
                 return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
             }
@@ -1963,7 +1955,7 @@ public class EtSystem {
             // Write over the network
             synchronized (this) {
                 if (!open) {
-                    throw new EtException("Not connected to ET system");
+                    throw new EtClosedException("Not connected to ET system");
                 }
 
                 out.write(buffer);
@@ -2104,7 +2096,6 @@ public class EtSystem {
      * @throws IOException
      *     if problems with network communications
      * @throws EtException
-     *     if not connected to ET system;
      *     if arguments have bad values;
      *     if the attachment's station is GRAND_CENTRAL;
      *     if the attachment object is invalid;
@@ -2130,7 +2121,7 @@ public class EtSystem {
                    EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (mode == null) {
@@ -2385,7 +2376,6 @@ System.out.println("  getEvents, timed out");
      *     if problems with network communications
      * @throws EtException
      *     if invalid arg(s);
-     *     if not connected to ET system;
      *     if events are not owned by this attachment;
      *     if null data buffer & whole event's being modified;
      * @throws EtDeadException
@@ -2397,7 +2387,7 @@ System.out.println("  getEvents, timed out");
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (evs == null) {
@@ -2504,7 +2494,6 @@ System.out.println("  getEvents, timed out");
      *     if problems with network communications
      * @throws EtException
      *     if invalid arg(s);
-     *     if not connected to ET system;
      *     if events are not owned by this attachment;
      *     if null data buffer & whole event's being modified;
      * @throws EtDeadException
@@ -2516,7 +2505,7 @@ System.out.println("  getEvents, timed out");
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (evs == null) {
@@ -2734,7 +2723,6 @@ System.out.println("  getEvents, timed out");
      *     if problems with network communications
      * @throws EtException
      *     if invalid arg(s);
-     *     if not connected to ET system;
      *     if events are not owned by this attachment;
      * @throws EtDeadException
      *     if the ET system processes are dead
@@ -2745,7 +2733,7 @@ System.out.println("  getEvents, timed out");
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
@@ -2812,12 +2800,12 @@ System.out.println("  getEvents, timed out");
      * @return integer value
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    synchronized private int getIntValue(int cmd) throws IOException, EtException {
+    synchronized private int getIntValue(int cmd) throws IOException, EtClosedException {
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException ("Not connected to ET system");
         }
 
         out.writeInt(cmd);
@@ -2837,10 +2825,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getNumStations() throws IOException, EtException {
+    public int getNumStations() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysStat);
     }
 
@@ -2852,10 +2840,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getStationsMax() throws IOException, EtException {
+    public int getStationsMax() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysStatMax);
     }
 
@@ -2867,10 +2855,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getNumAttachments() throws IOException, EtException {
+    public int getNumAttachments() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysAtt);
     }
 
@@ -2882,10 +2870,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getAttachmentsMax() throws IOException, EtException {
+    public int getAttachmentsMax() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysAttMax);
     }
 
@@ -2898,10 +2886,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getNumProcesses() throws IOException, EtException {
+    public int getNumProcesses() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysProc);
     }
 
@@ -2914,10 +2902,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getProcessesMax() throws IOException, EtException {
+    public int getProcessesMax() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysProcMax);
     }
 
@@ -2930,10 +2918,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getNumTemps() throws IOException, EtException {
+    public int getNumTemps() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysTmp);
     }
 
@@ -2946,10 +2934,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getTempsMax() throws IOException, EtException {
+    public int getTempsMax() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysTmpMax);
     }
 
@@ -2962,10 +2950,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getHeartbeat() throws IOException, EtException {
+    public int getHeartbeat() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysHBeat);
     }
 
@@ -2978,10 +2966,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getPid() throws IOException, EtException {
+    public int getPid() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysPid);
     }
 
@@ -2993,10 +2981,10 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int getGroupCount() throws IOException, EtException {
+    public int getGroupCount() throws IOException, EtClosedException {
         return getIntValue(EtConstants.netSysGrp);
     }
 
@@ -3010,12 +2998,12 @@ System.out.println("  getEvents, timed out");
      *
      * @throws IOException
      *     if there are problems with network communication
-     * @throws EtException
-     *     if not connected to ET system
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    public int[] getGroups() throws IOException, EtException {
+    public int[] getGroups() throws IOException, EtClosedException {
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         out.writeInt(EtConstants.netSysGrps);
@@ -3084,13 +3072,14 @@ System.out.println("  getEvents, timed out");
      * @throws IOException
      *     if there are problems with network communication
      * @throws EtException
-     *     if not connected to ET system;
      *     if error in data format/protocol
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    synchronized public AllData getData() throws EtException, IOException {
+    synchronized public AllData getData() throws EtException, IOException, EtClosedException {
 
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         AllData data = new AllData();
@@ -3164,12 +3153,13 @@ System.out.println("  getEvents, timed out");
      * @throws IOException
      *     if there are problems with network communication
      * @throws EtException
-     *     if not connected to ET system;
      *     if error in data format/protocol
+     * @throws EtClosedException
+     *     if the ET system is closed
      */
-    synchronized public int[] getHistogram() throws IOException, EtException {
+    synchronized public int[] getHistogram() throws IOException, EtException, EtClosedException {
         if (!open) {
-            throw new EtException("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
         
         out.writeInt(EtConstants.netSysHist);
