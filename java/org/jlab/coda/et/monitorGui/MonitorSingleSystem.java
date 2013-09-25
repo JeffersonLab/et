@@ -256,7 +256,7 @@ public class MonitorSingleSystem {
         }
         catch (IOException ex) {
         }
-        catch (EtException ex) {
+        catch (EtClosedException ex) {
         }
 
         float loadfactor = 0.75F;
@@ -323,7 +323,7 @@ public class MonitorSingleSystem {
     public boolean isInitialized()    {return initialized;}
     public boolean isUpdated()        {return updated;}
     public DefaultMutableTreeNode getNode() {return topNode;}
-    public void getData() throws EtException, IOException {
+    public void getData() throws EtException, IOException, EtClosedException {
         data = sys.getData();
     }
     public void   close()  {sys.close();}
