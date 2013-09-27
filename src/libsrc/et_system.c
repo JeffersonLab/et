@@ -800,8 +800,10 @@ static void *et_sys_heartbeat(void *arg)
     et_system_lock(sys);
     if (ET_GET_KILL(sys->bitInfo)) {
         et_system_unlock(sys);
-        printf("KILLING MYSELF\n");
-        fflush(stdout);
+        if (id->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "commanded to kill this ET system\n");
+            fflush(stdout);
+        }
         /* remove file */
         unlink(sys->config.filename);
         /* die */
