@@ -335,7 +335,46 @@ public class EtSystem {
 
             out.writeInt(EtConstants.netClose);  // close and forcedclose do the same thing in java
             out.flush();
-            in.readInt();
+        }
+        catch (IOException ex) {
+            if (debug >= EtConstants.debugError) {
+                System.out.println("network communication error");
+            }
+        }
+        finally {
+            try {
+                in.close();
+                out.close();
+                sys.disconnect(); // does sock.close()
+            }
+            catch (IOException ex) { /* ignore exception */ }
+        }
+
+        open = false;
+    }
+
+
+    /** Kill the ET system. */
+    synchronized public void kill() {
+
+        if (!open) {
+            return;
+        }
+
+        // If communication with ET system fails, we've already been "closed"
+        // and cannot, therefore, kill the ET system.
+        try {
+            // Are we using JNI? If so, close the ET system it opened.
+            if (sys.isMapLocalSharedMemory()) {
+//System.out.println("   Close et sys JNI object");
+                sys.getJni().close();
+            }
+//            else {
+//System.out.println("   Do NOT close et sys JNI object since NO local shared memory");
+//            }
+
+            out.writeInt(EtConstants.netKill);
+            out.flush();
         }
         catch (IOException ex) {
             if (debug >= EtConstants.debugError) {

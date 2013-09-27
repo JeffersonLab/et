@@ -1193,7 +1193,8 @@ class ClientThread extends Thread {
 
                         case EtConstants.netClose:
                         case EtConstants.netFClose: {
-                            out.writeInt(ok);
+                            // Client does not listen for a response
+                            //out.writeInt(ok);
 
                             // detach all attachments
                             Entry ent;
@@ -1209,6 +1210,12 @@ class ClientThread extends Thread {
                         // break;
 
 
+                        case EtConstants.netKill: {
+System.out.println("GOT COMMAND TO KILL !!!!");
+                            System.exit(-1);
+                        }
+
+
                         case EtConstants.netWakeAtt: {
                             int attId = in.readInt();
                             // look locally for attachments
@@ -1216,7 +1223,7 @@ class ClientThread extends Thread {
                             if (att != null) {
                                 att.getStation().getInputList().wakeUp(att);
                                 // UPDATE: the client side, when talking over sockets, also
-                                // implements SLEEP mode as a series of TIMED mode call.
+                                // implements SLEEP mode as a series of TIMED mode calls.
                                 // Thus the wake up must be set for them as well.
                                 //if (att.isSleepMode()) {
                                 att.setWakeUp(true);
@@ -1242,7 +1249,7 @@ class ClientThread extends Thread {
                                         // getEvents will make them all wake up.
 
                                         // UPDATE: the client side, when talking over sockets, also
-                                        // implements SLEEP mode as a series of TIMED mode call.
+                                        // implements SLEEP mode as a series of TIMED mode calls.
                                         // Thus the wake up must be set for them as well.
                                         for (AttachmentLocal att : stat.getAttachments()) {
                                         //    if (att.isSleepMode()) {

@@ -434,6 +434,7 @@ public final class EtConstants {
     public static final int    netFClose        = 43;
     public static final int    netWakeAtt       = 44;
     public static final int    netWakeAll       = 45;
+    public static final int    netKill          = 46;
 
     public static final int    netStatAtt       = 60;
     public static final int    netStatDet       = 61;
