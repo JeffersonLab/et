@@ -69,7 +69,7 @@ public final class EtConstants {
      *  @see EtSystemOpenConfig#setTTL(int)  */
     public static final int    multicastTTL        = 32;
     /** A default value for the number of integers associated with each event that
-     *  atations may use to select or filter that event. If this is changed, a
+     *  stations may use to select or filter that event. If this is changed, a
      *  recompilation of ET is necessary and communication with ET systems in
      *  which this value differs is impossible.
      */
