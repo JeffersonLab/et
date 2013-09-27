@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include "etCommonNetwork.h"
 
@@ -507,6 +508,16 @@ typedef struct  et_sys_config_t {
   codaDotDecIpAddrs mcastaddrs;
 } et_sys_config;
 
+
+/* Macros to handle the bitInfo word in et_system structure following */
+#define ET_BIT64_MASK 0x1
+#define ET_KILL_MASK  0x2
+#define ET_GET_BIT64(x)  ((x) & ET_BIT64_MASK)
+#define ET_GET_KILL(x)   ((x) & ET_KILL_MASK)
+#define ET_SET_BIT64(x)  ((x) | ET_BIT64_MASK)
+#define ET_SET_KILL(x)   ((x) | ET_KILL_MASK)
+
+
 /*
  * et_system: contains all ET system information
  *----------------------------------------------------------
@@ -518,7 +529,8 @@ typedef struct  et_sys_config_t {
  * version        : version # of this ET software release
  * nselects       : current # of selection ints per station (or control ints
  *                : per event)
- * bit64          : 1 if ET system created by 64 bit executable, else 0
+ * bitInfo        : Least significant bit = 1 if ET system created by 64 bit executable, else 0.
+ *                : Next bit = 1 if ET system is being told to kill itself, else 0
  * asthread       : flag to kill addstat thread (ET_THD_KILL)
  * heartbeat      : increment to indicate I'm alive
  * hz             : system clock rate
@@ -539,7 +551,7 @@ typedef struct  et_sys_config_t {
  *                : read/write pointers correctly from shared mem
  * mutex          : protect system  data in changes
  * stat_mutex     : protect station data in changes
- * statadd_mutex: used to add stations one at a time
+ * statadd_mutex  : used to add stations one at a time
  * statadd        : cond. var. used to add new stations
  * statdone       : cond. var. used to signal end of station creation
  * tid_hb         : sys heartbeat thread id
@@ -557,7 +569,7 @@ typedef struct  et_sys_config_t {
 typedef struct et_system_t {
   int              version;
   int              nselects;
-  int              bit64;
+  int              bitInfo;
   int              asthread;
   unsigned int     heartbeat;
   int              hz;
@@ -840,7 +852,8 @@ typedef struct  et_mem_t {
 #define  ET_NET_FCLOSE         43        /* et_forcedclose */
 #define  ET_NET_WAKE_ATT       44        /* et_wakeup_attachment */
 #define  ET_NET_WAKE_ALL       45        /* et_wakeup_all */
- 
+#define  ET_NET_KILL           46        /* et_kill */
+
 #define  ET_NET_STAT_ATT       60        /* et_station_attach */
 #define  ET_NET_STAT_DET       61        /* et_station_detach */
 #define  ET_NET_STAT_CRAT      62        /* et_station_create_at */
@@ -1065,6 +1078,7 @@ extern int  etr_events_dump(et_sys_id id, et_att_id att, et_event *evs[], int nu
 extern int  etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig);
 extern int  etr_close(et_sys_id id);
 extern int  etr_forcedclose(et_sys_id id);
+extern int  etr_kill(et_sys_id id);
 extern int  etr_alive(et_sys_id id);
 extern int  etr_wait_for_alive(et_sys_id id);
 extern int  etr_wakeup_attachment(et_sys_id id, et_att_id att);
@@ -1136,6 +1150,7 @@ extern int etr_attach_geteventsmake(et_sys_id id, et_att_id att_id,
 extern int  etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig);
 extern int  etn_close(et_sys_id id);
 extern int  etn_forcedclose(et_sys_id id);
+extern int  etn_kill(et_sys_id id);
 extern int  etn_alive(et_sys_id id);
 extern int  etn_wait_for_alive(et_sys_id id);
 extern int  etn_event_new(et_sys_id id, et_att_id att, et_event **ev,

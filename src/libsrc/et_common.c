@@ -285,6 +285,20 @@ int et_forcedclose(et_sys_id id)
   return etl_forcedclose(id);
 }
 
+/******************************************************/
+int et_kill(et_sys_id id)
+{
+    et_id *etid = (et_id *) id;
+  
+    if (etid->locality == ET_REMOTE) {
+        return etr_kill(id);
+    }
+    else if (etid->locality == ET_LOCAL_NOSHARE) {
+        return etn_kill(id);
+    }
+    return etl_kill(id);
+}
+
 /*****************************************************/
 /*                  HEARTBEAT STUFF                  */
 /*****************************************************/

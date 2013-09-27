@@ -123,7 +123,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   }
 
   /* Take care of 64 / 32 bit issues */
-  etid->bit64 = etid->sys->bit64;
+  etid->bit64 = ET_GET_BIT64(etid->sys->bitInfo);
   /* if we're 64 bit ... */
 #ifdef _LP64
   /* Cannot connect to 32 bit ET system if we're 64 bits */
@@ -448,7 +448,7 @@ int etl_forcedclose(et_sys_id id)
 {
   int i, status;
   et_id *etid = (et_id *) id;
-  
+ 
   /* ET system must call et_system_close, not et_forcedclose */
   if (etid->proc == ET_SYS) {
     if (etid->debug >= ET_DEBUG_WARN) {
@@ -464,14 +464,86 @@ int etl_forcedclose(et_sys_id id)
         if (etid->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_forcedclose, detach %d\n", i);
         }
-        if ((status = et_station_detach(id, i)) != ET_OK) {
-          return status;
-        }
+        et_station_detach(id, i);
       }
     }
   }
   
   return et_close(id);
+}
+
+/******************************************************/
+int etl_kill(et_sys_id id)
+{
+    int i, status;
+    et_id *etid = (et_id *) id;
+
+    /* If the ET server got a command from a remote client to kill itself ... */
+    if (etid->proc == ET_SYS) {
+        et_system_lock(etid->sys);
+        /* Set the magic bit that the hearbeat thread looks for.
+         * That thread will kill us. */
+        etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
+        et_system_unlock(etid->sys);
+        return ET_OK;
+    }
+    
+    if (et_alive(id)) {
+        /* check for this process' attachments to stations */
+        for (i=0; i < etid->sys->config.nattachments; i++) {
+            if (etid->sys->proc[etid->proc].att[i] != -1) {
+                if (etid->debug >= ET_DEBUG_INFO) {
+                    et_logmsg("INFO", "et_kill, detach %d\n", i);
+                }
+                et_station_detach(id, i);
+            }
+        }
+    }
+  
+    /* Don't allow simultaneous access of shared mem as we're about to unmap it */
+    et_memWrite_lock(etid);
+
+    /* Record that fact that close has been called so no more access of shared mem */
+    etid->closed = 1;
+  
+    if (et_alive(id)) {
+        et_system_lock(etid->sys);
+        etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
+        etid->sys->nprocesses--;
+        et_init_process(etid->sys, etid->proc);
+        /* if we crash right here, system mutex is permanently locked */
+        et_system_unlock(etid->sys);
+    }
+    else {
+        etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
+        etid->sys->nprocesses--;
+        et_init_process(etid->sys, etid->proc);
+    }
+  
+#ifdef sun
+    con = thr_getconcurrency();
+    if (con < ET_EXTRA_THREADS + 1) {
+        con = 1;
+    }
+    else {
+        con = con - ET_EXTRA_THREADS;
+    }
+    thr_setconcurrency(con);
+#endif
+  
+    et_stop_heartmonitor(etid);
+    et_stop_heartbeat(etid);
+  
+    if (munmap(etid->pmap, etid->memsize) != 0) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");
+        }
+    }
+  
+    et_mem_unlock(etid);
+    et_id_destroy(id);
+ 
+    return ET_OK;
 }
 
 /*****************************************************/

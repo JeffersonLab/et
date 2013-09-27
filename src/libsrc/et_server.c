@@ -2303,10 +2303,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_CLOSE:
         case  ET_NET_FCLOSE:
         {
-          int errnet;
-
-          errnet = htonl(ET_OK);
-          etNetTcpWrite(connfd, (void *) &errnet, sizeof(errnet));
+          /* Don't bother sending a response as the caller doesn't listen
+           * for one and just closes the socket anyway. */
 
           /* detach all attachments */
           for (i=0; i <ET_ATTACHMENTS_MAX ; i++) {
@@ -2320,9 +2318,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
 
           free(iov); free(header); free(histogram); free(events); free(ints32);
-          return;
-         }
-        break;
+        }
+        return;
 
         case  ET_NET_WAKE_ATT:
         {
@@ -2351,6 +2348,14 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           et_wakeup_all(id, stat_id);
         }
         break;
+
+        case  ET_NET_KILL:
+        {
+          /* Don't bother sending a response as the caller doesn't listen
+           * for one and just closes the socket anyway. */
+            et_kill(id);
+        }
+        return;
 
         case  ET_NET_STAT_ATT:
         {

@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #if  !(defined VXWORKS || defined sun)
 #include <stdint.h>
@@ -34,16 +35,12 @@
 #include <vxWorks.h>
 #include <time.h>
 #include <semLib.h>
-#define pthread_t  UINT32
-#define pthread_mutex_t  SEM_ID
-#define pthread_cond_t UINT32
 #define INET_ATON_ERR   ERROR
 
 #else
 
 #define INET_ATON_ERR   0
 #include <inttypes.h>
-#include <pthread.h> 
 
 #endif
 
@@ -413,6 +410,7 @@ extern int  et_event_CODAswap(et_event *pe);
 extern int  et_open(et_sys_id* id, const char *filename, et_openconfig openconfig);
 extern int  et_close(et_sys_id id);
 extern int  et_forcedclose(et_sys_id id);
+extern int  et_kill(et_sys_id id);
 extern int  et_system_start(et_sys_id* id, et_sysconfig sconfig);
 extern int  et_system_close(et_sys_id id);
 extern int  et_alive(et_sys_id id);

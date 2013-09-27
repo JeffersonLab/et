@@ -351,6 +351,31 @@ int etr_forcedclose(et_sys_id id)
 }
 
 /*****************************************************/
+int etr_kill(et_sys_id id)
+{
+    et_id *etid = (et_id *) id;
+    int sockfd = etid->sockfd;
+    int com;
+
+    com = htonl(ET_NET_KILL);
+    
+    /* if communication with ET system fails, we cannot kill it */
+    et_tcp_lock(etid);
+    if (etNetTcpWrite(sockfd, (void *) &com, sizeof(com)) != sizeof(com)) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_kill, write error\n");
+        }
+        return ET_ERROR_WRITE;
+    }
+
+    close(sockfd);
+    et_tcp_unlock(etid);
+    et_id_destroy(id);
+
+    return ET_OK;
+}
+
+/*****************************************************/
 int etr_alive(et_sys_id id)
 {
     et_id *etid = (et_id *) id;

@@ -295,7 +295,7 @@ int et_id_init(et_sys_id *id)
   etid->alive        = 0;
   etid->closed       = 0;
 #ifdef _LP64
-  etid->bit64        = 1;
+  etid->bit64        = ET_BIT64_MASK;
 #else
   etid->bit64        = 0;
 #endif

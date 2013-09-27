@@ -86,7 +86,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   etid->offset = (ptrdiff_t) ((char *)etid->pmap - (char *)etid->sys->pmap);
   
   /* Take care of 64 / 32 bit issues */
-  etid->bit64 = etid->sys->bit64;
+  etid->bit64 = ET_GET_BIT64(etid->sys->bitInfo);
   /* if we're 64 bit ... */
 #ifdef _LP64
   /* Cannot connect to 32 bit ET system if we're 64 bits */
@@ -384,13 +384,30 @@ int etn_forcedclose(et_sys_id id)
   /* unmap the shared memory */
   if (munmap(etid->pmap, etid->memsize) != 0) {
     if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "etn_close, cannot unmap ET memory\n");
+      et_logmsg("ERROR", "etn_forcedclose, cannot unmap ET memory\n");
     }
     return ET_ERROR_REMOTE;
   }
   
   /* close network connection & free mem in "id" */
   return etr_forcedclose(id);
+}
+
+/******************************************************/
+int etn_kill(et_sys_id id)
+{
+    et_id *etid = (et_id *) id;
+  
+    /* unmap the shared memory */
+    if (munmap(etid->pmap, etid->memsize) != 0) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etn_kill, cannot unmap ET memory\n");
+        }
+        return ET_ERROR_REMOTE;
+    }
+  
+    /* kill ET system */
+    return etr_kill(id);
 }
 
 /******************************************************/

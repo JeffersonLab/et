@@ -595,9 +595,9 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   sys->asthread     = ET_THREAD_KEEP;
   
 #ifdef _LP64
-  sys->bit64        = 1;
+  sys->bitInfo      = ET_BIT64_MASK;
 #else
-  sys->bit64        = 0;
+  sys->bitInfo      = 0;
 #endif
 
 #ifdef sun
@@ -741,6 +741,27 @@ static void et_init_mem_event(et_id *id)
   }
 }
 
+/** This routine disables pthread cancellation. */
+static void etDisableThreadCancellation() {
+    int status, state;
+    status = pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &state);
+    if (status != 0) {
+        err_abort(status, "Disabling listening thread cancelability");
+    }
+    /*printf("CANCELABILITY OFF\n");*/
+}
+
+/** This routine enables pthread cancellation. */
+static void etEnableThreadCancellation() {
+    int status, state;
+    /* enable pthread cancellation */
+    status = pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &state);
+    if (status != 0) {
+        err_abort(status, "Enabling listening thread cancelability");
+    }
+    /*printf("CANCELABILITY ON\n");*/
+}
+
 /******************************************************/
 static void et_sys_stopthread(pthread_t pt)
 {
@@ -772,6 +793,22 @@ static void *et_sys_heartbeat(void *arg)
     sys->heartbeat = (sys->heartbeat + 1) % ET_HBMODULO;
     nanosleep(&timeout, NULL);
     pthread_testcancel();
+
+    /* Test to see if we've been commanded to exit,
+     * but make sure we don't die with a mutex. */
+    etDisableThreadCancellation();
+    et_system_lock(sys);
+    if (ET_GET_KILL(sys->bitInfo)) {
+        et_system_unlock(sys);
+        printf("KILLING MYSELF\n");
+        fflush(stdout);
+        /* remove file */
+        unlink(sys->config.filename);
+        /* die */
+        exit(-1);
+    }
+    et_system_unlock(sys);
+    etEnableThreadCancellation();
   }
   return (NULL);
 }
