@@ -1211,7 +1211,9 @@ class ClientThread extends Thread {
 
 
                         case EtConstants.netKill: {
-System.out.println("GOT COMMAND TO KILL !!!!");
+                            if (config.getDebug() >= EtConstants.debugInfo) {
+                                System.out.println("commandLoop: got command to kill this ET");
+                            }
                             System.exit(-1);
                         }
 
