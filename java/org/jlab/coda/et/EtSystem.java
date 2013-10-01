@@ -354,11 +354,15 @@ public class EtSystem {
     }
 
 
-    /** Kill the ET system. */
-    synchronized public void kill() {
+    /**
+     * Kill the ET system.
+     * @throws IOException if problems with network communications
+     * @throws EtClosedException if the ET system is closed
+     */
+    synchronized public void kill() throws IOException, EtClosedException {
 
         if (!open) {
-            return;
+            throw new EtClosedException("ET system is closed");
         }
 
         // If communication with ET system fails, we've already been "closed"
@@ -375,11 +379,6 @@ public class EtSystem {
 
             out.writeInt(EtConstants.netKill);
             out.flush();
-        }
-        catch (IOException ex) {
-            if (debug >= EtConstants.debugError) {
-                System.out.println("network communication error");
-            }
         }
         finally {
             try {
