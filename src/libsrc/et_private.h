@@ -769,7 +769,7 @@ typedef struct  et_id_t {
   char            *data;
   et_station      *grandcentral;
   pthread_mutex_t  mutex;
-#ifndef VXWORKS
+#ifndef NO_WR_LOCK
   pthread_rwlock_t sharedMemlock;
 #endif
 } et_id;
