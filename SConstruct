@@ -216,6 +216,15 @@ use32bits = GetOption('use32bits')
 print "use32bits =", use32bits
 Help('--32bits            compile 32bit libs & executables on 64bit system\n')
 
+# Pthread read/write locks
+AddOption('--no-rwlock',
+           dest='norwlock',
+           default=False,
+           action='store_true')
+noReadWriteLock = GetOption('norwlock')
+print "noReadWriteLock =", noReadWriteLock
+Help('--no-rwlock         compile without pthread read/write locks\n')
+
 # install directory option
 AddOption('--prefix',
            dest='prefix',
@@ -321,7 +330,7 @@ if useVxworks:
     env.Append(CFLAGS     = vxFlags)
     env.Append(CCFLAGS    = vxFlags)
     env.Append(CPPPATH    = vxInc)
-    env.Append(CPPDEFINES = ['CPU=PPC604', 'VXWORKS', '_GNU_TOOL', 'VXWORKSPPC', 'POSIX_MISTAKE'])
+    env.Append(CPPDEFINES = ['CPU=PPC604', 'VXWORKS', '_GNU_TOOL', 'VXWORKSPPC', 'POSIX_MISTAKE', 'NO_RW_LOCK'])
     env['CC']     = 'ccppc'
     env['CXX']    = 'g++ppc'
     env['SHLINK'] = 'ldppc'
@@ -331,6 +340,9 @@ if useVxworks:
 
 # else if NOT using vxworks
 else:
+    if noReadWriteLocks:
+        env.Append(CPPDEFINES = ['NO_RW_LOCK'])
+
     # platform dependent quantities
     execLibs = ['m', 'pthread', 'dl', 'rt']  # default to standard Linux libs
     if platform == 'SunOS':
