@@ -180,32 +180,38 @@ void et_tcp_unlock(et_id *id)
 
 void et_memRead_lock(et_id *id)
 {
-    int status;
+#ifndef VXWORKS
+   int status;
   
     status = pthread_rwlock_rdlock(&id->sharedMemlock);
     if (status != 0) {
         err_abort(status, "Failed mem read lock");
     }
+#endif
 }
 
 void et_memWrite_lock(et_id *id)
 {
+#ifndef VXWORKS
     int status;
   
     status = pthread_rwlock_wrlock(&id->sharedMemlock);
     if (status != 0) {
         err_abort(status, "Failed mem write lock");
     }
+#endif
 }
 
 void et_mem_unlock(et_id *id)
 {
+#ifndef VXWORKS
     int status;
   
     status = pthread_rwlock_unlock(&id->sharedMemlock);
     if (status != 0) {
         err_abort(status, "Failed mem unlock");
     }
+#endif
 }
 
 /*****************************************************/
