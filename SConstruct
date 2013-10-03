@@ -222,7 +222,7 @@ AddOption('--no-rwlock',
            default=False,
            action='store_true')
 noReadWriteLocks = GetOption('norwlock')
-print "noReadWriteLock =", noReadWriteLocks
+print "noReadWriteLocks =", noReadWriteLocks
 Help('--no-rwlock         compile without pthread read/write locks\n')
 
 # install directory option
