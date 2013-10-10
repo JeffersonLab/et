@@ -468,7 +468,7 @@ struct et_attach {
  * init           : =ET_STRUCT_OK if structure properly initialized
  * nevents        : total # of events
  * ntemps         : max # of temporary events allowed (<= nevents)
- * nstations      : max # of stations allowed
+ * nstations      : max # of stations allowed (including GRAND CENTRAL)
  * nprocesses     : max # of processes allowed to open ET system
  * nattachments   : max # of attachments to stations allowed
  * groupCount     : # of event groups
