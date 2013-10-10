@@ -25,7 +25,35 @@
 #include <signal.h>
 #include <unistd.h>
 #include <getopt.h>
+
 #include "et_private.h"
+
+
+void printHelp(char *program) {
+      fprintf(stderr,
+              "usage: %s  %s\n%s\n%s",
+              program,
+              "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>]",
+              "                 [-g <groups>] [-stats <max number of stations>]",
+              "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
+              "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n");
+      
+      fprintf(stderr, "          -h     for help\n");
+      fprintf(stderr, "          -v     for verbose output\n");
+      fprintf(stderr, "          -d     deletes an existing file first\n");
+      fprintf(stderr, "          -f.....sets memory-mapped file name\n");
+      fprintf(stderr, "          -n     sets number of events\n");
+      fprintf(stderr, "          -s     sets event size in bytes\n");
+      fprintf(stderr, "          -g     sets number of groups to divide events into\n");
+      fprintf(stderr, "          -p.....sets TCP server port #\n");
+      fprintf(stderr, "          -u     sets UDP (broadcast &/or multicast) port #\n");
+      fprintf(stderr, "          -a     sets multicast address\n");
+      fprintf(stderr, "          -rb    TCP receive buffer size (bytes)\n");
+      fprintf(stderr, "          -sb....TCP send    buffer size (bytes)\n");
+      fprintf(stderr, "          -nd    use TCP_NODELAY option\n\n");
+      fprintf(stderr, "          -stats max # of stations (default 200)\n\n");
+}
+
 
 int main(int argc, char **argv)
 {  
@@ -37,6 +65,7 @@ int main(int argc, char **argv)
   int           status, sig_num, serverPort=0, udpPort=0;
   int           et_verbose = ET_DEBUG_NONE, deleteFile=0;
   int           sendBufSize=0, recvBufSize=0, noDelay=0;
+  int           maxNumStations=0;
   sigset_t      sigblockset, sigwaitset;
   et_sysconfig  config;
   et_sys_id     id;
@@ -56,9 +85,10 @@ int main(int argc, char **argv)
 
   /* multiple character command-line options */
   static struct option long_options[] = {
-      {"rb",   1, NULL, 1},
-      {"sb",   1, NULL, 2},
-      {"nd",   0, NULL, 3},
+      {"rb",    1, NULL, 1},
+      {"sb",    1, NULL, 2},
+      {"nd",    0, NULL, 3},
+      {"stats", 1, NULL, 4},
       {0, 0, 0, 0}
   };
 
@@ -66,7 +96,7 @@ int main(int argc, char **argv)
   memset(mcastAddr, 0, ET_IPADDRSTRLEN);
   strcpy(mcastAddr, ET_MULTICAST_ADDR);
   
-  while ((c = getopt_long_only(argc, argv, "vdn:s:p:u:m:a:f:g:", long_options, 0)) != EOF) {
+  while ((c = getopt_long_only(argc, argv, "vhdn:s:p:u:m:a:f:g:", long_options, 0)) != EOF) {
 
        if (c == -1)
           break;
@@ -170,35 +200,29 @@ int main(int argc, char **argv)
               noDelay = 1;
               break;
 
-          case ':':
+          case 4:
+              i_tmp = atoi(optarg);
+              if (i_tmp < 2) {
+                  printf("Invalid argument to -stats. Must allow at least 2 stations.\n");
+                  exit(-1);
+              }
+              maxNumStations = i_tmp;
+              break;
+
           case 'h':
+              printHelp(argv[0]);
+              exit(1);
+
+          case ':':
           case '?':
           default:
               errflg++;
       }
   }
     
-  if (optind < argc || errflg){
-      fprintf(stderr,
-              "usage: %s  %s\n%s\n%s",
-              argv[0],
-              "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>] [-g <groups>]",
-              "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
-              "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n");
-      
-      fprintf(stderr, "          -h for help\n");
-      fprintf(stderr, "          -v for verbose output\n");
-      fprintf(stderr, "          -d deletes an existing file first\n");
-      fprintf(stderr, "          -f sets memory-mapped file name\n");
-      fprintf(stderr, "          -n sets number of events\n");
-      fprintf(stderr, "          -s sets event size in bytes\n");
-      fprintf(stderr, "          -g sets number of groups to divide events into\n");
-      fprintf(stderr, "          -p sets TCP server port #\n");
-      fprintf(stderr, "          -u sets UDP (broadcast &/or multicast) port #\n");
-      fprintf(stderr, "          -a sets multicast address\n");
-      fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
-      fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
-      fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
+  /* Error of some kind */
+  if (optind < argc || errflg) {
+      printHelp(argv[0]);
       exit(2);
   }
 
@@ -274,6 +298,11 @@ int main(int argc, char **argv)
 
   /* size of event in bytes */
   et_system_config_setsize(config, event_size);
+
+  /* max # of stations */
+  if (maxNumStations > 1) {
+      et_system_config_setstations(config, maxNumStations);
+  }
 
   /* limit on # of stations = 20 */
   /* hard limit on # of processes = 110 */
