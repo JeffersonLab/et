@@ -60,7 +60,7 @@ extern "C" {
 #define ET_SYSTEM_EVENTS    300	 /* total # of events */
 #define ET_SYSTEM_NTEMPS    300	 /* max # of temp events */
 #define ET_SYSTEM_ESIZE     1000 /* size of normal events in bytes */
-#define ET_SYSTEM_NSTATS    100	 /* max # of stations */
+#define ET_SYSTEM_NSTATS    200	 /* max # of stations */
 
 /* network stuff */
 #define ET_MULTICAST_PORT  11111 /* udp multicast port */
