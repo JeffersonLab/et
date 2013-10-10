@@ -31,12 +31,12 @@
 
 void printHelp(char *program) {
       fprintf(stderr,
-              "usage: %s  %s\n%s\n%s",
+              "\nusage: %s  %s\n%s\n%s\n%s",
               program,
               "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>]",
               "                 [-g <groups>] [-stats <max number of stations>]",
               "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
-              "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n");
+              "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n\n");
       
       fprintf(stderr, "          -h     for help\n");
       fprintf(stderr, "          -v     for verbose output\n");
@@ -50,7 +50,7 @@ void printHelp(char *program) {
       fprintf(stderr, "          -a     sets multicast address\n");
       fprintf(stderr, "          -rb    TCP receive buffer size (bytes)\n");
       fprintf(stderr, "          -sb....TCP send    buffer size (bytes)\n");
-      fprintf(stderr, "          -nd    use TCP_NODELAY option\n\n");
+      fprintf(stderr, "          -nd    use TCP_NODELAY option\n");
       fprintf(stderr, "          -stats max # of stations (default 200)\n\n");
 }
 
