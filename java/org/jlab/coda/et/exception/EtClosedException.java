@@ -29,9 +29,9 @@ public class EtClosedException extends Exception {
      * Create an exception indicating a user is trying to
      * call event put/dump/get/new routines or any station-related routines
      * and the et system has already been closed.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtClosedException(String message) {
         super(message);

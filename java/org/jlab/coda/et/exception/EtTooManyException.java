@@ -27,9 +27,9 @@ public class EtTooManyException extends Exception {
     /**
      * Create an exception indicating an error of an ET system when
      * creating an item would result in too many such items existing.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtTooManyException(String message) {
         super(message);

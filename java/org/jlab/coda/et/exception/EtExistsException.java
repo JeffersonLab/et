@@ -26,9 +26,9 @@ public class EtExistsException extends Exception {
 
     /**
      * Create an exception indicating when an item to be created already exists.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtExistsException(String message) {
         super(message);

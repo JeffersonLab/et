@@ -25,9 +25,9 @@ public class EtReadException extends Exception {
 
     /**
      * Create an exception indicating a network read error of an ET system.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtReadException(String message) {
         super(message);

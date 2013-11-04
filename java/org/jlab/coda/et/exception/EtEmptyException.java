@@ -26,9 +26,9 @@ public class EtEmptyException extends Exception {
 
     /**
      * Create an exception indicating an error of an ET system when a station's input list is empty.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtEmptyException(String message) {
         super(message);

@@ -27,9 +27,9 @@ public class EtBusyException extends Exception {
     /**
      * Create an exception indicating when a user cannot access a
      * station's input list because another thread or process is accessing it.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtBusyException(String message) {
         super(message);

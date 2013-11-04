@@ -25,9 +25,9 @@ public class EtTimeoutException extends Exception {
 
     /**
      * Create an exception indicating a timeout error of an ET system.
-     * {@inheritDoc}<p/>
      *
-     * @param message {@inheritDoc}<p/>
+     * @param message the detail message. The detail message is saved for
+     *        later retrieval by the {@link #getMessage()} method.
      */
     public EtTimeoutException(String message) {
         super(message);
