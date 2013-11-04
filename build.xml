@@ -3,14 +3,24 @@
 <project name="et"  default="compile" basedir=".">
     
     <!-- Project-wide settings -->
-    
+
+    <!-- environmental variables -->
+    <property environment="env"/>
+
+    <!-- Version -->
+    <property name="et.version" value="14.0" />
+
+    <!-- Debug -->
+    <property name="javac.debug" value="on" />
+
     <!-- Directories -->
     <property name="src.dir"       value="java" />
     <property name="build.dir"     value="build" />
     <property name="build.classes" value="${build.dir}/classes" />
     <property name="build.lib"     value="${build.dir}/lib" />
     <property name="doc.dir"       value="doc/javadoc" />
-    
+    <property name="jarName"       value="${build.lib}/et-${et.version}.jar" />
+
     <!-- Classpath -->
     <path id="classpath">
         <fileset dir="java/jars">
@@ -18,13 +28,7 @@
         </fileset>
     </path>
 
-    <!-- Version -->
-    <property name="et.version" value="14.0" />
-    
-    <!-- Debug -->
-    <property name="javac.debug" value="on" />
-
-    <!-- Tragets -->
+    <!-- Targets -->
     
     <!-- Help -->
     <target name="help">
@@ -37,6 +41,9 @@
         <echo message="       clean    - remove class files" />
         <echo message="       cleanall - remove all generated files" />
         <echo message="       jar      - compile and create jar file" />
+        <echo message="       install  - create jar file and install into 'prefix'" />
+        <echo message="                  if given on command line by -Dprefix=dir'," />
+        <echo message="                  else install into CODA if defined" />
         <echo message="       all      - clean, compile and create jar file" />
         <echo message="       javadoc  - create javadoc documentation" />
         <echo message="       prepare  - create necessary directories" />
@@ -103,5 +110,43 @@
             <classpath refid="classpath" />
         </javadoc>
     </target>
+
+    <!-- Install Jar file -->
+    <target name="install" depends="jar" description="Installs jar file.">
+        <antcall target="-nested-if"/>
+    </target>
+
+    <!-- Look for places to install the jar file (simulated if-then-else constructs) -->
+    <target name="-nested-if">
+        <condition property="prefixDefined">
+            <isset property="prefix"/>
+        </condition>
+        <antcall target="-then"/>
+        <antcall target="-else"/>
+    </target>
+
+    <target name="-then" if="prefixDefined">
+        <echo>Install ${jarName} into ${prefix}</echo>
+        <copy file="${jarName}" todir="${prefix}/jar"/>
+    </target>
+
+    <target name="-else" unless="prefixDefined">
+        <echo>Prefix is not defined, so look for CODA environmental variable</echo>
+        <condition property="installDirDefined">
+            <isset property="env.CODA"/>
+        </condition>
+        <antcall target="-inner.then"/>
+        <antcall target="-inner.else"/>
+    </target>
+
+    <target name="-inner.then" if="installDirDefined">
+        <echo>Install ${jarName} into ${env.CODA}/common/jar</echo>
+        <copy file="${jarName}" todir="${env.CODA}/common/jar"/>
+    </target>
+
+    <target name="-inner.else" unless="installDirDefined">
+        <fail message="CODA environmental variable not defined, jar NOT installed" />
+    </target>
+
 
 </project>
