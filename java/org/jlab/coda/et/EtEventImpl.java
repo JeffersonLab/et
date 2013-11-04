@@ -579,10 +579,8 @@ public class EtEventImpl implements EtEvent {
     }
 
     /**
-     * {@inheritDoc}. This is how byte order is stored internally in
+     * {@inheritDoc} This is how byte order is stored internally in
      * this object and how it is stored in the C code.
-     *
-     * @param {@inheritDoc}
      */
     public void setRawByteOrder(int byteOrder) throws EtException {
         if (byteOrder != 0x04030201 && byteOrder != 0x01020304) {
