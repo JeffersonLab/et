@@ -8,9 +8,11 @@ Jefferson National Accelerator Facility.
 This software runs on Solaris (2.6+) and Linux (Redhat 6.X).
 
 
-The difference between this and the last version (12.0) is that
-the functions that get/put/dump/new events along with those that
+The difference between this and the last version (12.0) is that in the
+C library, the functions that get/put/dump/new events along with those that
 have to do with stations or attachments have now been protected
 against a concurrent et_close() and the unmapping of shared memory.
-They've also been protected against a concurrent et_station_detach.
 Also, some debugging printout was removed.
+
+In both the C and Java libraries, an additional function now exists for a
+client to kill the ET system it has opened.
