@@ -32,9 +32,30 @@
 #include "et_data.h"
 
 /* prototypes */
-static int display_remotedata(et_sys_id sys_id, double tperiod, uint64_t *prev_out);
-static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_out);
-static int test_mutex(pthread_mutex_t *mp);
+static int  display_remotedata(et_sys_id sys_id, double tperiod, uint64_t *prev_out);
+static int  display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_out);
+static int  test_mutex(pthread_mutex_t *mp);
+static void usage();
+
+/******************************************************/
+
+static void usage(char *programName) {
+    fprintf(stderr,
+            "usage: %s  %s\n%s\n%s\n\n",
+            programName,
+            "-f <ET name> [-h] [-r] [-host <ET host>]",
+            "                     [-t <time period (sec)>] [-p <ET server port>]",
+            "                     [-u <udp port>]");
+
+    fprintf(stderr, "          -host ET system's host\n");
+    fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
+    fprintf(stderr, "          -h help\n");
+    fprintf(stderr, "          -r connect with local host as if remote\n");
+    fprintf(stderr, "          -t time period in seconds between updates\n");
+    fprintf(stderr, "          -p ET server port\n\n");
+    fprintf(stderr, "          This monitor works by making a direct connection to the\n");
+    fprintf(stderr, "          ET system's server port.\n");
+}
 
 /******************************************************/
 int main(int argc,char **argv)
@@ -141,6 +162,7 @@ int main(int argc,char **argv)
         /* see if env variable SESSION is defined */
         if ( (tmp_etname = getenv("SESSION")) == NULL ) {
             fprintf(stderr, "%s: No ET file name given and SESSION env variable not defined\n", argv[0]);
+            usage(argv[0]);
             exit(-1);
         }
         /* check length of name */
@@ -157,20 +179,7 @@ int main(int argc,char **argv)
     }
     
     if (optind < argc || errflg) {
-        fprintf(stderr,
-                "usage: %s  %s\n%s\n\n",
-                argv[0],
-                "-f <ET name> [-h] [-r] [-host <ET host>] [-t <time period (sec)>]",
-                "                     [-p <ET server port>] [-u <udp port>]");
-
-        fprintf(stderr, "          -host ET system's host\n");
-        fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
-        fprintf(stderr, "          -h help\n");
-        fprintf(stderr, "          -r connect with local host as if remote\n");
-        fprintf(stderr, "          -t time period in seconds between updates\n");
-        fprintf(stderr, "          -p ET server port\n\n");
-        fprintf(stderr, "          This monitor works by making a direct connection to the\n");
-        fprintf(stderr, "          ET system's server port.\n");
+        usage(argv[0]);
         exit(2);
     }
 
