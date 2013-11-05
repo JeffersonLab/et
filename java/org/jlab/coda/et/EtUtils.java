@@ -30,7 +30,6 @@ public class EtUtils {
      * @param byteOrder byte order of returned bytes (big endian if null)
      * @param dest array in which to store returned bytes
      * @param off offset into dest array where returned bytes are placed
-     * @throws org.jlab.coda.jevio.EvioException if dest is null or too small or offset negative
      */
     public static void shortToBytes(short data, ByteOrder byteOrder, byte[] dest, int off) {
 
