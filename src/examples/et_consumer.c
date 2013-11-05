@@ -330,7 +330,7 @@ int main(int argc,char **argv) {
         /**************/
 
         /* example of single, timeout read */
-        /* status = et_event_get(id, attach1, &pe[0], ET_TIMED, &timeout); */
+        /*status = et_events_get(id, attach1, pe, ET_TIMED, &timeout, chunk, &numRead);*/
 
         /* example of reading array of up to "chunk" events */
         status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, chunk, &numRead);
