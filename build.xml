@@ -15,11 +15,21 @@
 
     <!-- Directories -->
     <property name="src.dir"       value="java" />
+    <property name="jars.dir"      value="java/jars" />
     <property name="build.dir"     value="build" />
     <property name="build.classes" value="${build.dir}/classes" />
     <property name="build.lib"     value="${build.dir}/lib" />
     <property name="doc.dir"       value="doc/javadoc" />
-    <property name="jarName"       value="${build.lib}/et-${et.version}.jar" />
+
+    <property name="jarName"       value="et-${et.version}.jar" />
+    <property name="jarPath"       value="${build.lib}/${jarName}" />
+
+    <property name="jlooxName1"    value="jlayout30.jar" />
+    <property name="jlooxName2"    value="jlm20.jar" />
+    <property name="jlooxName3"    value="jloox20.jar" />
+    <property name="jlooxPath1"    value="${jars.dir}/${jlooxName1}" />
+    <property name="jlooxPath2"    value="${jars.dir}/${jlooxName2}" />
+    <property name="jlooxPath3"    value="${jars.dir}/${jlooxName3}" />
 
     <!-- Classpath -->
     <path id="classpath">
@@ -35,18 +45,21 @@
         <echo message="Usage: ant [ant options] &lt;target1&gt; [target2 | target3 | ...]" />
         <echo message="" />
         <echo message="       targets:" />
-        <echo message="       help     - print out usage" />
-        <echo message="       env      - print out build file variables' values" />
-        <echo message="       compile  - compile java files" />
-        <echo message="       clean    - remove class files" />
-        <echo message="       cleanall - remove all generated files" />
-        <echo message="       jar      - compile and create jar file" />
-        <echo message="       install  - create jar file and install into 'prefix'" />
-        <echo message="                  if given on command line by -Dprefix=dir'," />
-        <echo message="                  else install into CODA if defined" />
-        <echo message="       all      - clean, compile and create jar file" />
-        <echo message="       javadoc  - create javadoc documentation" />
-        <echo message="       prepare  - create necessary directories" />
+        <echo message="       help      - print out usage" />
+        <echo message="       env       - print out build file variables' values" />
+        <echo message="       compile   - compile java files" />
+        <echo message="       clean     - remove class files" />
+        <echo message="       cleanall  - remove all generated files" />
+        <echo message="       jar       - compile and create et jar file" />
+        <echo message="       install   - create et jar file and install all jars into 'prefix'" />
+        <echo message="                   if given on command line by -Dprefix=dir'," />
+        <echo message="                   else install into CODA if defined" />
+        <echo message="       uninstall - remove all jar files previously installed into 'prefix'" />
+        <echo message="                   if given on command line by -Dprefix=dir'," />
+        <echo message="                   else installed into CODA if defined" />
+        <echo message="       all       - clean, compile and create et jar file" />
+        <echo message="       javadoc   - create javadoc documentation" />
+        <echo message="       prepare   - create necessary directories" />
     </target>
 
     <!-- Environment -->
@@ -103,7 +116,7 @@
     <!-- Javadoc -->
     <target name="javadoc" description="Create javadoc.">
         <mkdir dir="${doc.dir}" />
-        <javadoc packagenames="org.jlab.coda.*"
+        <javadoc packagenames="org.jlab.coda.et"
                  sourcepath="java"
                  destdir="${doc.dir}"
                  use="true" >
@@ -111,12 +124,13 @@
         </javadoc>
     </target>
 
-    <!-- Install Jar file -->
-    <target name="install" depends="jar" description="Installs jar file.">
+
+    <!-- Install Jar files -->
+    <target name="install" depends="jar" description="Installs jar files.">
         <antcall target="-nested-if"/>
     </target>
 
-    <!-- Look for places to install the jar file (simulated if-then-else constructs) -->
+    <!-- Look for places to install the jar files (simulated if-then-else constructs) -->
     <target name="-nested-if">
         <condition property="prefixDefined">
             <isset property="prefix"/>
@@ -127,7 +141,13 @@
 
     <target name="-then" if="prefixDefined">
         <echo>Install ${jarName} into ${prefix}</echo>
-        <copy file="${jarName}" todir="${prefix}/jar"/>
+        <echo>Install ${jlooxName1} into ${prefix}</echo>
+        <echo>Install ${jlooxName2} into ${prefix}</echo>
+        <echo>Install ${jlooxName3} into ${prefix}</echo>
+        <copy file="${jarPath}"    todir="${prefix}/jar"/>
+        <copy file="${jlooxPath1}" todir="${prefix}/jar"/>
+        <copy file="${jlooxPath2}" todir="${prefix}/jar"/>
+        <copy file="${jlooxPath3}" todir="${prefix}/jar"/>
     </target>
 
     <target name="-else" unless="prefixDefined">
@@ -141,10 +161,67 @@
 
     <target name="-inner.then" if="installDirDefined">
         <echo>Install ${jarName} into ${env.CODA}/common/jar</echo>
-        <copy file="${jarName}" todir="${env.CODA}/common/jar"/>
+        <echo>Install ${jlooxName1} into ${env.CODA}/common/jar</echo>
+        <echo>Install ${jlooxName2} into ${env.CODA}/common/jar</echo>
+        <echo>Install ${jlooxName3} into ${env.CODA}/common/jar</echo>
+        <copy file="${jarPath}"    todir="${env.CODA}/common/jar"/>
+        <copy file="${jlooxPath1}" todir="${env.CODA}/common/jar"/>
+        <copy file="${jlooxPath2}" todir="${env.CODA}/common/jar"/>
+        <copy file="${jlooxPath3}" todir="${env.CODA}/common/jar"/>
     </target>
 
     <target name="-inner.else" unless="installDirDefined">
+        <fail message="CODA environmental variable not defined, jar NOT installed" />
+    </target>
+
+
+
+    <!-- Uninstall Jar files -->
+    <target name="uninstall" description="Uninstalls jar files.">
+        <antcall target="-nested-if2"/>
+    </target>
+
+    <!-- Look for places to uninstall the jar files (simulated if-then-else constructs) -->
+    <target name="-nested-if2">
+        <condition property="prefixDefined">
+            <isset property="prefix"/>
+        </condition>
+        <antcall target="-then2"/>
+        <antcall target="-else2"/>
+    </target>
+
+    <target name="-then2" if="prefixDefined">
+        <echo>Remove ${jarName} from ${prefix}</echo>
+        <echo>Remove ${jlooxName1} from ${prefix}</echo>
+        <echo>Remove ${jlooxName2} from ${prefix}</echo>
+        <echo>Remove ${jlooxName3} from ${prefix}</echo>
+        <delete file="${prefix}/jar/${jarName}"/>
+        <delete file="${prefix}/jar/${jlooxName1}"/>
+        <delete file="${prefix}/jar/${jlooxName2}"/>
+        <delete file="${prefix}/jar/${jlooxName3}"/>
+    </target>
+
+    <target name="-else2" unless="prefixDefined">
+        <echo>Prefix is not defined, so look for CODA environmental variable</echo>
+        <condition property="installDirDefined">
+            <isset property="env.CODA"/>
+        </condition>
+        <antcall target="-inner.then2"/>
+        <antcall target="-inner.else2"/>
+    </target>
+
+    <target name="-inner.then2" if="installDirDefined">
+        <echo>Remove ${jarName} from ${env.CODA}/common/jar</echo>
+        <echo>Remove ${jlooxName1} from ${env.CODA}/common/jar</echo>
+        <echo>Remove ${jlooxName2} from ${env.CODA}/common/jar</echo>
+        <echo>Remove ${jlooxName3} from ${env.CODA}/common/jar</echo>
+        <delete file="${env.CODA}/common/jar/${jarName}"/>
+        <delete file="${env.CODA}/common/jar/${jlooxName1}"/>
+        <delete file="${env.CODA}/common/jar/${jlooxName2}"/>
+        <delete file="${env.CODA}/common/jar/${jlooxName3}"/>
+    </target>
+
+    <target name="-inner.else2" unless="installDirDefined">
         <fail message="CODA environmental variable not defined, jar NOT installed" />
     </target>
 
