@@ -12,23 +12,14 @@ import java.util.HashMap;
  */
 class EtJniAccess {
 
-    // Load in the necessary library when this class is loaded
-    static {
-        try {
-            System.loadLibrary("et_jni");
-        }
-        catch (Error e) {
-            System.out.println("error loading libet_jni.so");
-            e.printStackTrace();
-            System.exit(-1);
-        }
-    }
-
     /** Serialize access to classMap and creation of these objects. */
     static ReentrantLock classLock = new ReentrantLock();
 
     /** Store EtJniAccess objects here since we only want to create 1 object per ET system. */
     static HashMap<String, EtJniAccess> classMap = new HashMap<String, EtJniAccess>(10);
+
+    /** Has the jni library been loaded? */
+    static boolean jniLibLoaded;
 
 
     /**
@@ -37,12 +28,30 @@ class EtJniAccess {
      *
      * @param etName name of ET system to open
      * @return object of this type to use for interaction with local, C-based ET system
-     * @throws EtException        for any failure to open ET system except timeout
+     * @throws EtException        for failure to load the jni library;
+     *                            for any failure to open ET system except timeout
      * @throws EtTimeoutException for failure to open ET system within the specified time limit
      */
     static EtJniAccess getInstance(String etName) throws EtException, EtTimeoutException {
         try {
+
             classLock.lock();
+
+            // Only want to do this once
+            if (!jniLibLoaded) {
+                try {
+                    System.loadLibrary("et_jni");
+                }
+                catch (Error e) {
+                    // If the library cannot be found, we can still
+                    // continue to use the ET system with sockets -
+                    // just not locally with the C library.
+//System.out.println("\nERROR LOADIN JNI LIB !!!!\n");
+                    throw new EtException("Error loading libet_jni.so");
+                }
+            }
+
+            jniLibLoaded = true;
 
             // See if we've already opened the ET system being asked for, if so, return that
             if (classMap.containsKey(etName)) {

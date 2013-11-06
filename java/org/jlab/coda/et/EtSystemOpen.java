@@ -1096,7 +1096,7 @@ public class EtSystemOpen {
      * Creates a connection to an ET system.
      *
      * @throws java.io.IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws java.net.UnknownHostException
      *     if the host address(es) is(are) unknown
      * @throws EtException
@@ -1369,15 +1369,18 @@ System.out.println("           FAILED connection to ET: " + e.getMessage());
             catch (EtTimeoutException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
+                buffer = null;
             }
             catch (EtException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
+                buffer = null;
 System.out.println("Error in opening ET with jni, Et exception, use sockets only to talk to ET system");
             }
             catch (IOException e) {
                 // cannot open a file, so use sockets only to connect to ET system
                 mapLocalSharedMemory = false;
+                buffer = null;
 System.out.println("Error in opening ET with jni, IO exception, use sockets only to talk to ET system");
             }
         }
