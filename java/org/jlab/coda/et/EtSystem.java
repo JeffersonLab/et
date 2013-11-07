@@ -19,7 +19,6 @@ import java.nio.ByteOrder;
 import java.util.*;
 import java.io.*;
 import java.net.*;
-import java.nio.MappedByteBuffer;
 import java.nio.ByteBuffer;
 
 import org.jlab.coda.et.data.*;
@@ -325,7 +324,7 @@ public class EtSystem {
         // if communication with ET system fails, we've already been "closed"
         try {
             // Are we using JNI? If so, close the ET system it opened.
-            if (sys.isMapLocalSharedMemory()) {
+            if (sys.usingJniLibrary()) {
 //System.out.println("   Close et sys JNI object");
                 sys.getJni().close();
             }
@@ -369,7 +368,7 @@ public class EtSystem {
         // and cannot, therefore, kill the ET system.
         try {
             // Are we using JNI? If so, close the ET system it opened.
-            if (sys.isMapLocalSharedMemory()) {
+            if (sys.usingJniLibrary()) {
 //System.out.println("   Close et sys JNI object");
                 sys.getJni().close();
             }
@@ -1426,28 +1425,7 @@ public class EtSystem {
                    EtBusyException, EtTimeoutException, EtWakeUpException {
 
         EtEventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
-                                                    mode, sec, nsec, count, size, group);
-
-        //-------------------------------------------------------------------------------------
-        // The following code is no longer needed since memory
-        // mapped file is no longer directly used here.
-        //-------------------------------------------------------------------------------------
-
-//        // set all events' data arrays to point to shared memory correctly
-//
-//        // Start with the whole data buffer and slice it -
-//        // create smaller buffers with the SAME underlying data
-//        MappedByteBuffer buffer = sys.getBuffer();
-//        int position, eventSize = (int) sys.getEventSize();
-//
-//        for (EtEventImpl ev : events) {
-//            position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
-//            buffer.clear();
-//            buffer.position(position);
-//            buffer.limit(position + eventSize);
-//            ev.setDataBuffer(buffer.slice());
-//        }
-
+                                                      mode, sec, nsec, count, size, group);
         return events;
     }
 
@@ -1538,7 +1516,7 @@ public class EtSystem {
         }
 
         // Do we get things locally through JNI?
-        if (sys.isMapLocalSharedMemory()) {
+        if (sys.usingJniLibrary()) {
             // Value of "open" valid if synchronized
             synchronized (this) {
                 if (!open) {
@@ -1732,122 +1710,10 @@ public class EtSystem {
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
                    EtBusyException, EtTimeoutException, EtWakeUpException {
 
-        EtEventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
-
-        //-------------------------------------------------------------------------------------
-        // The following code is no longer needed since memory
-        // mapped file is no longer directly used here.
-        //-------------------------------------------------------------------------------------
-
-        // set all events' data arrays to point to shared memory correctly
-
-        // Start with the whole data buffer and slice it -
-        // create smaller buffers with the SAME underlying data
-//        MappedByteBuffer buffer = sys.getBuffer();
-//        int position, eventSize = (int) sys.getEventSize();
-//        ByteBuffer slice;
-//
-//        for (EtEventImpl ev : events) {
-//            position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
-//            buffer.clear();
-//            buffer.position(position);
-//            buffer.limit(position + eventSize);
-//            slice = buffer.slice();
-//            slice.limit(ev.getLength()); // data may not take up the whole capacity
-//            ev.setDataBuffer(slice);
-//        }
-
+        EtEventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(),
+                                                      attId, mode, sec, nsec, count);
         return events;
     }
-
-     // Currently NOT used
-    /**
-     * Get events from an ET system.
-     * This method uses JNI to call ET routines in the C library. Event memory is
-     * directly accessed shared memory. The data ByteBuffer object in each event
-     * has its limit set to the data length (not the buffer's full capacity).
-     *
-     * @param attId    attachment id number
-     * @param mode     if there are no events available, this parameter specifies
-     *                 whether to wait for some by sleeping {@link EtConstants#sleep},
-     *                 to wait for a set time {@link EtConstants#timed},
-     *                 or to return immediately {@link EtConstants#async}.
-     * @param sec      the number of seconds to wait if a timed wait is specified
-     * @param nsec     the number of nanoseconds to wait if a timed wait is specified
-     * @param count    the number of events desired
-     *
-     * @return an array of events obtained from ET system. Count may be different from that requested.
-     *
-     * @throws EtException
-     *     if arguments have bad values, the attachment's station is
-     *     GRAND_CENTRAL, or the attachment object is invalid, or other general errors
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtEmptyException
-     *     if the mode is asynchronous and the station's input list is empty
-     * @throws EtBusyException
-     *     if the mode is asynchronous and the station's input list is being used
-     *     (the mutex is locked)
-     * @throws EtTimeoutException
-     *     if the mode is timed wait and the time has expired
-     * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
-     */
-    private EtEvent[] getEventsJNINew(int attId, int mode, int sec, int nsec, int count)
-            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
-                   EtBusyException, EtTimeoutException, EtWakeUpException {
-
-        int[] evInfo = sys.getJni().getEventsInfo(sys.getJni().getLocalEtId(), attId, mode, sec, nsec, count);
-
-        int control[], index = 0;
-        int numEvents = evInfo[index++];
-        int selectInts = EtConstants.stationSelectInts;
-        control = new int[selectInts];
-
-        if (evInfo.length != 1 + numEvents*( 9+selectInts)) {
-            System.out.println("WRONG ARRAY SIZE from jni, abort");
-            System.out.println("  # events = " + numEvents);
-            System.out.println("  array size = " + evInfo.length + ", should be " + (1 + numEvents*( 9+selectInts)));
-            System.exit(-1);
-        }
-
-
-       // Start with the whole data buffer and slice it -
-        // create smaller buffers with the SAME underlying data
-        MappedByteBuffer buffer = sys.getBuffer();
-        int position, eventSize = (int) sys.getEventSize();
-        ByteBuffer slice;
-
-        EtEventImpl[] events = new EtEventImpl[numEvents];
-
-        for (int i=0; i < numEvents; i++, index += 9+selectInts) {
-            for (int j=0; j < selectInts; j++) {
-                control[j] = evInfo[index+9+j];
-            }
-
-            // (size, size, status, id, age, owner, modify, length, priority, byteOrder, control)
-            events[i] = new EtEventImpl(evInfo[index],   evInfo[index],   evInfo[index+1],
-                                        evInfo[index+2], evInfo[index+3], evInfo[index+4],
-                                        evInfo[index+5], evInfo[index+6], evInfo[index+7],
-                                        evInfo[index+8], control);
-
-            // set all events' data arrays to point to shared memory correctly
-            position = evInfo[index+2] * eventSize; // id corresponds to nth place in shared memory
-            buffer.clear();
-            buffer.position(position);
-            buffer.limit(position + eventSize);
-            slice = buffer.slice();
-            slice.limit(evInfo[index+6]); // data may not take up the whole capacity
-            events[i].setDataBuffer(slice);
-        }
-
-        return events;
-    }
-
 
 
     /**
@@ -1940,7 +1806,7 @@ public class EtSystem {
         }
 
         // Do we get things locally through JNI?
-        if (sys.isMapLocalSharedMemory()) {
+        if (sys.usingJniLibrary()) {
             // Value of "open" valid only if synchronized
             synchronized (this) {
                 if (!open) {
@@ -2112,210 +1978,6 @@ public class EtSystem {
     }
 
 
-
-    /**
-     * Get events from an ET system.
-     * Will access local C-based ET systems through JNI/shared memory, but other ET
-     * systems through sockets. The data ByteBuffer object in each event
-     * has its limit set to the data length (not the buffer's full capacity).
-     *
-     * @param att      attachment object
-     * @param mode     if there are no new events available, this parameter specifies
-     *                 whether to wait for some by sleeping {@link Mode#SLEEP},
-     *                 to wait for a set time {@link Mode#TIMED},
-     *                 or to return immediately {@link Mode#ASYNC}.
-     * @param modify   this specifies whether this application plans
-     *                 on modifying the data in events obtained {@link Modify#ANYTHING}, or
-     *                 only modifying headers {@link Modify#HEADER}. The default assumed ,{@link Modify#NOTHING},
-     *                 is that no values are modified resulting in the events being put back into
-     *                 the ET system (by remote server) immediately upon being copied and that copy
-     *                 sent to this method's caller.
-     * @param microSec the number of microseconds to wait if a timed wait is
-     *                 specified
-     * @param count    the number of events desired
-     *
-     * @return an array of events obtained from ET system. Count may be different from that requested.
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtException
-     *     if arguments have bad values;
-     *     if the attachment's station is GRAND_CENTRAL;
-     *     if the attachment object is invalid;
-     *     for other general errors
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtEmptyException
-     *     if the mode is asynchronous and the station's input list is empty
-     * @throws EtBusyException
-     *     if the mode is asynchronous and the station's input list is being used
-     *     (the mutex is locked)
-     * @throws EtTimeoutException
-     *     if the mode is timed wait and the time has expired
-     * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
-     */
-    synchronized private EtEvent[] getEventsOrig(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
-            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
-                   EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
-
-        if (!open) {
-            throw new EtClosedException("Not connected to ET system");
-        }
-
-        if (mode == null) {
-            throw new EtException("Invalid mode");
-        }
-
-        if (att == null|| !att.isUsable() || att.getSys() != this) {
-            throw new EtException("Invalid attachment");
-        }
-
-        if (modify == null) {
-            modify = Modify.NOTHING;
-        }
-
-        // may not get events from GrandCentral
-        if (att.getStation().getId() == 0) {
-            throw new EtException("may not get events from GRAND_CENTRAL");
-        }
-
-        if (count == 0) {
-            return new EtEvent[0];
-        }
-
-        if ((microSec < 0) && (mode == Mode.TIMED)) {
-            throw new EtException("bad microSec argument");
-        }
-        else if (count < 0) {
-            throw new EtException("bad count argument");
-        }
-
-        int sec  = 0;
-        int nsec = 0;
-        if (microSec > 0) {
-            sec = microSec/1000000;
-            nsec = (microSec - sec*1000000) * 1000;
-        }
-
-        // Do we get things locally through JNI?
-        if (sys.isMapLocalSharedMemory()) {
-            return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
-        }
-
-        // Or do we go through the network?
-        byte[] buffer = new byte[28];
-        EtUtils.intToBytes(EtConstants.netEvsGet, buffer, 0);
-        EtUtils.intToBytes(att.getId(),         buffer, 4);
-        EtUtils.intToBytes(mode.getValue(),     buffer, 8);
-        EtUtils.intToBytes(modify.getValue(),   buffer, 12);
-        EtUtils.intToBytes(count,               buffer, 16);
-        EtUtils.intToBytes(sec,                 buffer, 20);
-        EtUtils.intToBytes(nsec,                buffer, 24);
-        out.write(buffer);
-        out.flush();
-
-        // ET system clients are liable to get stuck here if the ET
-        // system crashes. So use the 2 second socket timeout to try
-        // to read again. If the socket connection has been broken,
-        // an IOException will be generated.
-        int err;
-        while (true) {
-            try {
-                err = in.readInt();
-                break;
-            }
-            // If there's an interrupted ex, socket is OK, try again.
-            catch (InterruptedIOException ex) {
-            }
-        }
-
-        if (err < EtConstants.ok) {
-            if (debug >= EtConstants.debugError) {
-                System.out.println("error in ET system (getEvents), err = " + err);
-            }
-
-            if (err == EtConstants.error) {
-                throw new EtException("bad mode value" );
-            }
-            else if (err == EtConstants.errorBusy) {
-                throw new EtBusyException("input list is busy");
-            }
-            else if (err == EtConstants.errorEmpty) {
-                throw new EtEmptyException("no events in list");
-            }
-            else if (err == EtConstants.errorWakeUp) {
-                throw new EtWakeUpException("attachment " + att.getId() + " woken up");
-            }
-            else if (err == EtConstants.errorTimeout) {
-System.out.println("  getEvents, timed out");
-                throw new EtTimeoutException("timed out");
-            }
-        }
-
-        // skip reading total size (long)
-        in.skipBytes(8);
-
-        final int selectInts   = EtConstants.stationSelectInts;
-        final int dataShift    = EtConstants.dataShift;
-        final int dataMask     = EtConstants.dataMask;
-        final int priorityMask = EtConstants.priorityMask;
-
-        int numEvents = err;
-        EtEventImpl[] evs = new EtEventImpl[numEvents];
-        int byteChunk = 4*(9+ EtConstants.stationSelectInts);
-        buffer = new byte[byteChunk];
-        int index;
-
-        long  length, memSize;
-        int   priAndStat;
-
-        for (int j=0; j < numEvents; j++) {
-            in.readFully(buffer, 0, byteChunk);
-
-            length  = EtUtils.bytesToLong(buffer, 0);
-            memSize = EtUtils.bytesToLong(buffer, 8);
-
-            // Note that the server will not send events too big for us,
-            // we'll get an error above.
-
-            // if C ET system we are connected to is 64 bits ...
-            if (!isJava && sys.isBit64()) {
-                // if event size > ~1G, only allocate enough to hold data
-                if (memSize > Integer.MAX_VALUE/2) {
-                    memSize = length;
-                }
-            }
-            evs[j] = new EtEventImpl((int)memSize, (int)memSize, isJava, false);
-            evs[j].setLength((int)length);
-            evs[j].getDataBuffer().limit((int)length);
-            priAndStat = EtUtils.bytesToInt(buffer, 16);
-            evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
-            evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-            evs[j].setId(EtUtils.bytesToInt(buffer, 20));
-            // skip unused int here
-            evs[j].setRawByteOrder(EtUtils.bytesToInt(buffer, 28));
-            index = 32;   // skip unused int
-            int[] control = new int[selectInts];
-            for (int i=0; i < selectInts; i++) {
-                control[i] = EtUtils.bytesToInt(buffer, index+=4);
-            }
-            evs[j].setControl(control);
-            evs[j].setModify(modify);
-            evs[j].setOwner(att.getId());
-
-            in.readFully(evs[j].getData(), 0, (int)length);
-        }
-
-        return evs;
-    }
-
-
-
     /**
      * Put events into an ET system.
      * Will access local C-based ET systems through JNI/shared memory, but other ET
@@ -2426,124 +2088,6 @@ System.out.println("  getEvents, timed out");
      * @throws EtClosedException
      *     if the ET system is closed
      */
-    synchronized private void putEventsOrig(EtAttachment att, EtEvent[] evs, int offset, int length)
-            throws IOException, EtException, EtDeadException, EtClosedException {
-
-        if (!open) {
-            throw new EtClosedException("Not connected to ET system");
-        }
-
-        if (evs == null) {
-            throw new EtException("Invalid event array arg");
-        }
-
-        if (offset < 0 || length < 0 || offset + length > evs.length) {
-            throw new EtException("Bad offset or length argument(s)");
-        }
-
-        if (att == null || !att.isUsable() || att.getSys() != this) {
-            throw new EtException("Invalid attachment");
-        }
-
-        final int selectInts = EtConstants.stationSelectInts;
-        final int dataShift  = EtConstants.dataShift;
-
-        // find out how many events we're sending & total # bytes
-        int bytes = 0, numEvents = 0;
-        int headerSize = 4*(7+selectInts);
-
-        for (int i=offset; i < offset+length; i++) {
-            // each event must be registered as owned by this attachment
-            if (evs[i].getOwner() != att.getId()) {
-                throw new EtException("may not put event(s), not owner");
-            }
-            // if modifying header only or header & data ...
-            if (evs[i].getModify() != Modify.NOTHING) {
-                numEvents++;
-                bytes += headerSize;
-                // if modifying data as well ...
-                if (evs[i].getModify() == Modify.ANYTHING) {
-                    bytes += evs[i].getLength();
-                }
-            }
-        }
-
-
-        // Did we get things locally through JNI?
-        if (sys.isMapLocalSharedMemory()) {
-            putEventsJNI(att.getId(), evs, offset, length);
-            return;
-        }
-
-
-        out.writeInt(EtConstants.netEvsPut);
-        out.writeInt(att.getId());
-        out.writeInt(numEvents);
-        out.writeLong((long)bytes);
-
-        int[] control;
-
-        for (int i=offset; i < offset+length; i++) {
-            // send only if modifying an event (data or header) ...
-            if (evs[i].getModify() != Modify.NOTHING) {
-
-                out.writeInt(evs[i].getId());
-                out.writeInt(0); // not used
-                out.writeLong((long)evs[i].getLength());
-                out.writeInt(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift);
-                out.writeInt(evs[i].getRawByteOrder());
-                out.writeInt(0); // not used
-                control = evs[i].getControl();
-                for (int j=0; j < selectInts; j++) {
-                    out.writeInt(control[j]);
-                }
-
-                // send data only if modifying whole event
-                if (evs[i].getModify() == Modify.ANYTHING) {
-                    ByteBuffer buf = evs[i].getDataBuffer();
-                    if (buf == null) throw new EtException("null data buffer");
-                    if (!buf.hasArray()) {
-//System.out.println("Memory mapped buffer does NOT have a backing array !!!");
-                        for (int j=0; j<evs[i].getLength(); j++) {
-                            out.write(buf.get(j));
-                        }
-                    }
-                    else {
-                        out.write(buf.array(), 0, evs[i].getLength());
-                    }
-                }
-            }
-        }
-
-        out.flush();
-
-        // err should always be = Constants.ok
-        // skip reading error
-        in.skipBytes(4);
-    }
-
-
-    /**
-     * Put events into an ET system.
-     * Will access local C-based ET systems through JNI/shared memory, but other ET
-     * systems through sockets.
-     *
-     * @param att    attachment object
-     * @param evs    array of event objects
-     * @param offset offset into array
-     * @param length number of array elements to put
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtException
-     *     if invalid arg(s);
-     *     if events are not owned by this attachment;
-     *     if null data buffer & whole event's being modified;
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     */
     synchronized public void putEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
             throws IOException, EtException, EtDeadException, EtClosedException {
 
@@ -2588,7 +2132,7 @@ System.out.println("  getEvents, timed out");
 
 
         // Did we get things locally through JNI?
-        if (sys.isMapLocalSharedMemory()) {
+        if (sys.usingJniLibrary()) {
             putEventsJNI(att.getId(), evs, offset, length);
             return;
         }
@@ -2802,7 +2346,7 @@ System.out.println("  getEvents, timed out");
         }
 
         // Did we get things locally through JNI?
-        if (sys.isMapLocalSharedMemory()) {
+        if (sys.usingJniLibrary()) {
             dumpEventsJNI(att.getId(), evs, offset, length);
             return;
         }
