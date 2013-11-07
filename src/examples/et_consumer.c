@@ -381,10 +381,10 @@ int main(int argc,char **argv) {
                 
                 printf("data byte order = %s\n", (endian == ET_ENDIAN_BIG ? "BIG" : "LITTLE"));
                 if (swap) {
-                    printf("    data needs swapping, swapped int = %d\n", ET_SWAP32(data[0]));
+                    printf("    data (len = %d) needs swapping, swapped int = %d\n", len, ET_SWAP32(data[0]));
                 }
                 else {
-                    printf("    data does NOT need swapping, int = %d\n", data[0]);
+                    printf("    data (len = %d) does NOT need swapping, int = %d\n", len, data[0]);
                 }
 
                 et_event_getcontrol(pe[j], con);
