@@ -17,9 +17,9 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.nio.channels.FileChannel;
-import java.nio.MappedByteBuffer;
 import java.nio.ByteOrder;
 
 import org.jlab.coda.et.exception.*;
@@ -62,12 +62,10 @@ public class EtSystemOpen {
 
     // using shared memory
 
-    /** If opening a local, C-based ET system, try mapping the memory containing
-     *  the event data instead of sending it over sockets. */
-    private boolean mapLocalSharedMemory;
-
-    /** Buffer containing mapped memory if {@link #mapLocalSharedMemory} flag is true. */
-    private MappedByteBuffer buffer;
+    /** If opening a local, C-based ET system, try using the JNI library
+     *  to gain access to the shared memory holding each event instead of
+     *  accessing it over sockets. */
+    private boolean useJniLibrary;
 
     /** Object for accessing native methods which use C library to get and put events. */
     private EtJniAccess jni;
@@ -215,22 +213,18 @@ public class EtSystemOpen {
     synchronized public boolean isConnected() {return connected;}
 
     /** Gets whether the operating system is 64 bit or not.
-     *  @return <code>true</code> if the operating system is 64 bit, else <code>false</code>  */
+     *  @return {@code true} if the operating system is 64 bit, else {@code false}  */
     public boolean isBit64() {return bit64;}
 
     /** Gets a map of the hosts and ports of responding ET systems to broad/multicasts.
      *  @return a map of the hosts and ports of responding ET systems to broad/multicasts */
     public LinkedHashMap<ArrayList<String>, Integer> getResponders() {return responders;}
 
-    /** Gets whether opening a local, C-based ET system and trying to map the memory containing
-     *  the event data instead of sending it over sockets.
-     *  @return <code>true</code> if opening a local, C-based ET system and trying to map the memory containing
-     *          the event data instead of sending it over sockets  */
-    public boolean isMapLocalSharedMemory() {return mapLocalSharedMemory;}
-
-    /** Gets buffer containing the memory mapped file if {@link #isMapLocalSharedMemory} returns true.
-     *  @return buffer contained the memory mapped file */
-    public MappedByteBuffer getBuffer() {return buffer;}
+    /** Gets whether a local, C-based ET system was opened and a JNI library was used
+     *  to access events directly instead of over sockets.
+     *  @return {@code true} if opening a local, C-based ET system and using JNI library
+     *          to access events. */
+    public boolean usingJniLibrary() {return useJniLibrary;}
 
     /** Gets the object used to access native methods when using local, C-based ET system. */
     public EtJniAccess getJni() {return jni;}
@@ -1115,7 +1109,7 @@ public class EtSystemOpen {
         // However, in cases where there is a local C-based, ET system, an attempt is also
         // made to memory map it and access events through JNI (header) and a memory mapped
         // buffer (data).
-        mapLocalSharedMemory = false;
+        useJniLibrary = false;
 
         // If directly connecting we have NOT broad/multicast
         // and therefore have not set hostAddress(es) & tcpPort.
@@ -1136,7 +1130,7 @@ public class EtSystemOpen {
 
             if (etOnLocalHost) {
                 // If host is local, try to map memory
-                mapLocalSharedMemory = true;
+                useJniLibrary = true;
                 hostAddresses = (ArrayList<String>) localHostIpAddrs.clone();
                 hostAddress = hostAddresses.get(0);
             }
@@ -1157,21 +1151,21 @@ public class EtSystemOpen {
 
             // If host is local, try to map memory
             if (etOnLocalHost) {
-                mapLocalSharedMemory = true;
+                useJniLibrary = true;
             }
         }
 
         // Open the ET system, waiting if requested & necessary
         if (debug >= EtConstants.debugInfo) {
             System.out.println("connect(): try to connect to ET system " +
-                                       (mapLocalSharedMemory ? "locally" : "remotely"));
+                                       (useJniLibrary ? "locally" : "remotely"));
         }
 
         // If user only wants to use sockets, don't map memory
         if (config.isConnectRemotely()) {
-            mapLocalSharedMemory = false;
+            useJniLibrary = false;
         }
-//System.out.println("connect(): map local shared memory = " + mapLocalSharedMemory);
+//System.out.println("connect(): map local shared memory = " + useJniLibrary);
 
         boolean gotConnection = false;
         IOException ioException = null;
@@ -1285,14 +1279,14 @@ System.out.println("           FAILED connection to ET: " + e.getMessage());
         }
 
         // try using memory mapped file
-        if (mapLocalSharedMemory) {
+        if (useJniLibrary) {
             try {
                 RandomAccessFile file = new RandomAccessFile(config.getEtName(), "rw");
                 FileChannel fc = file.getChannel();
-                // First, map only the first part of the file which contains some
-                // important data in 6 ints and 5 longs (64 bytes). Once that info is read,
-                // remap the file properly to get at the data.
-                buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, EtConstants.initialSharedMemBytes);
+                // Map only the first part of the file which contains some
+                // important data in 6 ints and 5 longs (64 bytes)
+                ByteBuffer buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0,
+                                           EtConstants.initialSharedMemBytes);
 
                 int byteOrder = buffer.getInt();
                 if (byteOrder != 0x04030201) {
@@ -1351,15 +1345,8 @@ System.out.println("           FAILED connection to ET: " + e.getMessage());
                 if (debug >= EtConstants.debugInfo) {
                     System.out.println("used file size = " + nextLong);
                 }
-                
-                // look at data - map only data part of the file
-                buffer = fc.map(FileChannel.MapMode.READ_WRITE, dataPosition,
-                                usedFileSize + EtConstants.initialSharedMemBytes);
-                if (byteOrder != 0x04030201) {
-                    buffer.order(ByteOrder.LITTLE_ENDIAN);
-                }
 
-                // closing the file channel does NOT affect the buffer
+                // Closing the file channel does NOT affect the buffer
                 fc.close();
 
                 // open the ET system locally with native method
@@ -1368,19 +1355,16 @@ System.out.println("           FAILED connection to ET: " + e.getMessage());
             }
             catch (EtTimeoutException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
-                mapLocalSharedMemory = false;
-                buffer = null;
+                useJniLibrary = false;
             }
             catch (EtException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
-                mapLocalSharedMemory = false;
-                buffer = null;
+                useJniLibrary = false;
 System.out.println("Error in opening ET with jni, Et exception, use sockets only to talk to ET system");
             }
             catch (IOException e) {
                 // cannot open a file, so use sockets only to connect to ET system
-                mapLocalSharedMemory = false;
-                buffer = null;
+                useJniLibrary = false;
 System.out.println("Error in opening ET with jni, IO exception, use sockets only to talk to ET system");
             }
         }
@@ -1393,9 +1377,7 @@ System.out.println("Error in opening ET with jni, IO exception, use sockets only
     synchronized public void disconnect() {
         connected = false;
         try {sock.close();}
-        catch (IOException ioex) {}
-        // this will get rid of memory mapping once buffer is garbage-collected
-        buffer = null;
+        catch (IOException ex) {}
     }
 }
 
