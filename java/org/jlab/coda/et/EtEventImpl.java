@@ -183,7 +183,7 @@ public class EtEventImpl implements EtEvent {
      * @param control   {@link #control}
      */
     EtEventImpl(int size, int limit, int status, int id, int age, int owner,
-              int modify, int length, int priority, int byteOrder, int[] control) {
+                int modify, int length, int priority, int byteOrder, int[] control) {
 
         isJava         = false;
         memSize        = size;
@@ -196,16 +196,67 @@ public class EtEventImpl implements EtEvent {
         this.length    = length;
         this.priority  = Priority.getPriority(priority);
         this.byteOrder = byteOrder;
-        this.control   = control.clone();
+
+        if (control != null) {
+            this.control = control.clone();
+        }
+        else {
+            this.control = new int[numSelectInts];
+        }
     }
+
+    /**
+     * Creates an event object for ET system users when connecting to local, C-based ET systems
+     * and using native methods to call et_events_new. The ByteBuffer object is created in JNI
+     * code and directly "wraps" the et data pointer from the ET event obtained through
+     * et_events_new.
+     * Tons of args since it's a lot easier in JNI to call one method
+     * with lots of args then to call lots of set methods on one object.
+     *
+     * @param size      {@link #memSize}
+     * @param limit     {@link #sizeLimit}
+     * @param id        {@link #id}
+     * @param owner     {@link #owner}
+     * @param modify    {@link #modify}
+     * @param length    {@link #length}
+     * @param priority  {@link #modify}
+     * @param byteOrder {@link #byteOrder}
+     * @param buffer    {@link #dataBuffer}
+     */
+    EtEventImpl(int size, int limit, int id, int owner,
+                int modify, int length, int priority,
+                int byteOrder, ByteBuffer buffer) {
+
+        isJava         = false;
+        memSize        = size;
+        sizeLimit      = limit;
+        dataStatus     = DataStatus.OK;
+        age            = Age.NEW;
+        control        = new int[numSelectInts];
+        this.id        = id;
+        this.owner     = owner;
+        this.modify    = Modify.getModify(modify);
+        this.length    = length;
+        this.priority  = Priority.getPriority(priority);
+
+        this.byteOrder = byteOrder;
+        dataBuffer     = buffer;
+        if (byteOrder == 0x01020304) {
+            dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        }
+        else if (byteOrder == 0x04030201) {
+            dataBuffer.order(ByteOrder.BIG_ENDIAN);
+        }
+    }
+
 
     /**
      * Creates an event object for ET system users when connecting to local, C-based ET systems
      * and using native methods to call et_events_get. The ByteBuffer object is created in JNI
      * code and directly "wraps" the et data pointer from the ET event obtained through
      * et_events_get.
-     * Tons of args since it's a lot easier in
-     * JNI to call one method with lots of args then to call lots of set methods on one object.
+     * Tons of args since it's a lot easier in JNI to call one method
+     * with lots of args then to call lots of set methods on one object.
      *
      * @param size      {@link #memSize}
      * @param limit     {@link #sizeLimit}
@@ -234,37 +285,24 @@ public class EtEventImpl implements EtEvent {
         this.modify    = Modify.getModify(modify);
         this.length    = length;
         this.priority  = Priority.getPriority(priority);
+
+        if (control != null) {
+            this.control = control;
+        }
+        else {
+            this.control = new int[numSelectInts];
+        }
+
         this.byteOrder = byteOrder;
-        this.control   = control;
-        dataBuffer     = buffer;
+        dataBuffer = buffer;
+        if (byteOrder == 0x01020304) {
+            dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        }
+        else if (byteOrder == 0x04030201) {
+            dataBuffer.order(ByteOrder.BIG_ENDIAN);
+        }
     }
 
-    /**
-     * Creates an event object for ET system users when connecting to local, C-based ET systems
-     * and using native methods to call et_events_new_group.
-     * No data array or buffer are created since we will be using shared
-     * memory and it will be taken care of later.
-     *
-     * @param limit {@link #sizeLimit}, {@link #memSize}
-     * @param id    {@link #id}
-     * @param owner {@link #owner}
-     */
-    EtEventImpl(int limit, int id, int owner) {
-
-        age        = Age.NEW;
-        priority   = Priority.LOW;
-        isJava     = false;
-        byteOrder  = 0x04030201;
-        length     = 0;
-        modify     = Modify.NOTHING;
-        dataStatus = DataStatus.OK;
-        control    = new int[numSelectInts];
-
-        memSize    = limit;
-        sizeLimit  = limit;
-        this.id    = id;
-        this.owner = owner;
-    }
 
     /**
      * Creates an event object by duplicating another.
@@ -638,6 +676,8 @@ public class EtEventImpl implements EtEvent {
 
     /**
      * {@inheritDoc}
+     * This method is not needed when accessing data through the ByteBuffer
+     * object and endianness is handled behind the scenes.
      */
     public boolean needToSwap() {
         return byteOrder != 0x04030201;
