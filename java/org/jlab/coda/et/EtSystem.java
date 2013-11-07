@@ -1428,20 +1428,25 @@ public class EtSystem {
         EtEventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
                                                     mode, sec, nsec, count, size, group);
 
-        // set all events' data arrays to point to shared memory correctly
+        //-------------------------------------------------------------------------------------
+        // The following code is no longer needed since memory
+        // mapped file is no longer directly used here.
+        //-------------------------------------------------------------------------------------
 
-        // Start with the whole data buffer and slice it -
-        // create smaller buffers with the SAME underlying data
-        MappedByteBuffer buffer = sys.getBuffer();
-        int position, eventSize = (int) sys.getEventSize();
-
-        for (EtEventImpl ev : events) {
-            position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
-            buffer.clear();
-            buffer.position(position);
-            buffer.limit(position + eventSize);
-            ev.setDataBuffer(buffer.slice());
-        }
+//        // set all events' data arrays to point to shared memory correctly
+//
+//        // Start with the whole data buffer and slice it -
+//        // create smaller buffers with the SAME underlying data
+//        MappedByteBuffer buffer = sys.getBuffer();
+//        int position, eventSize = (int) sys.getEventSize();
+//
+//        for (EtEventImpl ev : events) {
+//            position = ev.getId() * eventSize; // id corresponds to nth place in shared memory
+//            buffer.clear();
+//            buffer.position(position);
+//            buffer.limit(position + eventSize);
+//            ev.setDataBuffer(buffer.slice());
+//        }
 
         return events;
     }
