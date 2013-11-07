@@ -32,9 +32,8 @@ static int localByteOrder;
 /* cache some frequently used values */
 static jclass eventImplClass, byteBufferClass;
 static jfieldID fid[4];
-static jmethodID constrMethodId1, constrMethodId2, constrMethodId3,
-                 getPriorityVal, getDataStatusVal,
-                 setDataBuffer;
+static jmethodID constrMethodId2, constrMethodId3,
+                 getPriorityVal, getDataStatusVal;
 
 
 /*
@@ -119,12 +118,8 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
     getDataStatusVal = (*env)->GetMethodID(env, classEventImpl, "getDataStatusValue", "()I");
 
     /* get id's of a few different constructors */
-    constrMethodId1 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(III)V");
-    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[I)V");
+    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIILjava/nio/ByteBuffer;)V");
     constrMethodId3 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[ILjava/nio/ByteBuffer;)V");
-
-    /* method to store ByteBuffer in EtEventImpl object */
-    setDataBuffer = (*env)->GetMethodID(env, eventImplClass, "setDataBuffer", "(Ljava/nio/ByteBuffer;)V");
     
     if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
@@ -251,12 +246,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
          jint sec, jint nsec, jint count, jint size, jint group)
 {
-    int i, j, numread, status;
+    int i, j, numread, status, biteOrder;
+    void *data;
     et_event *pe[count];
     jclass clazz;
     jboolean isCopy;
     jobjectArray eventArray;
-    jobject event;
+    jobject event, byteBuf;
 
     /* translate timeout */
     struct timespec deltaTime;
@@ -296,120 +292,41 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
     }
 
     /* create array of EventImpl objects */
-    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);
-
-    /* 50% faster to do it this way than how it's done in getEvents() above ... */
-
+    eventArray = (*env)->NewObjectArray(env, numread, eventImplClass, NULL);    
+        
     /* fill array */
-    for (i=0; i < numread; i++) {
-        /* create event object */
-        event = (*env)->NewObject(env, eventImplClass, constrMethodId1, /* constructor args ... */
-        (jint)pe[i]->memsize, (jint)pe[i]->place, (jint)pe[i]->owner);
+    for (i=0; i < numread; i++) {        
+        /* If we're on a little endian machine, int args will be swapped as
+           they go through the jni interface. We don't want this for the int
+           designating the byte order, so swap it here to compensate. */
+        biteOrder = pe[i]->byteorder;
+        if (localByteOrder == ET_ENDIAN_LITTLE) {
+            biteOrder = ET_SWAP32(biteOrder);
+        }
 
+        /* wrap data pointer in ByteBuffer object */
+        et_event_getdata(pe[i], (void **) &data);
+        byteBuf = (*env)->NewDirectByteBuffer(env, data, (jlong) pe[i]->memsize);
+
+        /* create event object */
+        event = (*env)->NewObject(env, eventImplClass, constrMethodId2, /* constructor args ... */
+        (jint)pe[i]->memsize, (jint)pe[i]->memsize,
+        (jint)pe[i]->place,   (jint)pe[i]->owner,
+        (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
+        (jint)biteOrder, byteBuf);
+      
         /* put event in array */
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
+
+        /* get rid of uneeded references - good if numread is big */
         (*env)->DeleteLocalRef(env, event);
+        (*env)->DeleteLocalRef(env, byteBuf);
     }
 
     if (debug) printf("newEvents (native) : filled array!\n");
 
     /* return the array */
     return eventArray;
-}
-
-
-/*
- * Class:     org_jlab_coda_et_EtJniAccess
- * Method:    getEventsInfo
- * Signature: (JIIIII)[I
- */
-JNIEXPORT jintArray JNICALL Java_org_jlab_coda_et_EtJniAccess_getEventsInfo
-        (JNIEnv *env , jobject thisObj, jlong etId, jint attId,
-         jint mode, jint sec, jint nsec, jint count)
-
-{
-    int i, j, numread, status, biteOrder, index=0;
-    et_event *pe[count];
-    jclass clazz;
-    jboolean isCopy;
-    jint* intArrayElems;
-    jintArray allInts;
-
-    /* translate timeout */
-    struct timespec deltaTime;
-    deltaTime.tv_sec  = sec;
-    deltaTime.tv_nsec = nsec;
-
-    if (debug) printf("getEvents (native) : will attempt to get events\n");
-
-    /* reading array of up to "count" events */
-    status = et_events_get((et_sys_id)etId, (et_att_id)attId, pe, mode, &deltaTime, count, &numread);
-    if (status != ET_OK) {
-        if (status == ET_ERROR_DEAD) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
-        }
-        else if (status == ET_ERROR_WAKEUP) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
-        }
-        else if (status == ET_ERROR_TIMEOUT) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
-        }
-        else if (status == ET_ERROR_CLOSED) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
-        }
-        else if (status == ET_ERROR_BUSY) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
-        }
-        else if (status == ET_ERROR_EMPTY) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
-        }
-        else {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
-        }
-        
-        (*env)->ThrowNew(env, clazz, "getEvents (native): cannot get events");
-        return;
-    }
-    
-    /* create int array with all necessary data */
-    allInts = (*env)->NewIntArray(env, 1 + numread*(9 + ET_STATION_SELECT_INTS));
-    intArrayElems = (*env)->GetIntArrayElements(env, allInts, &isCopy);
-
-    intArrayElems[index++] = numread;
-
-    /* fill array */
-    for (i=0; i < numread; i++) {
-        /* If we're on a little endian machine, int args will be swapped as
-        they go through the jni interface. We don't want this for the int
-        designating the byte order, so swap it here to compensate. */
-        biteOrder = pe[i]->byteorder;
-        if (localByteOrder == ET_ENDIAN_LITTLE) {
-            biteOrder = ET_SWAP32(biteOrder);
-        }
-        
-        intArrayElems[index++] = (jint)pe[i]->memsize;
-        intArrayElems[index++] = (jint)pe[i]->datastatus;
-        intArrayElems[index++] = (jint)pe[i]->place;
-        intArrayElems[index++] = (jint)pe[i]->age;
-        intArrayElems[index++] = (jint)pe[i]->owner;
-        intArrayElems[index++] = (jint)pe[i]->modify;
-        intArrayElems[index++] = (jint)pe[i]->length;
-        intArrayElems[index++] = (jint)pe[i]->priority;
-        intArrayElems[index++] = (jint)biteOrder;
-        
-        for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-            intArrayElems[index++] = (jint)pe[i]->control[j];
-        }
-    }
-
-    if (isCopy == JNI_TRUE) {
-        (*env)->ReleaseIntArrayElements(env, allInts, intArrayElems, 0);
-    }
-    
-    if (debug) printf("getEventsInfo (native) : filled array!\n");
-   
-    /* return the int array */
-    return allInts;
 }
 
 
