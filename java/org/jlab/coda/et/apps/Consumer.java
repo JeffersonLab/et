@@ -212,14 +212,24 @@ public class Consumer {
                         // Get event's data buffer
                         // buf.limit() = length of the actual data (not buffer capacity)
                         ByteBuffer buf = mev.getDataBuffer();
-
                         num = buf.getInt(0);
-                        System.out.println("data byte order = " + mev.getByteOrder());
-                        if (mev.needToSwap()) {
-                            System.out.println("    data needs swapping, swapped int = " + Integer.reverseBytes(num));
+                        System.out.println("    data (len = " + mev.getLength() + ") = " + num);
+
+                        try {
+                            // If using byte array you need to watch out for endianness
+                            byte[] data = mev.getData();
+                            int idata = EtUtils.bytesToInt(data,0);
+                            System.out.println("data byte order = " + mev.getByteOrder());
+                            if (mev.needToSwap()) {
+                                System.out.println("    data (len = " + mev.getLength() +
+                                        ") needs swapping, swapped int = " + Integer.reverseBytes(idata));
+                            }
+                            else {
+                                System.out.println("    data (len = " + mev.getLength() +
+                                        ")does NOT need swapping, int = " + idata);
+                            }
                         }
-                        else {
-                            System.out.println("    data does NOT need swapping, int = " + num);
+                        catch (UnsupportedOperationException e) {
                         }
 
                         System.out.print("control array = {");
