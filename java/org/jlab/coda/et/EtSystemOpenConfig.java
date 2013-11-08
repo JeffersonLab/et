@@ -182,13 +182,6 @@ public class EtSystemOpenConfig {
             }
         }
 
-        if ((bAddrs == null) || (bAddrs.size() < 1)) {
-            broadcastAddrs = new HashSet<String>(10);
-        }
-        else {
-            broadcastAddrs = new HashSet<String>(bAddrs);
-        }
-
         boolean noMulticastAddrs = true;
         if ((mAddrs == null) || (mAddrs.size() < 1)) {
             multicastAddrs = new HashSet<String>(10);
@@ -215,6 +208,19 @@ public class EtSystemOpenConfig {
         // do we broadcast?
         broadcasting = networkContactMethod == EtConstants.broadcast ||
                        networkContactMethod == EtConstants.broadAndMulticast;
+
+        if ((bAddrs == null) || (bAddrs.size() < 1)) {
+            // If we're broadcasting, need some addresses ...
+            if (broadcasting) {
+                broadcastAddrs = new HashSet<String>(EtUtils.getAllBroadcastAddresses());
+            }
+            else {
+                broadcastAddrs = new HashSet<String>(10);
+            }
+        }
+        else {
+            broadcastAddrs = new HashSet<String>(bAddrs);
+        }
 
         // inconsistencies?
         if (networkContactMethod == EtConstants.direct) {
