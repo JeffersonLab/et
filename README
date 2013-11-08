@@ -16,3 +16,11 @@ Also, some debugging printout was removed.
 
 In both the C and Java libraries, an additional function now exists for a
 client to kill the ET system it has opened.
+
+Better installation for java jars into $CODA/common/jar
+
+Allow ET to be used with libet_jni.so lib when talking to local, C-based
+ET system without exiting by using sockets to talk to ET. In other words,
+make java ET system completely independent of C code if necessary.
+
+Fix bug in java jni code when ET system contains "temp" events.
