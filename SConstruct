@@ -382,74 +382,47 @@ print "OSNAME = ", osname
 # hidden sub directory into which variant builds go
 archDir = '.' + osname + debugSuffix
 
-#########################################
-# Any external library & header locations
-#########################################
-
-# Read environmental variables
-codaHomeEnv   = os.getenv('CODA_HOME',"")
-installDirEnv = os.getenv('INSTALL_DIR', "")
-
-# location of libraries and include files
-libDir = []
-incDir = []
-
-# Get libs & includes first from "CODA_HOME".
-if codaHomeEnv != "":
-    libDir.append(codaHomeEnv + "/" + osname + '/lib')
-    incDir.append(codaHomeEnv + '/include')
-
-# Then try the user-specified "prefix".
-if prefix != '':
-    libDir.append(prefix + "/" + osname + '/lib')
-    incDir.append(prefix + '/include')
-
-# Then try "INSTALL_DIR".
-if installDirEnv != "":
-    libDir.append(installDirEnv + "/" + osname + '/lib')
-    incDir.append(installDirEnv + '/include')
-
 #########################
 # Install stuff
 #########################
 
-# are we going to install anything?
+# Read CODA environmental variable
+codaHomeEnv = os.getenv('CODA',"")
+
+# Are we going to install anything?
 installingStuff = False
 if 'install' in COMMAND_LINE_TARGETS or 'examples' in COMMAND_LINE_TARGETS :
     installingStuff = True
 
-# The installation directory is the user-specified "prefix" by
-# first choice, "INSTALL_DIR" secondly, and lastly "CODA_HOME".
+# The installation directory is the user-specified "prefix"
+# by first choice, "CODA" secondly.
+
 # Or it's possible no installation is being done.
 if not installingStuff:
-    libInstallDir = "dummy"
-    incInstallDir = "dummy"
-    binInstallDir = "dummy"
+    libInstallDir     = "dummy"
+    incInstallDir     = "dummy"
+    binInstallDir     = "dummy"
     archIncInstallDir = "dummy2"
-    print 'no installation'
-    
+
 else:
     if prefix != '':
         installRoot = prefix
 
-    elif installDirEnv != "":
-        installRoot = installDirEnv
-        
     elif codaHomeEnv != "":
         installRoot = codaHomeEnv
     
     else:
-        print "Need to define INSTALL_DIR (or CODA_HOME) for installation"
+        print "Need to define CODA (or --prefix=<dir>) for installation"
         raise SystemExit
     
-    libInstallDir = installRoot + '/' + osname + '/lib'
-    incInstallDir = installRoot + '/include'
-    binInstallDir = installRoot + '/' + osname + '/bin'
+    libInstallDir     = installRoot + '/' + osname + '/lib'
+    incInstallDir     = installRoot + '/include'
+    binInstallDir     = installRoot + '/' + osname + '/bin'
     archIncInstallDir = installRoot + '/' + osname + '/include'
 
     # print our install directories
-    print 'bin install dir = ', binInstallDir
-    print 'lib install dir = ', libInstallDir
+    print 'bin install dir  = ', binInstallDir
+    print 'lib install dir  = ', libInstallDir
     print 'inc install dirs = ', incInstallDir, ", ", archIncInstallDir
 
 # use "install" on command line to install libs & headers
@@ -471,17 +444,24 @@ javaHome = os.getenv('JAVA_HOME',"")
 javaHomeInc = javaHome + "/include"
 
 if javaHome != "":
-    print 'javaHomeInc = ', javaHomeInc
+    print 'Looking for jni.h in JAVA_HOME :'
+    print '        ', javaHomeInc
+    print '        ', javaHomeInc + "/linux"
     env.AppendUnique(CPPPATH = [javaHomeInc, javaHomeInc + "/linux"])
+
 else:
     # If we are using a java installed in a non-standard place, then
     # this is located in <jdk>/include and possibly <jdk>/include/linux
     # which we'll want in our includes.
     # Do this by finding out where java (<jdk>/bin) is.
     javaPath = Popen('which java', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
+
     # strip whitespace on end, then "java" on end
     javaIncPath = str(javaPath).rstrip().rstrip('java') + "../include"
-    print 'javaIncPath = ', javaIncPath
+
+    print 'JAVA_HOME is not defined so trying to find jni.h in :'
+    print '          ', javaIncPath
+    print '          ', javaIncPath + "/linux"
     env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
 
 #########################
@@ -517,7 +497,7 @@ Help('tar                 create tar file (in ./tar)\n')
 ######################################################
 
 # make available to lower level scons files
-Export('env incDir libDir archDir incInstallDir libInstallDir binInstallDir archIncInstallDir execLibs tarfile debugSuffix')
+Export('env archDir incInstallDir libInstallDir binInstallDir archIncInstallDir execLibs debugSuffix')
 
 # run lower level build files
 
