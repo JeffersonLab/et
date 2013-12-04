@@ -32,6 +32,11 @@ platform = uname[0]
 machine  = uname[4]
 osname   = platform + '-' +  machine
 
+codaOsName = os.getenv('CODA_OSNAME',"")
+if codaOsName != "":
+    osname = codaOsName
+
+
 # Create an environment while importing the user's PATH.
 # This allows us to get to the vxworks compiler for example.
 # So for vxworks, make sure the tools are in your PATH
@@ -524,6 +529,50 @@ else:
     print '          ', javaIncPath
     print '          ', javaIncPath + "/linux"
     env.AppendUnique(CPPPATH = [javaIncPath, javaIncPath + "/linux" ])
+
+###########################
+# Documentation generation
+###########################
+
+if 'doc' in COMMAND_LINE_TARGETS:
+    # Functions that do the documentation creation
+    def docGeneratorJava(target, source, env):
+        cmd = 'ant javadoc'
+        output = os.popen(cmd).read()
+        cmd2 = 'rm -f undoc'
+        output = os.popen(cmd2).read()
+        return
+
+    # doc files builders
+    docBuildJava = Builder(action = docGeneratorJava)
+    env.Append(BUILDERS = {'DocGenJava' : docBuildJava})
+
+    # generate Java documentation
+    env.Alias('doc', env.DocGenJava(target = ['#/doc/javadoc/index.html'],
+            source = scanFiles("java/org/jlab/coda/cMsg", accept=["*.java"]) ))
+
+
+# use "doc" on command line to create tar file
+Help('doc                 create javadoc (in ./doc)\n')
+
+# undoc file is just a device so we can use "undoc" as target of scons
+if 'undoc' in COMMAND_LINE_TARGETS:
+    def docRemover(target, source, env):
+        cmd = 'touch undoc'
+        output = os.popen(cmd).read()
+        cmd1 = 'rm -fr doc/javadoc'
+        output = os.popen(cmd1).read()
+        return
+
+    docRemoveAll = Builder(action = docRemover)
+    env.Append(BUILDERS = {'DocRemove' : docRemoveAll})
+
+    # remove documentation
+    env.Alias('undoc', env.DocRemove(target = ['#/undoc'], source = None))
+
+
+# use "undoc" on command line to create tar file
+Help('undoc               remove javadoc (in ./doc)\n')
 
 #########################
 # Tar file
