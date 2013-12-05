@@ -30,12 +30,7 @@ versionMinor = '0'
 uname    = os.uname();
 platform = uname[0]
 machine  = uname[4]
-osname   = platform + '-' +  machine
-
-codaOsName = os.getenv('CODA_OSNAME',"")
-if codaOsName != "":
-    osname = codaOsName
-
+osname   = os.getenv('CODA_OSNAME', platform + '-' +  machine)
 
 # Create an environment while importing the user's PATH.
 # This allows us to get to the vxworks compiler for example.
