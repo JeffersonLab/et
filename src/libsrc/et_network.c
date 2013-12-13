@@ -55,77 +55,74 @@
 #include "et_network.h"
 
 
-/*****************************************************/
-/* 64 bit swap routine */
+/**
+ * Routine to do a 64 bit swap.
+ * @param n 64 bit integer to swap
+ * @return 64 bit swapped integer
+ */
 uint64_t et_ntoh64(uint64_t n) {
-        uint64_t h;
-        uint64_t tmp = ntohl(n & 0x00000000ffffffff);
-        h = ntohl(n >> 32);
-        h |= tmp << 32;
-        return h;
+    uint64_t h;
+    uint64_t tmp = ntohl(n & 0x00000000ffffffff);
+    h = ntohl(n >> 32);
+    h |= tmp << 32;
+    return h;
+}
+ 
+
+static void freeIpAddrs(char **ipAddrs, int count) {
+    int i;
+
+    if (count > 0) {
+        for (i=0; i < count; i++) {
+            free(ipAddrs[i]);
+        }
+        free(ipAddrs);
+    }
 }
 
 
+/**
+ * This routine removes an element from a linked list of et_response structures.
+ *
+ * @param firstAnswer  first element of linked list
+ * @param removeAnswer element to remove
+ * @return first element of new list;
+ *         NULL if nothing left or firstAnswer arg is NULL
+ */
+static et_response *removeResponseFromList(et_response *firstAnswer, et_response *removeAnswer) {
+    et_response *prev=NULL, *next=NULL, *answer=firstAnswer;
 
-/******************************************************
- * To talk to an ET system on another computer, we need
- * to find the TCP port number the server thread of that
- * ET system is listening on. There are a number of ways to
- * do this.
- *
- * First off:
- * The remote client (who is running this routine) either
- * says he doesn't know where the ET is (config->host = 
- * ET_HOST_REMOTE or ET_HOST_ANYWHERE), or he specifies
- * the host that the ET system is running on.
- *
- * If we don't know the host name we can broadcast and/or
- * multicast (UDP) to addresses which the ET system is
- * listening on (each address on a separate thread). In
- * this broad/multicast, we send the name of the ET system
- * that we want to find. The system which receives the
- * packet and has the same name, responds with the port #
- * and its host name from each interface address or
- * broad/multicast address that received the packet.
- * If we know the hostname, however, we send a udp packet
- * to ET systems listening on that host and UDP port. The
- * proper system should be the only one to respond with its
- * server TCP port.
- *
- * When a server responds to a broad/multicast and we've
- * specified ET_HOST_REMOTE, this routine must see whether
- * the server is really on a remote host and not the local one.
- * To make this determination, the server has also sent
- * his host name obtained by running "uname". That is compared
- * to the result of running "uname" on this host.
- *****************************************************/
- 
-/******************************************************
- * etname:    ET system file name
- * ethost:    returns name of ET system's host
- * config:    configuration passed to et_open
- * trys:      max # of times to broadcast UDP packet
- * waittime:  wait time for response to broad/multicast
- *****************************************************/
- 
- /* structure for holding a single response to our broad/multicast */
-typedef struct response_t {
-    int   port;                     /**< ET system's TCP server port. */
-    int   castType;                 /**< ET_BROADCAST or ET_MULTICAST (what this is a response to). */
-    int   addrCount;                /**< Number of addresses. */
-    char  uname[ET_MAXHOSTNAMELEN]; /**< Uname of sending host. */
-    char  canon[ET_MAXHOSTNAMELEN]; /**< Canonical name of sending host. */
-    char  castIP[ET_IPADDRSTRLEN];  /**< Original broad/multicast IP addr. */
-    uint32_t *addrs;                /**< Array of 32bit net byte ordered addresses (1 for each addr). */
-    char  **ipaddrs;                /**< Array of addresses (dotted-decimal string) of host
-                                         (all for multicast, on subnet for broadcast). */
-    struct response_t *next;        /**< Next response in linked list. */
-} response;
+    if (firstAnswer == NULL || removeAnswer == NULL) return firstAnswer;
+
+    while (answer != removeAnswer) {
+        prev   = answer;
+        answer = answer->next;
+        if (answer == NULL) {
+            /* removeAnswer is not in the list */
+            return firstAnswer;
+        }
+    }
+
+    /* If we're removing the first element ... */
+    if (firstAnswer == removeAnswer) {
+        next = firstAnswer->next;
+        firstAnswer->next = NULL;
+        return next;
+    }
+    
+    prev->next = removeAnswer->next;
+    removeAnswer->next = NULL;
+    return firstAnswer;    
+}
 
 
-static void freeAnswers(response *answer) {
+/**
+ * Routine to free the memory of a et_response structure.
+ * @param answer et_response structure to be freed.
+ */
+void et_freeAnswers(et_response *answer) {
     int i;
-    response *next;
+    et_response *next;
   
     while (answer != NULL) {
         next = answer->next;
@@ -141,20 +138,232 @@ static void freeAnswers(response *answer) {
     }
 }
 
-static void freeIpAddrs(char **ipAddrs, int count) {
-    int i;
 
-    if (count > 0) {
-        for (i=0; i < count; i++) {
-            free(ipAddrs[i]);
+/**
+ * This routine takes all the dotted-decimal IP addresses contained in the
+ * response arg and returns them in a list ordered so that the addresses on
+ * the same subnets as the IP addresses in the netinfo arg are first in the
+ * list. This allows an ET client, who is broad/multicasting to find an ET
+ * system, to try and make a TCP connection with an address on a local subnet
+ * first. All the elements of the returned linked-list need to be freed by the
+ * caller.
+ *
+ * @param response pointer to structure containing ET system's response to a
+ *                 broad/multicast which contains all the IP addresses of its host.
+ * @param netinfo  pointer to structure containing all local network information
+ *
+ * @return a linked list of IP addresses in dotted-decimal format with all the
+ *         IP addresses in the response arg ordered so that those on the same
+ *         subnets as the local host are first. Return NULL if an arg is NULL
+ *         or error. If successful, all the elements of the returned linked-list
+ *         need to be freed by the caller.
+ */
+codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo) {
+    
+    int i, err, sameSubnet, firstTime=1;
+    char *ipAddress;
+    codaIpList *listItem, *lastItem, *firstItem = NULL;
+    codaIpAddr *local;
+
+
+    for (i=0; i < response->addrCount; i++) {
+        ipAddress = response->ipaddrs[i];
+        local = netinfo;
+        sameSubnet = 0;
+/*printf("got response address %s\n", ipAddress);*/
+
+        /* Compare with local subnets */
+        while (local != NULL) {
+            if (local->addr == NULL) break;
+/*
+printf("ET ip = %s, local ip = %s, local netmask bin = 0x%x\n",
+                   ipAddress, local->addr,
+                   ntohl(local->netmask.sin_addr.s_addr));
+*/
+
+            err = codanetOnSameSubnet2(ipAddress, local->addr,
+                                       ntohl(local->netmask.sin_addr.s_addr),
+                                       &sameSubnet);
+            if (err != CODA_OK) {
+                codanetFreeAddrList(firstItem);
+                return NULL;
+            }
+
+            if (sameSubnet) {
+                /* quit if we found a match */
+                break;
+            }
+
+            local = local->next;
         }
-        free(ipAddrs);
+
+        listItem = (codaIpList *) calloc(1, sizeof(codaIpList));
+        if (listItem == NULL) {
+            codanetFreeAddrList(firstItem);
+            return NULL;
+        }
+
+        if (firstTime) {
+            lastItem = firstItem = listItem;
+            firstTime = 0;
+        }
+
+        strncpy(listItem->addr, ipAddress, CODA_IPADDRSTRLEN);
+
+        if (sameSubnet) {
+/*printf("same subnet, head of list\n");*/
+            /* Put it at the head of the list */
+            listItem->next = firstItem;
+            firstItem = listItem;
+        }
+        else {
+/*printf("diff subnet, end of list\n");*/
+            /* Put it at the end of the list */
+            lastItem->next = listItem;
+            lastItem = listItem;
+        }
     }
+
+    return firstItem;
 }
 
 
+/**
+ * This routine is used with etr_open to find an ET system's tcp host & port.
+ * Tries only twice to send broad/multicast packets. Waits 0.1 second for the
+ * first response and 1.1 second for the second.
+ *
+ * @param etname    ET system file name
+ * @param ethost    returns name of ET system's host
+ * @param port      returns ET system's TCP port
+ * @param inetaddr  returns host address as network-byte-ordered, 32-bit unsigned int
+ * @param config    configuration passed to et_open
+ * @param allETinfo returns a pointer to single structure with all of the ET system's
+ *                  response information;
+ *                  may be null if all relevant info given in ethost, port, and inetaddr args
+ * 
+ * @return ET_OK            if successful
+ * @return ET_ERROR         failure in select statement
+ * @return ET_ERROR_BADARG  NULL arg for ethost, port, or inetaddr
+ * @return ET_ERROR_NOMEM   cannot allocate memory
+ * @return ET_ERROR_NETWORK error find IP addresses or resolving host name;
+ *                          error converting dotted-decimal IP addr to binary;
+ *                          error create socket; failure reading socket
+ * @return ET_ERROR_SOCKET  error setting socket option
+ * @return ET_ERROR_TOOMANY if multiple ET systems responded when policy is to return an error when
+ *                          more than one responds.
+ * @return ET_ERROR_TIMEOUT if no responses received in allotted time
+ */
+int et_findserver(const char *etname, char *ethost, int *port,
+                  uint32_t *inetaddr, et_open_config *config, et_response **allETinfo)
+{
+    struct timeval waittime;
+    /* wait 0.1 seconds before calling select the first time */
+    waittime.tv_sec  = 0;
+    waittime.tv_usec = 100000;
+  
+    return et_findserver2(etname, ethost, port, inetaddr, allETinfo, config, 2, &waittime);
+}
+
+
+/**
+ * This routine is used to quickly see if an ET system
+ * is alive by trying to get a response from its UDP
+ * broad/multicast thread. This is used only when the
+ * ET system is local.
+ *
+ * @param etname name of ET system to test
+ * @return 1 if a response was received, else 0
+ */
+int et_responds(const char *etname)
+{
+    int   port;
+    char  ethost[ET_MAXHOSTNAMELEN];
+    uint32_t inetaddr;
+    et_openconfig  openconfig; /* opaque structure */
+    et_open_config *config;    /* real structure   */
+  
+    /* by default we'll broadcast to uname subnet */
+    et_open_config_init(&openconfig);
+    config = (et_open_config *) openconfig;
+  
+    /* make sure we contact a LOCAL et system of this name! */
+    strcpy(config->host, ET_HOST_LOCAL);
+  
+    /* send only 1 broadcast with a default maximum .01 sec wait */
+    if (et_findserver2(etname, ethost, &port, &inetaddr, NULL, config, 1, NULL) == ET_OK) {
+        /* got a response */
+        return 1;
+    }
+  
+    /* no response */
+    return 0;
+}
+
+
+/**
+ * To talk to an ET system on another computer, we need
+ * to find the TCP port number the server thread of that
+ * ET system is listening on. There are a number of ways to
+ * do this.<p>
+ *
+ * The remote client (who is running this routine) either
+ * says he doesn't know where the ET is (config->host = 
+ * ET_HOST_REMOTE or ET_HOST_ANYWHERE), or he specifies
+ * the host that the ET system is running on.<p>
+ *
+ * If we don't know the host name, we can broadcast and/or
+ * multicast (UDP) to addresses which the ET system is
+ * listening on (each address on a separate thread). In
+ * this broad/multicast, we send the name of the ET system
+ * that we want to find. The system which receives the
+ * packet and has the same name, responds with quite a bit of information
+ * including its TCP port #, uname, canonical host name, and
+ * all of its IP addresses in dotted-decimal form. This
+ * info is sent from each interface or broad/multicast address
+ * that received the packet.<p>
+ *
+ * Notice that if broad/multicasting to an unknown host was successful,
+ * only 1 structure in passed back in the allETinfo arg even though it
+ * is a linked list.<p>
+ * 
+ * If we know the hostname, however, we send a udp packet
+ * to ET systems listening on that host and UDP port. The
+ * proper system should be the only one to respond with its
+ * server TCP port.<p>
+ *
+ * When a server responds to a broad/multicast and we've
+ * specified ET_HOST_REMOTE, this routine must see whether
+ * the server is really on a remote host and not the local one.
+ * To make this determination, the server has also sent
+ * his host name obtained by running "uname". That is compared
+ * to the result of running "uname" on this host.
+ *
+ * @param etname    ET system file name
+ * @param ethost    returns name of ET system's host
+ * @param port      returns ET system's TCP port
+ * @param inetaddr  returns host address as network-byte-ordered, 32-bit unsigned int
+ * @param allETinfo returns a pointer to structure (linked list) with all of the ET system's
+ *                  response information;
+ *                  may be null if all relevant info given in ethost, port, and inetaddr args
+ * @param config    configuration passed to et_open
+ * @param trys      max # of times to broadcast UDP packet
+ * @param waittime  wait time for response to broad/multicast
+ *
+ * @return ET_OK            if successful
+ * @return ET_ERROR         failure in select statement
+ * @return ET_ERROR_BADARG  NULL arg for ethost, port, or inetaddr
+ * @return ET_ERROR_NOMEM   cannot allocate memory
+ * @return ET_ERROR_NETWORK error find IP addresses or resolving host name;
+ *                          error converting dotted-decimal IP addr to binary;
+ *                          error create socket; failure reading socket
+ * @return ET_ERROR_SOCKET  error setting socket option
+ * @return ET_ERROR_TOOMANY if multiple ET systems responded when policy is to return an error when
+ *                          more than one responds.
+ * @return ET_ERROR_TIMEOUT if no responses received in allotted time
+ */
 int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetaddr,
-                   et_open_config *config, int trys, struct timeval *waittime)
+                   et_response **allETinfo, et_open_config *config, int trys, struct timeval *waittime)
 {
     int          i, j, k, l, m, n, err, version, addrCount, castType, gotMatch=0, subnetCount=0, ipAddrCount=0;
     int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0, magicInts[3];
@@ -173,7 +382,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     char  unqualifiedhost[ET_MAXHOSTNAMELEN];
 
     int   numresponses=0, remoteresponses=0;
-    response *answer, *answer_first=NULL, *answer_prev=NULL, *first_remote=NULL;
+    et_response *answer, *answer_first=NULL, *answer_prev=NULL, *first_remote=NULL;
 
     /* socket & select stuff */
     struct in_addr     castaddr;
@@ -192,9 +401,9 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     struct senddata *send;
    
     /* check args */
-    if ((ethost == NULL) || (port == NULL)) {
+    if ((ethost == NULL) || (port == NULL) || (inetaddr == NULL)) {
         fprintf(stderr, "et_findserver: invalid (null) arguments\n");
-        return ET_ERROR;
+        return ET_ERROR_BADARG;
     }
   
     /* count # of subnet addrs */
@@ -209,7 +418,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                                       sizeof(struct senddata));
     if (send == NULL) {
         fprintf(stderr, "et_findserver: cannot allocate memory\n");
-        return ET_ERROR;
+        return ET_ERROR_NOMEM;
     } 
   
     /* find local uname */
@@ -229,14 +438,14 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
 
             if ((etNetGetIpAddrs(&ipAddrs, &ipAddrCount, NULL) != ET_OK) || ipAddrCount < 1) {
                 fprintf(stderr, "et_findserver: cannot find local IP addresses\n");
-                return ET_ERROR;
+                return ET_ERROR_NETWORK;
             }
         }
         /* else if we know its name, find dot-decimal IP addrs */
         else {
             if ((etNetGetIpAddrs(&ipAddrs, &ipAddrCount, config->host) != ET_OK) || ipAddrCount < 1) {
-                fprintf(stderr, "et_findserver: cannot find local IP addresses\n");
-                return ET_ERROR;
+                fprintf(stderr, "et_findserver: cannot find IP addresses for %s\n", config->host);
+                return ET_ERROR_NETWORK;
             }
         }
     }
@@ -259,7 +468,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 }
                 free(send);
                 freeIpAddrs(ipAddrs, ipAddrCount);
-                return ET_ERROR;
+                return ET_ERROR_NETWORK;
             }
 
             if (debug) {
@@ -281,7 +490,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 }
                 free(send);
                 freeIpAddrs(ipAddrs, ipAddrCount);
-                return ET_ERROR;
+                return ET_ERROR_NETWORK;
             }
 
             /* make this a broadcast socket */
@@ -294,7 +503,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 }
                 free(send);
                 freeIpAddrs(ipAddrs, ipAddrCount);
-                return ET_ERROR;
+                return ET_ERROR_SOCKET;
             }
 
             /* for sending packet and for select */
@@ -323,7 +532,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 }
                 free(send);
                 freeIpAddrs(ipAddrs, ipAddrCount);
-                return ET_ERROR;
+                return ET_ERROR_NETWORK;
             }
 
             if (debug) {
@@ -346,7 +555,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 }
                 free(send);
                 freeIpAddrs(ipAddrs, ipAddrCount);
-                return ET_ERROR;
+                return ET_ERROR_NETWORK;
             }
 
             /* Set the scope of the multicast, but don't bother
@@ -364,7 +573,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                     }
                     free(send);
                     freeIpAddrs(ipAddrs, ipAddrCount);
-                    return ET_ERROR;
+                    return ET_ERROR_SOCKET;
                 }
             }
         
@@ -500,12 +709,12 @@ anotherpacket:
                     free(send);
                     freeIpAddrs(ipAddrs, ipAddrCount);
                     /* free up all answers */
-                    freeAnswers(answer_first);
-                    return ET_ERROR;
+                    et_freeAnswers(answer_first);
+                    return ET_ERROR_NETWORK;
                 }
           
                 /* allocate space for single response */
-                answer = (response *) calloc(1, sizeof(response));
+                answer = (et_response *) calloc(1, sizeof(et_response));
                 if (answer == NULL) {
                     fprintf(stderr, "et_findserver: out of memory\n");
                     for (k=0; k<numsockets; k++) {
@@ -513,7 +722,7 @@ anotherpacket:
                     }
                     free(send);
                     freeIpAddrs(ipAddrs, ipAddrCount);
-                    freeAnswers(answer_first);
+                    et_freeAnswers(answer_first);
                     return ET_ERROR_NOMEM;
                 }
           
@@ -677,7 +886,7 @@ anotherpacket:
                         free(send);
                         freeIpAddrs(ipAddrs, ipAddrCount);
                         free(answer);
-                        freeAnswers(answer_first);
+                        et_freeAnswers(answer_first);
                         return ET_ERROR_NOMEM;
                     }
 
@@ -714,7 +923,7 @@ anotherpacket:
                             free(answer->ipaddrs);
                             free(answer->addrs);
                             free(answer);
-                            freeAnswers(answer_first);
+                            et_freeAnswers(answer_first);
                             return ET_ERROR_NOMEM;
                         }
                         answer->ipaddrs[k][length-1] = '\0';
@@ -773,7 +982,8 @@ if (debug) printf("et_findserver: got a match to local or specific: %s\n", answe
                         strcpy(ethost, answer->ipaddrs[n]);
                         *port = answer->port;
                         *inetaddr = answer->addrs[n];
-                        freeAnswers(answer_first);
+                        
+                        et_freeAnswers(answer_first);
                         return ET_OK;
                     }
             
@@ -799,7 +1009,7 @@ if (debug) printf("et_findserver: %d responses to broad/multicast -\n", numrespo
                     }
                     free(send);
                     freeIpAddrs(ipAddrs, ipAddrCount);
-                    freeAnswers(answer_first);
+                    et_freeAnswers(answer_first);
                     return ET_ERROR_TOOMANY;
                 }
 
@@ -822,7 +1032,13 @@ if (debug) printf("et_findserver: got a match to .anywhere (%s), first or error 
                         strcpy(ethost, answer->ipaddrs[0]);
                         *port = answer->port;
                         *inetaddr = answer->addrs[0];
-                        freeAnswers(answer_first);
+                        if (allETinfo != NULL) {
+                            /* remove answer from linked list & return the first of new list */
+                            answer_first = removeResponseFromList(answer_first, answer);
+                            *allETinfo = answer;
+                        }
+                        /* free the rest of the linked list */
+                        et_freeAnswers(answer_first);
                         return ET_OK;
                     }
                     /* else if our policy is to take the first local response ... */
@@ -837,7 +1053,11 @@ if (debug) printf("et_findserver: got a uname match to .anywhere, local policy\n
                             strcpy(ethost, answer->ipaddrs[0]);
                             *port = answer->port;
                             *inetaddr = answer->addrs[0];
-                            freeAnswers(answer_first);
+                            if (allETinfo != NULL) {
+                                answer_first = removeResponseFromList(answer_first, answer);
+                                *allETinfo = answer;
+                            }
+                            et_freeAnswers(answer_first);
                             return ET_OK;
                         }
               
@@ -846,15 +1066,20 @@ if (debug) printf("et_findserver: got a uname match to .anywhere, local policy\n
                          */
                         if (++j == numresponses-1) {
 if (debug) printf("et_findserver: got a match to .anywhere, nothing local available\n");
+                            answer = answer_first;
                             for (k=0; k<numsockets; k++) {
                                 close(send[k].sockfd);
                             }
                             free(send);
                             freeIpAddrs(ipAddrs, ipAddrCount);
-                            strcpy(ethost, answer_first->ipaddrs[0]);
-                            *port = answer_first->port;
+                            strcpy(ethost, answer->ipaddrs[0]);
+                            *port = answer->port;
                             *inetaddr = answer->addrs[0];
-                            freeAnswers(answer_first);
+                            if (allETinfo != NULL) {
+                                answer_first = removeResponseFromList(answer_first, answer);
+                                *allETinfo = answer;
+                            }
+                            et_freeAnswers(answer_first);
                             return ET_OK;
                         }
                     }
@@ -893,7 +1118,11 @@ if (debug) printf("et_findserver: got a match to .remote, first or local policy\
                         strcpy(ethost, answer->ipaddrs[0]);
                         *port = answer->port;
                         *inetaddr = answer->addrs[0];
-                        freeAnswers(answer_first);
+                        if (allETinfo != NULL) {
+                            answer_first = removeResponseFromList(answer_first, answer);
+                            *allETinfo = answer;
+                        }
+                        et_freeAnswers(answer_first);
                         return ET_OK;
                     }
                     answer = answer->next;
@@ -914,7 +1143,11 @@ if (debug) printf("et_findserver: got a match to .remote, error policy\n");
                         strcpy(ethost, first_remote->ipaddrs[0]);
                         *port = first_remote->port;
                         *inetaddr = first_remote->addrs[0];
-                        freeAnswers(answer_first);
+                        if (allETinfo != NULL) {
+                            answer_first = removeResponseFromList(answer_first, first_remote);
+                            *allETinfo = first_remote;
+                        }
+                        et_freeAnswers(answer_first);
                         return ET_OK;
                     }
                     else if (remoteresponses > 1) {
@@ -937,7 +1170,7 @@ if (debug) printf("et_findserver: got a match to .remote, error policy\n");
                         }
                         free(send);
                         freeIpAddrs(ipAddrs, ipAddrCount);
-                        freeAnswers(answer_first);
+                        et_freeAnswers(answer_first);
                         return ET_ERROR_TOOMANY;
                     }
                 }
@@ -952,56 +1185,11 @@ if (debug) printf("et_findserver: no valid response received\n");
     }
     free(send);
     freeIpAddrs(ipAddrs, ipAddrCount);
-    freeAnswers(answer_first);
+    et_freeAnswers(answer_first);
   
     return ET_ERROR_TIMEOUT;
 }
 
-
-/******************************************************
- * This routine is used with etr_open to find tcp host & port.
- *****************************************************/
-int et_findserver(const char *etname, char *ethost, int *port,
-                  uint32_t *inetaddr, et_open_config *config)
-{
-    struct timeval waittime;
-    /* wait 0.1 seconds before calling select */
-    waittime.tv_sec  = 0;
-    waittime.tv_usec = 100000;
-  
-    return et_findserver2(etname, ethost, port, inetaddr, config, 2, &waittime);
-}
-
-/******************************************************
- * This routine is used to quickly see if an ET system
- * is alive by trying to get a response from its UDP
- * broad/multicast thread. This is used only when the
- * ET system is local.
- *****************************************************/
-int et_responds(const char *etname)
-{
-    int   port;
-    char  ethost[ET_MAXHOSTNAMELEN];
-    uint32_t inetaddr;
-    et_openconfig  openconfig; /* opaque structure */
-    et_open_config *config;    /* real structure   */
-  
-    /* by default we'll broadcast to uname subnet */
-    et_open_config_init(&openconfig);
-    config = (et_open_config *) openconfig;
-  
-    /* make sure we contact a LOCAL et system of this name! */
-    strcpy(config->host, ET_HOST_LOCAL);
-  
-    /* send only 1 broadcast with a default maximum .01 sec wait */
-    if (et_findserver2(etname, ethost, &port, &inetaddr, config, 1, NULL) == ET_OK) {
-        /* got a response */
-        return 1;
-    }
-  
-    /* no response */
-    return 0;
-}
 
 /*****************************************************
  * See da.h for the following definitions. This include file is not

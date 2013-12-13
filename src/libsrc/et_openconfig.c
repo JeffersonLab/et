@@ -36,7 +36,7 @@ int et_open_config_init(et_openconfig *sconfig)
   if (sc == NULL) {
     return ET_ERROR;
   }
-  
+
   /* default configuration for a station */
   sc->wait             = ET_OPEN_NOWAIT;
   sc->cast             = ET_BROADCAST;
@@ -83,7 +83,7 @@ int et_open_config_destroy(et_openconfig sconfig)
   etNetFreeIpAddrs(sc->netinfo);
   
   /* next, free broadcast info (linked list) */
-  etNetFreeBroadcastAddrs(sc->bcastaddrs);
+  etNetFreeAddrList(sc->bcastaddrs);
   
   free(sc);
   return ET_OK;
@@ -361,7 +361,7 @@ int et_open_config_addbroadcast(et_openconfig sconfig, const char *val)
     /* Put all subnet addresses into the list. */
     if (strcmp(val, ET_SUBNET_ALL) == 0) {
         /* free existing broadcast info */
-        etNetFreeBroadcastAddrs(sc->bcastaddrs);
+        etNetFreeAddrList(sc->bcastaddrs);
         if (etNetGetBroadcastAddrs(&sc->bcastaddrs, NULL) == ET_ERROR) {
             sc->bcastaddrs = NULL;
         }
@@ -435,7 +435,7 @@ int et_open_config_removebroadcast(et_openconfig sconfig, const char *val)
     /* Remove all subnet addresses from the list. */
     if (strcmp(val, ET_SUBNET_ALL) == 0) {
         /* free existing broadcast info */
-        etNetFreeBroadcastAddrs(sc->bcastaddrs);
+        etNetFreeAddrList(sc->bcastaddrs);
         sc->bcastaddrs = NULL;
         return ET_OK;
     }

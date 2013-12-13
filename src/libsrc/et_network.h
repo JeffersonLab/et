@@ -112,15 +112,20 @@ extern "C" {
 #define ET_MAGIC_INT2 0x73324772
 #define ET_MAGIC_INT3 0x72656174
 
+
 /* our prototypes */
 extern uint64_t et_ntoh64(uint64_t n);
 
 extern int   et_CODAswap(int *src, int *dest, int nints, int same_endian);
 
 extern int   et_findserver2(const char *etname, char *ethost, int *port,
-			    uint32_t *inetaddr, et_open_config *config, int trys,
-			    struct timeval *waittime);
+                            uint32_t *inetaddr, et_response **allETinfo,
+                            et_open_config *config, int trys,
+			                struct timeval *waittime);
+                            
+extern void  et_freeAnswers(et_response *answer);
 
+extern codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo);
 
 #ifdef	__cplusplus
 }

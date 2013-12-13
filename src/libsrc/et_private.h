@@ -90,9 +90,9 @@ extern "C" {
 /* max # of network addresses/names per host we'll examine */
 #define ET_MAXADDRESSES 10
 
-/****************************************
+/* ***************************************
  * times for heart beating & monitoring *
- ****************************************/
+ * ***************************************/
 /* 1.6 sec */
 #define ET_MON_SEC    1
 #define ET_MON_NSEC   600000000
@@ -190,7 +190,12 @@ extern "C" {
  *                      to get and put events
  */
 
-/*
+
+/** For event selection function */
+typedef int (*ET_SELECT_FUNCPTR) (void *, et_stat_id, et_event *);
+
+
+/**
  * et_stat_config: parameters to define a station
  *-----------------------------
  * init           : ET_STRUCT_OK if structure properly initialized, else ET_STRUCT_NEW
@@ -228,10 +233,6 @@ extern "C" {
  * classs         : name of JAVA class containing method to define the
  *                : condition of event selection (extra s is NOT misspelling)
  */
-
-/* for event selection function */
-typedef int (*ET_SELECT_FUNCPTR) (void *, et_stat_id, et_event *);
-
 typedef struct et_stat_config_t {
   int  init;
   int  flow_mode;
@@ -247,7 +248,8 @@ typedef struct et_stat_config_t {
   char classs[ET_FILENAME_LENGTH];
 } et_stat_config;
 
-/*
+
+/**
  * et_stat_data : current state of station
  *-----------------------------
  * status       : active, idle, creating, or unused
@@ -258,8 +260,7 @@ typedef struct et_stat_config_t {
  * lib_handle   : handle for opened shared lib for user defined
  *              : event selection routine
  * func         : pointer to user's event selection routine
- */
- 
+ */ 
 typedef struct et_stat_data_t {
   int   status;
   int   pid_create;
@@ -269,7 +270,8 @@ typedef struct et_stat_data_t {
   ET_SELECT_FUNCPTR func;
 } et_stat_data;
 
-/*
+
+/**
  * et_list: station's input or output list of events
  *-----------------------------
  * cnt          : # events in list
@@ -281,8 +283,7 @@ typedef struct et_stat_data_t {
  * lastevent    : pointer to last  event in linked list
  * mutex        : protects linked list when reading & writing
  * cread        : condition var. to notify reader that events are here
- */
- 
+ */ 
 typedef struct et_list_t {
   int              cnt;
   int              lasthigh;
@@ -295,7 +296,30 @@ typedef struct et_list_t {
   pthread_cond_t   cread;
 } et_list;
 
-/*
+
+#define ET_FIX_READ 0
+#define ET_FIX_DUMP 1
+
+/** Struct for fixing input list */
+struct et_fixin {
+  et_event          *first;
+  uint64_t           eventsin;
+  int                start;
+  int                cnt;
+  int                num;
+  int                call;
+};
+
+
+/** Struct for fixing output list */
+struct et_fixout {
+  int                start;
+  int                cnt;
+  int                num;
+};
+
+
+/**
  * et_fix: struct to fix station's input and output linked lists after crash
  *--------------------------------------------------------------
  * first        : pl->firstevent at start of read (NULL if no damage)
@@ -306,33 +330,17 @@ typedef struct et_list_t {
  * call         : =ET_FIX_DUMP if fixing after et_station_(n)dump call or
  *              : =ET_FIX_READ if fixing after et_station_(n)read call
  */
-#define ET_FIX_READ 0
-#define ET_FIX_DUMP 1
-
-/* struct for fixing input list */
-struct et_fixin {
-  et_event          *first;
-  uint64_t           eventsin;
-  int                start;
-  int                cnt;
-  int                num;
-  int                call;
-};
-
-/* struct for fixing output list */
-struct et_fixout {
-  int                start;
-  int                cnt;
-  int                num;
-};
-
 struct et_fix {
   struct et_fixin  in;
   struct et_fixout out;
 };
 
-/*
+
+/**
  * et_station:
+ * Use et_stat_id as a user's handle on a station instead
+ * of a pointer to the station itself. It allows
+ * a fast calculation of a pointer to station.
  *-----------------------------
  * num            : unique id # (only if station being used)
  *                : = 0 for first station (grandcentral), = 1 for next
@@ -364,13 +372,6 @@ struct et_fix {
  * list_in        : linked list containing events to read
  * list_out       : linked list containing events to be written
  */
-
-/*
- * Use et_stat_id as a user's handle on a station instead
- * of a pointer to the station itself. It allows
- * a fast calculation of a pointer to station.
- */
-
 typedef struct et_station_t {
   et_stat_id            num;
   int                   conductor;
@@ -388,7 +389,8 @@ typedef struct et_station_t {
   et_list               list_out;
 } et_station;
 
-/*
+
+/**
  * et_proc: contains process info
  *----------------------------------------------------------
  * num            : unique index # of this process
@@ -405,7 +407,6 @@ typedef struct et_station_t {
  * hbeat_thd_id   : heartbeat thread id
  * hmon_thd_id    : heart monitor thread id
  */
- 
 struct et_proc {
   et_proc_id    num;
   et_att_id     att[ET_ATTACHMENTS_MAX];
@@ -418,7 +419,8 @@ struct et_proc {
   pthread_t     hmon_thd_id;
 };
 
-/*
+
+/**
  * et_attach: contains attachment info
  *----------------------------------------------------------
  * num            : unique index # of this attachment
@@ -441,8 +443,7 @@ struct et_proc {
  * pid            : unix process id# of process that owns attachment
  * host           : hostname running process that owns attachment
  * interface      : ip address of outgoing network interface (IPv4)
- */
- 
+ */ 
 struct et_attach {
   et_att_id   num;
   et_proc_id  proc;
@@ -460,7 +461,8 @@ struct et_attach {
   char        interface[ET_IPADDRSTRLEN];
 };
 
-/*
+
+/**
  * et_sys_config  : Contains all info necessary to configure
  *                : an ET system.
  *----------------------------------------------------------
@@ -485,7 +487,6 @@ struct et_attach {
  * bcastaddrs     : holds all local subnet broadcast addrs (dotted-decimal)
  * mcastaddrs     : holds all multicast addresses to listen on (dotted-dec)
  */
- 
 typedef struct  et_sys_config_t {
   uint64_t        event_size;
   int             init;
@@ -518,7 +519,7 @@ typedef struct  et_sys_config_t {
 #define ET_SET_KILL(x)   ((x) | ET_KILL_MASK)
 
 
-/*
+/**
  * et_system: contains all ET system information
  *----------------------------------------------------------
  * The next two items are first in the structure so they are the
@@ -564,8 +565,7 @@ typedef struct  et_sys_config_t {
  * proc           : array of info on processes
  * attach         : array of info on attachments
  * config         : parameters used to create ET system
- */
- 
+ */ 
 typedef struct et_system_t {
   int              version;
   int              nselects;
@@ -602,7 +602,7 @@ typedef struct et_system_t {
 } et_system;
 
 
-/*
+/**
  * et_open_config : parameters used to open an ET system
  *-----------------------------
  * init          : =ET_STRUCT_OK if structure properly initialized
@@ -646,7 +646,6 @@ typedef struct et_system_t {
  * bcastaddrs    : linked list of all local subnet broadcast addrs (dotted-decimal)
  * mcastaddrs    : list of all multicast addresses (dotted-dec)
  */
-
 typedef struct et_open_config_t {
   int             init;
   int             wait;
@@ -670,7 +669,7 @@ typedef struct et_open_config_t {
 } et_open_config;
 
 
-/*
+/**
  * et_id  : Contains pointers to key mem locations, config info,
  *        : status info, node locality and remote node info.
  *        : It is essentially an ET system id. User needs one
@@ -733,7 +732,6 @@ typedef struct et_open_config_t {
  * sharedMemlock  : pthread read-write lock for preventing access of unmapped
  *                : memory after calling et_close()
  */
- 
 typedef struct  et_id_t {
   int              init;
   int              lang;
@@ -774,7 +772,8 @@ typedef struct  et_id_t {
 #endif
 } et_id;
 
-/*
+
+/**
  * et_mem: Contains info stored at front of mapped memory
  *----------------------------------------------------------
  *
@@ -800,7 +799,6 @@ typedef struct  et_id_t {
  * usedsize       : desired size of mapped memory given as arg
  *                : to et_mem_create.
  */
-
 typedef struct  et_mem_t {
     uint32_t  byteOrder;
     uint32_t  systemType;
@@ -816,6 +814,24 @@ typedef struct  et_mem_t {
     uint64_t  usedSize;
 } et_mem;
 
+
+/**
+ * Structure for holding an ET system's single response to ET client's broad/multicast
+ */
+typedef struct et_response_t {
+    int   port;                     /**< ET system's TCP server port. */
+    int   castType;                 /**< ET_BROADCAST or ET_MULTICAST (what this is a response to). */
+    int   addrCount;                /**< Number of addresses. */
+    char  uname[ET_MAXHOSTNAMELEN]; /**< Uname of sending host. */
+    char  canon[ET_MAXHOSTNAMELEN]; /**< Canonical name of sending host. */
+    char  castIP[ET_IPADDRSTRLEN];  /**< Original broad/multicast IP addr. */
+    uint32_t *addrs;                /**< Array of 32bit net byte ordered addresses (1 for each addr). */
+    char  **ipaddrs;                /**< Array of addresses (dotted-decimal string) of host
+                                         (all for multicast, on subnet for broadcast). */
+    struct et_response_t *next;        /**< Next response in linked list. */
+} et_response;
+
+
 /****************************
  *       REMOTE STUFF       *
  ****************************/
@@ -823,105 +839,105 @@ typedef struct  et_mem_t {
 /* "table" of values representing ET commands for tcp/ip */
 
 /* for operating systems that cannot share mutexes (Linux) */
-#define  ET_NET_EV_GET_L        0        /* et_event_get */
-#define  ET_NET_EVS_GET_L       1        /* et_events_get */
-#define  ET_NET_EV_PUT_L        2        /* et_event_put */
-#define  ET_NET_EVS_PUT_L       3        /* et_events_put */
-#define  ET_NET_EV_NEW_L        4        /* et_event_new */
-#define  ET_NET_EVS_NEW_L       5        /* et_events_new */
-#define  ET_NET_EV_DUMP_L       6        /* et_event_dump */
-#define  ET_NET_EVS_DUMP_L      7        /* et_events_dump */
-#define  ET_NET_EVS_NEW_GRP_L   8        /* et_events_new_group */
+#define  ET_NET_EV_GET_L        0        /**< et_event_get */
+#define  ET_NET_EVS_GET_L       1        /**< et_events_get */
+#define  ET_NET_EV_PUT_L        2        /**< et_event_put */
+#define  ET_NET_EVS_PUT_L       3        /**< et_events_put */
+#define  ET_NET_EV_NEW_L        4        /**< et_event_new */
+#define  ET_NET_EVS_NEW_L       5        /**< et_events_new */
+#define  ET_NET_EV_DUMP_L       6        /**< et_event_dump */
+#define  ET_NET_EVS_DUMP_L      7        /**< et_events_dump */
+#define  ET_NET_EVS_NEW_GRP_L   8        /**< et_events_new_group */
 
 /* for fully remote systems */
-#define  ET_NET_EV_GET         20        /* et_event_get */
-#define  ET_NET_EVS_GET        21        /* et_events_get */
-#define  ET_NET_EV_PUT         22        /* et_event_put */
-#define  ET_NET_EVS_PUT        23        /* et_events_put */
-#define  ET_NET_EV_NEW         24        /* et_event_new */
-#define  ET_NET_EVS_NEW        25        /* et_events_new */
-#define  ET_NET_EV_DUMP        26        /* et_event_dump */
-#define  ET_NET_EVS_DUMP       27        /* et_events_dump */
-#define  ET_NET_EVS_NEW_GRP    28        /* et_events_new_group */
+#define  ET_NET_EV_GET         20        /**< et_event_get */
+#define  ET_NET_EVS_GET        21        /**< et_events_get */
+#define  ET_NET_EV_PUT         22        /**< et_event_put */
+#define  ET_NET_EVS_PUT        23        /**< et_events_put */
+#define  ET_NET_EV_NEW         24        /**< et_event_new */
+#define  ET_NET_EVS_NEW        25        /**< et_events_new */
+#define  ET_NET_EV_DUMP        26        /**< et_event_dump */
+#define  ET_NET_EVS_DUMP       27        /**< et_events_dump */
+#define  ET_NET_EVS_NEW_GRP    28        /**< et_events_new_group */
 
 #define  ET_NET_EVS_NEW_GRP_JAVA 29
       
-#define  ET_NET_ALIVE          40        /* et_alive */
-#define  ET_NET_WAIT           41        /* et_wait_for_alive */
-#define  ET_NET_CLOSE          42        /* et_close */
-#define  ET_NET_FCLOSE         43        /* et_forcedclose */
-#define  ET_NET_WAKE_ATT       44        /* et_wakeup_attachment */
-#define  ET_NET_WAKE_ALL       45        /* et_wakeup_all */
-#define  ET_NET_KILL           46        /* et_kill */
+#define  ET_NET_ALIVE          40        /**< et_alive */
+#define  ET_NET_WAIT           41        /**< et_wait_for_alive */
+#define  ET_NET_CLOSE          42        /**< et_close */
+#define  ET_NET_FCLOSE         43        /**< et_forcedclose */
+#define  ET_NET_WAKE_ATT       44        /**< et_wakeup_attachment */
+#define  ET_NET_WAKE_ALL       45        /**< et_wakeup_all */
+#define  ET_NET_KILL           46        /**< et_kill */
 
-#define  ET_NET_STAT_ATT       60        /* et_station_attach */
-#define  ET_NET_STAT_DET       61        /* et_station_detach */
-#define  ET_NET_STAT_CRAT      62        /* et_station_create_at */
-#define  ET_NET_STAT_RM        63        /* et_station_remove */
-#define  ET_NET_STAT_SPOS      64        /* et_station_setposition */
-#define  ET_NET_STAT_GPOS      65        /* et_station_getposition */
+#define  ET_NET_STAT_ATT       60        /**< et_station_attach */
+#define  ET_NET_STAT_DET       61        /**< et_station_detach */
+#define  ET_NET_STAT_CRAT      62        /**< et_station_create_at */
+#define  ET_NET_STAT_RM        63        /**< et_station_remove */
+#define  ET_NET_STAT_SPOS      64        /**< et_station_setposition */
+#define  ET_NET_STAT_GPOS      65        /**< et_station_getposition */
 
-#define  ET_NET_STAT_ISAT      80        /* et_station_isattached */
-#define  ET_NET_STAT_EX        81        /* et_station_exists */
-#define  ET_NET_STAT_SSW       82        /* et_station_setselectwords */
-#define  ET_NET_STAT_GSW       83        /* et_station_getselectwords */
-#define  ET_NET_STAT_LIB       84        /* et_station_getlib */
-#define  ET_NET_STAT_FUNC      85        /* et_station_getfunction */
-#define  ET_NET_STAT_CLASS     86        /* et_station_getclass */
+#define  ET_NET_STAT_ISAT      80        /**< et_station_isattached */
+#define  ET_NET_STAT_EX        81        /**< et_station_exists */
+#define  ET_NET_STAT_SSW       82        /**< et_station_setselectwords */
+#define  ET_NET_STAT_GSW       83        /**< et_station_getselectwords */
+#define  ET_NET_STAT_LIB       84        /**< et_station_getlib */
+#define  ET_NET_STAT_FUNC      85        /**< et_station_getfunction */
+#define  ET_NET_STAT_CLASS     86        /**< et_station_getclass */
    
-#define  ET_NET_STAT_GATTS    100        /* et_station_getattachments */
-#define  ET_NET_STAT_STATUS   101        /* et_station_getstatus */
-#define  ET_NET_STAT_INCNT    102        /* et_station_getinputcount */
-#define  ET_NET_STAT_OUTCNT   103        /* et_station_getoutputcount */
-#define  ET_NET_STAT_GBLOCK   104        /* et_station_getblock */
-#define  ET_NET_STAT_GUSER    105        /* et_station_getuser */
-#define  ET_NET_STAT_GRESTORE 106        /* et_station_getrestore */
-#define  ET_NET_STAT_GPRE     107        /* et_station_getprescale */
-#define  ET_NET_STAT_GCUE     108        /* et_station_getcue */
-#define  ET_NET_STAT_GSELECT  109        /* et_station_getselect */
+#define  ET_NET_STAT_GATTS    100        /**< et_station_getattachments */
+#define  ET_NET_STAT_STATUS   101        /**< et_station_getstatus */
+#define  ET_NET_STAT_INCNT    102        /**< et_station_getinputcount */
+#define  ET_NET_STAT_OUTCNT   103        /**< et_station_getoutputcount */
+#define  ET_NET_STAT_GBLOCK   104        /**< et_station_getblock */
+#define  ET_NET_STAT_GUSER    105        /**< et_station_getuser */
+#define  ET_NET_STAT_GRESTORE 106        /**< et_station_getrestore */
+#define  ET_NET_STAT_GPRE     107        /**< et_station_getprescale */
+#define  ET_NET_STAT_GCUE     108        /**< et_station_getcue */
+#define  ET_NET_STAT_GSELECT  109        /**< et_station_getselect */
 
-#define  ET_NET_STAT_SBLOCK   115        /* et_station_getblock */
-#define  ET_NET_STAT_SUSER    116        /* et_station_getuser */
-#define  ET_NET_STAT_SRESTORE 117        /* et_station_getrestore */
-#define  ET_NET_STAT_SPRE     118        /* et_station_getprescale */
-#define  ET_NET_STAT_SCUE     119        /* et_station_getcue */
+#define  ET_NET_STAT_SBLOCK   115        /**< et_station_getblock */
+#define  ET_NET_STAT_SUSER    116        /**< et_station_getuser */
+#define  ET_NET_STAT_SRESTORE 117        /**< et_station_getrestore */
+#define  ET_NET_STAT_SPRE     118        /**< et_station_getprescale */
+#define  ET_NET_STAT_SCUE     119        /**< et_station_getcue */
 
-#define  ET_NET_ATT_PUT       130        /* et_att_getput */
-#define  ET_NET_ATT_GET       131        /* et_att_getget */
-#define  ET_NET_ATT_DUMP      132        /* et_att_getdump */
-#define  ET_NET_ATT_MAKE      133        /* et_att_getmake */
+#define  ET_NET_ATT_PUT       130        /**< et_att_getput */
+#define  ET_NET_ATT_GET       131        /**< et_att_getget */
+#define  ET_NET_ATT_DUMP      132        /**< et_att_getdump */
+#define  ET_NET_ATT_MAKE      133        /**< et_att_getmake */
 
-#define  ET_NET_SYS_TMP       150        /* et_system_gettemps */
-#define  ET_NET_SYS_TMPMAX    151        /* et_system_gettempsmax */
-#define  ET_NET_SYS_STAT      152        /* et_system_getstations */
-#define  ET_NET_SYS_STATMAX   153        /* et_system_getstationsmax */
-#define  ET_NET_SYS_PROC      154        /* et_system_getprocs */
-#define  ET_NET_SYS_PROCMAX   155        /* et_system_getprocsmax */
-#define  ET_NET_SYS_ATT       156        /* et_system_getattachments */
-#define  ET_NET_SYS_ATTMAX    157        /* et_system_getattsmax */
-#define  ET_NET_SYS_HBEAT     158        /* et_system_getheartbeat */
-#define  ET_NET_SYS_PID       159        /* et_system_getpid */
-#define  ET_NET_SYS_GRP       160        /* et_system_getgroup */
+#define  ET_NET_SYS_TMP       150        /**< et_system_gettemps */
+#define  ET_NET_SYS_TMPMAX    151        /**< et_system_gettempsmax */
+#define  ET_NET_SYS_STAT      152        /**< et_system_getstations */
+#define  ET_NET_SYS_STATMAX   153        /**< et_system_getstationsmax */
+#define  ET_NET_SYS_PROC      154        /**< et_system_getprocs */
+#define  ET_NET_SYS_PROCMAX   155        /**< et_system_getprocsmax */
+#define  ET_NET_SYS_ATT       156        /**< et_system_getattachments */
+#define  ET_NET_SYS_ATTMAX    157        /**< et_system_getattsmax */
+#define  ET_NET_SYS_HBEAT     158        /**< et_system_getheartbeat */
+#define  ET_NET_SYS_PID       159        /**< et_system_getpid */
+#define  ET_NET_SYS_GRP       160        /**< et_system_getgroup */
 
-#define  ET_NET_SYS_DATA      170        /* send ET system data */
-#define  ET_NET_SYS_HIST      171        /* send ET histogram data */
-#define  ET_NET_SYS_GRPS      172        /* send size of each event group */
+#define  ET_NET_SYS_DATA      170        /**< send ET system data */
+#define  ET_NET_SYS_HIST      171        /**< send ET histogram data */
+#define  ET_NET_SYS_GRPS      172        /**< send size of each event group */
 
 
-/* struct for passing data from system to network threads */
+/** Struct for passing data from system to network threads */
 typedef struct et_netthread_t {
-  int   cast;                         /* broad or multicast */
-  et_id *id;                          /* system id */
-  et_sys_config *config;              /* system configuration */
-  char *listenaddr;                   /* broadcast or multicast address  (dot-decimal) */
-  char uname[ET_MAXHOSTNAMELEN];      /* host obtained with "uname" cmd */
+    int   cast;                     /**< broad or multicast */
+    et_id *id;                      /**< system id */
+    et_sys_config *config;          /**< system configuration */
+    char *listenaddr;               /**< broadcast or multicast address  (dot-decimal) */
+    char uname[ET_MAXHOSTNAMELEN];  /**< host obtained with "uname" cmd */
 } et_netthread;
 
 /****************************
  *       BRIDGE STUFF       *
  ****************************/
  
-/*
+/**
  * et_bridge_config : parameters used to bridge ET systems,
  *                  : (transfer events between 2 systems)
  *-----------------------------
@@ -938,7 +954,6 @@ typedef struct et_netthread_t {
  *                : an argument, swaps the data, and returns ET_ERROR if there's
  *                : a problem & ET_OK if not.
  */
-
 typedef struct et_bridge_config_t {
   int             init;
   int             mode_from;
@@ -949,6 +964,7 @@ typedef struct et_bridge_config_t {
   struct timespec timeout_to;
   ET_SWAP_FUNCPTR func;                /* see et.h */
 } et_bridge_config;
+
 
 /****************************
  *    END BRIDGE STUFF      *
@@ -1186,7 +1202,7 @@ extern int  et_unlook(et_sys_id id);
 extern void *et_cast_thread(void *arg);
 extern void *et_netserver(void *arg);
 extern int   et_findserver(const char *etname, char *ethost, int *port,
-                           uint32_t *inetaddr, et_open_config *config);
+                           uint32_t *inetaddr, et_open_config *config, et_response **allETinfo);
 extern int   et_responds(const char *etname);
 extern int   et_sharedmutex(void);
 extern int   et_findlocality(const char *filename, et_openconfig openconfig);

@@ -110,7 +110,7 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
     waittime.tv_usec = 10000; /* 0.1 sec */
     
     /* send only 1 broadcast with a 0.1 sec wait */
-    err = et_findserver2(filename, ethost, &port, &inetaddr, config, 1, &waittime);
+    err = et_findserver2(filename, ethost, &port, &inetaddr, NULL, config, 1, &waittime);
     if ((err == ET_ERROR) || (err == ET_ERROR_TIMEOUT)) {
       et_logmsg("ERROR", "et_findlocality, cannot find ET system\n");
       return err;
