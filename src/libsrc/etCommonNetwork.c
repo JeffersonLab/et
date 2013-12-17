@@ -800,7 +800,222 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
 #else
     if (ioctl(sockfd, FIONBIO, &off) < 0) {
 #endif
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: ioctl error\n", codanetStr);
+        close(sockfd);
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout: ioctl error\n", codanetStr);
+        }
+        return(CODA_SOCKET_ERROR);
+    }
+
+    if (fd != NULL)  *fd = sockfd;
+    return(CODA_OK);
+}
+
+
+/**
+ * This routine makes a TCP connection to a server using a dotted-decimal IP
+ * address. It will block up to the user-specified timeout or the default timeout
+ * of the TCP connect() function, whichever is shorter. The point is to avoid
+ * the default timeout on Linux of over 3 minutes and on Solaris of 4 minutes
+ * if no server present on the other end.
+ *
+ * @param ip_address  name of host to connect to (may be dotted-decimal)
+ * @param interface   interface (dotted-decimal ip address) to connect through
+ * @param port        port to connect to
+ * @param sendBufSize size of socket's send buffer in bytes
+ * @param rcvBufSize  size of socket's receive buffer in bytes
+ * @param noDelay     0 if socket TCP_NODELAY is off, else it's on
+ * @param timeout     pointer to struct containing timeout for connection to be made
+ * @param fd          pointer which gets filled in with file descriptor
+ * @param localPort   pointer which gets filled in with local (ephemeral) port number
+ *
+ * @returns ET/CMSG_OK                          if successful
+ * @returns ET_ERROR_BADARG/CMSG_BAD_ARGUMENT   if ip_adress or fd args are NULL
+ * @returns ET_ERROR_SOCKET/CMSG_SOCKET_ERROR   if socket could not be created or socket options could not be set.
+ * @returns ET_ERROR_NETWORK/CMSG_NETWORK_ERROR if host name could not be resolved or could not connect
+ *
+ */
+int codanetTcpConnectTimeout2(const char *ip_address, const char *interface, unsigned short port,
+                              int sendBufSize, int rcvBufSize, int noDelay, struct timeval *timeout,
+                              int *fd, int *localPort)
+{
+    int                 res, sockfd, err=0, isDottedDecimal=0;
+    const int           on=1, off=0;
+    struct sockaddr_in  servaddr;
+    uint32_t            inetaddr;
+
+
+    if (ip_address == NULL || fd == NULL || timeout == NULL) {
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: null argument(s)\n", codanetStr);
+        }
+        return(CODA_BAD_ARGUMENT);
+    }
+
+    /* Check to see if ip_address is in dotted-decimal form. If not, return error. */
+    isDottedDecimal = codanetIsDottedDecimal(ip_address, NULL);
+    if (!isDottedDecimal) return CODA_ERROR;
+    
+#if defined VXWORKS
+    inetaddr = (uint32_t) inet_addr((char *) ip_address);
+    err = (int) inetaddr;
+    /* If ip_address = 255.255.255.255, then err = -1 (= ERROR), but
+     * that's OK since no server has that address anyway. */
+
+    if (err == ERROR) {
+#else
+    if (inet_pton(AF_INET, ip_address, &inetaddr) < 1) {
+#endif
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: unknown address for host %s\n", codanetStr, ip_address);
+        }
+        return(CODA_NETWORK_ERROR);
+    }
+    
+    /* create socket and set some options */
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: socket error, %s\n", codanetStr, strerror(errno));
+        }
+        return(CODA_SOCKET_ERROR);
+    }
+    
+    /* don't wait for messages to cue up, send any message immediately */
+    if (noDelay) {
+        err = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*) &on, sizeof(on));
+        if (err < 0) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sTcpConnectTimeout2: setsockopt error\n", codanetStr);
+            }
+            return(CODA_SOCKET_ERROR);
+        }
+    }
+  
+    /* set send buffer size unless default specified by a value <= 0 */
+    if (sendBufSize > 0) {
+        err = setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (char*) &sendBufSize, sizeof(sendBufSize));
+        if (err < 0) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sTcpConnectTimeout2: setsockopt error\n", codanetStr);
+            }
+            return(CODA_SOCKET_ERROR);
+        }
+    }
+  
+    /* set receive buffer size unless default specified by a value <= 0  */
+    if (rcvBufSize > 0) {
+        err = setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (char*) &rcvBufSize, sizeof(rcvBufSize));
+        if (err < 0) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sTcpConnectTimeout2: setsockopt error\n", codanetStr);
+            }
+            return(CODA_SOCKET_ERROR);
+        }
+    }
+    
+    /* set the outgoing network interface */
+    if (interface != NULL && strlen(interface) > 0) {
+        err = codanetSetInterface(sockfd, interface);
+        if (err != CODA_OK) {
+            close(sockfd);
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sTcpConnectTimeout2: error choosing network interface\n", codanetStr);
+            }
+            return(CODA_SOCKET_ERROR);
+        }
+    }
+
+    memset((void *)&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port   = htons(port);
+    servaddr.sin_addr.s_addr = inetaddr;
+
+
+    /* make socket nonblocking so we can implement a timeout */
+#ifdef VXWORKS
+    if (ioctl(sockfd, FIONBIO, (int)&on) < 0) {
+#else
+    if (ioctl(sockfd, FIONBIO, &on) < 0) {
+#endif
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: ioctl error\n", codanetStr);
+        }
+        return(CODA_SOCKET_ERROR);
+    }
+
+#if defined VXWORKS
+
+    err = codanetStringToNumericIPaddr(ip_address, &servaddr);
+    if (err != CODA_OK || err == ERROR) {
+        close(sockfd);
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: unknown server address for host %s\n",codanetStr,ip_address);
+        }
+        return(CODA_NETWORK_ERROR);
+    }
+
+    if (connectWithTimeout(sockfd,(struct sockaddr *) &servaddr, sizeof(servaddr), timeout) == ERROR) {
+        close(sockfd);
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: error or timeout in connect\n", codanetStr);
+        }
+        return(CODA_NETWORK_ERROR);
+    }
+    else if (codanetDebug >= CODA_DEBUG_INFO) {
+        fprintf(stderr, "%sTcpConnectTimeout2: connected to server\n", codanetStr);
+    }
+
+#else
+    
+    err = connectWithTimeout(sockfd, (SA *) &servaddr, sizeof(servaddr), timeout);
+    if (err < 0) {
+        close(sockfd);
+        if (codanetDebug >= CODA_DEBUG_WARN) {
+            fprintf(stderr, "%sTcpConnectTimeout2: error attempting to connect to server, %s\n", codanetStr, strerror(errno));
+        }
+        return(CODA_ERROR);
+    }
+    else if (err == 0) {
+        close(sockfd);
+        if (codanetDebug >= CODA_DEBUG_INFO) {
+            fprintf(stderr, "%sTcpConnectTimeout2: timed out attempting to connect to server\n", codanetStr);
+        }
+        return(CODA_TIMEOUT);
+    }
+    else if (codanetDebug >= CODA_DEBUG_INFO) {
+        fprintf(stderr, "%sTcpConnectTimeout2: connected to server\n", codanetStr);
+    }
+
+#endif
+      
+    /* since there's no error, find & return the local port number of this socket */
+    if (localPort != NULL) {
+        int prt;
+        socklen_t len;
+        struct sockaddr_in ss;
+      
+        len = sizeof(ss);
+        if (getsockname(sockfd, (SA *) &ss, &len) == 0) {
+            *localPort = (int) ntohs(ss.sin_port);
+        }
+        else {
+            *localPort = 0;
+        }
+    }
+
+    /* return socket to blocking mode */
+#ifdef VXWORKS
+    if (ioctl(sockfd, FIONBIO, (int)&off) < 0) {
+#else
+    if (ioctl(sockfd, FIONBIO, &off) < 0) {
+#endif
+        close(sockfd);
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sTcpConnectTimeout2: ioctl error\n", codanetStr);
+        }
         return(CODA_SOCKET_ERROR);
     }
 

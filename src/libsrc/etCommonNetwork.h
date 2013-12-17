@@ -71,7 +71,8 @@ extern int etDebug;
 #define   codanetTcpListen              etNetTcpListen
 #define   codanetTcpConnect             etNetTcpConnect
 #define   codanetTcpConnect2            etNetTcpConnect2
-#define   codanetTcpConnectTimeout      cMsgNetTcpConnectTimeout
+#define   codanetTcpConnectTimeout      etNetTcpConnectTimeout
+#define   codanetTcpConnectTimeout2     etNetTcpConnectTimeout2
 #define   codanetGetListeningSocket     etNetGetListeningSocket
 #define   codanetUdpReceive             etNetUdpReceive
 
@@ -253,6 +254,9 @@ extern int   codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsign
 extern int   codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
                                       int sendBufSize, int rcvBufSize,
                                       int noDelay, struct timeval *timeout,
+                                      int *fd, int *localPort);
+extern int   codanetTcpConnectTimeout2(const char *ip_address, const char *interface, unsigned short port,
+                                      int sendBufSize, int rcvBufSize, int noDelay, struct timeval *timeout,
                                       int *fd, int *localPort);
 extern int   codanetGetListeningSocket(int nonblocking, unsigned short startingPort,
                                        int sendBufSize, int rcvBufSize, int noDelay,

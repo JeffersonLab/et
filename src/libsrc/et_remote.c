@@ -107,21 +107,21 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
             /* make the network connection */
             if (inetaddr == 0) {
 et_logmsg("INFO","etr_open: try to connect to host %s on port %d\n",ethost,port);
-              if (etNetTcpConnect(ethost, config->interface, (unsigned short)port,
-                  config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
-                  &sockfd, NULL) == ET_OK) {
-et_logmsg("INFO","          success!\n");
-                  break;
-              }
+                if (etNetTcpConnect(ethost, config->interface, (unsigned short)port,
+                    config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
+                    &sockfd, NULL) == ET_OK) {
+                        et_logmsg("INFO","          success!\n");
+                        break;
+                    }
             }
             else {
 et_logmsg("INFO","etr_open: try to connect to address %u (host %s) on port %d\n",inetaddr,ethost,port);
-              if (etNetTcpConnect2(inetaddr, config->interface, (unsigned short)port,
-                  config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
-                  &sockfd, NULL) == ET_OK) {
-et_logmsg("INFO","          success!\n");
-                  break;
-              }
+                if (etNetTcpConnect2(inetaddr, config->interface, (unsigned short)port,
+                    config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
+                    &sockfd, NULL) == ET_OK) {
+                        et_logmsg("INFO","          success!\n");
+                        break;
+                    }
             }
         }
         else {
@@ -129,24 +129,31 @@ et_logmsg("INFO","          success!\n");
 et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filename,ethost);
             if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config, &response)) == ET_OK) {
 
+                struct timeval timeout = {4,0}; /* 4 second timeout for TCP connection */
                 int connected = 0;
                 codaIpList *dotDecAddr;
                 if (response == NULL) {
                     /* use ethost, port */
+                    et_logmsg("INFO","          success, but response is NULL!\n");
                     continue;
                 }
-                
+         
                 /* First order them so the IP addresses on the
-                 * same subnets as this client are tried first. */
+                * same subnets as this client are tried first. */
                 dotDecAddr = et_orderIpAddrs(response, config->netinfo);
 
                 /* Try the IP addresses sent by ET system, one-by-one. */
                 while (dotDecAddr != NULL) {
-et_logmsg("INFO","etr_open: try to connect to host %s on port %d\n",dotDecAddr->addr,port);
-                    if (etNetTcpConnect(dotDecAddr->addr, config->interface, (unsigned short)port,
-                        config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
-                        &sockfd, NULL) == ET_OK) {
-et_logmsg("INFO","          success!\n");
+et_logmsg("INFO","etr_open: try host %s\n",dotDecAddr->addr);
+                    err = etNetTcpConnectTimeout2(dotDecAddr->addr, config->interface, (unsigned short)port,
+                            config->tcpSendBufSize, config->tcpRecvBufSize,
+                            config->tcpNoDelay, &timeout, &sockfd, NULL);
+                    if (err == ET_ERROR_TIMEOUT) {
+et_logmsg("INFO","etr_open: Timed out, try next IP address\n");
+                    }
+            
+                    if (!connected && err == ET_OK) {
+et_logmsg("INFO","etr_open: connected to host %s on port %d\n",dotDecAddr->addr,port);
                         connected = 1;
                         break;
                     }
@@ -177,7 +184,7 @@ et_logmsg("INFO","          success!\n");
         dnow = now.tv_sec + 1.e-9*(now.tv_nsec);
 #endif
         if (dtimeout < dnow - dstart) {
-            break;
+    break;
         }
 #ifdef VXWORKS
         taskDelay(vxdelay);

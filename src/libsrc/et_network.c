@@ -213,14 +213,18 @@ printf("ET ip = %s, local ip = %s, local netmask bin = 0x%x\n",
         if (sameSubnet) {
 /*printf("same subnet, head of list\n");*/
             /* Put it at the head of the list */
-            listItem->next = firstItem;
-            firstItem = listItem;
+            if (listItem != firstItem) {
+                listItem->next = firstItem;
+                firstItem = listItem;
+            }
         }
         else {
 /*printf("diff subnet, end of list\n");*/
             /* Put it at the end of the list */
-            lastItem->next = listItem;
-            lastItem = listItem;
+            if (listItem != lastItem) {
+                lastItem->next = listItem;
+                lastItem = listItem;
+            }
         }
     }
 
