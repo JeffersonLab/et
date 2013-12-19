@@ -258,11 +258,6 @@ AddOption('--bindir',
 bindir = GetOption('bindir')
 Help('--bindir=<dir>      copy binary  files to directory <dir> when doing install\n')
 
-
-# uninstall option
-Help('-c  install         uninstall libs, headers, examples, and remove all generated files\n')
-
-
 #########################
 # Compile flags
 #########################
@@ -487,10 +482,16 @@ else:
     print 'inc install dirs = ', incInstallDir, ", ", archIncInstallDir
 
 # use "install" on command line to install libs & headers
-Help('install             install libs & headers\n')
+Help('install             install libs, headers, and important binaries\n')
+
+# uninstall option
+Help('-c  install         uninstall libs, headers, and important binaries\n')
 
 # use "examples" on command line to install executable examples
-Help('examples            install executable examples\n')
+Help('examples            install example programs\n')
+
+# uninstall option
+Help('-c  examples        uninstall example programs\n')
 
 # not necessary to create install directories explicitly
 # (done automatically during install)
@@ -606,10 +607,17 @@ Export('env archDir incInstallDir libInstallDir binInstallDir archIncInstallDir 
 
 # run lower level build files
 
-# for vxworks only make libs and examples
+# by default only make libs and et_start (in execsrc)
 if useVxworks:
     env.SConscript('src/libsrc/SConscript.vx',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
-    env.SConscript('src/examples/SConscript.vx', variant_dir='src/examples/'+archDir, duplicate=0)
 else:
-    env.SConscript('src/libsrc/SConscript',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
-    env.SConscript('src/examples/SConscript', variant_dir='src/examples/'+archDir, duplicate=0)
+    env.SConscript('src/libsrc/SConscript',  variant_dir='src/libsrc/'+archDir,  duplicate=0)
+    env.SConscript('src/execsrc/SConscript', variant_dir='src/execsrc/'+archDir, duplicate=0)
+
+if 'examples' in COMMAND_LINE_TARGETS:
+    # for vxworks
+    if useVxworks:
+        env.SConscript('src/examples/SConscript.vx', variant_dir='src/examples/'+archDir, duplicate=0)
+    else:
+        env.SConscript('src/examples/SConscript', variant_dir='src/examples/'+archDir, duplicate=0)
+
