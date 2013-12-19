@@ -66,13 +66,14 @@ scons -h              print out help
 scons -c              remove all generated files
 
 scons install         make C library code;
-                      place libraries in architecture-specific lib
-                      directory and headers in an include directory
+                      place libraries in architecture-specific lib directory
+                      place important binaries in architecture-specific bin directory
+                      place headers in an include directory
 
 scons examples        make C executable example code;
                       place executables in architecture-specific bin directory
 
-scons -c install      uninstall libs & headers
+scons -c install      uninstall libs & headers & important binaries
 scons -c examples     uninstall executable examples
 
 scons tar             create a tar file (et-14.x.tgz) of the ET top level
