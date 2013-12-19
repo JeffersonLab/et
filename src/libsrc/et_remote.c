@@ -83,9 +83,9 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     dstart = start.tv_sec + 1.e-9*(start.tv_nsec);
 #endif
 
-    /* 0.1 sec per sleep (10Hz) */
+    /* 0.5 sec per sleep (2Hz) */
     sleeptime.tv_sec  = 0;
-    sleeptime.tv_nsec = 100000000;
+    sleeptime.tv_nsec = 500000000;
     vxdelay = 6;
 
     /* set minimum time to wait for connection to ET */
@@ -129,7 +129,7 @@ et_logmsg("INFO","etr_open: try to connect to address %u (host %s) on port %d\n"
 et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filename,ethost);
             if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config, &response)) == ET_OK) {
 
-                struct timeval timeout = {4,0}; /* 4 second timeout for TCP connection */
+                struct timeval timeout = {3,0}; /* 3 second timeout for TCP connection */
                 int connected = 0;
                 codaIpList *dotDecAddr;
                 if (response == NULL) {
@@ -184,7 +184,7 @@ et_logmsg("INFO","etr_open: connected to host %s on port %d\n",dotDecAddr->addr,
         dnow = now.tv_sec + 1.e-9*(now.tv_nsec);
 #endif
         if (dtimeout < dnow - dstart) {
-    break;
+            break;
         }
 #ifdef VXWORKS
         taskDelay(vxdelay);
