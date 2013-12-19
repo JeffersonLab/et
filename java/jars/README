@@ -3,7 +3,6 @@ The following jar files are needed to run org.jlab.coda.et.monitorGui.Monitor :
 jlayout30.jar
 jlm20.jar
 jloox20.jar
-xerces.jar
 
 
 Run the program from the et/java directory with something like:
