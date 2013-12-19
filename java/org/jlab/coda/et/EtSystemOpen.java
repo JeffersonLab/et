@@ -665,7 +665,7 @@ public class EtSystemOpen {
      *
      * @param packet responding UDP packet
      * @throws java.io.IOException
-     *     if problems with network comunications
+     *     if problems with network communications
      * @throws java.net.UnknownHostException
      *     if the replied host address(es) is(are) unknown
      */
@@ -859,7 +859,7 @@ public class EtSystemOpen {
             // several address, but we're only using one. What if our
             // host does not know about this particular IP address? It may not
             // be able to connect, but might be able to with one of the others.
-            // How do we fix this problem?
+            // So we try them one at a time until a we get a valid connection.
             responders.put(addresses, port);
 
             // store info here in case only 1 response
@@ -968,7 +968,7 @@ public class EtSystemOpen {
      * @throws IOException
      *     if problems with network communications
      * @throws EtException
-     *     if the responing ET system has the wrong name, runs a different version
+     *     if the responding ET system has the wrong name, runs a different version
      *     of ET, or has a different value for {@link EtConstants#stationSelectInts}
      */
     private void connectToEtServer() throws IOException, EtException {
@@ -1090,8 +1090,7 @@ public class EtSystemOpen {
      * Creates a connection to an ET system.
      *
      * @throws java.io.IOException
-     *     if problems with network communications
-     * @throws java.net.UnknownHostException
+     *     if problems with network communications;
      *     if the host address(es) is(are) unknown
      * @throws EtException
      *     if the responding ET system has the wrong name, runs a different
@@ -1102,120 +1101,106 @@ public class EtSystemOpen {
      *     {@link EtConstants#policyError} and we are looking either
      *     remotely or anywhere for the ET system.
      */
-    synchronized public void connect() throws IOException, UnknownHostException,
+    synchronized public void connect() throws IOException,
                                               EtException, EtTooManyException {
 
         // In Java, all clients make a connection the the ET system server through sockets.
         // However, in cases where there is a local C-based, ET system, an attempt is also
-        // made to memory map it and access events through JNI (header) and a memory mapped
-        // buffer (data).
+        // made to access events through JNI.
         useJniLibrary = false;
 
-        // If directly connecting we have NOT broad/multicast
-        // and therefore have not set hostAddress(es) & tcpPort.
-        if (config.getNetworkContactMethod() == EtConstants.direct) {
-            // If making direct connection, we have host & port
-            if (debug >= EtConstants.debugInfo) {
-                System.out.println("connect: make a direct connection");
-            }
-            tcpPort = config.getTcpPort();
-
-            // Is ET local?
-            if (config.getHost().equals(EtConstants.hostLocal) || config.getHost().equals("localhost")) {
-                etOnLocalHost = true;
-            }
-            else {
-                etOnLocalHost = isHostLocal(config.getHost());
-            }
-
-            if (etOnLocalHost) {
-                // If host is local, try to map memory
-                useJniLibrary = true;
-                hostAddresses = (ArrayList<String>) localHostIpAddrs.clone();
-                hostAddress = hostAddresses.get(0);
-            }
-            else {
-                // Go from name to address
-                hostAddress = InetAddress.getByName(config.getHost()).getHostAddress();
-            }
-        }
-        else {
-            if (debug >= EtConstants.debugInfo) {
-                System.out.println("connect: try to find server port");
-            }
-
-            // Send a UDP broad or multicast packet to find ET TCP server & port
-            if (!findServerPort((int)config.getWaitTime())) {    // IOEx, UnknownHostEx, EtTooMany
-                throw new EtException("Cannot find ET system");
-            }
-
-            // If host is local, try to map memory
-            if (etOnLocalHost) {
-                useJniLibrary = true;
-            }
-        }
-
-        // Open the ET system, waiting if requested & necessary
-        if (debug >= EtConstants.debugInfo) {
-            System.out.println("connect(): try to connect to ET system " +
-                                       (useJniLibrary ? "locally" : "remotely"));
-        }
-
-        // If user only wants to use sockets, don't map memory
-        if (config.isConnectRemotely()) {
-            useJniLibrary = false;
-        }
-//System.out.println("connect(): map local shared memory = " + useJniLibrary);
-
-        boolean gotConnection = false;
-        IOException ioException = null;
-        String connectionHost = null;
-
         long t1, t2;
+        List<String> addrList;
+        Exception excep = null;
+        boolean gotConnection = false;
+
         t1 = t2 = System.currentTimeMillis();
 
         while (t2 <= (t1 + config.getWaitTime())) {
-            try {
-                // Create a connection to an ET system TCP Server
+            // Create a connection to an ET system TCP Server
 //System.out.println("connect(): Creating socket to ET");
+            sock = null;
 
-                if (hostAddresses == null || hostAddresses.size() < 1) {
-                    connectionHost = hostAddress;
-                    sock = new Socket();
+            // If directly connecting we have NOT broad/multicast
+            // and therefore have not set hostAddress(es) & tcpPort.
+            if (config.getNetworkContactMethod() == EtConstants.direct) {
+                // If making direct connection, we have host & port
+                if (debug >= EtConstants.debugInfo) {
+                    System.out.println("connect: make a direct connection");
+                }
+                tcpPort = config.getTcpPort();
+
+                // Is ET local?
+                if (config.getHost().equals(EtConstants.hostLocal) || config.getHost().equals("localhost")) {
+                    etOnLocalHost = true;
                 }
                 else {
-                    sock = null;
-                    IOException ioex = null;
-                    // If IP address fails, perhaps another will work
-                    for (String ha : hostAddresses) {
-                        try {
-//System.out.println("connect(): try creating socket to " + ha + " on port " + tcpPort);
-                            sock = new Socket(ha, tcpPort);        // IOEx
-                            connectionHost = ha;
-//System.out.println("connect(): success creating socket");
-                            break;
-                        }
-                        catch (IOException e) {
-                            ioex = e;
-                        }
-                        catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    // If no socket can be opened, give up
-                    if (sock == null) {
-                        throw ioex;
-                    }
-                    // Socket can be opened but we're not ready to connect yet if we must
-                    // bind outgoing address (since that must be done first).
-                    else if (config.getNetworkInterface() != null) {
-                        sock.close();
-                        sock = new Socket();
-                    }
+                    etOnLocalHost = isHostLocal(config.getHost());
                 }
 
+                if (etOnLocalHost) {
+                    // If host is local, use JNI if possible
+                    useJniLibrary = true;
+                    hostAddresses = (ArrayList<String>) localHostIpAddrs.clone();
+                    hostAddress = hostAddresses.get(0);
+                }
+                else {
+                    // Go from name to address
+                    hostAddress = InetAddress.getByName(config.getHost()).getHostAddress();
+                }
+            }
+            else {
+                if (debug >= EtConstants.debugInfo) {
+                    System.out.println("connect: try to find server port");
+                }
+
+                // Send a UDP broad or multicast packet to find ET TCP server & port
+                if (!findServerPort((int)config.getWaitTime())) {    // IOEx, UnknownHostEx, EtTooMany
+                    // delay 1/2 second for next round
+                    try {Thread.sleep(500);}
+                    catch (InterruptedException e) {}
+
+                    t2 = System.currentTimeMillis();
+                    continue;
+                }
+
+                // If host is local, use JNI if possible
+                if (etOnLocalHost) {
+                    useJniLibrary = true;
+                }
+            }
+
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("connect(): try to connect to ET system " +
+                        (useJniLibrary ? "locally" : "remotely"));
+            }
+
+            // If user only wants to use sockets, don't use JNI
+            if (config.isConnectRemotely()) {
+                useJniLibrary = false;
+            }
+//System.out.println("connect(): map local shared memory = " + useJniLibrary);
+
+            // If we did not get a list of IP addresses back, use what we have
+            if (hostAddresses == null || hostAddresses.size() < 1) {
+                addrList = new LinkedList<String>();
+                addrList.add(hostAddress);
+            }
+            else {
+                // Put IP addresses in list with those on local subnets first
+                addrList = EtUtils.orderIPAddresses(hostAddresses);
+            }
+
+            // If one IP address fails, perhaps another will work
+            for (String connectionHost : addrList) {
+                excep = null;
                 try {
+                    // In order to avoid blocking forever when attempting
+                    // to connect to a non-existing server, use the Socket
+                    // class constructor with no args. Then use the "connect"
+                    // method with a timeout.
+                    sock = new Socket();
+
                     // Set NoDelay option for fast response
                     if (config.isNoDelay()) {
                         sock.setTcpNoDelay(true);
@@ -1239,46 +1224,74 @@ public class EtSystemOpen {
                         sock.bind(new InetSocketAddress(config.getNetworkInterface(), 0));
                     }
 
-                    // Make actual TCP connection
-                    if (!sock.isConnected()) {
-//System.out.println("connect(): connect existing socket to host " + connectionHost + " on port " + tcpPort);
-                        try {
-                            sock.connect(new InetSocketAddress(connectionHost, tcpPort), 250); // IOEx, SocketTimeoutEx
-                        }
-                        catch (SocketTimeoutException e) {
-//System.out.println("connect(): timed out, try again");
-                            t2 = System.currentTimeMillis();
-                            continue;
-                        }
+                    // Make actual TCP connection with 3 second timeout
+System.out.println("connect(): try connect to host " + connectionHost + " on port " + tcpPort);
+                    try {
+                        sock.connect(new InetSocketAddress(connectionHost, tcpPort), 3000); // IOEx, SocketTimeoutEx
                     }
+                    catch (SocketTimeoutException e) {
+System.out.println("connect(): timed out, try again");
+                        continue;
+                    }
+
+System.out.println("connect(): SUCCESS creating socket");
+                    break;
                 }
                 catch (SocketException ex) {
+System.out.println("connect(): FAILED setting socket options");
+                    excep = ex;
+                    continue;
                 }
+                catch (IOException ex) {
+System.out.println("connect(): FAILED creating connection to " + connectionHost);
+                    excep = ex;
+                    continue;
+                }
+                catch (Exception ex) {
+System.out.println("connect(): FAILED creating connection to " + connectionHost);
+                    excep = ex;
+                    continue;
+                }
+            }
 
+            // If no socket can be opened, try another round
+            if (sock == null || !sock.isConnected()) {
+                // delay 1/2 second for next round
+                try {Thread.sleep(500);}
+                catch (InterruptedException e) {}
+
+                t2 = System.currentTimeMillis();
+                continue;
+            }
+
+            try {
                 connectToEtServer();    // IOEx if no ET, EtEx if incompatible ET
+                // Finally got a good connection
                 gotConnection = true;
                 break;
             }
-            catch (IOException e) {
-System.out.println("           FAILED connection to ET: " + e.getMessage());
-                ioException = e;
-                try {Thread.sleep(250);}
-                catch (InterruptedException e1) {}
+            catch (IOException ex) {
+                // Cannot communicate with ET
+                excep = ex;
             }
-            catch (Exception e) {
-System.out.println("           FAILED connection to ET: " + e.getMessage());
-                try {Thread.sleep(250);}
-                catch (InterruptedException e1) {}
+            catch (EtException ex) {
+                // incompatible ET system
+                excep = ex;
             }
+
+            // delay 1/2 second for next round
+            try {Thread.sleep(500);}
+            catch (InterruptedException e) {}
 
             t2 = System.currentTimeMillis();
         }
 
         if (!gotConnection) {
-            throw new IOException("Cannot create network connection to ET system", ioException);
+            throw new IOException("Cannot create network connection to ET system", excep);
         }
 
-        // try using memory mapped file
+
+        // try using JNI
         if (useJniLibrary) {
             try {
                 RandomAccessFile file = new RandomAccessFile(config.getEtName(), "rw");

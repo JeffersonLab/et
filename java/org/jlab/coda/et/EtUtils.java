@@ -14,14 +14,13 @@
 
 package org.jlab.coda.et;
 
-import java.net.Inet4Address;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+import org.jlab.coda.et.exception.EtException;
+
+import java.net.*;
 import java.nio.ByteOrder;
-import java.util.Enumeration;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Collection of methods to help manipulate bytes in arrays.
@@ -332,5 +331,150 @@ public class EtUtils {
 
         return ipList;
     }
+
+    /**
+     * Takes a list of dotted-decimal formatted IP address strings and orders them
+     * so that those on local subnets are first and others come last.
+     * This only works for IPv4.
+     * @return ordered list of given IP addresses in dotted-decimal form with those
+     *         on local subnets listed first.
+     */
+    public static List<String> orderIPAddresses(List<String> ipAddresses) {
+
+        // Eliminate duplicates in arg
+        HashSet<String> ipSet = new HashSet<String>(ipAddresses);
+
+        // List of our local IP info - need local subnet masks
+        LinkedList<String> ipList = new LinkedList<String>();
+
+        // iterate through argument list of addresses
+        outerLoop:
+        for (String ip : ipSet) {
+            boolean ipAddressAdded = false;
+
+            try {
+                // iterate through local list of addresses
+                Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+                while (enumer.hasMoreElements()) {
+                    NetworkInterface ni = enumer.nextElement();
+                    if (!ni.isUp() || ni.isLoopback()) {
+                        continue;
+                    }
+                    List<InterfaceAddress> inAddrs = ni.getInterfaceAddresses();
+
+                    for (InterfaceAddress ifAddr : inAddrs) {
+                        Inet4Address addrv4;
+                        try { addrv4 = (Inet4Address)ifAddr.getAddress(); }
+                        catch (ClassCastException e) {
+                            // probably IPv6 so ignore
+                            continue;
+                        }
+
+                        // Turn net prefix len into integer subnet mask
+                        short prefixLength = ifAddr.getNetworkPrefixLength();
+                        int subnetMask = 0;
+                        for (int j = 0; j < prefixLength; ++j) {
+                            subnetMask |= (1 << 31-j);
+                        }
+
+                        String localIP = addrv4.getHostAddress();
+                        try {
+                            // If local and arg addresses are on the same subnet,
+                            // we gotta match to put at the head of the list.
+                            if (onSameSubnet2(ip, localIP, subnetMask)) {
+                                ipList.addFirst(ip);
+                                ipAddressAdded = true;
+//System.out.println("Add " + ip + " to list top");
+                                continue outerLoop;
+                            }
+                        }
+                        // try the next address
+                        catch (EtException e) {continue;}
+                    }
+                }
+            }
+            catch (SocketException e) {
+                continue;
+            }
+
+            // This arg address is not on any of the local subnets,
+            // so put it at the end of the list.
+            if (!ipAddressAdded) {
+//System.out.println("Add " + ip + " to list bottom");
+                ipList.addLast(ip);
+            }
+        }
+
+        return ipList;
+    }
+
+    /**
+     * This method tells whether the 2 given IP addresses in dot-decimal notation
+     * are on the same subnet or not given a subnet mask in integer form
+     * (local byte order). This only works for IPv4.
+     *
+     * @param ipAddress1 first  IP address in dot-decimal notation
+     * @param ipAddress2 second IP address in dot-decimal notation
+     * @param subnetMask subnet mask as LOCAL-byte-ordered 32 bit int
+     *
+     * @returns {@code true} if on same subnet, else {@code false}.
+     */
+    static boolean onSameSubnet2(String ipAddress1, String ipAddress2, int subnetMask)
+                                    throws EtException
+    {
+        if (ipAddress1 == null || ipAddress2 == null) {
+            throw new EtException("null arg(s)");
+        }
+
+        byte[] ipBytes1 = isDottedDecimal(ipAddress1);
+        byte[] ipBytes2 = isDottedDecimal(ipAddress2);
+
+        if (ipBytes1 == null || ipBytes2 == null)  {
+            throw new EtException("one or both IP address args are not dot-decimal format");
+        }
+
+        int addr1 = (ipBytes1[0] << 24) | (ipBytes1[1] << 16) | (ipBytes1[2] << 8) | ipBytes1[3];
+        int addr2 = (ipBytes2[0] << 24) | (ipBytes2[1] << 16) | (ipBytes2[2] << 8) | ipBytes2[3];
+
+        if ((addr1 & subnetMask) == (addr2 & subnetMask)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * This method tells whether the given IPv4 address is in dot-decimal notation or not.
+     * If it is, then the returned bytes are the address in numeric form, else null
+     * is returned. This only works for IPv4.
+     *
+     * @param ipAddress IPV4 address
+     * @returns IPV4 address in numeric form if arg is valid dot-decimal address, else null
+     */
+    static byte[] isDottedDecimal(String ipAddress)
+    {
+        if (ipAddress == null) return null;
+
+        String IP_ADDRESS = "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})";
+        Pattern pattern = Pattern.compile(IP_ADDRESS);
+        Matcher matcher = pattern.matcher(ipAddress);
+        if (!matcher.matches()) return null;
+
+        int[] hostInts = new int[4];
+        for (int i = 1; i <= 4; ++i) {
+//System.out.println("   group(" + i + ") = " + matcher.group(i));
+            hostInts[i-1] = Integer.parseInt(matcher.group(i));
+            if (hostInts[i-1] > 255 || hostInts[i-1] < 0) return null;
+        }
+
+        // Change ints to bytes
+        byte[] hostBytes = new byte[4];
+        hostBytes[0] = (byte) hostInts[0];
+        hostBytes[1] = (byte) hostInts[1];
+        hostBytes[2] = (byte) hostInts[2];
+        hostBytes[3] = (byte) hostInts[3];
+
+        return hostBytes;
+     }
 
 }
