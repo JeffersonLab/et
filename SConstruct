@@ -448,7 +448,7 @@ else:
         archIncDir = incdir
     else:
         archIncDir = prefix + "/" + osname + '/include'
-        incDir = prefix + '/include'
+        incDir = prefix + '/common/include'
 
     if libdir != None:
         libDir = libdir
