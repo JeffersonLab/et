@@ -574,26 +574,28 @@ Help('undoc               remove javadoc (in ./doc)\n')
 # Tar file
 #########################
 
-# Function that does the tar. Note that tar on Solaris is different
-# (more primitive) than tar on Linux and MacOS. Solaris tar has no -z option
-# and the exclude file does not allow wildcards. Thus, stick to Linux for
-# creating the tar file.
-def tarballer(target, source, env):
-    if platform == 'SunOS':
-        print '\nMake tar file from Linux or MacOS please\n'
-        return
-    dirname = os.path.basename(os.path.abspath('.'))
-    cmd = 'tar -X tar/tarexclude -C .. -c -z -f ' + str(target[0]) + ' ./' + dirname
-    pipe = Popen(cmd, shell=True, stdin=PIPE).stdout
-    return pipe
+if 'tar' in COMMAND_LINE_TARGETS:
+    # Function that does the tar. Note that tar on Solaris is different
+    # (more primitive) than tar on Linux and MacOS. Solaris tar has no -z option
+    # and the exclude file does not allow wildcards. Thus, stick to Linux for
+    # creating the tar file.
+    def tarballer(target, source, env):
+        if platform == 'SunOS':
+            print '\nMake tar file from Linux or MacOS please\n'
+            return
+        dirname = os.path.basename(os.path.abspath('.'))
+        cmd = 'tar -X tar/tarexclude -C .. -c -z -f ' + str(target[0]) + ' ./' + dirname
+        pipe = Popen(cmd, shell=True, stdin=PIPE).stdout
+        return pipe
 
-# name of tarfile (software package dependent)
-tarfile = 'tar/et-' + versionMajor + '.' + versionMinor + '.tgz'
+    # name of tarfile (software package dependent)
+    tarfile = 'tar/et-' + versionMajor + '.' + versionMinor + '.tgz'
 
-# tarfile builder
-tarBuild = Builder(action = tarballer)
-env.Append(BUILDERS = {'Tarball' : tarBuild})
-env.Alias('tar', env.Tarball(target = tarfile, source = None))
+    # tarfile builder
+    tarBuild = Builder(action = tarballer)
+    env.Append(BUILDERS = {'Tarball' : tarBuild})
+    env.Alias('tar', env.Tarball(target = tarfile, source = None))
+
 
 # use "tar" on command line to create tar file
 Help('tar                 create tar file (in ./tar)\n')
