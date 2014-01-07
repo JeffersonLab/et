@@ -339,7 +339,7 @@ int et_id_init(et_sys_id *id)
   /* initialize mutex for thread-safe TCP */
   pthread_mutex_init(&etid->mutex, NULL);
   
-#ifndef NO_WR_LOCK
+#ifndef NO_RW_LOCK
 
 #ifndef linux
       /* Up to & including solaris 10 / MacOS 10.7, pthread_rwlockattr_setkind_np is not supported */
@@ -373,7 +373,7 @@ void et_id_destroy(et_sys_id id)
   
   if (etid != NULL) {
     pthread_mutex_destroy(&etid->mutex);
-#ifndef NO_WR_LOCK
+#ifndef NO_RW_LOCK
     pthread_rwlock_destroy(&etid->sharedMemlock);
 #endif
     free(etid);
