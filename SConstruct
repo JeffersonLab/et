@@ -189,35 +189,35 @@ else:
     execLibs = ['m', 'pthread', 'dl', 'rt']
     
     if platform == 'SunOS':
-        env.Append(CCFLAGS = '-mt')
+        env.Append(CCFLAGS = ['-mt'])
         env.Append(CPPDEFINES = ['_GNU_SOURCE', '_REENTRANT', '_POSIX_PTHREAD_SEMANTICS', 'SunOS'])
         execLibs = ['m', 'posix4', 'pthread', 'socket', 'resolv', 'nsl', 'dl']
         if is64bits and not use32bits:
             if machine == 'sun4u':
-                env.Append(CCFLAGS = '-xarch=native64 -xcode=pic32',
-                           LINKFLAGS = '-xarch=native64 -xcode=pic32')
+                env.Append(CCFLAGS = ['-xarch=native64', '-xcode=pic32'],
+                           LINKFLAGS = ['-xarch=native64', '-xcode=pic32'])
             else:
-                env.Append(CCFLAGS = '-xarch=amd64',
-                           LINKFLAGS = '-xarch=amd64')
+                env.Append(CCFLAGS = ['-xarch=amd64'],
+                           LINKFLAGS = ['-xarch=amd64'])
     
     elif platform == 'Darwin':
         execLibs = ['pthread', 'dl']
-        env.Append(CPPDEFINES = 'Darwin', SHLINKFLAGS = '-multiply_defined suppress -flat_namespace -undefined suppress')
-        env.Append(CCFLAGS = '-fmessage-length=0')
+        env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined suppress', '-flat_namespace', '-undefined suppress'])
+        env.Append(CCFLAGS = ['-fmessage-length=0'])
         if is64bits and not use32bits:
-            env.Append(CCFLAGS = '-arch x86_64',
-                       LINKFLAGS = '-arch x86_64 -Wl,-bind_at_load')
+            env.Append(CCFLAGS = ['-arch x86_64'],
+                       LINKFLAGS = ['-arch x86_64', '-Wl', '-bind_at_load'])
     
     elif platform == 'Linux':
         if is64bits and use32bits:
-            env.Append(CCFLAGS = '-m32', LINKFLAGS = '-m32')
+            env.Append(CCFLAGS = ['-m32'], LINKFLAGS = ['-m32'])
     
     if not is64bits and not use32bits:
         use32bits = True
 
 
 
-if is64bits and use32bits:
+if is64bits and use32bits and not useVxworks:
     osname = osname + '-32'
 
 print "OSNAME =", osname
@@ -282,7 +282,7 @@ if not coda.configureJNI(env):
 ###############################
 
 if 'doc' in COMMAND_LINE_TARGETS:
-    coda.generateDocs(env, False, False, True, "java/org/jlab/coda/cMsg")
+    coda.generateDocs(env, False, False, True, "java/org/jlab/coda/et")
 
 if 'undoc' in COMMAND_LINE_TARGETS:
     coda.removeDocs(env)
