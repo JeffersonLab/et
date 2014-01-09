@@ -1,4 +1,8 @@
 .svn
+.scon*
+coda.pyc
+*.iml
+config.log
 doxyerrors.log
 doc/javadoc/*
 doc/doxygen/*
