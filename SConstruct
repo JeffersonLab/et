@@ -98,7 +98,7 @@ use32bits = GetOption('use32bits')
 if use32bits: print "use 32-bit libs & executables even on 64 bit system"
 Help('--32bits            compile 32bit libs & executables on 64bit system\n')
 
-# Pthread read/write locks
+# Pthread read/write locks option
 AddOption('--no-rwlock',
            dest='norwlock',
            default=False,
@@ -116,6 +116,7 @@ AddOption('--prefix',
 prefix = GetOption('prefix')
 Help('--prefix=<dir>      use base directory <dir> when doing install\n')
 
+# include install directory option
 AddOption('--incdir',
           dest='incdir',
           nargs=1,
@@ -124,6 +125,7 @@ AddOption('--incdir',
 incdir = GetOption('incdir')
 Help('--incdir=<dir>      copy header  files to directory <dir> when doing install\n')
 
+# library install directory option
 AddOption('--libdir',
           dest='libdir',
           nargs=1,
@@ -132,6 +134,7 @@ AddOption('--libdir',
 libdir = GetOption('libdir')
 Help('--libdir=<dir>      copy library files to directory <dir> when doing install\n')
 
+# binary install directory option
 AddOption('--bindir',
           dest='bindir',
           nargs=1,
