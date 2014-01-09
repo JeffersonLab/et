@@ -1,8 +1,7 @@
-# scons build file for et
-Import('env', 'libInstallDir', 'binInstallDir', 'archDir', 'execLibs', 'debugSuffix')
-import re
+# scons build file for ET execsrc
+Import('env', 'binInstallDir', 'archDir', 'execLibs', 'debugSuffix')
 
- # lists of all C and C++ files
+# lists of all C and C++ files
 fileList = Glob('*.c',  strings=True) + Glob('*.cc', strings=True)
 
 # For each C file, create executable of the same name,
@@ -12,4 +11,6 @@ for fileName in fileList:
                                LIBS    = ['et'+debugSuffix] + execLibs,
                                LIBPATH = ['#src/libsrc/'+archDir],
                                CPPPATH = ['.','#src/libsrc'])
-    env.Alias('install', env.Install(target = binInstallDir, source = compiledFile))
+    
+    if 'install' in COMMAND_LINE_TARGETS:
+        env.Alias('install', env.Install(target = binInstallDir, source = compiledFile))
