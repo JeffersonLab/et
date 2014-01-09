@@ -6,10 +6,8 @@ import re, sys, glob, os, string, subprocess
 from os import sep, symlink
 from subprocess import Popen, PIPE
 
-# for Configure
-from SCons.Script  import *
-# for Builder
-from SCons.Builder import *
+from SCons.Script  import Configure
+from SCons.Builder import Builder
 
 ################
 # File handling
@@ -109,6 +107,81 @@ def is64BitMachine(env, platform, machine):
             return False
 
 
+def configureVxworks(env, vxVersion, platform):
+    """Setup everything for vxWorks cross compilation."""
+    ## Figure out which version of vxworks is being used.
+    ## Do this by finding out which ccppc is first in our PATH.
+    #vxCompilerPath = Popen('which ccppc', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
+    
+    ## Then ty to grab the major version number from the PATH
+    #matchResult = re.match('/site/vxworks/(\\d).+', vxCompilerPath)
+    #if matchResult != None:
+        ## Test if version number was obtained
+        #try:
+            #vxVersion = int(matchResult.group(1))
+        #except IndexError:
+            #print 'ERROR finding vxworks version, set to 6 by default\n'
+    
+    vxInc = ''
+
+    if vxVersion == 5.5:
+        vxbase = '/site/vxworks/5.5/ppc'
+        vxInc  = [vxbase + '/target/h']
+        env.Append(CPPDEFINES = ['VXWORKS_5'])
+    elif vxVersion == 6.0:
+        vxbase = '/site/vxworks/6.0/ppc/gnu/3.3.2-vxworks60'
+        vxInc  = ['/site/vxworks/6.0/ppc/vxworks-6.0/target/h',
+                  '/site/vxworks/6.0/ppc/vxworks-6.0/target/h/wrn/coreip']
+        env.Append(CPPDEFINES = ['VXWORKS_6'])
+    else:
+        print 'Unknown version of vxWorks, exiting'
+        return 0
+
+
+    if platform == 'Linux':
+        if vxVersion == 5.5:
+            vxbin = vxbase + '/host/x86-linux/bin/'
+        else:
+            vxbin = vxbase + '/x86-linux2/bin/'
+    elif platform == 'SunOS':
+        if vxVersion >= 6:
+            print '\nVxworks 6.x compilation not allowed on solaris'
+            return 0
+        vxbin = vxbase + '/host/sun4-solaris2/bin/'
+        if machine == 'i86pc':
+            print '\nVxworks compilation not allowed on x86 solaris'
+            return 0
+    else:
+        print '\nVxworks compilation not allowed on ' + platform
+        return 0
+        
+                    
+    # If the supplied vxworks path is bad, rely
+    # on the PATH to find vxworks executables
+    if not os.path.exists(vxbin):
+        vxbin = ''
+    
+
+    env.Replace(SHLIBSUFFIX = '.o')
+    # Get rid of -shared and use -r
+    env.Replace(SHLINKFLAGS = '-r')
+    # Redefine SHCFLAGS/SHCCFLAGS to get rid of -fPIC (in Linux)
+    vxFlags = '-fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604'
+    env.Replace(SHCFLAGS  = vxFlags)
+    env.Replace(SHCCFLAGS = vxFlags)
+    env.Append(CFLAGS     = vxFlags)
+    env.Append(CCFLAGS    = vxFlags)
+    env.Append(CPPPATH    = vxInc)
+    env.Append(CPPDEFINES = ['CPU=PPC604', 'VXWORKS', '_GNU_TOOL', 'VXWORKSPPC', 'POSIX_MISTAKE', 'NO_RW_LOCK'])
+    env['CC']     = vxbin + 'ccppc'
+    env['CXX']    = vxbin + 'g++ppc'
+    env['SHLINK'] = vxbin + 'ldppc'
+    env['AR']     = vxbin + 'arppc'
+    env['RANLIB'] = vxbin + 'ranlibppc'
+    
+    return 1
+
+
 
 ###########################
 # Installation Directories
@@ -132,9 +205,6 @@ def getInstallationDirs(osname, prefix, incdir, libdir, bindir):
                 raise SystemExit
         else:
             prefix = codaHomeEnv
-            print "Default install directory = ", prefix
-    else:
-        print 'Cmdline install directory = ', prefix
     
     osDir = prefix + "/" + osname
     
@@ -157,7 +227,8 @@ def getInstallationDirs(osname, prefix, incdir, libdir, bindir):
         binDir = osDir + '/bin'
     
     # Return absolute paths in list
-    return [os.path.abspath(osDir),
+    return [os.path.abspath(prefix),
+            os.path.abspath(osDir),
             os.path.abspath(incDir),
             os.path.abspath(archIncDir),
             os.path.abspath(libDir),
@@ -227,7 +298,7 @@ def makeIncludeDirs(includeDir, archIncludeDir, archDir):
 # JAVA JNI
 ###########
 
-def ConfigureJNI(env):
+def configureJNI(env):
     """Configure the given environment for compiling Java Native Interface
        c or c++ language files."""
 
