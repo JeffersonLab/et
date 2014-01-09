@@ -63,83 +63,52 @@ Help('\n-D                  build from subdirectory of package\n')
 Help('\nlocal scons OPTIONS:\n')
 
 # debug option
-AddOption('--dbg',
-           dest='ddebug',
-           default=False,
-           action='store_true')
+AddOption('--dbg', dest='ddebug', default=False, action='store_true')
 debug = GetOption('ddebug')
 if debug: print "Enable debugging"
 Help('--dbg               compile with debug flag\n')
 
 # vxworks 5.5 option
-AddOption('--vx5.5',
-           dest='doVX55',
-           default=False,
-           action='store_true')
+AddOption('--vx5.5', dest='doVX55', default=False, action='store_true')
 useVxworks55 = GetOption('doVX55')
 if useVxworks55: print "Use vxWorks version 5.5"
 Help('--vx5.5             cross compile for vxworks 5.5\n')
 
 # vxworks 6.0 option
-AddOption('--vx6.0',
-           dest='doVX60',
-           default=False,
-           action='store_true')
+AddOption('--vx6.0', dest='doVX60', default=False, action='store_true')
 useVxworks60 = GetOption('doVX60')
 if useVxworks60: print "Use vxWorks version 6.0"
 Help('--vx6.0             cross compile for vxworks 6.0\n')
 
 # 32 bit option
-AddOption('--32bits',
-           dest='use32bits',
-           default=False,
-           action='store_true')
+AddOption('--32bits', dest='use32bits', default=False, action='store_true')
 use32bits = GetOption('use32bits')
 if use32bits: print "use 32-bit libs & executables even on 64 bit system"
 Help('--32bits            compile 32bit libs & executables on 64bit system\n')
 
 # Pthread read/write locks option
-AddOption('--no-rwlock',
-           dest='norwlock',
-           default=False,
-           action='store_true')
+AddOption('--no-rwlock', dest='norwlock', default=False, action='store_true')
 noReadWriteLocks = GetOption('norwlock')
 if noReadWriteLocks: print "compile without read-write locks"
 Help('--no-rwlock         compile without pthread read/write locks\n')
 
 # install directory option
-AddOption('--prefix',
-           dest='prefix',
-           nargs=1,
-           default='',
-           action='store')
+AddOption('--prefix', dest='prefix', nargs=1, default='', action='store')
 prefix = GetOption('prefix')
 Help('--prefix=<dir>      use base directory <dir> when doing install\n')
 
 # include install directory option
-AddOption('--incdir',
-          dest='incdir',
-          nargs=1,
-          default=None,
-          action='store')
+AddOption('--incdir', dest='incdir', nargs=1, default=None, action='store')
 incdir = GetOption('incdir')
 Help('--incdir=<dir>      copy header  files to directory <dir> when doing install\n')
 
 # library install directory option
-AddOption('--libdir',
-          dest='libdir',
-          nargs=1,
-          default=None,
-          action='store')
+AddOption('--libdir', dest='libdir', nargs=1, default=None, action='store')
 libdir = GetOption('libdir')
 Help('--libdir=<dir>      copy library files to directory <dir> when doing install\n')
 
 # binary install directory option
-AddOption('--bindir',
-          dest='bindir',
-          nargs=1,
-          default=None,
-          action='store')
+AddOption('--bindir', dest='bindir', nargs=1, default=None, action='store')
 bindir = GetOption('bindir')
 Help('--bindir=<dir>      copy binary  files to directory <dir> when doing install\n')
 
