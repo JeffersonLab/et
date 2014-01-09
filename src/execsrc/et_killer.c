@@ -1,12 +1,12 @@
 /*----------------------------------------------------------------------------*
- *  Copyright (c) 1998        Southeastern Universities Research Association, *
+ *  Copyright (c) 2013        Jefferson Science Associates,                   *
  *                            Thomas Jefferson National Accelerator Facility  *
  *                                                                            *
  *    This software was developed under a United States Government license    *
  *    described in the NOTICE file included as part of this distribution.     *
  *                                                                            *
  *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12B3       *
+ *             timmer@jlab.org                   Jefferson Lab, Suite 3       *
  *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
  *             Fax:   (757) 269-6248             Newport News, VA 23606       *
  *                                                                            *
