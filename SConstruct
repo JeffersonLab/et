@@ -125,7 +125,8 @@ if useVxworks55:
 elif useVxworks60:
     useVxworks = True
     vxVersion  = 6.0
-    
+
+
 # Debug/optimization flags
 debugSuffix = ''
 if debug:
@@ -139,7 +140,17 @@ elif platform == 'SunOS':
 else:
     env.Append(CCFLAGS = '-O3')
 
+
+# Take care of 64/32 bit issues
+if is64bits:
+    # Setup 64 bit machine to compile either 32 or 64 bit libs & executables
+    coda.configure32bits(env, use32bits, platform)
+elif not use32bits:
+    use32bits = True
+
+
 execLibs = ['']
+
 
 # If using vxworks ...
 if useVxworks:
@@ -164,29 +175,11 @@ else:
         env.Append(CCFLAGS = ['-mt'])
         env.Append(CPPDEFINES = ['_GNU_SOURCE', '_REENTRANT', '_POSIX_PTHREAD_SEMANTICS', 'SunOS'])
         execLibs = ['m', 'posix4', 'pthread', 'socket', 'resolv', 'nsl', 'dl']
-        if is64bits and not use32bits:
-            if machine == 'sun4u':
-                env.Append(CCFLAGS = ['-xarch=native64', '-xcode=pic32'],
-                           LINKFLAGS = ['-xarch=native64', '-xcode=pic32'])
-            else:
-                env.Append(CCFLAGS = ['-xarch=amd64'],
-                           LINKFLAGS = ['-xarch=amd64'])
     
     elif platform == 'Darwin':
         execLibs = ['pthread', 'dl']
         env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined suppress', '-flat_namespace', '-undefined suppress'])
         env.Append(CCFLAGS = ['-fmessage-length=0'])
-        if is64bits and not use32bits:
-            env.Append(CCFLAGS = ['-arch x86_64'],
-                       LINKFLAGS = ['-arch x86_64', '-Wl', '-bind_at_load'])
-    
-    elif platform == 'Linux':
-        if is64bits and use32bits:
-            env.Append(CCFLAGS = ['-m32'], LINKFLAGS = ['-m32'])
-    
-    if not is64bits and not use32bits:
-        use32bits = True
-
 
 
 if is64bits and use32bits and not useVxworks:

@@ -107,6 +107,31 @@ def is64BitMachine(env, platform, machine):
             return False
 
 
+
+def configure32bits(env, use32bits, platform):
+    """Setup environment on 64 bit machine to handle 32 or 64 bit libs and executables."""
+    if platform == 'SunOS':
+        if not use32bits:
+            if machine == 'sun4u':
+                env.Append(CCFLAGS =   ['-xarch=native64', '-xcode=pic32'],
+                           LINKFLAGS = ['-xarch=native64', '-xcode=pic32'])
+            else:
+                env.Append(CCFLAGS =   ['-xarch=amd64'],
+                           LINKFLAGS = ['-xarch=amd64'])
+
+    elif platform == 'Darwin':
+        if not use32bits:
+            env.Append(CCFLAGS =   ['-arch x86_64'],
+                       LINKFLAGS = ['-arch x86_64', '-Wl', '-bind_at_load'])
+
+    elif platform == 'Linux':
+        if use32bits:
+            env.Append(CCFLAGS = ['-m32'], LINKFLAGS = ['-m32'])
+
+    return
+
+
+
 def configureVxworks(env, vxVersion, platform):
     """Setup everything for vxWorks cross compilation."""
     ## Figure out which version of vxworks is being used.
