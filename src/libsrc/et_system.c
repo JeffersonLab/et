@@ -180,11 +180,13 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
   size_data     = config->event_size * config->nevents;
   size = size_system + size_stations + size_histo + size_events + size_data;
   
-//printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
-//       size_system, size_stations, size_histo, size_events, size_data);
+/*printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
+  size_system, size_stations, size_histo, size_events, size_data); */
 
+  printf("before map: pSharedMem = %lp\n",pSharedMem);
   /* create the ET system memory */
   status = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
+  printf("after  initial map: pSharedMem = %lp\n",pSharedMem);
   
   /* general error trying to create mapped memory */
   if (status != ET_OK && status != ET_ERROR_EXISTS) {
@@ -236,20 +238,35 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig)
       return ET_ERROR;
     }
 
-    /* Delete unused ET file and continue */
-    err = unlink(config->filename);
-    if (err != 0) {
+    /* Now that there is no ET system process associated with the file,
+       unmap the file, remove it, recreate it and then remap it. */
+    err = et_mem_remove(config->filename, pSharedMem);
+    if (err != ET_OK) {
+        /* Cannot unmap memory */
         if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_system_start, cannot delete unused, existing ET file\n");
+            et_logmsg("ERROR", "et_system_start, Error umapping existing file\n");
         }
         pthread_attr_destroy(&attr);
-        munmap((void *) pSharedMem, etid->memsize);
         et_id_destroy(*id);
-        return ET_ERROR;
+        return err;
+    }
+
+    /* Recreating & remapping the ET system memory */
+    err = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
+    printf("after  final create: pSharedMem = %lp\n",pSharedMem);
+    if (err != ET_OK) {
+        /* Cannot unmap memory */
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_system_start, Cannot create mmap file\n");
+        }
+        pthread_attr_destroy(&attr);
+        et_id_destroy(*id);
+        return err;
     }
   }
   
   /* everything's OK so start up a new ET system */
+  printf("writing first block: pSharedMem = %lp\n",pSharedMem);
 
   /* memory has been mapped by now, fill first
      ET_INITIAL_SHARED_MEM_DATA_BYTES bytes with
