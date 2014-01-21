@@ -259,6 +259,9 @@ int et_bridge_CODAswap(et_event *src_ev, et_event *dest_ev, int bytes, int same_
 {
   int nints = bytes/sizeof(int);
   
+  /* DEPRECATED: Swapping is now done in evio library. */
+  return ET_ERROR;
+  
   et_CODAswap((int *)src_ev->pdata, (int *)dest_ev->pdata, nints, same_endian);
   return ET_OK;
 }

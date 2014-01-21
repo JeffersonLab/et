@@ -1195,11 +1195,6 @@ if (debug) printf("et_findserver: no valid response received\n");
 }
 
 
-/*****************************************************
- * See da.h for the following definitions. This include file is not
- * included here because it drags a horrid lot of irrelevant stuff
- * with it.
- ****************************************************/
 #define DT_BANK    0x10
 #define DT_LONG    0x01
 #define DT_SHORT   0x05
@@ -1223,12 +1218,18 @@ static int dtswap[] = {0,2,2,0,1,1,0,0, 3,2,3,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,
  * written from a same or different endian machine
  * (i.e. do we swap bank info or not). In the first
  * case, set same_endian = 1, else 0.
+ *
+ * This function is deprecated. Use the swapping
+ * function contained in the evio library.
  ******************************************************/
 int et_CODAswap(int *src, int *dest, int nints, int same_endian)
 {
     int   i, j, blen, dtype;
     int   *lp, *lpd;
     short *sp, *spd;
+
+    /* DEPRECATED: This function does NOT do a complete job anymore. */
+    return ET_ERROR;
 
     /* int pointers */
     if (dest == NULL) {
