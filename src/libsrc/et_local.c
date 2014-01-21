@@ -478,7 +478,7 @@ int etl_kill(et_sys_id id)
     int i, status;
     et_id *etid = (et_id *) id;
 
-    /* If the ET server got a command from a remote client to kill itself ... */
+    /* If the ET server got a command from a client to kill itself ... */
     if (etid->proc == ET_SYS) {
         et_system_lock(etid->sys);
         /* Set the magic bit that the hearbeat thread looks for.
