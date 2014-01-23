@@ -69,6 +69,7 @@
         <echo message="    build.classes = ${build.classes}" />
         <echo message="    doc.dir       = ${doc.dir}" />
         <echo message="    javac.debug   = ${javac.debug}" />
+        <echo message="    classpath     = ${env.CLASSPATH}" />
     </target>
 
 
