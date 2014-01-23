@@ -159,18 +159,9 @@ int main(int argc,char **argv)
   
     /* Check the ET system name */
     if (tmp_etname == NULL) {
-        /* see if env variable SESSION is defined */
-        if ( (tmp_etname = getenv("SESSION")) == NULL ) {
-            fprintf(stderr, "%s: No ET file name given and SESSION env variable not defined\n", argv[0]);
-            usage(argv[0]);
-            exit(-1);
-        }
-        /* check length of name */
-        if ( (strlen(tmp_etname) + 12) >=  ET_FILENAME_LENGTH) {
-            fprintf(stderr, "%s: ET file name is too long\n", argv[0]);
-            exit(-1);
-        }
-        sprintf(etname, "%s%s", "/tmp/et_sys_", tmp_etname);
+        fprintf(stderr, "\nET file name required\n\n");
+        usage(argv[0]);
+        exit(-1);
     }
   
     /* Check the host's name, look only locally by default */
@@ -198,7 +189,7 @@ int main(int argc,char **argv)
   
     /* before we open things, find out if we're local or not */
     locality = et_findlocality(etname, openconfig);
-    printf("LOCALITY = %d\n", locality);
+/*printf("LOCALITY = %d\n", locality);*/
     /* if we're local, do an et_look not an et_open */
     if (locality == ET_ERROR) {
         printf("%s: cannot find ET system\n", argv[0]);
