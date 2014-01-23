@@ -134,10 +134,15 @@
         <mkdir dir="${build.classes}" />
         <mkdir dir="${build.lib}" />
         <antcall target="preparePrefixDir"/>
+        <antcall target="prepareCodaDir"/>
     </target>
 
     <target name="preparePrefixDir" if="prefixDefined">
         <mkdir dir="${prefix}/jar" />
+    </target>
+
+    <target name="prepareCodaDir" if="codaDefined">
+        <mkdir dir="${env.CODA}/common/jar" />
     </target>
 
 
@@ -155,7 +160,7 @@
     </target>
 
     <!-- Compile all source -->
-    <target name="compile" depends="prepare,CODA_cp" description="Compiles all source code.">
+    <target name="compile" depends="CODA_cp,prepare" description="Compiles all source code.">
         <javac destdir="${build.classes}" debug="${javac.debug}" optimize="yes" >
             <src path="${src.dir}" />
             <classpath refid="classpath" />
