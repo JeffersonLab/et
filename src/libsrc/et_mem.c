@@ -50,7 +50,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
   totalsize  = pagesize * num_pages;
   /*printf("et_mem_create: size = %d bytes, requested size = %d bytes\n",totalsize, memsize);*/
 
-  mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
+  mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
   if ((fd = open(name, O_RDWR|O_CREAT|O_EXCL, mode)) < 0) {
     /* file exists already */
     return ET_ERROR_EXISTS;
