@@ -15,7 +15,7 @@ from SCons.Builder import Builder
 
 def recursiveDirs(root) :
     """Return a list of all subdirectories of root, top down,
-       including root, but without .svn directories"""
+       including root, but without .svn and .<arch> directories"""
     return filter( (lambda a : (a.rfind( ".svn")==-1) and \
                                (a.rfind( ".Linux")==-1) and \
                                (a.rfind( ".SunOS")==-1) and \
@@ -269,7 +269,7 @@ def getInstallationDirs(osname, prefix, incdir, libdir, bindir):
 # Include File Directories
 ###########################
 
-def makeIncludeDirs(includeDir, archIncludeDir, archDir):
+def makeIncludeDirs(includeDir, archIncludeDir, archDir, archIncLocalLink):
     """Function to make include directories"""
     #
     # Create main include dir if it doesn't exist
@@ -308,7 +308,10 @@ def makeIncludeDirs(includeDir, archIncludeDir, archDir):
     if not os.path.exists(archIncludeDir):
         # Create symbolic link: symlink(source, linkname)
         try:
-            symlink(includeDir, archIncludeDir)
+    	    if (archIncLocalLink == None) or (archIncLocalLink == ''):
+	    	symlink(includeDir, archIncludeDir)
+            else:
+	    	symlink(archIncLocalLink, archIncludeDir)
         except OSError:
             # Failed to create symbolic link, so
             # just make it a regular directory

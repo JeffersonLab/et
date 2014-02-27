@@ -200,6 +200,13 @@ binInstallDir     = ""
 incInstallDir     = ""
 archIncInstallDir = ""
 
+# If a specific installation dir for includes is not specified
+# on the command line, then the architecture specific include
+# dir is a link to local ../common/include directory.
+archIncLocalLink = None
+if (incdir == None):
+    archIncLocalLink = '../common/include'
+
 # If we going to install ...
 if 'install' in COMMAND_LINE_TARGETS:
     # Determine installation directories
@@ -213,7 +220,7 @@ if 'install' in COMMAND_LINE_TARGETS:
     binInstallDir     = installDirs[5]
     
     # Create the include directories (make symbolic link if possible)
-    coda.makeIncludeDirs(incInstallDir, archIncInstallDir, osDir)
+    coda.makeIncludeDirs(incInstallDir, archIncInstallDir, osDir, archIncLocalLink)
 
     print 'Main install dir  = ', mainInstallDir
     print 'bin  install dir  = ', binInstallDir
