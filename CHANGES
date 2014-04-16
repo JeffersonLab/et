@@ -26,3 +26,7 @@ Changes from the previous version:
     -- install & uninstall jar files
     -- install into CODA env var or into --prefix
 
+
+1/21/2014
+	Made ET file other-readable & other-writeable
+	Deprecate routines that swap (use evio)
