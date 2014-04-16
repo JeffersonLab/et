@@ -197,7 +197,7 @@ public class Producer {
             // array of events
             EtEvent[] mevs;
 
-            int    count = 0, startingVal = 0;
+            int    count = 0, skip = 5, startingVal = 0;
             long   t1, t2, time, totalT = 0, totalCount = 0;
             double rate, avgRate;
 
@@ -217,20 +217,22 @@ public class Producer {
                 if (delay > 0) Thread.sleep(delay);
 
                 // example of how to manipulate events
-                if (false) {
+                if (true) {
                     for (int j = 0; j < mevs.length; j++) {
                         // put integer (j + startingVal) into data buffer
-                        int swappedData = Integer.reverseBytes(j + startingVal);
-                        mevs[j].getDataBuffer().putInt(swappedData);
+                        //int swappedData = Integer.reverseBytes(j + startingVal);
+                        //mevs[j].getDataBuffer().putInt(swappedData);
+                        mevs[j].getDataBuffer().putLong((long)j);
 
                         // big endian by default
-                        mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
+                       // mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
 
                         // set data length to be 4 bytes (1 integer)
-                        mevs[j].setLength(4);
+                        //mevs[j].setLength(4);
+                        mevs[j].setLength(8);
 
                         // set event's control array
-                        mevs[j].setControl(con);
+                        //mevs[j].setControl(con);
                     }
                     startingVal += mevs.length;
                 }
@@ -252,11 +254,17 @@ public class Producer {
                         continue;
                     }
                     rate = 1000.0 * ((double) count) / time;
-                    totalCount += count;
-                    totalT += time;
-                    avgRate = 1000.0 * ((double) totalCount) / totalT;
-                    System.out.println("rate = " + String.format("%.3g", rate) +
-                                       " Hz,  avg = " + String.format("%.3g", avgRate));
+
+                    if (skip-- < 1) {
+                        totalCount += count;
+                        totalT += time;
+                        avgRate = 1000.0 * ((double) totalCount) / totalT;
+                        System.out.println("rate = " + String.format("%.3g", rate) +
+                                        " Hz,  avg = " + String.format("%.3g", avgRate));
+                    }
+                    else {
+                        System.out.println("rate = " + String.format("%.3g", rate));
+                    }
                     count = 0;
                     t1 = System.currentTimeMillis();
                 }
