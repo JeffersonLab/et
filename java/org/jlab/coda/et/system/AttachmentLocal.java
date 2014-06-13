@@ -25,7 +25,7 @@ package org.jlab.coda.et.system;
  * @author Carl Timmer
  */
 
-class AttachmentLocal {
+public class AttachmentLocal {
 
     // TODO: keep a list or set of events we currently have out?
 
