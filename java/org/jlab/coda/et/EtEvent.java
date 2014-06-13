@@ -72,6 +72,12 @@ public interface EtEvent {
     public Priority getPriority();
 
     /**
+     * Gets the size of the data buffer in bytes.
+     * @return size of the data buffer in bytes
+     */
+    public int getMemSize();
+
+    /**
      * Gets the length of the data in bytes.
      * @return length of the data in bytes.
      */
