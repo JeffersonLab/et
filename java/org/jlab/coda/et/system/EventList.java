@@ -23,7 +23,7 @@ import org.jlab.coda.et.EtEventImpl;
 import org.jlab.coda.et.enums.Priority;
 
 /**
- * This class defines a linked list of events for use as either a station's
+ * This class defines a list of events for use as either a station's
  * input or output list in a station.
  *
  * @author Carl Timmer
@@ -31,8 +31,8 @@ import org.jlab.coda.et.enums.Priority;
 
 class EventList {
 
-    /** Linked list of events. */
-    private LinkedList<EtEventImpl> events;
+    /** List of events. */
+    private ArrayList<EtEventImpl> events;
 
     /** Number of events put into this list. */
     private long eventsIn;
@@ -60,8 +60,8 @@ class EventList {
 
 
     /** Construct a new EventList object. */
-    EventList() {
-        events = new LinkedList<EtEventImpl>();
+    EventList(int listSize) {
+        events = new ArrayList<EtEventImpl>(listSize);
     }
 
 
@@ -70,7 +70,7 @@ class EventList {
      * Get the linked list of events.
      * @return linked list of events
      */
-    LinkedList<EtEventImpl> getEvents() {
+    ArrayList<EtEventImpl> getEvents() {
         return events;
     }
 
@@ -259,7 +259,7 @@ class EventList {
             // if low priority event, add to the list end
             if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
-                events.addLast(ev);
+                events.add(ev);
             }
             // else if high pri event, add after other high priority events
             else {
@@ -288,7 +288,7 @@ class EventList {
             // if low priority event, add to the list end
             if (ev.getPriority() == Priority.LOW) {
 //System.out.println(" put in low - " + ev.id);
-                events.addLast(ev);
+                events.add(ev);
             }
             // else if high pri event, add after other high priority events
             else {
