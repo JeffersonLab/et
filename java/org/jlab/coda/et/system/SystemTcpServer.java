@@ -674,7 +674,7 @@ class ClientThread extends Thread {
                             AttachmentLocal att = attachments.get(new Integer(attId));
 
                             int id = EtUtils.bytesToInt(params, 4);
-                            EtEventImpl ev = sys.getEvents().get(id);
+                            EtEventImpl ev = sys.getEvents()[id];
                             // skip 4 bytes here
 
                             long len = EtUtils.bytesToLong(params, 12);
@@ -727,7 +727,7 @@ class ClientThread extends Thread {
                                 in.readFully(params, 0, byteChunk);
 
                                 id = EtUtils.bytesToInt(params, 0);
-                                evs[j] = sys.getEvents().get(id);
+                                evs[j] = sys.getEvents()[id];
                                 // skip 4 bytes here
 
                                 len = EtUtils.bytesToLong(params, 8);
@@ -994,7 +994,7 @@ class ClientThread extends Thread {
                             int  id    = in.readInt();
 
                             AttachmentLocal att = attachments.get(new Integer(attId));
-                            EtEventImpl ev = sys.getEvents().get(id);
+                            EtEventImpl ev = sys.getEvents()[id];
                             EtEventImpl[] evArray = new EtEventImpl[1];
                             evArray[0] = ev;
                             sys.dumpEvents(att, evArray);
@@ -1018,7 +1018,7 @@ class ClientThread extends Thread {
 
                             for (int j = 0; j < numEvents; j++) {
                                 id = EtUtils.bytesToInt(buf, index += 4);
-                                evs[j] = sys.getEvents().get(id);
+                                evs[j] = sys.getEvents()[id];
                             }
 
                             sys.dumpEvents(att, evs);
