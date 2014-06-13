@@ -42,7 +42,7 @@ public class SystemCreate {
      *  station of a single group of parallel stations is included in
      *  this list. The other parallel stations are available in a list
      *  kept by the first parallel station. */
-    private LinkedList<StationLocal> stations;            // protected by stopTransfer & systemLock
+    private ArrayList<StationLocal> stations;            // protected by stopTransfer & systemLock
 
     /** The total number of idle and active stations. This consists
      * of the number of main stations given by the size of the "stations"
@@ -56,8 +56,8 @@ public class SystemCreate {
     /** Map of all ET system attachments. */
     private HashMap<Integer,AttachmentLocal> attachments;         // protected by systemLock
 
-    /** Map of all ET system events. */
-    private HashMap<Integer, EtEventImpl> events;
+    /** Array of all ET system events. */
+    private EtEventImpl[] events;
 
     /** All local IP addresses */
     private InetAddress[]netAddresses;
@@ -140,8 +140,8 @@ public class SystemCreate {
         this.name = name;
         this.config = new SystemConfig(config);
         attachments = new HashMap<Integer, AttachmentLocal>(EtConstants.attachmentsMax + 1);
-        events = new HashMap<Integer, EtEventImpl>(config.getNumEvents() + 1);
-        stations = new LinkedList<StationLocal>();
+        events = new EtEventImpl[config.getNumEvents()];
+        stations = new ArrayList<StationLocal>(100);
         // netAddresses will be set in SystemUdpServer
         systemLock  = new byte[0];
         stationLock = new byte[0];
@@ -225,7 +225,7 @@ public class SystemCreate {
 
     /** Get the linked list of stations.
      * @return linked list of stations */
-    public LinkedList<StationLocal> getStations() { return stations; }
+    public ArrayList<StationLocal> getStations() { return stations; }
 
     /** Get the station synchronization object.
      * @return  station synchronization object */
@@ -237,7 +237,7 @@ public class SystemCreate {
 
     /** Get map holding all ET system's events.
      * @return map holding all ET system's events */
-    public HashMap<Integer, EtEventImpl> getEvents() { return events; }
+    public EtEventImpl[] getEvents() { return events; }
 
     /** Gets the list of all network addresses.
      *  @return list of all network addresses */
@@ -286,7 +286,7 @@ public class SystemCreate {
 
             eventList.add(ev);
             // add to hashTable for future easy access
-            events.put(i, ev);
+            events[i] = ev;
         }
 
         // synchronization not necessary here as we're just starting up
@@ -463,7 +463,7 @@ public class SystemCreate {
             }
 
             // if the station is parallel, it's the head of another linked list.
-            station.getParallelStations().removeFirst();
+            station.getParallelStations().remove(0);
 
             // if no other stations in the group, we're done
             if (station.getParallelStations().size() < 1) {
@@ -473,7 +473,7 @@ public class SystemCreate {
             // If there are other stations in the group, make sure that the linked
             // list of parallel stations is passed on to the next member. And put
             // the new head of the parallel list into the main list.
-            StationLocal nextStation = station.getParallelStations().getFirst();
+            StationLocal nextStation = station.getParallelStations().get(0);
             nextStation.getParallelStations().clear();
             nextStation.getParallelStations().addAll(station.getParallelStations());
             station.getParallelStations().clear();
@@ -609,7 +609,7 @@ public class SystemCreate {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    StationLocal createStation(EtStationConfig stationConfig, String name)
+    public StationLocal createStation(EtStationConfig stationConfig, String name)
             throws EtException, EtExistsException, EtTooManyException {
         synchronized(stationLock) {
             return createStation(stationConfig, name, stations.size(), EtConstants.end);
@@ -634,7 +634,7 @@ public class SystemCreate {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
-    StationLocal createStation(EtStationConfig stationConfig, String name,
+    public StationLocal createStation(EtStationConfig stationConfig, String name,
                                int position, int parallelPosition)
             throws EtException, EtExistsException, EtTooManyException {
 
@@ -739,7 +739,7 @@ public class SystemCreate {
      *
      * @return GRAND_CENTRAL station's object
      */
-    private StationLocal createGrandCentral() {
+   private StationLocal createGrandCentral() {
         // use the default configuration
         EtStationConfig gcConfig = new EtStationConfig();
         StationLocal station = null;
@@ -751,7 +751,7 @@ public class SystemCreate {
 
         // put in linked list
         stations.clear();
-        stations.addFirst(station);
+        stations.add(0, station);
 
         // start its conductor thread
         station.start();
@@ -769,7 +769,7 @@ public class SystemCreate {
      * @throws EtException
      *     if attachments to the station still exist or the station does not exist
      */
-    void removeStation(int statId) throws EtException {
+    public void removeStation(int statId) throws EtException {
         StationLocal stat;
         // grab station mutex
         synchronized(stationLock) {
@@ -809,7 +809,7 @@ public class SystemCreate {
      *     of parallel stations or to the head of an existing group of parallel
      *     stations.
      */
-    void setStationPosition(int statId, int position, int parallelPosition) throws EtException {
+    public void setStationPosition(int statId, int position, int parallelPosition) throws EtException {
         StationLocal stat;
         // grab station mutex
         synchronized(stationLock) {
@@ -827,7 +827,7 @@ public class SystemCreate {
      * @throws EtException
      *     if the station does not exist
      */
-    int getStationPosition(int statId) throws EtException {
+    public int getStationPosition(int statId) throws EtException {
         // GrandCentral is always first
         if (statId == 0) return 0;
         int position = 0;
@@ -861,7 +861,7 @@ public class SystemCreate {
      * @throws EtException
      *     if the station does not exist
      */
-    int getStationParallelPosition(int statId) throws EtException {
+    public int getStationParallelPosition(int statId) throws EtException {
         // parallel position is 0 for serial stations
         if (statId == 0) return 0;
         int pposition;
@@ -896,7 +896,7 @@ public class SystemCreate {
      * @throws EtException
      *     if the station does not exist
      */
-    boolean stationAttached(int statId, int attId) throws EtException {
+    public boolean stationAttached(int statId, int attId) throws EtException {
         StationLocal stat;
         synchronized (stationLock) {
             stat = stationIdToObject(statId);
@@ -917,7 +917,7 @@ public class SystemCreate {
      * @return <code>true</code> if a station exists and
      *         <code>false</code> otherwise
      */
-    boolean stationExists(StationLocal station) {
+    public boolean stationExists(StationLocal station) {
         synchronized (stationLock) {
             if (stations.contains(station)) {
                 return true;
@@ -941,7 +941,7 @@ public class SystemCreate {
      * @return   <code>true</code> if a station exists and
      *           <code>false</code> otherwise
      */
-    boolean stationExists(String name) {
+    public boolean stationExists(String name) {
         try {
             stationNameToObject(name);
         }
@@ -960,7 +960,7 @@ public class SystemCreate {
      * @throws EtException
      *     if the station does not exist
      */
-    StationLocal stationNameToObject(String name) throws EtException {
+    public StationLocal stationNameToObject(String name) throws EtException {
         synchronized (stationLock) {
             for (StationLocal listStation : stations) {
                 if (listStation.getStationName().equals(name)) {
@@ -988,7 +988,7 @@ public class SystemCreate {
      * @throws EtException
      *     if the station does not exist
      */
-    StationLocal stationIdToObject(int statId) throws EtException {
+    public StationLocal stationIdToObject(int statId) throws EtException {
         synchronized (stationLock) {
             for (StationLocal stat : stations) {
                 if (stat.getStationId() == statId) {
@@ -1024,7 +1024,7 @@ public class SystemCreate {
      *     if no more attachments are allowed to the station, or
      *     if no more attachments are allowed to ET system
      */
-    AttachmentLocal attach(int statId) throws EtException, EtTooManyException {
+    public AttachmentLocal attach(int statId) throws EtException, EtTooManyException {
 
         AttachmentLocal att;
         synchronized (stationLock) {
@@ -1082,7 +1082,7 @@ public class SystemCreate {
      *
      * @param att   attachment object
      */
-    void detach(AttachmentLocal att) {
+    public void detach(AttachmentLocal att) {
 //System.out.println("detach: IN");
         synchronized (stationLock) {
             // if last attachment & not GrandCentral - mark station idle
@@ -1148,10 +1148,9 @@ public class SystemCreate {
         // events which go where directed by station configuration.
         ArrayList<EtEventImpl> usedEvs = new ArrayList<EtEventImpl>(config.getNumEvents());
         ArrayList<EtEventImpl>  newEvs = new ArrayList<EtEventImpl>(config.getNumEvents());
-//System.out.println("into restoreEvents");
 
         // look at all events
-        for (EtEventImpl ev : events.values()) {
+        for (EtEventImpl ev : events) {
             // find those owned by this attachment
             if (ev.getOwner() == att.getId()) {
                 if (ev.getAge().getValue() == EtConstants.eventNew) {
@@ -1274,7 +1273,7 @@ public class SystemCreate {
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
      */
-    EtEventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
+    public EtEventImpl[] newEvents(AttachmentLocal att, int mode, int microSec, int count, int size)
             throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: get " + count + " events");
@@ -1294,7 +1293,7 @@ public class SystemCreate {
                 ev.setData(new byte[size]);
                 ev.setMemSize(size);
             }
-//System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize);
+//System.out.println("newEvents: ev.id = "+ ev.getId() + ", size = " + ev.getMemSize());
         }
 
         // keep track of # of events made by this attachment
@@ -1332,7 +1331,7 @@ public class SystemCreate {
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
      */
-    List<EtEventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
+    public List<EtEventImpl> newEvents(AttachmentLocal att, int mode, int microSec, int count, int size, int group)
             throws EtException, EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
 //System.out.println("newEvents: try getting " + count + " events of group # " + group);
@@ -1356,7 +1355,7 @@ public class SystemCreate {
                 ev.setData(new byte[size]);
                 ev.setMemSize(size);
             }
-//System.out.println("newEvents: ev.id = "+ ev.id + ", size = " + ev.memSize + ", group = " + ev.group);
+//System.out.println("newEvents: ev.id = "+ ev.getId() + ", size = " + ev.getMemSize() + ", group = " + ev.getGroup());
         }
 
         // keep track of # of events made by this attachment
@@ -1390,7 +1389,7 @@ public class SystemCreate {
      *     if the attachment has been commanded to wakeup,
      *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
      */
-    EtEventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
+    public EtEventImpl[] getEvents(AttachmentLocal att, int mode, int microSec, int count)
             throws EtEmptyException, EtBusyException, EtTimeoutException, EtWakeUpException {
 
         EtEventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
@@ -1434,7 +1433,7 @@ public class SystemCreate {
      * @param att          attachment object
      * @param eventArray   array of event objects
      */
-    void putEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
+   public void putEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
         if (eventArray.length < 1) return;
 
         // mark events as used and as owned by system
@@ -1484,7 +1483,7 @@ public class SystemCreate {
      * @param att          attachment object
      * @param eventArray   array of event objects
      */
-    void dumpEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
+    public void dumpEvents(AttachmentLocal att, EtEventImpl[] eventArray) {
         if (eventArray.length < 1) return;
 
         // mark as owned by system
@@ -1601,7 +1600,7 @@ public class SystemCreate {
 
         // find out how many events the system owns
         int eventsOwned = 0;
-        for (EtEvent ev : events.values()) {
+        for (EtEvent ev : events) {
             if (ev.getOwner() == EtConstants.system) {
                 eventsOwned++;
             }
@@ -1911,7 +1910,7 @@ public class SystemCreate {
             // find out how many events the attachment owns
             eventsOwned = 0;
 
-            for (EtEvent ev : events.values()) {
+            for (EtEvent ev : events) {
                 if (ev.getOwner() == att.getId()) {
                     eventsOwned++;
                 }
