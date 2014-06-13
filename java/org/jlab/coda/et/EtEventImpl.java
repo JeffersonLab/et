@@ -400,12 +400,9 @@ public class EtEventImpl implements EtEvent {
     }
 
     /**
-     * Gets the size of the data buffer in bytes.
-     * @return size of the data buffer in bytes
+     * {@inheritDoc}
      */
-    public int getMemSize() {
-        return memSize;
-    }
+    public int getMemSize() { return memSize; }
 
     /**
      * Gets the size limit of the data buffer in bytes when using a C-based ET system.
