@@ -61,7 +61,7 @@ public class StationLocal extends Thread implements EtEventSelectable {
     /** If this station is the first in a linked list of parallel stations,
      *  this list contains all the parallel stations in that group.
      *  It's protected by stopTransferLock & {@link SystemCreate#systemLock}. */
-    private LinkedList<StationLocal> parallelStations;
+    private ArrayList<StationLocal> parallelStations;
 
     /** Input list of events. */
     private EventList inputList;
@@ -94,11 +94,11 @@ public class StationLocal extends Thread implements EtEventSelectable {
         this.name        = name;
         this.config      = new EtStationConfig(config);
         status           = EtConstants.stationUnused;
-        parallelStations = new LinkedList<StationLocal>();
+        parallelStations = new ArrayList<StationLocal>(20);
         stopTransferLock = new ReentrantLock();
 
-        inputList  = new EventList();
-        outputList = new EventList();
+        inputList  = new EventList(sys.getConfig().getNumEvents());
+        outputList = new EventList(sys.getConfig().getNumEvents());
 
         // attachments
         attachments = new HashSet<AttachmentLocal>(EtConstants.attachmentsMax);
@@ -173,7 +173,7 @@ public class StationLocal extends Thread implements EtEventSelectable {
      * Get the linked list of parallel stations.
      * @return linked list of parallel stations
      */
-    public LinkedList<StationLocal> getParallelStations() { return parallelStations; }
+    public ArrayList<StationLocal> getParallelStations() { return parallelStations; }
 
     /**
      * Get the station status which may be one of the following values: {@link org.jlab.coda.et.EtConstants#stationUnused },
@@ -456,7 +456,7 @@ public class StationLocal extends Thread implements EtEventSelectable {
             }
             else {
                 // the next station is GrandCentral, put everything in it
-                currentStat = sys.getStations().getFirst();
+                currentStat = sys.getStations().get(0);
                 inList = currentStat.inputList;
                 synchronized (inList) {
                     inList.putInLow(getList);
@@ -925,7 +925,7 @@ public class StationLocal extends Thread implements EtEventSelectable {
                     currentStat = (StationLocal) statIterator.next();
                 }
                 else {
-                    currentStat = sys.getStations().getFirst();
+                    currentStat = sys.getStations().get(0);
                 }
                 inList = currentStat.inputList;
 
