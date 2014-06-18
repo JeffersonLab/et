@@ -411,15 +411,15 @@ class EventList {
             else if (mode == EtConstants.timed) {
                 while (count < 1) {
                     microDelay = microSec - 1000*elapsedTime;
-                    milliSec   = microDelay/1000L;
-                    if (milliSec < 0) {
+                    if (microDelay < 0) {
                         throw new EtTimeoutException("timed out");
                     }
+                    milliSec = microDelay/1000L;
                     nanos = 1000 * (int)(microDelay - 1000*milliSec);
 
                     waitingCount++;
                     att.setWaiting(true);
-//System.out.println("  get" + att.getId() + ": wait " + milliSec + " ms and " +
+//System.out.println("  get" + att.getId() + ": wait " + microSec + "usec, " + microDelay + " usec delay," + milliSec + " ms and " +
 //                   nanos + " nsec, elapsed time = " + elapsedTime);
                     begin = System.currentTimeMillis();
                     try {
@@ -525,15 +525,11 @@ class EventList {
             else if (mode == EtConstants.timed) {
                 while (count < 1 || !scanList) {
                     microDelay = microSec - 1000*elapsedTime;
-                    milliSec   = microDelay/1000L;
-                    if (milliSec < 0) {
+                    if (microDelay < 0) {
                         throw new EtTimeoutException("timed out");
                     }
+                    milliSec = microDelay/1000L;
                     nanos = 1000 * (int)(microDelay - 1000*milliSec);
-//                    if (nanos > 999999) {
-//                        System.out.println("nanos = " + nanos + ", millisec = " +
-//                           milliSec + ", elapsed = " + elapsedTime + ", microSec = " + microSec + ", scanList = " + scanList);
-//                  }
 
                     waitingCount++;
                     att.setWaiting(true);
