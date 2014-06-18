@@ -412,7 +412,6 @@ class EventList {
                 while (count < 1) {
                     microDelay = microSec - 1000*elapsedTime;
                     if (microDelay <= 0) {
- System.out.println(" list.get() timed out");
                         throw new EtTimeoutException("timed out");
                     }
                     milliSec = microDelay/1000L;
@@ -420,8 +419,8 @@ class EventList {
 
                     waitingCount++;
                     att.setWaiting(true);
-System.out.println("  get" + att.getId() + ": wait " + microSec + "usec, " + microDelay + " usec delay," + milliSec + " ms and " +
-                   nanos + " nsec, elapsed time = " + elapsedTime);
+//System.out.println("  get" + att.getId() + ": wait " + microSec + "usec, " + microDelay + " usec delay," + milliSec + " ms and " +
+//                   nanos + " nsec, elapsed time = " + elapsedTime);
                     begin = System.currentTimeMillis();
                     try {
                         wait(milliSec, nanos);
