@@ -411,10 +411,10 @@ class EventList {
             else if (mode == EtConstants.timed) {
                 while (count < 1) {
                     microDelay = microSec - 1000*elapsedTime;
-                    milliSec   = microDelay/1000L;
-                    if (milliSec < 0) {
+                    if (microDelay <= 0) {
                         throw new EtTimeoutException("timed out");
                     }
+                    milliSec = microDelay/1000L;
                     nanos = 1000 * (int)(microDelay - 1000*milliSec);
 
                     waitingCount++;
@@ -525,11 +525,12 @@ class EventList {
             else if (mode == EtConstants.timed) {
                 while (count < 1 || !scanList) {
                     microDelay = microSec - 1000*elapsedTime;
-                    milliSec   = microDelay/1000L;
-                    if (milliSec < 0) {
+                    if (microDelay <= 0) {
                         throw new EtTimeoutException("timed out");
                     }
+                    milliSec = microDelay/1000L;
                     nanos = 1000 * (int)(microDelay - 1000*milliSec);
+
 //                    if (nanos > 999999) {
 //                        System.out.println("nanos = " + nanos + ", millisec = " +
 //                           milliSec + ", elapsed = " + elapsedTime + ", microSec = " + microSec + ", scanList = " + scanList);
