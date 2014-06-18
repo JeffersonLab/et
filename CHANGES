@@ -31,6 +31,9 @@ Changes from the previous version:
 	Made ET file other-readable & other-writeable
 	Deprecate routines that swap (use evio)
 
+
+ET 14.1
+
 6/18/2014
     et-14.0.jar  ->  et-14.1.jar
     --Fix bug in ET system (server) in which the getEvents() delay
