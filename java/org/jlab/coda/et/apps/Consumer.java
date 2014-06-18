@@ -14,11 +14,13 @@
 
 package org.jlab.coda.et.apps;
 
+import java.io.IOException;
 import java.lang.*;
 import java.nio.ByteBuffer;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.et.exception.*;
 
 
 /**
@@ -192,7 +194,7 @@ public class Consumer {
             EtAttachment att = sys.attach(stat);
 
             // array of events
-            EtEvent[] mevs;
+            EtEvent[] mevs = null;
 
             int num, count = 0;
             long t1=0, t2=0, time, totalT=0, totalCount=0;
@@ -204,7 +206,14 @@ public class Consumer {
             while (true) {
 
                 // get events from ET system
-                mevs = sys.getEvents(att, Mode.SLEEP, null, 0, chunk);
+                //mevs = sys.getEvents(att, Mode.SLEEP, null, 0, chunk);
+                try {
+                    mevs = sys.getEvents(att, Mode.TIMED, null, 2000000, chunk);
+                }
+                catch (EtTimeoutException e) {
+                    System.out.println("Timed out, try again");
+                    continue;
+                }
 
                 // example of reading & printing event data
                 if (verbose) {
