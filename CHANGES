@@ -36,9 +36,9 @@ ET 14.1
 
 6/18/2014
     et-14.0.jar  ->  et-14.1.jar
-    --Fix bug in ET system (server) in which the getEvents() delay
+    --Fix bug in java ET system (server) in which the getEvents() delay
       will become negative due to rounding error
-    --Fix bug in ET system (server) in which the getEvents() delay
+    --Fix bug in java ET system (server) in which the getEvents() delay
       will become infinite if 0 time left
 
 
