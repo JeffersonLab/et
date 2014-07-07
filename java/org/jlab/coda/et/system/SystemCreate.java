@@ -1044,7 +1044,16 @@ public class SystemCreate {
 
                 // Server will overwrite id & host with true (remote) values
                 att = new AttachmentLocal();
+                String host = "unknown";
+                String ipAddress = "unknown";
+                try {
+                    host = InetAddress.getLocalHost().getHostName();
+                    ipAddress = InetAddress.getLocalHost().getHostAddress();
+                }
+                catch (UnknownHostException e) {}
+                att.setHost(host);
                 att.setStation(station);
+                att.setIpAddress(ipAddress);
                 // find smallest possible unique id number
                 if (attachments.size() == 0) {
                     att.setId(0);
