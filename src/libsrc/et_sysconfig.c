@@ -50,7 +50,7 @@ int et_system_config_init(et_sysconfig* sconfig)
   sc->nprocesses       = ET_PROCESSES_MAX;
   sc->nattachments     = ET_ATTACHMENTS_MAX;
   sc->port             = ET_BROADCAST_PORT;
-  sc->serverport       = 0;
+  sc->serverport       = ET_SERVER_PORT;
   sc->tcpSendBufSize   = 0;  /* use operating system default */
   sc->tcpRecvBufSize   = 0;  /* use operating system default */
   sc->tcpNoDelay       = 1;  /* on */
