@@ -17,6 +17,7 @@ package org.jlab.coda.et.apps;
 import java.lang.*;
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 import org.jlab.coda.et.data.*;
 import org.jlab.coda.et.exception.*;
@@ -41,29 +42,34 @@ public class EtMonitor {
   
   
   private static void usage() {
-    System.out.println("\nUsage: java EtMonitor -f <et name> [-p <period>] [-port <server port>] [-h <host>]\n\n" +
-	               "       -f     ET system's name\n" +
-	               "       -p     period in seconds between data updates\n" +
-	               "       -port  port number for a direct connection\n" +
-	               "       -h     host the ET system resides on (defaults to local)\n" +
-	               "        This monitor works by making a direct connection to the\n" +
-		       "        ET system's tcp server port.\n");
+    System.out.println("\nUsage: java EtMonitor -f <ET name> [-h] [-host <ET host>]\n" +
+                       "                         [-t <period (sec)>] [-p <ET server port>]\n" +
+                       "                         [-u <mcast port>]\n\n" +
+	                   "       -f     ET system's name\n" +
+                       "       -h     help\n" +
+                       "       -host  host the ET system resides on (defaults to local)\n" +
+	                   "       -t     period in seconds between updates\n" +
+	                   "       -p     TCP port number for a direct connection\n" +
+	                   "       -u     multicast udp port\n\n");
   }
-  
+
   
   public static void main(String[] args) {
       String etName = null, host = null;
-      int port = EtConstants.serverPort;
+      int port  = EtConstants.serverPort;
+      int mPort = EtConstants.multicastPort;
+      boolean setHost = false, setMcastPort = false, doMcast = false;
 
       try {
           for (int i = 0; i < args.length; i++) {
               if (args[i].equalsIgnoreCase("-f")) {
                   etName = args[++i];
               }
-              else if (args[i].equalsIgnoreCase("-h")) {
+              else if (args[i].equalsIgnoreCase("-host")) {
                   host = args[++i];
+                  setHost = true;
               }
-              else if (args[i].equalsIgnoreCase("-port")) {
+              else if (args[i].equalsIgnoreCase("-p")) {
                   try {
                       port = Integer.parseInt(args[++i]);
                       if ((port < 1024) || (port > 65535)) {
@@ -78,7 +84,23 @@ public class EtMonitor {
                       return;
                   }
               }
-              else if (args[i].equalsIgnoreCase("-p")) {
+              else if (args[i].equalsIgnoreCase("-u")) {
+                  try {
+                      mPort = Integer.parseInt(args[++i]);
+                      setMcastPort = true;
+                      if ((mPort < 1024) || (mPort > 65535)) {
+                          System.out.println("Port number must be between 1024 and 65535.");
+                          usage();
+                          return;
+                      }
+                  }
+                  catch (NumberFormatException ex) {
+                      System.out.println("Did not specify a proper port number.");
+                      usage();
+                      return;
+                  }
+              }
+              else if (args[i].equalsIgnoreCase("-t")) {
                   try {
                       period = Integer.parseInt(args[++i]);
                       if (period < 1) {
@@ -99,7 +121,8 @@ public class EtMonitor {
               }
           }
 
-          if (host == null) {
+          // If direct connecting, check the host's name, look only locally by default
+          if (!doMcast && host == null) {
               try {
                   host = InetAddress.getLocalHost().getHostName();
               }
@@ -115,10 +138,28 @@ public class EtMonitor {
               return;
           }
 
-          // make a direct connection to ET system's tcp server
-          EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
+          // Try to figure out if we're multicasting or direct connecting.
+          // If no host is given AND udp port is given, try multicasting.
+          // Otherwise, assume a direct connection. */
+          if (!setHost && setMcastPort) {
+              doMcast = true;
+              System.out.println("\nUse multicasting to find ET system\n");
+          }
 
-          // create ET system object with debugging output
+          EtSystemOpenConfig config;
+          if (doMcast) {
+              // Use multicasting to connect to ET system
+              ArrayList<String> mList = new ArrayList<String>();
+              mList.add(EtConstants.multicastAddr);
+              config = new EtSystemOpenConfig(etName, EtConstants.hostAnywhere,
+                                              mList, mPort, 32);
+          }
+          else {
+              // Make a direct connection to ET system's tcp server
+              config = new EtSystemOpenConfig(etName, host, port);
+          }
+
+          // Create ET system object with debugging output
           EtSystem sys = new EtSystem(config, EtConstants.debugError);
           sys.open();
           AllData etData = new AllData();
@@ -360,11 +401,12 @@ public class EtMonitor {
 
       str.append("      dynamic info\n");
       str.append("        attachments: total#(");
-      str.append(data.statData[i].getAttachments());
+      int attsTotal = data.statData[i].getAttachments();
+      str.append(attsTotal);
       str.append("),  ids(");
 
       int[] attIds = data.statData[i].getAttachmentIds();
-      for (int j=0; j < attIds.length; j++) {
+      for (int j=0; j < attsTotal; j++) {
         str.append(attIds[j]);
           str.append(", ");
       }
