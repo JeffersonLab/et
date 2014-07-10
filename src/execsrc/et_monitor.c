@@ -45,24 +45,28 @@ static void usage(char *programName) {
             programName,
             "-f <ET name> [-h] [-r] [-host <ET host>]",
             "                     [-t <time period (sec)>] [-p <ET server port>]",
-            "                     [-u <udp port>]");
+            "                     [-u <mcast port>]");
 
-    fprintf(stderr, "          -host ET system's host\n");
+    fprintf(stderr, "          -host ET system's host (direct connection)\n");
     fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
     fprintf(stderr, "          -h help\n");
     fprintf(stderr, "          -r connect with local host as if remote\n");
     fprintf(stderr, "          -t time period in seconds between updates\n");
-    fprintf(stderr, "          -p ET server port\n\n");
-    fprintf(stderr, "          This monitor works by making a direct connection to the\n");
-    fprintf(stderr, "          ET system's server port.\n");
+    fprintf(stderr, "          -p ET server port (direct connection)\n");
+    fprintf(stderr, "          -u ET multicast port\n\n");
+
+
 }
 
 /******************************************************/
 int main(int argc,char **argv)
 {  
+ 	/* booleans */
+	int             setMcastPort=0, setTcpPort=0, setHost=0, doMcast=0;
+
     int             c, counter, etdead, mode, errflg=0, locality, tmparg;
     unsigned int    newheartbt, oldheartbt=0;
-    unsigned short  port = ET_BROADCAST_PORT, serverPort = ET_SERVER_PORT;
+    unsigned short  port = ET_MULTICAST_PORT, serverPort = ET_SERVER_PORT;
     extern char     *optarg;
     extern int      optind, opterr, optopt;
     uint64_t        prev_out;
@@ -118,6 +122,7 @@ int main(int argc,char **argv)
                     break;
                 }
                 port = tmparg;
+				setMcastPort = 1;
                 break;
 
             case 'p':
@@ -128,6 +133,7 @@ int main(int argc,char **argv)
                     break;
                 }
                 serverPort = tmparg;
+				setTcpPort = 1;
                 break;
 
             case 0:
@@ -137,6 +143,7 @@ int main(int argc,char **argv)
                 }
                 strcpy(hostname, optarg);
                 tmp_hostname = hostname;
+				setHost = 1;
                 break;
 
             case 'r':
@@ -157,30 +164,48 @@ int main(int argc,char **argv)
         errflg++;
     }
   
+    if (optind < argc || errflg) {
+        usage(argv[0]);
+        exit(2);
+    }
+
     /* Check the ET system name */
     if (tmp_etname == NULL) {
         fprintf(stderr, "\nET file name required\n\n");
         usage(argv[0]);
         exit(-1);
     }
+
+	/* Try to figure out if we're multicasting or direct connecting.
+	 * If no host is given AND udp port is given, try multicasting.
+	 * Otherwise, assume a direct connection. */
+	if (!setHost && setMcastPort) {
+		doMcast = 1;
+ printf("\nUse multicasting to find ET system\n\n");
+	}
   
-    /* Check the host's name, look only locally by default */
-    if (tmp_hostname == NULL) {
+    /* If direct connecting, check the host's name, look only locally by default */
+    if (!doMcast && tmp_hostname == NULL) {
         strcpy(hostname, ET_HOST_LOCAL);
     }
     
-    if (optind < argc || errflg) {
-        usage(argv[0]);
-        exit(2);
-    }
-
-    /* We open the ET system by broadcasting on local subnet to port */
+    /* Open the ET system ... */
     et_open_config_init(&openconfig);
-    et_open_config_setcast(openconfig, ET_DIRECT);
     et_open_config_setmode(openconfig, mode);
-    et_open_config_sethost(openconfig, hostname);
-    et_open_config_setport(openconfig, port);
-    et_open_config_setserverport(openconfig, serverPort);
+
+	/* by multicasting*/
+	if (doMcast) {
+    	et_open_config_setcast(openconfig, ET_MULTICAST);
+    	et_open_config_setmultiport(openconfig, port);
+    	et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    	et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
+	}
+	/* or by a direct connection. */
+	else {
+    	et_open_config_setcast(openconfig, ET_DIRECT);
+    	et_open_config_setserverport(openconfig, serverPort);
+    	et_open_config_sethost(openconfig, hostname);
+	}	
 
     timeout.tv_sec  = 5;
     timeout.tv_nsec = 0;
