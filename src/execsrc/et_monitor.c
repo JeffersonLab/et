@@ -62,7 +62,7 @@ static void usage(char *programName) {
 int main(int argc,char **argv)
 {  
  	/* booleans */
-	int             setMcastPort=0, setTcpPort=0, setHost=0, doMcast=0;
+	int             setMcastPort=0, setHost=0, doMcast=0;
 
     int             c, counter, etdead, mode, errflg=0, locality, tmparg;
     unsigned int    newheartbt, oldheartbt=0;
@@ -133,7 +133,6 @@ int main(int argc,char **argv)
                     break;
                 }
                 serverPort = tmparg;
-				setTcpPort = 1;
                 break;
 
             case 0:
