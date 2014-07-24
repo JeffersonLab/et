@@ -46,7 +46,7 @@ class EtJniAccess {
                     // If the library cannot be found, we can still
                     // continue to use the ET system with sockets -
                     // just not locally with the C library.
-//System.out.println("\nERROR LOADIN JNI LIB !!!!\n");
+//System.out.println("\nERROR LOADING JNI LIB !!!!\n");
                     throw new EtException("Error loading libet_jni.so");
                 }
             }
