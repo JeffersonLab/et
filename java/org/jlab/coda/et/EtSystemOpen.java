@@ -1220,7 +1220,7 @@ public class EtSystemOpen {
 
                     // Pick outgoing interface & ephemeral port BEFORE connecting
                     if (config.getNetworkInterface() != null) {
-//System.out.println("connect(): bind outgoing data to " + config.getNetworkInterface());
+System.out.println("connect(): bind outgoing packets to " + config.getNetworkInterface());
                         sock.bind(new InetSocketAddress(config.getNetworkInterface(), 0));
                     }
 
