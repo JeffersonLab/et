@@ -21,6 +21,7 @@ import javax.swing.JSplitPane;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.XMLConstants;
@@ -60,30 +61,30 @@ public class MonitorConfiguration extends DefaultHandler {
     public MonitorConfiguration(Monitor mon) {
         monitor = mon;
 	
-        // Use the validating parser
-        SAXParserFactory factory = SAXParserFactory.newInstance();
-        factory.setNamespaceAware(true);
-        SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        Schema schema = null;
         try {
-            schema = sf.newSchema(new File("monitorConfiguration.xsd"));
-        }
-        catch (SAXException e) {
-            e.printStackTrace();
-        }
+//             String SCHEMA_PATH = "monitorConfiguration.xsd";
+//             InputStream SCHEMA_STREAM = new FileInputStream(new File(SCHEMA_PATH));
+//             StreamSource SCHEMA_SOURCE = new StreamSource(SCHEMA_STREAM);
+//             SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+//             Schema schema = sf.newSchema(SCHEMA_SOURCE);
 
-        factory.setSchema(schema);
+             // Use the validating parser
+             SAXParserFactory factory = SAXParserFactory.newInstance();
+             factory.setNamespaceAware(true);
+             //factory.setSchema(schema);
+             parser = factory.newSAXParser();
 
-        // Parse the input
-        try {
-            parser = factory.newSAXParser();
         }
         catch (ParserConfigurationException e) {
             e.printStackTrace();
         }
+//        catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
         catch (SAXException e) {
             e.printStackTrace();
         }
+
     }
     
     
