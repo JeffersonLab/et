@@ -45,9 +45,9 @@ public class FakeEB extends Thread {
 
     private static void usage() {
         System.out.println("\nUsage: java FakeEB -etin <et in name> -hostin <ET in host> \n" + "" +
-                "                     -etout <et out name> -hostout <ET out host> -file <config file>\n" +
-                "                      [-h] [-v] [-pin <ET in port>] [-pout <ET out port>]\n" +
-                "                      [-c <chunk size>] [-s <output event size>]\n\n" +
+                "                   -etout <et out name> -hostout <ET out host> -file <config file>\n" +
+                "                   [-h] [-v] [-pin <ET in port>] [-pout <ET out port>]\n" +
+                "                   [-c <chunk size>] [-s <output event size>]\n\n" +
                 "       -hostin   input  ET system's host\n" +
                 "       -etin     input  ET system's (file) name\n" +
                 "       -hostout  output ET system's host\n" +
@@ -58,7 +58,6 @@ public class FakeEB extends Thread {
                 "       -pin      input  ET TCP server port\n" +
                 "       -pout     output ET TCP server port\n" +
                 "       -c        number of events in one output get/new/put array (default 1)\n" +
-                "       -s        size in bytes of output ET events (default 256KB)\n" +
                 "        This consumer works by making a direct connection\n" +
                 "        to the ET systems' tcp server port.\n");
     }
@@ -73,22 +72,23 @@ public class FakeEB extends Thread {
     public void run() {
 
         int verbose = EtConstants.debugError;
-        String etInName = null, hostIn = null, configFileName = null;
+        String etInName  = null, hostIn  = null, configFileName = null;
         String etOutName = null, hostOut = null;
-        int rocCount = 0, outputEventSize = 256000;
+        int rocCount = 0, outputEventSize;
         int portIn = EtConstants.serverPort, portOut = EtConstants.serverPort;
         ArrayList<Integer> codaIds = new ArrayList<Integer>(128);
         ArrayList<EtAttachment> attachmentsIn = new ArrayList<EtAttachment>(128);
         ArrayList<BlockingQueue<EtEvent>> queues = new ArrayList<BlockingQueue<EtEvent>>(128);
 
         for (int i = 0; i < args.length; i++) {
+            System.out.println("arg[" + i + "] = " + args[i]);
             if (args[i].equalsIgnoreCase("-etin")) {
                 etInName = args[++i];
             }
             else if (args[i].equalsIgnoreCase("-hostin")) {
                 hostIn = args[++i];
             }
-            if (args[i].equalsIgnoreCase("-etout")) {
+            else if (args[i].equalsIgnoreCase("-etout")) {
                 etOutName = args[++i];
             }
             else if (args[i].equalsIgnoreCase("-hostout")) {
@@ -145,28 +145,17 @@ public class FakeEB extends Thread {
                     return;
                 }
             }
-            else if (args[i].equalsIgnoreCase("-s")) {
-                try {
-                    outputEventSize = Integer.parseInt(args[++i]);
-                    if (outputEventSize < 1024) {
-                        System.out.println("Output event size must be >= 1024.");
-                        usage();
-                        return;
-                    }
-                }
-                catch (NumberFormatException ex) {
-                    System.out.println("Did not specify a proper output event size size.");
-                    usage();
-                    return;
-                }
-            }
             else {
+                System.out.println("Bad arg ->" + args[i]);
                 usage();
                 return;
             }
         }
 
-        if (hostIn == null || etInName == null || configFileName == null) {
+        if (hostIn  == null ||  etInName == null ||
+            hostOut == null || etOutName == null ||
+            configFileName == null) {
+            System.out.println("something is null");
             usage();
             return;
         }
@@ -177,9 +166,14 @@ public class FakeEB extends Thread {
             InputStream ins = new FileInputStream(configFileName);
             Reader reader = new InputStreamReader(ins, "US-ASCII");
             BufferedReader br = new BufferedReader(reader);
-            while ((s = br.readLine()) != null) {
-                int id = Integer.parseInt(s);
-                codaIds.add(id);
+            try {
+                while ((s = br.readLine()) != null) {
+                    System.out.println("reading line from file = " + s);
+                    int id = Integer.parseInt(s);
+                    codaIds.add(id);
+                }
+            }
+            catch (NumberFormatException e) {
             }
             rocCount = codaIds.size();
         }
@@ -251,9 +245,12 @@ public class FakeEB extends Thread {
             // Attach to GRAND_CENTRAL
             EtAttachment attOut = sysOut.attach(gc);
 
+            outputEventSize = (int)sysOut.getEventSize();
 
             // array of events
             EtEvent[] mevs;
+            EtEvent[][] inEvents = new EtEvent[rocCount][chunk];
+
             EtEvent[] buildEvents = new EtEvent[rocCount];
 
             int  totalOutputSize, totalOutputLength, len, count = 0;
@@ -262,21 +259,26 @@ public class FakeEB extends Thread {
 
             // keep track of time
             t1 = System.currentTimeMillis();
+            System.out.println("output ET event size = " + outputEventSize);
 
             while (true) {
+//System.out.println("Get " + chunk + " new events");
 
                 // Get array of new events to fit all data added together
                 mevs = sysOut.newEvents(attOut, Mode.SLEEP, false, 0, chunk, outputEventSize, 1);
 
                 // For each OUTPUT ET event ...
-                for (EtEvent mev : mevs) {
+                for (int i=0; i < mevs.length; i++) {
 
                     // Start building here. First, grab one event from each Q
                     totalOutputLength = totalOutputSize = 0;
-                    for (int i=0; i < rocCount; i++) {
-                        buildEvents[i] = queues.get(i).take();
+                    for (int j=0; j < rocCount; j++) {
+//System.out.println("Take item from q " + i);
+                        buildEvents[j] = queues.get(j).take();
+                        inEvents[j][i] = buildEvents[j];
                         // Find total size of incoming data from all ROCs
-                        totalOutputSize += buildEvents[i].getLength();
+                        totalOutputSize += buildEvents[j].getLength();
+//System.out.println("total out data bytes / ev = " + totalOutputSize);
                     }
 
                     // Check to see if there's enough room in ET event for all data
@@ -286,20 +288,29 @@ public class FakeEB extends Thread {
                     }
 
                     // Get output event's data buffer
-                    ByteBuffer buf = mev.getDataBuffer();
+                    ByteBuffer buf = mevs[i].getDataBuffer();
 
                     // Copy in data
-                    for (int i=0; i < rocCount; i++) {
-                        len = buildEvents[i].getLength();
-                        buf.put(buildEvents[i].getData(), 0, len);
+                    for (int k=0; k < rocCount; k++) {
+//System.out.println("Copy in data for ev " + k);
+                        len = buildEvents[k].getLength();
+                        ByteBuffer bb = buildEvents[k].getDataBuffer();
+                        buf.put(bb);
                         totalOutputLength += len;
                     }
-                    mev.setLength(totalOutputLength);
+
+                    mevs[i].setLength(totalOutputLength);
                 }
 
-                // put events back into ET system
-                sysIn.putEvents(attOut, mevs);
+                // put events back into output ET system
+                sysOut.putEvents(attOut, mevs);
                 count += mevs.length;
+//System.out.println("ET put " + count + " tot");
+
+                // put events back into input ET systems
+                for (int j=0; j < rocCount; j++) {
+                    sysIn.putEvents(attachmentsIn.get(j), inEvents[j], 0, mevs.length);
+                }
 
                 // calculate the event rate
                 t2 = System.currentTimeMillis();
@@ -350,7 +361,7 @@ public class FakeEB extends Thread {
 
 
         public void run() {
-
+            System.out.println("Running Q filling thread");
             latch.countDown();
             EtEvent[] mevs;
 

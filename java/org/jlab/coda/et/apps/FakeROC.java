@@ -18,6 +18,8 @@ package org.jlab.coda.et.apps;
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
 
+import java.nio.ByteBuffer;
+
 /**
  * This class is an example of an event producer for an ET system.
  *
@@ -34,7 +36,8 @@ public class FakeROC {
                 "                     [-c <chunk size>] [-d <delay>] [-s <event size>] [-g <group>]\n" +
                 "                     [-p <ET server port>] [-i <interface address>]\n\n" +
                 "       -host  ET system's host\n" +
-                "       -f     ET system's (memory-mapped file) name\n" +
+                "       -f     ET system's (file) name\n" +
+                "       -id    coda id\n" +
                 "       -h     help\n" +
                 "       -v     verbose output\n" +
                 "       -r     act as remote (TCP) client even if ET system is local\n" +
@@ -230,13 +233,14 @@ public class FakeROC {
 
             while (true) {
                 // get array of new events
+// System.out.println("Get " + chunk + " new events from group " + group);
                 mevs = sys.newEvents(att, Mode.SLEEP, false, 0, chunk, size, group);
 
                 for (int j = 0; j < mevs.length; j++) {
                     // Put stuff into data buffer (can use either
                     // ByteBuffer or array directly).
-                    byte[] data = mevs[j].getData();
-                    System.arraycopy(dat, 0, data, 0, size);
+                    ByteBuffer buf = mevs[j].getDataBuffer();
+                    buf.put(dat, 0, size);
 
                     // Set data length to be full size for full transfer
                     mevs[j].setLength(size);
@@ -248,6 +252,8 @@ public class FakeROC {
                 // Put events back into ET system
                 sys.putEvents(att, mevs);
                 count += mevs.length;
+//System.out.println("ET put " + count + " tot");
+
 
                 if (delay > 0) Thread.sleep(delay);
 
