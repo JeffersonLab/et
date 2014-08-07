@@ -1207,7 +1207,8 @@ public class EtSystemOpen {
                     }
                     // Set reading timeout to 2 second so dead ET sys
                     // can be found by reading on a socket.
-                    sock.setSoTimeout(2000);
+                    // TODO: unnecessary as reading dead socket with throw IOException !
+                    //sock.setSoTimeout(2000);
                     // Set KeepAlive so we can tell if ET system is dead
                     sock.setKeepAlive(true);
                     // Set buffer sizes
