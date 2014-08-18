@@ -30,6 +30,8 @@ public interface EtEventSelectable {
    * @param sys the ET system object
    * @param st the station using a user-defned selection method
    * @param ev event being evaluated for selection
+   * @return {@code true} if event is accepted for entrance into station,
+   *         else {@code false}.
    */
   public boolean select(SystemCreate sys, StationLocal st, EtEvent ev);
 
