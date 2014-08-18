@@ -307,6 +307,7 @@ public class StationLocal extends Thread implements EtEventSelectable {
     /**
      * When selectMode equals {@link org.jlab.coda.et.EtConstants#stationSelectMatch}, this
      * becomes the station's selection method.
+     * True is returned
      *
      * @param sys ET system object
      * @param stat station object
