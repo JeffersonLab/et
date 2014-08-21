@@ -30,3 +30,27 @@ Changes from the previous version:
 1/21/2014
 	Made ET file other-readable & other-writeable
 	Deprecate routines that swap (use evio)
+
+
+
+ET-15.0
+
+4/16/2014
+    - SystemCreate.getStations() returns an ArrayList not a LinkedList
+    - replace all LinkedLists with ArrayLists for performance
+    - make certain methods public so a java process which runs an ET
+      server in its own JVM can efficiently access that ET system
+      (avoid sockets)
+
+
+6/18/2014
+    -Fix bug in java ET system (server) in which the getEvents() delay
+     will become negative due to rounding error
+    -Fix bug in java ET system (server) in which the getEvents() delay
+     will become infinite if 0 time left
+
+7/10/2014
+    - et_monitor can now use multicasting to find ET system
+      and so can its java counterpart, org.jlab.coda.et.apps.EtMonitor
+    - graphical et monitor no longer needs a schema
+
