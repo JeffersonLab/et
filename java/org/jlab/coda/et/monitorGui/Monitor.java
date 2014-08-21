@@ -334,6 +334,9 @@ public class Monitor extends JFrame {
         try {
             Monitor frame = null;
 
+//            System.setProperty("javax.xml.parsers.SAXParserFactory",
+//                               "com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
+//
             // allow for a configuration file argument
             if (args.length > 0) {
                 if (args.length != 2) {
@@ -344,13 +347,14 @@ public class Monitor extends JFrame {
                     System.out.println("Usage: java Monitor [-f,-file <configFile>]");
                     return;
                 }
+
                 configurationFile = new File(args[1]);
 
                 // Read config file once to get main application window &
                 // color data only.
                 // This is done because the frame needs to have the colors,
                 // size, and position BEFORE it displays anything.
-                config = new MonitorConfiguration(null);
+                config = new MonitorConfiguration(null, args[1]);
                 config.loadWindowParameters(configurationFile);
                 Color[] colors = config.getWindowColors();
                 Dimension size = config.getWindowSize();
@@ -365,7 +369,7 @@ public class Monitor extends JFrame {
             }
             else {
                 frame = new Monitor();
-                config = new MonitorConfiguration(frame);
+                config = new MonitorConfiguration(frame, null);
             }
             frame.addWindowListener(new WindowAdapter() {
                 public void windowClosing(WindowEvent e) {

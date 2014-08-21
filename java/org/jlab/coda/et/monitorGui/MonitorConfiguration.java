@@ -21,9 +21,6 @@ import javax.swing.JSplitPane;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.XMLConstants;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.exception.*;
@@ -37,11 +34,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class MonitorConfiguration extends DefaultHandler {
     // Defaults
     private SAXParser parser;
-    private static boolean setValidation        = true;
-    private static boolean setNameSpaces        = true;
-    private static boolean setSchemaSupport     = true;
-    private static boolean setSchemaFullSupport = true;
-    
+
     private StringBuffer buffer = new StringBuffer(100);
     private HashMap<String,Object>  dataStorage = new HashMap<String,Object>(100);
     
@@ -57,33 +50,46 @@ public class MonitorConfiguration extends DefaultHandler {
     
 
     /** Constructor. */
-    public MonitorConfiguration(Monitor mon) {
+    public MonitorConfiguration(Monitor mon, String configFilePath) {
         monitor = mon;
-	
-        // Use the validating parser
-        SAXParserFactory factory = SAXParserFactory.newInstance();
-        factory.setNamespaceAware(true);
-        SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        Schema schema = null;
-        try {
-            schema = sf.newSchema(new File("monitorConfiguration.xsd"));
-        }
-        catch (SAXException e) {
-            e.printStackTrace();
-        }
 
-        factory.setSchema(schema);
 
-        // Parse the input
         try {
+//            String SCHEMA_PATH = configFilePath;
+//            if (configFilePath == null) {
+//                SCHEMA_PATH = "monitorConfiguration.xsd";
+//            }
+//
+//            InputStream SCHEMA_STREAM = new FileInputStream(new File(SCHEMA_PATH));
+//            StreamSource SCHEMA_SOURCE = new StreamSource(SCHEMA_STREAM);
+//            SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+//            Schema schema = sf.newSchema(SCHEMA_SOURCE);
+
+
+//            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+//            factory.setSchema(schema);
+
+//            // Use the validating parser
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+//            SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+//            Schema schema = null;
+//
+//
+//            schema = sf.newSchema(configFile);
+//            factory.setSchema(schema);
             parser = factory.newSAXParser();
         }
         catch (ParserConfigurationException e) {
             e.printStackTrace();
         }
+//        catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
         catch (SAXException e) {
             e.printStackTrace();
         }
+
     }
     
     

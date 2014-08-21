@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema"
-	version="7.0">
- 
+<?xml version="1.0" ?>
+<xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema" >
+
   <!-- definition of some useful types -->
 
   <xs:simpleType name="port">
@@ -30,13 +29,13 @@
       <xs:enumeration value="anywhere"/>
     </xs:restriction>
   </xs:simpleType>
-  
+
   <xs:simpleType name="hostname">
     <xs:restriction base="xs:string">
       <xs:pattern value="\w+(\.\w+)*"/>
     </xs:restriction>
   </xs:simpleType>
-  
+
   <xs:simpleType name="hostnameList">
     <xs:list itemType="hostname"/>
   </xs:simpleType>
@@ -89,7 +88,7 @@
 	      <xs:element name="height"    type="dimension"/>
 	      <xs:element name="xPosition" type="dimension"/>
 	      <xs:element name="yPosition" type="dimension"/>
-	      
+
 	      <!-- optional colors -->
 	      <xs:element name="titleColor"          type="color" minOccurs="0"/>
 	      <xs:element name="backgroundColor"     type="color" minOccurs="0"/>
@@ -123,7 +122,7 @@
 		    </xs:sequence>
 		  </xs:complexType>
 	        </xs:element>
-		
+
 	        <xs:element name="multicasting">
 		  <xs:complexType>
 		    <xs:sequence>
@@ -138,7 +137,7 @@
 		    </xs:sequence>
 		  </xs:complexType>
 	        </xs:element>
-		
+
 	        <xs:element name="broadAndMulticasting">
 		  <xs:complexType>
 		    <xs:sequence>
@@ -154,7 +153,7 @@
 		    </xs:sequence>
 		  </xs:complexType>
 	        </xs:element>
-		
+
 	        <xs:element name="direct">
 		  <xs:complexType>
 		    <xs:sequence>
@@ -166,7 +165,7 @@
 		    </xs:sequence>
 		  </xs:complexType>
 	        </xs:element>
-		
+
 	        <xs:element name="udpToHost">
 		  <xs:complexType>
 		    <xs:sequence>
