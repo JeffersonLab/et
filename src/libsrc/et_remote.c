@@ -278,7 +278,7 @@ et_logmsg("INFO","etr_open: connected to host %s on port %d\n",dotDecAddr->addr,
     /* read the return */
     if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "etr_open, read error\n");
+            et_logmsg("ERROR", "etr_open, read error 1\n");
         }
         err = ET_ERROR_READ;
         goto error;
@@ -293,7 +293,7 @@ et_logmsg("INFO","etr_open: connected to host %s on port %d\n",dotDecAddr->addr,
 
     if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "etr_open, read error\n");
+            et_logmsg("ERROR", "etr_open, read error 2\n");
         }
         err = ET_ERROR_READ;
         goto error;
