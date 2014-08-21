@@ -16,7 +16,6 @@ package org.jlab.coda.et.apps;
 
 
 import java.lang.*;
-import java.nio.ByteOrder;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
@@ -222,7 +221,24 @@ public class Producer {
                         // put integer (j + startingVal) into data buffer
                         //int swappedData = Integer.reverseBytes(j + startingVal);
                         //mevs[j].getDataBuffer().putInt(swappedData);
-                        mevs[j].getDataBuffer().putLong((long)j);
+                        mevs[j].getDataBuffer().putInt(j);
+
+//                        ByteBuffer buf = mevs[j].getDataBuffer();
+//                        //buf.clear();
+//System.out.println("data buf cap = " + buf.capacity() +
+//                           ", limit = " + buf.limit() +
+//                           ",pos = " + buf.position());
+//                        int k=0;
+//                        try {
+//                            for (; k<size; k++) {
+//                                buf.put((byte)k);
+//                            }
+//                        }
+//                        catch (Exception e) {
+//                            System.out.println("System event size = " + sys.getEventSize());
+//                            System.out.println("Event buf size = " + mevs[j].getMemSize());
+//System.out.println("ev size = " + mevs[j].getLength()  + ", k = " + k);
+//                        }
 
                         // big endian by default
                        // mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
