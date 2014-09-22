@@ -54,3 +54,6 @@ ET-15.0
       and so can its java counterpart, org.jlab.coda.et.apps.EtMonitor
     - graphical et monitor no longer needs a schema
 
+9/22/2014
+    --Fix flags for Mac OSX compilation
+
