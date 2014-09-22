@@ -55,5 +55,6 @@ ET-15.0
     - graphical et monitor no longer needs a schema
 
 9/22/2014
-    --Fix flags for Mac OSX compilation
+    - fix flags for Mac OSX compilation
+    - fix bad return values in et_jni.c when error
 
