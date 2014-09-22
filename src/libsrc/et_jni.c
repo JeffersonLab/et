@@ -181,7 +181,7 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         }
         
         (*env)->ThrowNew(env, clazz, "getEvents (native): cannot get events");
-        return;
+        return NULL;
     }
 
     /* create array of EventImpl objects */
@@ -288,7 +288,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
         }
         
         (*env)->ThrowNew(env, clazz, "newEvents (native): cannot get new events");
-        return;
+        return NULL;
     }
 
     /* create array of EventImpl objects */
