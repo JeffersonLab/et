@@ -40,5 +40,6 @@ ET 14.1
       will become negative due to rounding error
     --Fix bug in java ET system (server) in which the getEvents() delay
       will become infinite if 0 time left
-
+9/22/2014
+    --Fix flags for Mac OSX compilation
 
