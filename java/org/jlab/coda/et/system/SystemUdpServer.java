@@ -38,15 +38,21 @@ class SystemUdpServer extends Thread {
     /** ET system configuration. */
     private SystemConfig config;
 
+    /** Thread group used to interrupt/stop all this object's generated threads. */
+    private ThreadGroup tGroup;
+
 
     /**
      * Createes a new SystemUdpServer object.
      * @param sys ET system object
      */
-    SystemUdpServer(SystemCreate sys) {
-        this.sys = sys;
-        config = sys.getConfig();
-        port = config.getServerPort();
+    SystemUdpServer(SystemCreate sys, ThreadGroup tGroup) {
+        super(tGroup, "udpServerThread");
+
+        this.sys    = sys;
+        this.tGroup = tGroup;
+        config      = sys.getConfig();
+        port        = config.getServerPort();
     }
 
     /** Starts threads to listen for packets at a different addresses. */
@@ -78,7 +84,7 @@ System.out.println("setting up for multicast on port " + config.getMulticastPort
                 MulticastSocket sock = new MulticastSocket(config.getMulticastPort());
                 sock.setReceiveBufferSize(512);
                 sock.setSendBufferSize(512);
-                ListeningThread lis = new ListeningThread(sys, sock);
+                ListeningThread lis = new ListeningThread(sys, sock, tGroup);
                 lis.start();
             }
             catch (IOException e) {
@@ -98,7 +104,7 @@ System.out.println("setting up for broadcast on port " + config.getUdpPort());
             sock.setBroadcast(true);
             sock.setReceiveBufferSize(512);
             sock.setSendBufferSize(512);
-            ListeningThread lis = new ListeningThread(sys, sock);
+            ListeningThread lis = new ListeningThread(sys, sock, tGroup);
             lis.start();
         }
         catch (SocketException e) {
@@ -138,6 +144,9 @@ class ListeningThread extends Thread {
      * "INADDR_ANY" so just return this. */
     private String incomingAddress = "0.0.0.0";
 
+    /** Used to name thread. */
+    static private int counter = 0;
+
 
     /**
      *  Creates a new ListeningThread object for a UDP multicasts.
@@ -145,7 +154,11 @@ class ListeningThread extends Thread {
      *  @param sys ET system object
      *  @param mSock multicast udp socket
      */
-    ListeningThread(SystemCreate sys, MulticastSocket mSock) throws IOException {
+    ListeningThread(SystemCreate sys, MulticastSocket mSock, ThreadGroup tGroup)
+            throws IOException {
+
+        super(tGroup, "listenThread" + counter++);
+
         this.sys = sys;
         config   = sys.getConfig();
         for (InetAddress address : config.getMulticastAddrs()) {
@@ -164,7 +177,11 @@ class ListeningThread extends Thread {
      *  @param sys ET system object
      *  @param sock udp socket
      */
-    ListeningThread(SystemCreate sys, DatagramSocket sock) throws UnknownHostException {
+    ListeningThread(SystemCreate sys, DatagramSocket sock, ThreadGroup tGroup)
+            throws UnknownHostException {
+
+        super(tGroup, "listenThread" + counter++);
+
         this.sys  = sys;
         config    = sys.getConfig();
         this.sock = sock;

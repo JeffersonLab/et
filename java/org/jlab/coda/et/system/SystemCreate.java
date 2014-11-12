@@ -71,6 +71,15 @@ public class SystemCreate {
     /** Object on which to synchronize for station stuff. */
     private byte[] stationLock;
 
+    /** TCP server thread. */
+    private SystemTcpServer tcpServer;
+
+    /** UDP server thread. */
+    private SystemUdpServer udpServer;
+
+    /** Thread group used to kill all ET system threads. */
+    ThreadGroup etSystemThreads;
+
     /** Flag for killing all threads started by ET system. */
     private volatile boolean killAllThreads;
 
@@ -294,12 +303,15 @@ public class SystemCreate {
         // undo statistics keeping for inital event loading
         gcStation.getInputList().setEventsIn(0);
 
+        // Use a thread group to kill all ET system threads if needed
+        etSystemThreads = new ThreadGroup("etSystemThreads");
+
         // run tcp server thread
-        SystemTcpServer tcpServer = new SystemTcpServer(this);
+        tcpServer = new SystemTcpServer(this, etSystemThreads);
         tcpServer.start();
 
         // run udp listening thread
-        SystemUdpServer udpServer = new SystemUdpServer(this);
+        udpServer = new SystemUdpServer(this, etSystemThreads);
         udpServer.start();
 
         running = true;
@@ -310,16 +322,23 @@ public class SystemCreate {
      * If the system is not running, nothing is done. */
     synchronized public void shutdown() {
         if (!running) return;
-        // tell threads to kill themselves
+
+        // Give threads to a chance to gracefully end
         killAllThreads = true;
-        // sockets on 2 second timeout so wait
-        try {Thread.sleep(2500);}
+        etSystemThreads.interrupt();
+
+        // Sockets on 2 second timeout so wait
+        try {Thread.sleep(2100);}
         catch (InterruptedException ex) {}
-        // delete file
+
+        // Kill all threads if not already dead
+        etSystemThreads.stop();
+
+        // Delete ET file
         File etFile = new File(name);
         etFile.delete();
 
-        // clear everything
+        // Clear everything
         stations       = null;
         attachments    = null;
         events         = null;

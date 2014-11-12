@@ -48,13 +48,19 @@ class SystemTcpServer extends Thread {
     /** Et system config object. */
     private SystemConfig config;
 
+    /** Thread group used to interrupt/stop all this object's generated threads. */
+    private ThreadGroup tGroup;
+
 
     /** Createes a new SystemTcpServer object.
      *  @param sys ET system object */
-    SystemTcpServer(SystemCreate sys) {
-        this.sys = sys;
-        config   = sys.getConfig();
-        port     = config.getServerPort();
+    SystemTcpServer(SystemCreate sys, ThreadGroup tGroup) {
+        super(tGroup, "tcpServerThread");
+
+        this.sys    = sys;
+        this.tGroup = tGroup;
+        config      = sys.getConfig();
+        port        = config.getServerPort();
     }
 
 
@@ -170,7 +176,7 @@ class SystemTcpServer extends Thread {
                 channel.configureBlocking(true);
 
                 // create thread to deal with client
-                ClientThread connection = new ClientThread(sys, channel.socket());
+                ClientThread connection = new ClientThread(sys, channel.socket(), tGroup);
                 connection.start();
             }
 
@@ -214,13 +220,18 @@ class ClientThread extends Thread {
     /** Client is 64 bits? */
     boolean bit64;
 
+    /** Used to name thread. */
+    static private int counter = 0;
+
 
     /**
      *  Create a new ClientThread object.
      *  @param sys ET system object.
      *  @param sock TCP socket.
      */
-    ClientThread(SystemCreate sys, Socket sock) {
+    ClientThread(SystemCreate sys, Socket sock, ThreadGroup tGroup) {
+        super(tGroup, "clientThread" + counter++);
+
         this.sys  = sys;
         this.sock = sock;
         config = sys.getConfig();
