@@ -42,7 +42,6 @@ ET-15.0
       server in its own JVM can efficiently access that ET system
       (avoid sockets)
 
-
 6/18/2014
     -Fix bug in java ET system (server) in which the getEvents() delay
      will become negative due to rounding error
@@ -58,3 +57,5 @@ ET-15.0
     - fix flags for Mac OSX compilation
     - fix bad return values in et_jni.c when error
 
+11/12/14
+    - fix bug in which SystemCreate.shutdown() did not end all the ET system threads
