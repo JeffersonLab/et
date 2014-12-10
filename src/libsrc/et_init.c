@@ -40,7 +40,7 @@ int et_sharedmutex(void) {
   shared = ET_MUTEX_SHARE;
 #else
 #ifdef __APPLE__
-  shared = ET_MUTEX_SHARE; /* For OS X  5/28/04  D. L. -> noshare, changed by Timmer to share 12/10/14 */
+  shared = ET_MUTEX_NOSHARE; /* For OS X  5/28/04  D. L. */
 #else
     /*
        In the 2.6 kernel of linux, _SC_THREAD_PROCESS_SHARED is 200112
