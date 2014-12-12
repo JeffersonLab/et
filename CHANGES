@@ -59,3 +59,7 @@ ET-15.0
 
 11/12/14
     - fix bug in which SystemCreate.shutdown() did not end all the ET system threads
+
+12/12/14
+    - fix bug in which C ET system seg faults due to null pointer in server code handling
+      et_event_new() from remote and no-share C clients
