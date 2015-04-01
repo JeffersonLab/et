@@ -655,110 +655,113 @@ int et_wait_for_system(et_sys_id id, struct timespec *timeout, const char *etnam
 } 
 
 /******************************************************/
-static void *et_heartbeat(void *arg)
-{
-  et_id          *id = (et_id *) arg;
-  et_proc_id      me = id->proc;
-  struct timespec timeout;
-  const int       forever = 1;
-  
-  timeout.tv_sec  = ET_BEAT_SEC;
-  timeout.tv_nsec = ET_BEAT_NSEC;
-   
-  /* signal to spawning thread that I'm running */
-  id->race = -1;
-  
-  while (forever) {
-    id->sys->proc[me].heartbeat = (id->sys->proc[me].heartbeat + 1) % ET_HBMODULO;
-    /*printf(" HB%d\n", me); fflush(stdout);*/
-    nanosleep(&timeout, NULL);
-    pthread_testcancel();
-  }
-  return (NULL);
+static void *et_heartbeat(void *arg) {
+    et_id          *id = (et_id *) arg;
+    et_proc_id      me = id->proc;
+    struct timespec timeout;
+    const int       forever = 1;
+    
+    timeout.tv_sec  = ET_BEAT_SEC;
+    timeout.tv_nsec = ET_BEAT_NSEC;
+    
+    /* signal to spawning thread that I'm running */
+    id->race = -1;
+    
+    while (forever) {
+        et_system_lock(id->sys);
+        id->sys->proc[me].heartbeat = (id->sys->proc[me].heartbeat + 1) % ET_HBMODULO;
+        et_system_unlock(id->sys);
+        /*printf(" HB%d\n", me); fflush(stdout);*/
+        nanosleep(&timeout, NULL);
+        pthread_testcancel();
+    }
+    return (NULL);
 }
 
 /******************************************************/
-static void *et_heartmonitor(void *arg)
-{
-  et_id          *id  = (et_id *) arg;
-  et_proc_id      me  = id->proc;
-  et_system      *sys = id->sys;
-  et_station     *ps;
-  et_list        *pl;
-  et_stat_id      stat;
-  struct timespec timeout;
-  int             disconnected=0, oldheartbt=-1, newheartbt;
-  int             i;
-  const int       forever = 1;
-
-
-  timeout.tv_sec  = ET_MON_SEC;
-  timeout.tv_nsec = ET_MON_NSEC;
+static void *et_heartmonitor(void *arg) {
+    et_id          *id  = (et_id *) arg;
+    et_proc_id      me  = id->proc;
+    et_system      *sys = id->sys;
+    et_station     *ps;
+    et_list        *pl;
+    et_stat_id      stat;
+    struct timespec timeout;
+    int             disconnected=0, oldheartbt=-1, newheartbt;
+    int             i;
+    const int       forever = 1;
     
-  /* signal to spawning thread that I'm running */
-  id->race = -1;
- 
-  while (forever) {    
-    nanosleep(&timeout, NULL);
-    pthread_testcancel();
-    newheartbt = sys->heartbeat;
-/*printf("et_heartmon %d: mine = %d, sys = %d\n", me, sys->proc[me].heartbeat, newheartbt);*/
-     
-    if (oldheartbt == newheartbt) {
-      if (!disconnected) {
-        if (id->debug >= ET_DEBUG_WARN) {
-          et_logmsg("WARN", "et_heartmon %d, et system is dead - waiting\n", me);
-        }
-	id->alive = 0;
-        sys->proc[me].et_status = ET_PROC_ETDEAD;
-	
-	/* scan the process' attachments, fix mutexes, unblock read calls */
-        for (i=0; i < sys->config.nattachments; i++) {
-	  if (sys->proc[me].att[i] != -1) {
-            /* check for locked mutex in station's input and output llists */
-	    /*ps = ET_PSTAT2USR(sys->attach[att_id].pstat, id->offset);*/
-	    stat = sys->attach[i].stat;
-	    ps = id->grandcentral + stat;
-            pl = &(ps->list_out);
-            if (et_mutex_locked(&pl->mutex) == ET_MUTEX_LOCKED) {
-              if (id->debug >= ET_DEBUG_INFO) {
-                et_logmsg("INFO", "et_heartmon %d, out list locked\n", me);
-              }
-	      et_llist_unlock(pl);
+    
+    timeout.tv_sec  = ET_MON_SEC;
+    timeout.tv_nsec = ET_MON_NSEC;
+    
+    /* signal to spawning thread that I'm running */
+    id->race = -1;
+    
+    while (forever) {    
+        nanosleep(&timeout, NULL);
+        pthread_testcancel();
+        
+        et_system_lock(sys);
+        newheartbt = sys->heartbeat;
+        et_system_unlock(sys);
+        /*printf("et_heartmon %d: mine = %d, sys = %d\n", me, sys->proc[me].heartbeat, newheartbt);*/
+        
+        if (oldheartbt == newheartbt) {
+            if (!disconnected) {
+                if (id->debug >= ET_DEBUG_WARN) {
+                    et_logmsg("WARN", "et_heartmon %d, et system is dead - waiting\n", me);
+                }
+                id->alive = 0;
+                sys->proc[me].et_status = ET_PROC_ETDEAD;
+                
+                /* scan the process' attachments, fix mutexes, unblock read calls */
+                for (i=0; i < sys->config.nattachments; i++) {
+                    if (sys->proc[me].att[i] != -1) {
+                        /* check for locked mutex in station's input and output llists */
+                        /*ps = ET_PSTAT2USR(sys->attach[att_id].pstat, id->offset);*/
+                        stat = sys->attach[i].stat;
+                        ps = id->grandcentral + stat;
+                        pl = &(ps->list_out);
+                        if (et_mutex_locked(&pl->mutex) == ET_MUTEX_LOCKED) {
+                            if (id->debug >= ET_DEBUG_INFO) {
+                                et_logmsg("INFO", "et_heartmon %d, out list locked\n", me);
+                            }
+                            et_llist_unlock(pl);
+                        }
+                        
+                        pl = &(ps->list_in);
+                        if (et_mutex_locked(&pl->mutex) == ET_MUTEX_LOCKED) {
+                            if (id->debug >= ET_DEBUG_INFO) {
+                                et_logmsg("INFO", "et_heartmon %d, in list locked\n", me);
+                            }
+                            et_llist_unlock(pl);
+                        }
+                        /* waking up attachment unblocks any read calls */
+                        et_wakeup_attachment((et_sys_id) id, i);
+                    }
+                }
+                disconnected = 1;
             }
-       
-            pl = &(ps->list_in);
-            if (et_mutex_locked(&pl->mutex) == ET_MUTEX_LOCKED) {
-              if (id->debug >= ET_DEBUG_INFO) {
-                et_logmsg("INFO", "et_heartmon %d, in list locked\n", me);
-              }
-	      et_llist_unlock(pl);
-            }
-	    /* waking up attachment unblocks any read calls */
-            et_wakeup_attachment((et_sys_id) id, i);
-	  }
-	}
-        disconnected = 1;
-      }
-    }
-    else {
-      oldheartbt = newheartbt;
-      if (disconnected) {
-        if (id->debug >= ET_DEBUG_INFO) {
-          et_logmsg("INFO", "et_heartmon %d, reconnect!!\n", me);
         }
-	sys->proc[me].et_status = ET_PROC_ETOK;
-        /* When reconnecting, the mem mapped file in the ET system may be
-	 * mapped to a different location in memory than in the previous
-	 * system. Thus, we need correct the offset.
-	 */
-        id->offset = (ptrdiff_t) ((char *)id->pmap - (char *)id->sys->pmap);
-        id->alive = 1;
-        disconnected = 0;
-      }
+        else {
+            oldheartbt = newheartbt;
+            if (disconnected) {
+                if (id->debug >= ET_DEBUG_INFO) {
+                    et_logmsg("INFO", "et_heartmon %d, reconnect!!\n", me);
+                }
+                sys->proc[me].et_status = ET_PROC_ETOK;
+                /* When reconnecting, the mem mapped file in the ET system may be
+                * mapped to a different location in memory than in the previous
+                * system. Thus, we need correct the offset.
+                */
+                id->offset = (ptrdiff_t) ((char *)id->pmap - (char *)id->sys->pmap);
+                id->alive = 1;
+                disconnected = 0;
+            }
+        }
     }
-  }
-  return (NULL);
+    return (NULL);
 }
 
 /******************************************************/

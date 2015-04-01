@@ -806,8 +806,6 @@ static void *et_sys_heartbeat(void *arg)
   id->race = -1;
   
   while (forever) {
-    /* update my own heartbeat */
-    sys->heartbeat = (sys->heartbeat + 1) % ET_HBMODULO;
     nanosleep(&timeout, NULL);
     pthread_testcancel();
 
@@ -815,6 +813,10 @@ static void *et_sys_heartbeat(void *arg)
      * but make sure we don't die with a mutex. */
     etDisableThreadCancellation();
     et_system_lock(sys);
+    
+    /* update my own heartbeat */
+    sys->heartbeat = (sys->heartbeat + 1) % ET_HBMODULO;
+    
     if (ET_GET_KILL(sys->bitInfo)) {
         et_system_unlock(sys);
         if (id->debug >= ET_DEBUG_ERROR) {
@@ -848,11 +850,11 @@ static void *et_sys_heartmonitor(void *arg)
   timeout.tv_sec  = ET_MON_SEC;
   timeout.tv_nsec = ET_MON_NSEC;
   
-  /* send signal that thread started */
+  /* signal that thread started */
   id->race = -1;
   
   for (i=0; i < numprocs ; i++) {
-    oldheartbt[i] = sys->proc[i].heartbeat;
+    oldheartbt[i] = -1;
   }
   
   while (forever) {
@@ -860,12 +862,22 @@ static void *et_sys_heartmonitor(void *arg)
     nanosleep(&timeout, NULL);
     pthread_testcancel();
 
+    /* read heartbeat for each process */
+    et_system_lock(sys);
+    for (i=0; i < numprocs ; i++) {
+        if (sys->proc[i].status != ET_PROC_OPEN) {
+            continue;
+        }
+        newheartbt[i] = sys->proc[i].heartbeat;
+    }
+    et_system_unlock(sys);
+        
     /* look at each process */
     for (i=0; i < numprocs ; i++) {
       if (sys->proc[i].status != ET_PROC_OPEN) {
         continue;
       }
-      newheartbt[i] = sys->proc[i].heartbeat;
+      
       if (oldheartbt[i] != newheartbt[i]) {
           oldheartbt[i]  = newheartbt[i];
       }
