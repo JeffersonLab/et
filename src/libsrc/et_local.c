@@ -553,7 +553,12 @@ int etl_kill(et_sys_id id)
 int etl_alive(et_sys_id id)
 {
   et_id *etid = (et_id *) id;
-  return etid->alive;
+  int alive;
+  et_system_lock(etid->sys);
+  alive = etid->alive;
+  et_system_unlock(etid->sys);
+  
+  return alive;
 }
 
 /******************************************************/
