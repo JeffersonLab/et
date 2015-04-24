@@ -33,8 +33,8 @@ void printHelp(char *program) {
       fprintf(stderr,
               "\nusage: %s  %s\n%s\n%s\n%s",
               program,
-              "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <evenSize>]",
-              "                 [-g <groups>] [-stats <max number of stations>]",
+              "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <eventSize>]",
+              "                 [-g <groups>] [-stats <max # of stations>]",
               "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
               "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n\n");
       
