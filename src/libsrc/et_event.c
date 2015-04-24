@@ -1575,38 +1575,3 @@ int et_event_needtoswap(et_event *pe, int *swap)
   
   return ET_OK;
 }
-
-/*****************************************************
- * Routine which swaps the data in an event if it's in
- * the CODA format and automatically keeps track of the
- * swap. (No need to call et_event_setendian).
- *
- * This function is deprecated. Use the swapping
- * function contained in the evio library.
- *****************************************************/
- 
-int et_event_CODAswap(et_event *pe)
-{
-  int length, same_endian=1;
-  length = pe->length/sizeof(int);
-
-  /* DEPRECATED: Swapping is now done in evio library. */
-  return ET_ERROR;
-  
-  /* event's data written on diff endian machine as this host? */
-  if (pe->byteorder != 0x04030201) {
-    same_endian = 0;
-  }
-  
-  /* swap the data */
-  if (et_CODAswap((int *)pe->pdata, NULL, length, same_endian) != ET_OK) {
-    return ET_ERROR;
-  }
-  
-  /* must also swap the "endian" element of the header
-   * since it's byte order mirrors that of the data
-   */
-  pe->byteorder = ET_SWAP32(pe->byteorder);
-  
-  return ET_OK;
-}
