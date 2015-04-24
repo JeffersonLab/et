@@ -403,9 +403,6 @@ extern int  et_event_getdata(et_event *pe, void **data);
 extern int  et_event_setdatabuffer(et_sys_id id, et_event *pe, void *data);
 extern int  et_event_needtoswap(et_event *pe, int *swap);
 
-/* swap CODA data functions */
-extern int  et_event_CODAswap(et_event *pe);
-
 /* system functions */
 extern int  et_open(et_sys_id* id, const char *filename, et_openconfig openconfig);
 extern int  et_close(et_sys_id id);
@@ -550,9 +547,10 @@ extern int et_system_config_setgroups(et_sysconfig sconfig, int groups[], int si
 extern int et_system_config_setfile(et_sysconfig sconfig, const char *val);
 extern int et_system_config_getfile(et_sysconfig sconfig, char *val);
 
-/* does nothing, only here for backwards compatibility */
+/* does nothing, only here for backwards compatibility
 extern int et_system_config_setcast(et_sysconfig sconfig, int val);
 extern int et_system_config_getcast(et_sysconfig sconfig, int *val);
+*/
 
 extern int et_system_config_setport(et_sysconfig sconfig, int val);
 extern int et_system_config_getport(et_sysconfig sconfig, int *val);
@@ -560,9 +558,10 @@ extern int et_system_config_getport(et_sysconfig sconfig, int *val);
 extern int et_system_config_setserverport(et_sysconfig sconfig, int val);
 extern int et_system_config_getserverport(et_sysconfig sconfig, int *val);
 
-/* deprecated, use ...addmulticast and ...removemulticast instead */
+/* deprecated, use ...addmulticast and ...removemulticast instead
 extern int et_system_config_setaddress(et_sysconfig sconfig, const char *val);
 extern int et_system_config_getaddress(et_sysconfig sconfig, char *val);
+*/
 
 extern int et_system_config_addmulticast(et_sysconfig sconfig, const char *val);
 extern int et_system_config_removemulticast(et_sysconfig sconfig, const char *val);
@@ -676,7 +675,6 @@ extern int et_bridge_config_settimeoutto(et_bridgeconfig config, struct timespec
 extern int et_bridge_config_gettimeoutto(et_bridgeconfig config, struct timespec *val);
 
 extern int et_bridge_config_setfunc(et_bridgeconfig config, ET_SWAP_FUNCPTR func);
-extern int et_bridge_CODAswap(et_event *src_ev, et_event *dest_ev, int bytes, int same_endian);
 
 extern int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
 		     et_att_id att_from, et_att_id att_to,

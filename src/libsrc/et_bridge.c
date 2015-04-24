@@ -254,19 +254,6 @@ int et_bridge_config_setfunc(et_bridgeconfig config, ET_SWAP_FUNCPTR func)
   return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_CODAswap(et_event *src_ev, et_event *dest_ev, int bytes, int same_endian)
-{
-  int nints = bytes/sizeof(int);
-  
-  /* DEPRECATED: Swapping is now done in evio library. */
-  return ET_ERROR;
-  
-  et_CODAswap((int *)src_ev->pdata, (int *)dest_ev->pdata, nints, same_endian);
-  return ET_OK;
-}
-
-
 
 /*****************************************************/
 /*                 BRIDGE ROUTINES                   */
