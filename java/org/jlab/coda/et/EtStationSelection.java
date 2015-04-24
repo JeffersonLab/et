@@ -31,11 +31,16 @@ public class EtStationSelection implements EtEventSelectable {
     }
 
     public boolean select(SystemCreate sys, StationLocal st, EtEvent ev) {
+        int[] select  = st.getConfig().getSelect();
+        int[] control = ev.getControl();
+
+        // access event control ints thru control[N]
+        // access station selection ints thru select[N]
+        // return false if it is NOT selected, true if it is
+
         if (ev.getId()%2 == 0) {
-            //System.out.println("  Select Func: accept ev.id = " + ev.id);
             return true;
         }
-        //System.out.println("  Select Func: reject ev.id = " + ev.id);
         return false;
     }
 }
