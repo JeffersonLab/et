@@ -139,7 +139,7 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
                 }
          
                 /* First order them so the IP addresses on the
-                * same subnets as this client are tried first. */
+                 * same subnets as this client are tried first. */
                 dotDecAddr = et_orderIpAddrs(response, config->netinfo);
 
                 /* Try the IP addresses sent by ET system, one-by-one. */
