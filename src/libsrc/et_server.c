@@ -226,16 +226,10 @@ static void *et_listen_thread(void *arg)
    *
    * All known IP addresses are sent here both in numerical & dotted-decimal forms.
    *
-   * Note that for a response to a broadcast, only the IP addresses
-   * associated with the subnet of the broadcast are sent back.
-   * There may be an exception to this IF a single interface is
-   * configured to have 2 IP addresses - each on a different subnet.
-   * (This is a practice best avoided in online data acquistion).
+   * Note PREVIOUSLY that for a response to a broadcast, only the IP addresses
+   * associated with the subnet of the broadcast were sent back.
+   * This is no longer done as client can specify outgoing interface.
    *
-   * However, if the broadcast address is the general address of 255.255.255.255,
-   * then send back all IP addresses as this broadcast address is NOT
-   * associated with any particular subnet.
-   * 
    * In a response to a multicast packet, all addresses of the host are sent back.
    * 
    */
@@ -249,16 +243,13 @@ static void *et_listen_thread(void *arg)
   for (i=0; i < ipAddrCount; i++) {
     /* If receiving broadcasts, don't send back names associated with other broadcast
        addresses unless we're the general broadcast address of 255.255.255.255 .*/
+    /* Don't do this anymore, since client can now specify outgoing interface. 
     if (cast == ET_BROADCAST &&
         strcmp("255.255.255.255",  listenaddr) != 0 &&
         strcmp(pinfo[i].broadcast, listenaddr) != 0)  {
-        /*
-if (debug)
-printf("et_listen_thread: broadcast addr %s of IP addr #%d, does NOT match our listening addr %s, so skip it\n",
-        pinfo[i].broadcast, i, listenaddr);
-        */
         continue;
     }
+    */
 
 if (debug)
 printf("et_listen_thread: broadcast addr %s of IP addr #%d, MATCHES listening addr %s, so count addrs assoc. with it\n",
