@@ -617,6 +617,8 @@ public class EtSystemOpenConfig {
     public void setEtName(String etName) {name = etName;}
 
     /** Sets the ET system host name or broad/multicast destination.
+     *  May be dotted decimal format. May also be {@link EtConstants#hostAnywhere},
+     *  {@link EtConstants#hostLocal}/"localhost", or {@link EtConstants#hostRemote}.
      *  @param hostName system host name or broad/multicast destination */
     public void setHost(String hostName) {host = hostName;}
 
