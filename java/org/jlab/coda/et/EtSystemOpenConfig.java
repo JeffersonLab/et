@@ -330,6 +330,33 @@ public class EtSystemOpenConfig {
 
 
     /**
+     * Constructor for broadcasting on given subnets. First responder is chosen.
+     *
+     * @param etName ET system name
+     * @param uPort  UDP port number to broadcasting to.
+     *               If = 0, set to default which is EtConstants.broadcastPort = 11111.
+     * @param hostName may open an ET system on the given host which could be the:
+     *                 1) actual ET system's host name,
+     *                 2) dotted decimal address of ET system's host, or
+     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
+     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
+     * @param bAddrs collection of broadcast addresses (as Strings) to broadcast on in order to
+     *               find ET system. If = null, set to list of all local subnets' broadcast addresses.
+     *
+     * @throws EtException
+     *     if no broadcast addresses were specified;
+     *     if port number is < 1024 or > 65535
+     */
+    public EtSystemOpenConfig(String etName, int uPort, String hostName,
+                              Collection<String> bAddrs)
+            throws EtException {
+        this (etName, hostName, bAddrs, null, false, EtConstants.broadcast,
+              EtConstants.serverPort, uPort, EtConstants.multicastPort,
+              EtConstants.multicastTTL, EtConstants.policyFirst);
+    }
+
+
+    /**
      * Constructor for multicasting. First responder is chosen.
      *
      * @param etName ET system name
@@ -873,8 +900,11 @@ public class EtSystemOpenConfig {
 
     /**
      * Set the network interface (in dotted-decimal format) used for connecting to the ET system.
+     * The interface may be specified by giving a specific IP address or a broadcast (subnet)
+     * address.
      * @param networkInterface the network interface used for connecting to the ET system,
-     *                         or null if none specified.
+     *                         or null if none specified. Address may be either a specific
+     *                         or broadcast IP dotted-decimal.
      * @throws EtException
      *    if the interface is not in dotted-decimal format or is an invalid IP address.
      */
