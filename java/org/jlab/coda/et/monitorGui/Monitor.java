@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et.monitorGui;
+package org.jlab.coda.et.monitorGuiNew;
 
 import java.lang.*;
 import java.net.*;
@@ -20,6 +20,7 @@ import java.io.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.tree.*;
 import javax.swing.border.*;
@@ -44,13 +45,24 @@ public class Monitor extends JFrame {
     private final JTabbedPane tabbedPane;
     private final JFrame openFrame;
     private final JMenu disconnectMenu, loadConnectionParametersMenu;
-    private JComboBox bAddress, mAddress, etName, hostname, cast;
+    private AddressJList bAddress;
+    private AddressJList mAddress;
+//    private JComboBox<String> bAddress;
+//    private JComboBox<String> mAddress;
+    private JComboBox<String> etName;
+    private JComboBox<String> hostname;
+    private JComboBox<String> cast;
     private WholeNumberField ttl, udpPort, mcastPort, tcpPort, period;
     private JButton connect;
+    private JCheckBox allBroadcastAddrsBox;
 
     // other variables
     private String currentMonitorKey;
     private int defaultPeriod;
+    private Color entryColor = Color.blue;
+    private List<String> broadcastAddresses;
+    private boolean multicasting = false;
+    private boolean broadcasting = true;
 
     // keep track of connections to & monitors of ET systems
     public final Map<String, EtSystem> connections =
@@ -58,39 +70,15 @@ public class Monitor extends JFrame {
     public final Map<String,MonitorSingleSystem> monitors =
             Collections.synchronizedMap(new HashMap<String,MonitorSingleSystem>(20));
 
-    // Default colors
-    public final Color textColorDefault = Color.black;
-    public final Color textBackgroundColorDefault = Color.white;
-    public final Color titleColorDefault = Color.black;
-    public final Color backgroundColorDefault = new Color(238, 220, 130); // lightGoldenrod2
-    public final Color selectedTabColorDefault = Color.yellow;
-    public final Color tabsBackgroundColorDefault = Color.cyan;
-    // Colors used
-    private Color textColor = textColorDefault;
-    private Color textBackgroundColor = textBackgroundColorDefault;
-    private Color titleColor = titleColorDefault;
-    private Color backgroundColor = backgroundColorDefault;
-    private Color selectedTabColor = selectedTabColorDefault;
-    private Color tabsBackgroundColor = tabsBackgroundColorDefault;
-
 
     public Monitor() {
-        this(null, null, null);
+        this(null, null);
     }
 
 
-    public Monitor(Color[] colors, Dimension frameSize, Point frameLocation) {
+    public Monitor(Dimension frameSize, Point frameLocation) {
         super("ET System Monitor");
 
-        // Set application colors.
-        if (colors != null) {
-            if (colors[0] != null) titleColor = colors[0];
-            if (colors[1] != null) backgroundColor = colors[1];
-            if (colors[2] != null) selectedTabColor = colors[2];
-            if (colors[3] != null) tabsBackgroundColor = colors[3];
-            if (colors[4] != null) textColor = colors[4];
-            if (colors[5] != null) textBackgroundColor = colors[5];
-        }
         // Set window location.
         if (frameLocation != null) {
             setLocation(frameLocation);
@@ -98,19 +86,9 @@ public class Monitor extends JFrame {
         // Default data update period in seconds.
         defaultPeriod = 5;
 
-        // To change some colors, the following is the only way to do it.
-        UIManager.put("ComboBox.foreground", textColor);
-        UIManager.put("ComboBox.background", textBackgroundColor);
-        // UIManager.put("ComboBox.disabledForeground", Color.blue);
-        // UIManager.put("ComboBox.selectionForeground", Color.cyan);
-        // UIManager.put("ComboBox.selectionBackground", Color.magenta);
-
         // tabbedPane stuff
-        UIManager.put("TabbedPane.selected", selectedTabColor);
         tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(MonitorFonts.buttonTabMenuFont);
-        tabbedPane.setBackground(backgroundColor);
-        tabbedPane.setForeground(titleColor);
+
         if (frameSize == null) {
             frameSize = new Dimension(1100, 700);
         }
@@ -128,12 +106,11 @@ public class Monitor extends JFrame {
                             return;
                         }
                         currentMonitorKey = source.getTitleAt(tabIndex);
-                        int updatePeriod = ((MonitorSingleSystem) (monitors.get(currentMonitorKey))).getUpdatePeriod();
+                        int updatePeriod = (monitors.get(currentMonitorKey)).getUpdatePeriod();
                         period.setValue(updatePeriod);
                     }
                 }
         );
-        getContentPane().setBackground(tabsBackgroundColor);
         getContentPane().add(tabbedPane, BorderLayout.CENTER);
 
         // Final members need to be initialized in all constructors.
@@ -169,7 +146,7 @@ public class Monitor extends JFrame {
         int count = etName.getItemCount();
 
         for (int i = 0; i < count; i++) {
-            if (name.equals((String) etName.getItemAt(i))) {
+            if (name.equals(etName.getItemAt(i))) {
                 return;
             }
         }
@@ -189,7 +166,7 @@ public class Monitor extends JFrame {
         boolean nameIsThere = false;
         int count = hostname.getItemCount();
         for (int i = 0; i < count; i++) {
-            if (name.equals((String) hostname.getItemAt(i))) {
+            if (name.equals(hostname.getItemAt(i))) {
                 return true;
             }
         }
@@ -201,11 +178,13 @@ public class Monitor extends JFrame {
 
     // add addresses to combo boxes
     public void addBroadcastAddress(String addr) {
-        bAddress.addItem(addr);
+//        bAddress.addItem(addr);
+        bAddress.addAddress(addr);
     }
 
     public void addMulticastAddress(String addr) {
-        mAddress.addItem(addr);
+//        mAddress.addItem(addr);
+        mAddress.addAddress(addr);
     }
 
     //get ET names from combo box
@@ -214,7 +193,7 @@ public class Monitor extends JFrame {
         if (count == 0) return null;
         String[] names = new String[count];
         for (int i = 0; i < count; i++) {
-            names[i] = (String) etName.getItemAt(i);
+            names[i] = etName.getItemAt(i);
         }
         return names;
     }
@@ -226,7 +205,7 @@ public class Monitor extends JFrame {
         if (count < 1) return null;
         String[] names = new String[count];
         for (int i = 0; i < count; i++) {
-            names[i] = (String) hostname.getItemAt(i + 3);
+            names[i] = hostname.getItemAt(i + 3);
         }
         return names;
     }
@@ -237,30 +216,6 @@ public class Monitor extends JFrame {
 
     public int getMonitorHeight() {
         return tabbedPane.getHeight();
-    }
-
-    public Color getTextColor() {
-        return new Color(textColor.getRGB());
-    }
-
-    public Color getTextBackgroundColor() {
-        return new Color(textBackgroundColor.getRGB());
-    }
-
-    public Color getTitleColor() {
-        return new Color(titleColor.getRGB());
-    }
-
-    public Color getBackgroundColor() {
-        return new Color(backgroundColor.getRGB());
-    }
-
-    public Color getSelectedTabColor() {
-        return new Color(selectedTabColor.getRGB());
-    }
-
-    public Color getTabsBackgroundColor() {
-        return new Color(tabsBackgroundColor.getRGB());
     }
 
     private boolean isValidIpAddress(String addr) {
@@ -299,35 +254,6 @@ public class Monitor extends JFrame {
         }
 
         return (address.isMulticastAddress());
-
-        /*
-        StringTokenizer tok = new StringTokenizer(addr, ".");
-        if (tok.countTokens() != 4) {
-            return false;
-        }
-
-        int number, round = 1;
-        String num;
-        try {
-            while (tok.hasMoreTokens()) {
-                num = tok.nextToken();
-                number = Integer.parseInt(num);
-                if ((round++ == 1) && (number < 224 || number > 239)) {
-                    return false;
-                }
-                if (number < 0 || number > 255) {
-                    return false;
-                }
-                if (num.charAt(0) == '0' && (number != 0 || num.length() > 1)) {
-                    return false;
-                }
-            }
-        }
-        catch (NumberFormatException ex) {
-            return false;
-        }
-        return true;
-        */
     }
 
     public static void main(String[] args) {
@@ -350,16 +276,14 @@ public class Monitor extends JFrame {
 
                 configurationFile = new File(args[1]);
 
-                // Read config file once to get main application window &
-                // color data only.
-                // This is done because the frame needs to have the colors,
-                // size, and position BEFORE it displays anything.
-                config = new MonitorConfiguration(null, args[1]);
+                // Read config file once to get window data only.
+                // This is done because the frame needs to have the
+                // size and position BEFORE it displays anything.
+                config = new MonitorConfiguration(null);
                 config.loadWindowParameters(configurationFile);
-                Color[] colors = config.getWindowColors();
                 Dimension size = config.getWindowSize();
                 Point location = config.getWindowLocation();
-                frame = new Monitor(colors, size, location);
+                frame = new Monitor(size, location);
                 // Read config file again to get the rest of the data.
                 // This needs the application to have already started
                 // (as in the previous line) - the reason being that
@@ -369,7 +293,7 @@ public class Monitor extends JFrame {
             }
             else {
                 frame = new Monitor();
-                config = new MonitorConfiguration(frame, null);
+                config = new MonitorConfiguration(frame);
             }
             frame.addWindowListener(new WindowAdapter() {
                 public void windowClosing(WindowEvent e) {
@@ -414,10 +338,9 @@ public class Monitor extends JFrame {
                 // While we're in the iterator, we CANNOT have monitors added
                 // (and thereby change the structure of the HashMap).
                 synchronized (frame.monitors) {
-                    for (Iterator i = frame.monitors.entrySet().iterator(); i.hasNext();) {
+                    for (Iterator<Map.Entry<String, MonitorSingleSystem>> i = frame.monitors.entrySet().iterator(); i.hasNext();) {
                         // get monitor object
-                        mon = (MonitorSingleSystem) (((Map.Entry) i.next()).getValue());
-                        monNode = mon.getNode();
+                        mon = (i.next()).getValue();
 
                         try {
                             // only update if enough time has elapsed
@@ -466,14 +389,10 @@ public class Monitor extends JFrame {
     private void makeMenubar() {
 
         JMenuBar menuBar = new JMenuBar();
-        menuBar.setBackground(backgroundColor);
         setJMenuBar(menuBar);
 
         // file menu
         JMenu fileMenu = new JMenu("File");
-        fileMenu.setFont(MonitorFonts.buttonTabMenuFont);
-        fileMenu.setBackground(backgroundColor);
-        fileMenu.setForeground(titleColor);
         menuBar.add(fileMenu);
 
         // Create a file chooser
@@ -481,9 +400,6 @@ public class Monitor extends JFrame {
 
         // file menu item to save configuration
         JMenuItem menuItem = new JMenuItem("Save Configuration");
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         fileMenu.add(menuItem);
         menuItem.addActionListener(
                 new ActionListener() {
@@ -517,9 +433,6 @@ public class Monitor extends JFrame {
 
         // file menu item to save configuration
         menuItem = new JMenuItem("Save Configuration As");
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         fileMenu.add(menuItem);
         menuItem.addActionListener(
                 new ActionListener() {
@@ -554,9 +467,6 @@ public class Monitor extends JFrame {
 
         // file menu item to load configuration
         menuItem = new JMenuItem("Load Configuration");
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         fileMenu.add(menuItem);
         menuItem.addActionListener(
                 new ActionListener() {
@@ -589,9 +499,6 @@ public class Monitor extends JFrame {
 
         // File menu item to quit.
         menuItem = new JMenuItem("Quit");
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         fileMenu.add(menuItem);
         menuItem.addActionListener(
                 new ActionListener() {
@@ -603,13 +510,9 @@ public class Monitor extends JFrame {
 
         // View menu to change update period of monitored ET system.
         JMenu viewMenu = new JMenu("View");
-        viewMenu.setFont(MonitorFonts.buttonTabMenuFont);
-        viewMenu.setBackground(backgroundColor);
-        viewMenu.setForeground(titleColor);
         menuBar.add(viewMenu);
 
         period = new WholeNumberField(defaultPeriod, 5, 1, Integer.MAX_VALUE);
-        period.setFont(MonitorFonts.inputFont);
         period.setAlignmentX(Component.LEFT_ALIGNMENT);
         period.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -629,23 +532,14 @@ public class Monitor extends JFrame {
         );
 
         JMenu updatePeriod = new JMenu("Update Period (sec)");
-        updatePeriod.setFont(MonitorFonts.buttonTabMenuFont);
-        updatePeriod.setBackground(backgroundColor);
-        updatePeriod.setForeground(titleColor);
         updatePeriod.add(period);
         viewMenu.add(updatePeriod);
 
         // menu to load connection parameters from a specific, existing connection
-        loadConnectionParametersMenu.setFont(MonitorFonts.buttonTabMenuFont);
-        loadConnectionParametersMenu.setBackground(backgroundColor);
-        loadConnectionParametersMenu.setForeground(titleColor);
         viewMenu.add(loadConnectionParametersMenu);
 
         // menuitem to switch JSplitPane orientation
         menuItem = new JMenuItem("Change Orientation");
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         viewMenu.add(menuItem);
         menuItem.addActionListener(
                 new ActionListener() {
@@ -665,15 +559,9 @@ public class Monitor extends JFrame {
 
         // connect menu
         JMenu connectMenu = new JMenu("Connections");
-        connectMenu.setFont(MonitorFonts.buttonTabMenuFont);
-        connectMenu.setBackground(backgroundColor);
-        connectMenu.setForeground(titleColor);
         menuBar.add(connectMenu);
 
         menuItem = new JMenuItem("Connect to ET System");
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         connectMenu.add(menuItem);
         menuItem.addActionListener(
                 new ActionListener() {
@@ -685,9 +573,6 @@ public class Monitor extends JFrame {
         );
 
         // menu to disconnect existing connections
-        disconnectMenu.setFont(MonitorFonts.buttonTabMenuFont);
-        disconnectMenu.setBackground(backgroundColor);
-        disconnectMenu.setForeground(titleColor);
         connectMenu.add(disconnectMenu);
     }
 
@@ -695,7 +580,6 @@ public class Monitor extends JFrame {
     private JScrollPane makeHelpPane() {
         // Put this into the tabbedPane.
         JTextArea text = new JTextArea(10, 200);
-        text.setFont(MonitorFonts.helpFont);
         text.setLineWrap(true);
         text.setWrapStyleWord(true);
         text.setTabSize(3);
@@ -825,58 +709,14 @@ public class Monitor extends JFrame {
 
                         "CONFIGURATION FILES\n" +
                         "Configuration files can be created, saved, and loaded through the \"File\" menu item. " +
-                        "The configuration files are in XML format and use a schema defined in " +
-                        "the file \"monitorConfiguration.xsd\". Without going into great detail, configuration " +
-                        "files store all current connections and the current state of the application. Colors " +
-                        "used in this application, as well as the " +
-                        "main window's size and placement, can be set in the configuration file. These particular " +
+                        "The configuration files are in XML format and store all current connections and the" +
+                        "current state of the application." +
+                        "The main window's size and placement, is recorded in the configuration file. These particular " +
                         "parameters, however, will only be set in the application if the configuration file is " +
                         "given on the command line (-f or -file). Once the monitor is up and running, loading a " +
                         "configuration file simply adds any additional ET system connections listed there as well " +
-                        "as adding items to the \"ET Name\" or \"ET Location\" lists.\n\n" +
+                        "as adding items to the \"ET Name\" or \"ET Location\" lists."
 
-                        "Setting colors in a configuration file can only be done by hand-editing it. Modifying the colors " +
-                        "in the main application can be done by inserting the following lines (without the explanation) " +
-                        "in any order, under the \"<graphics>\" element. Simply change the red, green, and blue " +
-                        "values (between 0 and 255 inclusive) to suit:\n\n" +
-
-                        "\tText on menus, titles, buttons, tabs (default black):\n" +
-                        "\t\t<titleColor  red=\"0\" green=\"0\" blue=\"0\"/>\n\n" +
-                        "\tGeneral background: (default lightGoldenrod2)\n" +
-                        "\t\t<backgroundColor  red=\"238\" green=\"220\" blue=\"130\"/>\n\n" +
-                        "\tSelected tab background (default yellow):\n" +
-                        "\t\t<selectedTabColor  red=\"255\" green=\"255\" blue=\"0\"/>\n\n" +
-                        "\tBehind all tabs background (default cyan):\n" +
-                        "\t\t<tabsBackgroundColor  red=\"150\" green=\"255\" blue=\"255\"/>\n\n" +
-                        "\tText in entry widgets (default black):\n" +
-                        "\t\t<textColor  red=\"0\" green=\"0\" blue=\"0\"/>\n\n" +
-                        "\tText entry widget background (default white):\n" +
-                        "\t\t<textBackgroundColor  red=\"255\" green=\"255\" blue=\"255\"/>\n\n" +
-
-                        "Colors may also be changed in the view of a monitored ET system. To do so, the following " +
-                        "lines may be added. HOWEVER, THEY MAY ONLY BE ADDED AT THE END OF EACH \"<etConnection>\" " +
-                        "ELEMENT AND ONLY IN THE GIVEN ORDER:\n\n" +
-
-                        "\tEvents (default red):\n" +
-                        "\t\t<eventColor  red=\"255\" green=\"0\" blue=\"0\"/>\n\n" +
-                        "\tStations Active (default cyan):\n" +
-                        "\t\t<stationColor  red=\"0\" green=\"255\" blue=\"255\"/>\n\n" +
-                        "\tStations Idle (default pink):\n" +
-                        "\t\t<stationIdleColor  red=\"255\" green=\"192\" blue=\"203\"/>\n\n" +
-                        "\tAttachments (default magenta):\n" +
-                        "\t\t<attachmentColor  red=\"255\" green=\"0\" blue=\"255\"/>\n\n" +
-                        "\tLines between stations and attachments (default black):\n" +
-                        "\t\t<lineColor  red=\"0\" green=\"0\" blue=\"0\"/>\n\n" +
-                        "\tText in stations and attachments (default black):\n" +
-                        "\t\t<textColor  red=\"0\" green=\"0\" blue=\"0\"/>\n\n" +
-                        "\tStation and attachment text background (default white):\n" +
-                        "\t\t<textBackgroundColor  red=\"255\" green=\"255\" blue=\"255\"/>\n\n" +
-                        "\tGraph background (default white):\n" +
-                        "\t\t<backgroundColor  red=\"255\" green=\"255\" blue=\"255\"/>\n\n" +
-                        "\tText of tree widget (default black):\n" +
-                        "\t\t<treeTextColor  red=\"0\" green=\"0\" blue=\"0\"/>\n\n" +
-                        "\tTree widget background (default white):\n" +
-                        "\t\t<treeBackgroundColor  red=\"255\" green=\"255\" blue=\"255\"/>"
 
         );
         return pane;
@@ -885,22 +725,7 @@ public class Monitor extends JFrame {
 
     private void makeEtOpenWindow() {
         // widget sizes & spacings
-        int edge1 = 20,
-                edge2 = 10,
-                edge3 = 5,
-                prefWidth = 500,
-                maxWidth = 800,
-                indent = 15,
-                horSpace = 10,
-                verSpace = 10,
-                prefRemBut = 50,
-                maxRemBut = 70,
-                prefHeight1 = 50,
-                maxHeight = 60,
-                prefHeight2 = 40;
-        // convenient sizes
-        int prefHalf = prefWidth / 2 - edge2 - horSpace / 2,
-                maxHalf = maxWidth / 2 - edge2 - horSpace / 2;
+        int edge1 = 10, edge2 = 5, horSpace = 10;
 
         // Several combo boxes use this to filter input.
         ActionListener al = new ActionListener() {
@@ -920,7 +745,7 @@ public class Monitor extends JFrame {
                 else {
                     for (int i = 0; i < numItems; i++) {
                         listItem = (String) jcb.getItemAt(i);
-                        if (listItem.equals(selectedItem) == true) {
+                        if (listItem.equals(selectedItem)) {
                             addNewItem = false;
                             break;
                         }
@@ -933,40 +758,22 @@ public class Monitor extends JFrame {
             }
         };
 
-        // put main panel into one main window
-        JPanel openPanel = new JPanel();
-        openPanel.setBackground(backgroundColor);
-        openPanel.setLayout(new BoxLayout(openPanel, BoxLayout.Y_AXIS));
-        openPanel.setBorder(new EmptyBorder(edge1, edge1, edge1, edge1));
-
+        //-------------------------------
         // setting ET name
+        //-------------------------------
         TitledBorder border1 = new TitledBorder(new EmptyBorder(0, 0, 0, 0),
                                                 "ET Name",
                                                 TitledBorder.LEFT,
-                                                TitledBorder.ABOVE_TOP,
-                                                MonitorFonts.titleFont,
-                                                titleColor);
-
+                                                TitledBorder.TOP);
         JPanel p1 = new JPanel();
-        p1.setLayout(new BoxLayout(p1, BoxLayout.X_AXIS));
+        p1.setLayout(new BorderLayout());
         p1.setBorder(border1);
-        p1.setBackground(backgroundColor);
-        p1.setPreferredSize(new Dimension(prefWidth, prefHeight1 + edge3));
-        p1.setMaximumSize(new Dimension(maxWidth, maxHeight + edge3));
-        p1.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        etName = new JComboBox();
-        etName.setBackground(textBackgroundColor);
+        etName = new JComboBox<String>();
         etName.setEditable(true);
-        etName.setFont(MonitorFonts.inputFont);
-        etName.setAlignmentX(Component.CENTER_ALIGNMENT);
-        etName.setPreferredSize(new Dimension(prefWidth - indent, prefHeight1));
-        etName.setMaximumSize(new Dimension(maxWidth - indent, maxHeight));
         etName.addActionListener(al);
         // Set editable comboBox colors
-        Component c = etName.getEditor().getEditorComponent();
-        c.setBackground(textBackgroundColor);
-        c.setForeground(textColor);
+        etName.getEditor().getEditorComponent().setForeground(entryColor);
 
         // button for ET name removal
         final JButton removeName = new JButton("X");
@@ -978,43 +785,25 @@ public class Monitor extends JFrame {
                 }
             }
         });
-        removeName.setAlignmentX(Component.LEFT_ALIGNMENT);
-        removeName.setForeground(titleColor);
-        removeName.setBackground(backgroundColor);
-        removeName.setPreferredSize(new Dimension(prefRemBut, prefHeight2));
-        removeName.setMaximumSize(new Dimension(maxRemBut, maxHeight));
 
-        p1.add(Box.createRigidArea(new Dimension(indent, 0)));
-        p1.add(etName);
-        p1.add(removeName);
+        p1.add(etName, BorderLayout.CENTER);
+        p1.add(removeName, BorderLayout.EAST);
 
+        //-------------------------------
         // setting ET location
+        //-------------------------------
         TitledBorder border2 = new TitledBorder(new EmptyBorder(0, 0, 0, 0),
                                                 "ET Location",
                                                 TitledBorder.LEFT,
-                                                TitledBorder.ABOVE_TOP,
-                                                MonitorFonts.titleFont,
-                                                titleColor);
-
+                                                TitledBorder.TOP);
         JPanel p2 = new JPanel();
-        p2.setLayout(new BoxLayout(p2, BoxLayout.X_AXIS));
+        p2.setLayout(new BorderLayout());
         p2.setBorder(border2);
-        p2.setBackground(backgroundColor);
-        p2.setPreferredSize(new Dimension(prefWidth, prefHeight1 + edge3));
-        p2.setMaximumSize(new Dimension(maxWidth, maxHeight + edge3));
-        p2.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        hostname = new JComboBox(new String[]{"local", "remote", "anywhere"});
+        hostname = new JComboBox<String>(new String[]{"anywhere", "local", "remote"});
         hostname.setEditable(true);
-        hostname.setBackground(textBackgroundColor);
-        hostname.setFont(MonitorFonts.inputFont);
-        hostname.setPreferredSize(new Dimension(prefWidth - indent, prefHeight1));
-        hostname.setMaximumSize(new Dimension(maxWidth - indent, maxHeight));
         hostname.addActionListener(al);
-        // Set editable comboBox colors
-        c = hostname.getEditor().getEditorComponent();
-        c.setBackground(textBackgroundColor);
-        c.setForeground(textColor);
+        hostname.getEditor().getEditorComponent().setForeground(entryColor);
 
         // button for ET name removal
         final JButton removeHost = new JButton("X");
@@ -1026,183 +815,55 @@ public class Monitor extends JFrame {
                 }
             }
         });
-        removeHost.setAlignmentX(Component.LEFT_ALIGNMENT);
-        removeHost.setForeground(titleColor);
-        removeHost.setBackground(backgroundColor);
-        removeHost.setPreferredSize(new Dimension(prefRemBut, prefHeight2));
-        removeHost.setMaximumSize(new Dimension(maxRemBut, maxHeight));
 
-        p2.add(Box.createRigidArea(new Dimension(indent, 0)));
-        p2.add(hostname);
-        p2.add(removeHost);
+        p2.add(hostname, BorderLayout.CENTER);
+        p2.add(removeHost, BorderLayout.EAST);
 
-        // panel for ports, ttl, & addresses
-        JPanel p3 = new JPanel();
-        p3.setLayout(new GridLayout(2, 2, horSpace, 0));
-        p3.setBackground(backgroundColor);
-        p3.setPreferredSize(new Dimension(prefWidth, prefHeight2 * 2));
-        p3.setMaximumSize(new Dimension(maxWidth, maxHeight * 2));
-        p3.setBorder(new EmptyBorder(edge2, edge2, edge2, edge2));
-        p3.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // panel to hold panels 1 & 2
+        JPanel p1and2 = new JPanel();
+        p1and2.setLayout(new GridLayout(2, 1, 0, 10));
+        p1and2.add(p1);
+        p1and2.add(p2);
 
-        // label for broadcast addresses
-        JLabel l4 = new JLabel("Subnet Addresses", JLabel.LEFT);
-        l4.setVerticalAlignment(JLabel.BOTTOM);
-        l4.setFont(MonitorFonts.titleFont);
-        l4.setForeground(titleColor);
-        l4.setOpaque(true);
-        l4.setBackground(backgroundColor);
-        l4.setAlignmentX(Component.LEFT_ALIGNMENT);
+        //-------------------------------
+        // broadcast addresses
+        //-------------------------------
+        // AddressJList is also a JPanel
+        bAddress = new AddressJList();
+        bAddress.setTextColor(entryColor);
 
-        // panel for broadcast combo box & button
-        JPanel p4 = new JPanel();
-        p4.setLayout(new BoxLayout(p4, BoxLayout.X_AXIS));
-        p4.setBackground(backgroundColor);
-        p4.setPreferredSize(new Dimension(prefHalf, prefHeight2));
-        p4.setMaximumSize(new Dimension(maxHalf, maxHeight));
-        p4.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Border for broadcast list box
+        TitledBorder border3 = new TitledBorder(new EtchedBorder(),
+                                                "Subnet Addresses",
+                                                TitledBorder.LEFT,
+                                                TitledBorder.ABOVE_TOP);
+        bAddress.setBorder(border3);
 
-        // comboBox for broadcast address
-        bAddress = new JComboBox();
-        bAddress.addItem("129.57.35.255");
-        bAddress.setEditable(true);
-        bAddress.setBackground(textBackgroundColor);
-        bAddress.setFont(MonitorFonts.inputFont);
-        bAddress.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bAddress.setPreferredSize(new Dimension(prefHalf - prefRemBut, prefHeight2));
-        bAddress.setMaximumSize(new Dimension(maxHalf - maxRemBut, maxHeight));
-        bAddress.addActionListener(al);
-        // Set editable comboBox colors
-        c = bAddress.getEditor().getEditorComponent();
-        c.setBackground(textBackgroundColor);
-        c.setForeground(textColor);
-
-        // button for multicast address removal
-        final JButton remove1 = new JButton("X");
-        remove1.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                int index = bAddress.getSelectedIndex();
-                if (index > -1) {
-                    bAddress.removeItemAt(index);
-                }
-            }
-        });
-        remove1.setAlignmentX(Component.LEFT_ALIGNMENT);
-        remove1.setForeground(titleColor);
-        remove1.setBackground(backgroundColor);
-        remove1.setPreferredSize(new Dimension(prefRemBut, prefHeight2));
-        remove1.setMaximumSize(new Dimension(maxRemBut, maxHeight));
-
-        p4.add(bAddress);
-        p4.add(remove1);
-
-        // label for multicast addresses
-        JLabel l5 = new JLabel("Multicast Addresses", JLabel.LEFT);
-        l5.setVerticalAlignment(JLabel.BOTTOM);
-        l5.setFont(MonitorFonts.titleFont);
-        l5.setForeground(titleColor);
-        l5.setOpaque(true);
-        l5.setBackground(backgroundColor);
-        l5.setAlignmentX(Component.LEFT_ALIGNMENT);
+        //-------------------------------
+        // multicast addresses
+        //-------------------------------
+        mAddress = new AddressJList(true);
+        mAddress.setTextColor(entryColor);
 
         // panel for multicast combo box & button
-        JPanel p5 = new JPanel();
-        p5.setLayout(new BoxLayout(p5, BoxLayout.X_AXIS));
-        p5.setBackground(backgroundColor);
-        p5.setPreferredSize(new Dimension(prefHalf, prefHeight2));
-        p5.setMaximumSize(new Dimension(maxHalf, maxHeight));
-        p5.setAlignmentX(Component.LEFT_ALIGNMENT);
+        TitledBorder border4 = new TitledBorder(new EtchedBorder(),
+                                                "Multicast Addresses",
+                                                TitledBorder.LEFT,
+                                                TitledBorder.ABOVE_TOP);
+        mAddress.setBorder(border4);
+        mAddress.addAddress(EtConstants.multicastAddr);
 
-        // comboBox for multicast address
-        mAddress = new JComboBox();
-        mAddress.setEditable(true);
-        mAddress.setBackground(textBackgroundColor);
-        mAddress.setFont(MonitorFonts.inputFont);
-        mAddress.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mAddress.setPreferredSize(new Dimension(prefHalf - prefRemBut, prefHeight2));
-        mAddress.setMaximumSize(new Dimension(maxHalf - maxRemBut, maxHeight));
-        mAddress.addActionListener(al);
-        // Set editable comboBox colors
-        c = mAddress.getEditor().getEditorComponent();
-        c.setBackground(textBackgroundColor);
-        c.setForeground(textColor);
-
-        // button for multicast address removal
-        final JButton remove2 = new JButton("X");
-        remove2.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                int index = mAddress.getSelectedIndex();
-                if (index > -1) {
-                    mAddress.removeItemAt(index);
-                }
-            }
-        });
-        remove2.setAlignmentX(Component.LEFT_ALIGNMENT);
-        remove2.setForeground(titleColor);
-        remove2.setBackground(backgroundColor);
-        remove2.setPreferredSize(new Dimension(prefRemBut, prefHeight2));
-        remove2.setMaximumSize(new Dimension(maxRemBut, maxHeight));
-
-        p5.add(mAddress);
-        p5.add(remove2);
-
-        // add to parent panel
-        p3.add(l4);
-        p3.add(l5);
-        p3.add(p4);
-        p3.add(p5);
-
-        // panels for ports & ttl
-        JPanel p6 = new JPanel();
-        p6.setLayout(new GridLayout(1, 1, horSpace, 0));
-        p6.setBackground(backgroundColor);
-        p6.setPreferredSize(new Dimension(prefWidth, prefHeight2 * 2));
-        p6.setMaximumSize(new Dimension(maxWidth, maxHeight * 2));
-        p6.setBorder(new EmptyBorder(edge2, edge2, 0, edge2));
-        p6.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JPanel p7 = new JPanel();
-        p7.setLayout(new BoxLayout(p7, BoxLayout.X_AXIS));
-        p7.setBackground(backgroundColor);
-        p7.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JPanel p8 = new JPanel();
-        p8.setLayout(new GridLayout(2, 2, 0, 2));
-        p8.setBackground(backgroundColor);
-        p8.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JPanel p9 = new JPanel();
-        p9.setLayout(new GridLayout(2, 1, 0, 2));
-        p9.setBackground(backgroundColor);
-        p9.setPreferredSize(new Dimension((int) (prefHalf * .67), prefHeight1 * 2));
-        p9.setMaximumSize(new Dimension((int) (maxHalf * .67), maxHeight * 2));
-
-        JPanel p10 = new JPanel();
-        p10.setLayout(new GridLayout(2, 1, 0, 2));
-        p10.setBackground(backgroundColor);
-        p10.setPreferredSize(new Dimension((int) (prefHalf * .33), prefHeight1 * 2));
-        p10.setMaximumSize(new Dimension((int) (maxHalf * .33), maxHeight * 2));
-
-        // ports & ttl labels
+        //-------------------------------
+        // port entries & ttl labels
+        //-------------------------------
         JLabel l0 = new JLabel("UDP Port: ", JLabel.RIGHT);
         JLabel l1 = new JLabel("TCP Port: ", JLabel.RIGHT);
         JLabel l2 = new JLabel("Multicast Port: ", JLabel.RIGHT);
         JLabel l3 = new JLabel("TTL Value: ", JLabel.RIGHT);
-        l0.setFont(MonitorFonts.titleFont);
-        l1.setFont(MonitorFonts.titleFont);
-        l2.setFont(MonitorFonts.titleFont);
-        l3.setFont(MonitorFonts.titleFont);
-        l0.setForeground(titleColor);
-        l1.setForeground(titleColor);
-        l2.setForeground(titleColor);
-        l3.setForeground(titleColor);
 
         // text input for udp/broadcast port number
         udpPort = new WholeNumberField(EtConstants.broadcastPort, 8, 1024, 65535);
-        udpPort.setAlignmentX(Component.LEFT_ALIGNMENT);
-        udpPort.setFont(MonitorFonts.inputFont);
-        udpPort.setForeground(textColor);
-        udpPort.setBackground(textBackgroundColor);
+        udpPort.setForeground(entryColor);
         // make sure there's a valid value entered
         udpPort.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -1228,10 +889,7 @@ public class Monitor extends JFrame {
 
         // text input for udp multicast port number
         mcastPort = new WholeNumberField(EtConstants.multicastPort, 8, 1024, 65535);
-        mcastPort.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mcastPort.setFont(MonitorFonts.inputFont);
-        mcastPort.setForeground(textColor);
-        mcastPort.setBackground(textBackgroundColor);
+        mcastPort.setForeground(entryColor);
         // make sure there's a valid value entered
         mcastPort.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -1257,10 +915,7 @@ public class Monitor extends JFrame {
 
         // text input for tcp server port number
         tcpPort = new WholeNumberField(EtConstants.serverPort, 8, 1024, 65535);
-        tcpPort.setFont(MonitorFonts.inputFont);
-        tcpPort.setAlignmentX(Component.LEFT_ALIGNMENT);
-        tcpPort.setForeground(textColor);
-        tcpPort.setBackground(textBackgroundColor);
+        tcpPort.setForeground(entryColor);
         tcpPort.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 WholeNumberField source = (WholeNumberField) e.getSource();
@@ -1285,10 +940,7 @@ public class Monitor extends JFrame {
 
         // text input for TTL value
         ttl = new WholeNumberField(EtConstants.multicastTTL, 6, 0, 255);
-        ttl.setFont(MonitorFonts.inputFont);
-        ttl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        ttl.setForeground(textColor);
-        ttl.setBackground(textBackgroundColor);
+        ttl.setForeground(entryColor);
         ttl.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 WholeNumberField source = (WholeNumberField) e.getSource();
@@ -1311,42 +963,41 @@ public class Monitor extends JFrame {
         }
         );
 
-        // add to parent panel
-        p9.add(l2);
-        p9.add(l3);
-        p10.add(mcastPort);
-        p10.add(ttl);
+        //-------------------------------
+        // panels for ports & ttl
+        //-------------------------------
+        JPanel portsLeft = new JPanel();
+        portsLeft.setLayout(new GridLayout(2, 2, horSpace, 0));
+        portsLeft.setBorder(new EmptyBorder(edge2, edge2, 0, edge2));
 
-        p7.add(p9);
-        p7.add(p10);
+        JPanel portsRight = new JPanel();
+        portsRight.setLayout(new GridLayout(2, 2, horSpace, 0));
+        portsRight.setBorder(new EmptyBorder(edge2, edge2, 0, edge2));
 
-        p8.add(l0);
-        p8.add(udpPort);
-        p8.add(l1);
-        p8.add(tcpPort);
+        // add widgets to parent panels
+        portsRight.add(l2);
+        portsRight.add(mcastPort);
+        portsRight.add(l3);
+        portsRight.add(ttl);
 
-        p6.add(p8);
-        p6.add(p7);
+        portsLeft.add(l0);
+        portsLeft.add(udpPort);
+        portsLeft.add(l1);
+        portsLeft.add(tcpPort);
 
-        // broadcast, multicast, both, direct, or direct udp connections
-        JPanel p14 = new JPanel();
-        p14.setLayout(new BoxLayout(p14, BoxLayout.X_AXIS));
-        p14.setBackground(backgroundColor);
-        p14.setPreferredSize(new Dimension(prefWidth, prefHeight2));
-        p14.setMaximumSize(new Dimension(maxWidth, maxHeight));
-        p14.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // comboBox for host name
-        cast = new JComboBox(new String[]{"broadcasting",
+        //-------------------------------
+        // comboBox for connection method (direct, multicast, broadcast)
+        //-------------------------------
+
+        // Only way to set foreground color for non-editable ComboBox
+        UIManager.put("ComboBox.foreground", entryColor);
+
+        cast = new JComboBox<String>(new String[]{"broadcasting",
                 "multicasting",
                 "broad & multicasting",
                 "direct connection"
         });
-        cast.setEditable(false);
-        cast.setFont(MonitorFonts.inputFont);
-        cast.setBackground(textBackgroundColor);
-        cast.setPreferredSize(new Dimension(prefWidth - 2 * edge2, prefHeight2));
-        cast.setMaximumSize(new Dimension(maxWidth - 2 * edge2, maxHeight));
         cast.addActionListener(
                 new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -1354,59 +1005,21 @@ public class Monitor extends JFrame {
                         String selecteditem = (String) jcb.getSelectedItem();
 
                         if (selecteditem.equals("broadcasting")) {
-                            bAddress.setEnabled(true);
-                            udpPort.setEnabled(true);
-                            remove1.setEnabled(true);
-
-                            mcastPort.setEnabled(false);
-                            ttl.setEnabled(false);
-                            tcpPort.setEnabled(false);
-                            mAddress.setEnabled(false);
-                            remove2.setEnabled(false);
+                            broadcasting = true;
+                            multicasting = false;
                         }
                         else if (selecteditem.equals("multicasting")) {
-                            ttl.setEnabled(true);
-                            mcastPort.setEnabled(true);
-                            mAddress.setEnabled(true);
-                            remove2.setEnabled(true);
-                            udpPort.setEnabled(true);
-
-                            bAddress.setEnabled(false);
-                            tcpPort.setEnabled(false);
-                            remove1.setEnabled(false);
+                            broadcasting = false;
+                            multicasting = true;
                         }
                         else if (selecteditem.equals("broad & multicasting")) {
-                            tcpPort.setEnabled(false);
-
-                            udpPort.setEnabled(true);
-                            mcastPort.setEnabled(true);
-                            mAddress.setEnabled(true);
-                            bAddress.setEnabled(true);
-                            remove1.setEnabled(true);
-                            remove2.setEnabled(true);
-                            ttl.setEnabled(true);
+                            broadcasting = true;
+                            multicasting = true;
                         }
-                        else if (selecteditem.equals("direct connection")) {
-                            tcpPort.setEnabled(true);
-
-                            udpPort.setEnabled(false);
-                            mcastPort.setEnabled(false);
-                            bAddress.setEnabled(false);
-                            mAddress.setEnabled(false);
-                            remove1.setEnabled(false);
-                            remove2.setEnabled(false);
-                            ttl.setEnabled(false);
-                        }
+                        // direct connection
                         else {
-                            udpPort.setEnabled(true);
-
-                            bAddress.setEnabled(false);
-                            mcastPort.setEnabled(false);
-                            remove1.setEnabled(false);
-                            ttl.setEnabled(false);
-                            tcpPort.setEnabled(false);
-                            mAddress.setEnabled(false);
-                            remove2.setEnabled(false);
+                            broadcasting = false;
+                            multicasting = false;
                         }
                     }
                 }
@@ -1414,44 +1027,41 @@ public class Monitor extends JFrame {
 
         // default is broadcasting
         cast.setSelectedIndex(0);
+        int castEdge = edge1 + edge2;
+        cast.setBorder(new EmptyBorder(castEdge, castEdge, 0, castEdge));
+        cast.setEditable(true);
+        // Can only set color if editable
+        cast.getEditor().getEditorComponent().setForeground(entryColor);
+        cast.setEditable(false);
 
-        p14.add(Box.createRigidArea(new Dimension(edge2, 0)));
-        p14.add(cast);
-        p14.add(Box.createRigidArea(new Dimension(edge2, 0)));
+        //-------------------------------
+        // button for using all local subnets
+        //-------------------------------
+        allBroadcastAddrsBox = new JCheckBox("Broadcast on all local subnets");
+        allBroadcastAddrsBox.setBorder(new EmptyBorder(castEdge, castEdge, 0, castEdge));
+        allBroadcastAddrsBox.addActionListener(
+                new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        JCheckBox jcb = (JCheckBox) e.getSource();
 
-        // panel to hold to "Find ET By" stuff
-        TitledBorder border3 = new TitledBorder(new EtchedBorder(),
-                                                "Find ET by",
-                                                TitledBorder.LEFT,
-                                                TitledBorder.ABOVE_TOP,
-                                                MonitorFonts.titleFont,
-                                                titleColor);
+                        if (jcb.isSelected()) {
+                            broadcastAddresses = EtUtils.getAllBroadcastAddresses();
+                            bAddress.addAddresses(broadcastAddresses);
+                        }
+                    }
+                }
+        );
+        // Fill comboBox with subnet addresses to start with
+        allBroadcastAddrsBox.doClick();
 
-        JPanel p15 = new JPanel();
-        p15.setLayout(new BoxLayout(p15, BoxLayout.Y_AXIS));
-        p15.setBorder(border3);
-        p15.setBackground(backgroundColor);
-        p15.setPreferredSize(new Dimension(prefWidth, 5 * prefHeight2 + 2 * edge2));
-        p15.setMaximumSize(new Dimension(maxWidth, 5 * maxHeight + 2 * edge2));
-        p15.add(Box.createRigidArea(new Dimension(0, edge2)));
-        p15.add(p14);
-        p15.add(p3);
-        p15.add(p6);
-        p15.add(Box.createRigidArea(new Dimension(0, edge2)));
-
+        //-------------------------------
         // buttons to connect to ET system or not
-        JPanel p16 = new JPanel();
-        p16.setLayout(new GridLayout(1, 2, 10, 0));
-        p16.setBackground(backgroundColor);
-        p16.setPreferredSize(new Dimension(prefWidth, prefHeight2));
-        p16.setMaximumSize(new Dimension(maxWidth, maxHeight));
-        p16.setAlignmentX(Component.LEFT_ALIGNMENT);
+        //-------------------------------
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(1, 2, 10, 0));
 
         // button for connecting to ET system
         connect = new JButton("Connect");
-        connect.setFont(MonitorFonts.buttonTabMenuFont);
-        connect.setForeground(titleColor);
-        connect.setBackground(backgroundColor);
         connect.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 EtSystemOpenConfig config = getEtSystemConfig();
@@ -1462,27 +1072,62 @@ public class Monitor extends JFrame {
 
         // button for dismissing window
         JButton dismiss = new JButton("Dismiss");
-        dismiss.setFont(MonitorFonts.buttonTabMenuFont);
-        dismiss.setForeground(titleColor);
-        dismiss.setBackground(backgroundColor);
         dismiss.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 openFrame.setVisible(false);
             }
         });
 
-        p16.add(connect);
-        p16.add(dismiss);
+        buttonPanel.add(connect);
+        buttonPanel.add(dismiss);
 
-        // pack the components
-        openPanel.add(Box.createRigidArea(new Dimension(0, verSpace)));
-        openPanel.add(p1);
-        openPanel.add(Box.createRigidArea(new Dimension(0, verSpace)));
-        openPanel.add(p2);
-        openPanel.add(Box.createRigidArea(new Dimension(0, verSpace)));
-        openPanel.add(p15);
-        openPanel.add(Box.createRigidArea(new Dimension(0, verSpace)));
-        openPanel.add(p16);
+
+        //-------------------------------
+        // panels for ports, ttl, & addresses
+        //-------------------------------
+        JPanel allLeft = new JPanel();
+        allLeft.setLayout(new BorderLayout());
+        allLeft.setBorder(new EmptyBorder(edge2, edge2, edge2, edge2));
+        allLeft.add(bAddress, BorderLayout.NORTH);
+        allLeft.add(portsLeft, BorderLayout.SOUTH);
+
+        JPanel allRight = new JPanel();
+        allRight.setLayout(new BorderLayout());
+        allRight.setBorder(new EmptyBorder(edge2, edge2, edge2, edge2));
+        allRight.add(mAddress, BorderLayout.NORTH);
+        allRight.add(portsRight, BorderLayout.SOUTH);
+
+        JPanel portsAddrs = new JPanel();
+        portsAddrs.setLayout(new GridLayout(1,2));
+        portsAddrs.setBorder(new EmptyBorder(edge2, edge2, edge2, edge2));
+        portsAddrs.add(allLeft);
+        portsAddrs.add(allRight);
+
+
+        //-------------------------------
+        // panel to hold to "Find ET By" stuff
+        //-------------------------------
+        TitledBorder border5 = new TitledBorder(new EtchedBorder(),
+                                                "Find ET by",
+                                                TitledBorder.LEFT,
+                                                TitledBorder.ABOVE_TOP);
+        JPanel findByPanel = new JPanel();
+        findByPanel.setLayout(new BorderLayout());
+        findByPanel.setBorder(border5);
+        findByPanel.add(cast, BorderLayout.NORTH);
+        findByPanel.add(allBroadcastAddrsBox, BorderLayout.CENTER);
+        findByPanel.add(portsAddrs, BorderLayout.SOUTH);
+
+
+        //-------------------------------
+        // pack everything into one main panel
+        //-------------------------------
+        JPanel openPanel = new JPanel();
+        openPanel.setLayout(new BorderLayout(0, 10));
+        openPanel.setBorder(new EmptyBorder(edge1, edge1, edge1, edge1));
+        openPanel.add(p1and2, BorderLayout.NORTH);
+        openPanel.add(findByPanel, BorderLayout.CENTER);
+        openPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         openFrame.getContentPane().add(openPanel);
         openFrame.pack();
@@ -1542,79 +1187,51 @@ public class Monitor extends JFrame {
                 specifingHostname = true;
             }
 
-            if (howToConnect.equals("broadcasting")) {
-                // find subnet broadcast addresses
-
-                // This no longer is necessary
-                /*
-                int nAddrs = bAddress.getItemCount();
-                String[] addresses = new String[nAddrs];
-                for (int i = 0; i < nAddrs; i++) {
-                    addresses[i] = (String) bAddress.getItemAt(i);
-                    if (!isValidIpAddress(addresses[i])) {
-                        throw new EtException("Invalid ip address \"" +
-                                addresses[i] + "\" in list.");
-                    }
-                }
-                int port = udpPort.getValue();
-                config = new EtSystemOpenConfig(etSystem, host, Arrays.asList(addresses), port);
-                */
-                int port = udpPort.getValue();
-                config = new EtSystemOpenConfig(etSystem, port, host);
+            // Find broadcast addresses in JList
+            List<String> bAddresses = null;
+            if (broadcasting) {
+                bAddresses = bAddress.getAddresses();
             }
 
-            else if (howToConnect.equals("multicasting")) {
-                // find multicast addresses
-                int nAddrs = mAddress.getItemCount();
-                String[] addresses = new String[nAddrs];
-                for (int i = 0; i < nAddrs; i++) {
-                    addresses[i] = (String) mAddress.getItemAt(i);
-                    if (!isValidMulticastAddress(addresses[i])) {
-                        throw new EtException("Invalid multicast address \"" +
-                                addresses[i] + "\" in list.");
-                    }
+            // Find multicast addresses in JList
+            List<String> mAddresses = null;
+            if (multicasting) {
+                mAddresses = mAddress.getAddresses();
+            }
+
+            // Create the config object for opening ET system
+            if (howToConnect.equals("broadcasting")) {
+                // If all local subnets are used ...
+                if (allBroadcastAddrsBox.isSelected()) {
+                    config = new EtSystemOpenConfig(etSystem, udpPort.getValue(), host);
                 }
-                // get port & ttl #s
-                int uPort = udpPort.getValue();
-                int mPort = mcastPort.getValue();
-                int ttlval = ttl.getValue();
+                else {
+                    config = new EtSystemOpenConfig(etSystem, host,
+                                   bAddresses, null, false, EtConstants.broadcast,
+                                   EtConstants.serverPort, udpPort.getValue(),
+                                   EtConstants.multicastPort, EtConstants.multicastTTL,
+                                   EtConstants.policyFirst);
+                }
+            }
+            else if (howToConnect.equals("multicasting")) {
                 // Use the multicast specific constructor allowing one to set the udp
                 // port. This is significant since going local or to a specific host,
                 // a direct udp packet is sent to that host on the udp port
                 // (as well as the specified multicast).
                 config = new EtSystemOpenConfig(etSystem, host,
-                                                Arrays.asList(addresses),
-                                                uPort, mPort, ttlval);
+                                                mAddresses,
+                                                udpPort.getValue(),
+                                                mcastPort.getValue(),
+                                                ttl.getValue());
             }
-
             else if (howToConnect.equals("broad & multicasting")) {
-                int nAddrs = 0;
-                String[] mAddresses = null;
-
-                // find multicast addresses
-                nAddrs = mAddress.getItemCount();
-                mAddresses = new String[nAddrs];
-                for (int i = 0; i < nAddrs; i++) {
-                    mAddresses[i] = (String) mAddress.getItemAt(i);
-                    if (!isValidMulticastAddress(mAddresses[i])) {
-                        throw new EtException("Invalid multicast address \"" +
-                                mAddresses[i] + "\" in list.");
-                    }
-                }
-
-                // get port & ttl #s
-                int uPort = udpPort.getValue();
-                int mPort = mcastPort.getValue();
-                int tPort = tcpPort.getValue();
-                int ttlval = ttl.getValue();
-
-                config = new EtSystemOpenConfig(etSystem, host, null,
-                                                Arrays.asList(mAddresses), true,
+                config = new EtSystemOpenConfig(etSystem, host,
+                                                bAddresses,  mAddresses, false,
                                                 EtConstants.broadAndMulticast,
-                                                tPort, uPort, mPort, ttlval,
+                                                tcpPort.getValue(), udpPort.getValue(),
+                                                mcastPort.getValue(), ttl.getValue(),
                                                 EtConstants.policyError);
             }
-
             else if (howToConnect.equals("direct connection")) {
                 // Since we've making a direct connection, a host name
                 // (not remote, or anywhere) must be specified. The selection
@@ -1622,13 +1239,11 @@ public class Monitor extends JFrame {
                 if (!specifingHostname) {
                     throw new EtException("Specify a host's name (not remote, or anywhere) to make a direct connection.");
                 }
-                int port = tcpPort.getValue();
-                config = new EtSystemOpenConfig(etSystem, host, port);
+                config = new EtSystemOpenConfig(etSystem, host, tcpPort.getValue());
             }
 
             return config;
         }
-
         catch (EtException ex) {
             JOptionPane.showMessageDialog(new JFrame(),
                                           ex.getMessage(),
@@ -1749,14 +1364,8 @@ public class Monitor extends JFrame {
         // Keep track of connections since you only want to connect
         // once to each system.
         // Create unique name & enter into Map (hash table)
-        String key;
-        if (open.getHostAddress().indexOf(".") < 0) {
-            key = new String(config.getEtName() + " (" + open.getHostAddress() + ")");
-        }
-        else {
-            key = new String(config.getEtName() + " (" +
-                    open.getHostAddress().substring(0, open.getHostAddress().indexOf(".")) + ")");
-        }
+        String key = new String(config.getEtName() + " (" + open.getHostAddress() + ")");
+
         if (connections.containsKey(key)) {
             open.disconnect();
             // pop up Dialog box
@@ -1790,9 +1399,6 @@ public class Monitor extends JFrame {
         // Finally, put an item into the "Load Connection Parameters" menu
         final EtSystem useObject = use;
         final JMenuItem menuItem = new JMenuItem(key);
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         loadConnectionParametersMenu.add(menuItem);
 
         menuItem.addActionListener(
@@ -1825,19 +1431,16 @@ public class Monitor extends JFrame {
                         if (method == EtConstants.broadcast) {
                             cast.setSelectedItem("broadcasting");
                             // set broadcast addresses
-                            bAddress.removeAllItems();
-                            bAddress.addItem(EtSystemOpenConfig.broadcastIP);
+                            bAddress.clearAddresses();
+                            bAddress.addAddresses(config.getBroadcastAddrs());
                             // broadcast port
                             udpPort.setValue(config.getUdpPort());
                         }
                         else if (method == EtConstants.multicast) {
                             cast.setSelectedItem("multicasting");
                             // set multicast addresses
-                            mAddress.removeAllItems();
-                            HashSet set = config.getMulticastAddrs();
-                            for (Iterator i = set.iterator(); i.hasNext();) {
-                                mAddress.addItem((String) i.next());
-                            }
+                            mAddress.clearAddresses();
+                            mAddress.addAddresses(config.getMulticastAddrs());
                             // multicast port
                             mcastPort.setValue(config.getMulticastPort());
                             // broadcast port
@@ -1848,14 +1451,11 @@ public class Monitor extends JFrame {
                         else if (method == EtConstants.broadAndMulticast) {
                             cast.setSelectedItem("broad & multicasting");
                             // set broadcast addresses
-                            bAddress.removeAllItems();
-                            bAddress.addItem(EtSystemOpenConfig.broadcastIP);
+                            bAddress.clearAddresses();
+                            bAddress.addAddresses(config.getBroadcastAddrs());
                             // set multicast addresses
-                            mAddress.removeAllItems();
-                            HashSet set = config.getMulticastAddrs();
-                            for (Iterator i = set.iterator(); i.hasNext();) {
-                                mAddress.addItem((String) i.next());
-                            }
+                            mAddress.clearAddresses();
+                            mAddress.addAddresses(config.getMulticastAddrs());
                             // multicast port
                             mcastPort.setValue(config.getMulticastPort());
                             // broadcast port
@@ -1925,7 +1525,7 @@ public class Monitor extends JFrame {
             monitor.period.setValue(monitor.defaultPeriod);
         }
         else {
-            mon = (MonitorSingleSystem) monitor.monitors.get(key);
+            mon = monitor.monitors.get(key);
             monitor.period.setValue(mon.getUpdatePeriod());
         }
         return;
@@ -1948,26 +1548,17 @@ public class Monitor extends JFrame {
                                 int updatePeriod, int dividerLocation,
                                 int orientation, Color[] colors) {
 
+        // Create name used for menuitem & hashtable key
+        final String key = new String(config.getEtName() + " (" + use.getHost() + ")");
+
         // Create monitor for single ET system
-        final MonitorSingleSystem et = new MonitorSingleSystem(use,
+        final MonitorSingleSystem et = new MonitorSingleSystem(use, key,
                                                                tabbedPane,
                                                                updatePeriod,
                                                                dividerLocation,
                                                                orientation,
                                                                colors);
-        // Get it's node for tree display of info
-        final DefaultMutableTreeNode etNode = et.getNode();
 
-        // Create name used for menuitem & hashtable key
-        // Do not include domain name.
-        final String key;
-        if (use.getHost().indexOf(".") < 0) {
-            key = new String(config.getEtName() + " (" + use.getHost() + ")");
-        }
-        else {
-            key = new String(config.getEtName() + " (" +
-                    use.getHost().substring(0, use.getHost().indexOf(".")) + ")");
-        }
         // Add monitor to hash table for access by other methods - but
         // only if the HashMap is not being iterated through. This can
         // be a problem since this method is called in a separate thread.
@@ -1978,9 +1569,6 @@ public class Monitor extends JFrame {
 
         // Create menuitem to remove ET system from monitor.
         final JMenuItem menuItem = new JMenuItem(key);
-        menuItem.setFont(MonitorFonts.buttonTabMenuFont);
-        menuItem.setBackground(backgroundColor);
-        menuItem.setForeground(titleColor);
         disconnectMenu.add(menuItem);
 
         menuItem.addActionListener(
@@ -1993,7 +1581,6 @@ public class Monitor extends JFrame {
 
         return;
     }
-
 
 }
 

@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et.monitorGui;
+package org.jlab.coda.et.monitorGuiNew;
 
 import java.lang.*;
 import java.io.*;
@@ -85,10 +85,7 @@ public class MonitorSingleSystem {
     public final Color eventColorDefault          = Color.red;
     public final Color lineColorDefault           = Color.black;
     public final Color textColorDefault           = Color.black;
-    public final Color textBackgroundColorDefault = Color.white;
-    public final Color backgroundColorDefault     = Color.white;
-    public final Color treeTextColorDefault       = Color.black;
-    public final Color treeBackgroundColorDefault = Color.white;
+
     // Colors used
     private Color stationColor        = stationColorDefault;
     private Color stationIdleColor    = stationIdleColorDefault;
@@ -96,10 +93,7 @@ public class MonitorSingleSystem {
     private Color eventColor          = eventColorDefault;
     private Color lineColor           = lineColorDefault;
     private Color textColor           = textColorDefault;
-    private Color textBackgroundColor = textBackgroundColorDefault;
-    private Color backgroundColor     = backgroundColorDefault;
-    private Color treeTextColor       = treeTextColorDefault;
-    private Color treeBackgroundColor = treeBackgroundColorDefault;
+
 
     // Define constants
     public static final boolean HORIZONTAL = true;
@@ -111,6 +105,7 @@ public class MonitorSingleSystem {
         boolean isHead;
         LxAlignLayout parentLayout;
     }
+
     // class to hold link data needed for graphical station drawing
     class StationLinkData {
         LxLink link1;
@@ -125,13 +120,7 @@ public class MonitorSingleSystem {
     }
 
     // Constructor
-    public MonitorSingleSystem(EtSystem use, JTabbedPane tabbedPane,
-                               int period) {
-        this(use, tabbedPane, period, tabbedPane.getWidth()/2,
-             JSplitPane.HORIZONTAL_SPLIT, null);
-    }
-
-    public MonitorSingleSystem(EtSystem use, JTabbedPane tabbedPane,
+    public MonitorSingleSystem(EtSystem use, String key, JTabbedPane tabbedPane,
                                int period, int divider,
                                int orient, Color[] colors) {
         sys  = use;
@@ -146,21 +135,7 @@ public class MonitorSingleSystem {
             if (colors[3] != null) eventColor          = colors[3];
             if (colors[4] != null) lineColor           = colors[4];
             if (colors[5] != null) textColor           = colors[5];
-            if (colors[6] != null) textBackgroundColor = colors[6];
-            if (colors[7] != null) backgroundColor     = colors[7];
-            if (colors[8] != null) treeTextColor       = colors[8];
-            if (colors[9] != null) treeBackgroundColor = colors[9];
-        }
 
-        // Create unique name for this ET system - used as key in
-        // Monitor's hash tables.
-        EtSystemOpenConfig config = sys.getConfig();
-        if (sys.getHost().indexOf(".") < 0) {
-            key = new String(config.getEtName() + " (" + sys.getHost() + ")");
-        }
-        else {
-            key = new String(config.getEtName() +
-                             " (" + sys.getHost().substring(0, sys.getHost().indexOf(".")) + ")");
         }
 
         // Create static tree nodes.
@@ -180,9 +155,7 @@ public class MonitorSingleSystem {
         // Create a tree that allows one selection at a time.
         treeModel = new DefaultTreeModel(topNode);
         tree      = new JTree(treeModel);
-        tree.setFont(MonitorFonts.treeFont);
-        tree.setBackground(treeBackgroundColor);
-        tree.setForeground(treeTextColor);
+
         tree.setDoubleBuffered(true);
         tree.setLargeModel(true);
         tree.getSelectionModel().setSelectionMode
@@ -191,8 +164,6 @@ public class MonitorSingleSystem {
         // Get rid of tree's leaf icon.
         DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer();
         renderer.setLeafIcon(null);
-        renderer.setBackgroundNonSelectionColor(treeBackgroundColor);
-        renderer.setTextNonSelectionColor(treeTextColor);
         tree.setCellRenderer(renderer);
 
         // Create the scroll pane and add the tree to it.
@@ -215,7 +186,6 @@ public class MonitorSingleSystem {
         // number & size of station graphics.
         graphHeight = 304;
         view.setPreferredSize(new Dimension(500, graphHeight));
-        view.setBackground(backgroundColor);
 
         // Create scroll pane and add graph to it.
         graphPane = new JScrollPane();
@@ -335,7 +305,6 @@ public class MonitorSingleSystem {
     public Color getAttachmentColor()     {return new Color(attachColor.getRGB());}
     public Color getLineColor()           {return new Color(lineColor.getRGB());}
     public Color getTextColor()           {return new Color(textColor.getRGB());}
-    public Color getTextBackgroundColor() {return new Color(textBackgroundColor.getRGB());}
 
 
     public void staticDisplay()
@@ -802,7 +771,7 @@ public class MonitorSingleSystem {
             str.append("            ");
 
             if (isNewNode) {
-//System.out.println("Add second leaf to statisics");
+//System.out.println("Add second leaf to statistics");
                 statsNode.add(new DefaultMutableTreeNode(str.toString()));
             }
             else {
@@ -1089,14 +1058,13 @@ public class MonitorSingleSystem {
 
         LxRectangle textBackgrd = new LxRectangle();
         textBackgrd.setSize(width - 2.*border, textBoxHeight);
-        textBackgrd.setCenter(x + width/2., y + border + textBoxHeight/2.);
-        textBackgrd.setPaint(textBackgroundColor);
+        textBackgrd.setCenter(x + width / 2., y + border + textBoxHeight / 2.);
+        textBackgrd.setPaint(Color.white);
         station.add(textBackgrd, 1);
 
         LxText text = new LxText(name);
         text.setSize(textWidth, textHeight);
         text.setCenter(x + width/2., y + border + textBoxHeight/2.);
-        text.setFont(MonitorFonts.graphFont);
         //text.setLineThickness(.0f);
         text.setPaint(textColor);  // set text background
         text.setLineColor(textColor); // set text outline
@@ -1114,20 +1082,19 @@ public class MonitorSingleSystem {
 
         LxRectangle recIn = new LxRectangle();
         recIn.setSize(recWidth, recHeight);
-        recIn.setCenter(x + space + recWidth/2., yCenter);
-        recIn.setPaint(textBackgroundColor);
+        recIn.setCenter(x + space + recWidth / 2., yCenter);
+        recIn.setPaint(Color.white);
         station.add(recIn, 3);
 
         LxRectangle recOut = new LxRectangle();
         recOut.setSize(recWidth, recHeight);
-        recOut.setCenter(x + 2.*space + 1.5*recWidth, yCenter);
-        recOut.setPaint(textBackgroundColor);
+        recOut.setCenter(x + 2. * space + 1.5 * recWidth, yCenter);
+        recOut.setPaint(Color.white);
         station.add(recOut, 4);
 
         LxText in = new LxText("In");
         in.setSize(recWidth - 25, recTextHeight);
         in.setCenter(x + space + recWidth/2., yCenter);
-        in.setFont(MonitorFonts.graphFont);
         in.setRegularTextAntialiased(true);
         in.setPaint(textColor);
         in.setLineColor(textColor);
@@ -1136,7 +1103,6 @@ public class MonitorSingleSystem {
         LxText out = new LxText("Out");
         out.setSize(recWidth - 15, recTextHeight);
         out.setCenter(x + 2.*space + 1.5*recWidth, yCenter);
-        out.setFont(MonitorFonts.graphFont);
         out.setRegularTextAntialiased(true);
         out.setPaint(textColor);
         out.setLineColor(textColor);
@@ -1233,13 +1199,12 @@ public class MonitorSingleSystem {
         LxRectangle rec2 = new LxRectangle();
         rec2.setSize(width - 2.*border, textBoxHeight);
         rec2.setCenter(x + width/2., y + border + textBoxHeight/2.);
-        rec2.setPaint(textBackgroundColor);
+        rec2.setPaint(Color.white);
         attachment.add(rec2, 1);
 
         LxText text = new LxText(name);
         text.setSize(textWidth, textHeight);
         text.setCenter(x + width/2., y + border + textBoxHeight/2.);
-        text.setFont(MonitorFonts.graphFont);
         //text.setLineThickness(.0f);
         text.setPaint(textColor);     // set text background color
         text.setLineColor(textColor); // set text outline color
