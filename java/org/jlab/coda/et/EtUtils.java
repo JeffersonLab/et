@@ -313,9 +313,8 @@ public class EtUtils {
                             // probably IPv6 so ignore
                             continue;
                         }
-
-                        String broadcastIP = bAddr.getHostAddress();
-                        ipList.add(broadcastIP);
+                        if (bAddr == null) continue;
+                        ipList.add(bAddr.getHostAddress());
                     }
                 }
             }
@@ -332,14 +331,152 @@ public class EtUtils {
         return ipList;
     }
 
+
+    /**
+     * Given an IP address as an argument, this method will return that if it matches
+     * one of the local IP addresses. Given a broadcast or subnet address it will
+     * return a local IP address on that subnet. If there are no matches,
+     * null is returned.
+     *
+     * @param ip IP or subnet address in dotted-decimal format
+     * @return matching local address on the same subnet;
+     *         else null if no match
+     * @throws EtException if arg is null or not in dotted-decimal format
+     */
+    public static String getMatchingLocalIpAddress(String ip) throws EtException {
+        if (ip == null) {
+            throw new EtException("arg is null");
+        }
+
+        byte[] ipBytes = isDottedDecimal(ip);
+        if (ipBytes == null) {
+            throw new EtException("arg is not in dot-decimal (textual presentation) format");
+        }
+
+        // Iterate through list of local addresses
+        try {
+            Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+
+            // For each network interface ...
+            while (enumer.hasMoreElements()) {
+                NetworkInterface ni = enumer.nextElement();
+                if (!ni.isUp() || ni.isLoopback()) {
+                    continue;
+                }
+
+                // List of IPs associated with this interface
+                List<InterfaceAddress> ifAddrs = ni.getInterfaceAddresses();
+
+                for (InterfaceAddress ifAddr : ifAddrs) {
+                    Inet4Address addrv4;
+                    try { addrv4 = (Inet4Address)ifAddr.getAddress(); }
+                    catch (ClassCastException e) {
+                        // probably IPv6 so ignore
+                        continue;
+                    }
+
+                    // If this matches an actual local IP address, return it
+                    if (ip.equals(addrv4.getHostAddress()))  {
+System.out.println("getMatchingLocalIpAddress: this is a local address");
+                        return ip;
+                    }
+
+                    // If this matches a broadcast/subnet address, return
+                    // an actual local IP address on this subnet.
+                    if (ip.equals(ifAddr.getBroadcast().getHostAddress())) {
+System.out.println("getMatchingLocalIpAddress: broadcast addr, use this IP on that subnet: " +
+                           addrv4.getHostAddress());
+                        return addrv4.getHostAddress();
+                    }
+                }
+            }
+        }
+        catch (SocketException e) {}
+
+        // no match
+        return null;
+    }
+
+
+    /**
+     * Given a local IP address as an argument, this method will return its
+     * broadcast or subnet address. If it already is a broadcast address,
+     * that is returned. If address is not local or none can be found,
+     * null is returned.
+     *
+     * @param ip IP or subnet address in dotted-decimal format
+     * @return ip's subnet address; null if it's not local or cannot be found
+     * @throws EtException if arg is null or not in dotted-decimal format
+     */
+    public static String getBroadcastAddress(String ip) throws EtException {
+        if (ip == null) {
+            throw new EtException("arg is null");
+        }
+
+        byte[] ipBytes = isDottedDecimal(ip);
+        if (ipBytes == null) {
+            throw new EtException("arg is not in dot-decimal (textual presentation) format");
+        }
+
+        // Iterate through list of local addresses
+        try {
+            Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+
+            // For each network interface ...
+            while (enumer.hasMoreElements()) {
+                NetworkInterface ni = enumer.nextElement();
+                if (!ni.isUp() || ni.isLoopback()) {
+                    continue;
+                }
+
+                // List of IPs associated with this interface
+                List<InterfaceAddress> ifAddrs = ni.getInterfaceAddresses();
+
+                for (InterfaceAddress ifAddr : ifAddrs) {
+                    Inet4Address addrv4;
+                    try { addrv4 = (Inet4Address)ifAddr.getAddress(); }
+                    catch (ClassCastException e) {
+                        // probably IPv6 so ignore
+                        continue;
+                    }
+
+                    // If this matches an actual local IP address,
+                    // return its broadcast address
+                    if (ip.equals(addrv4.getHostAddress()))  {
+System.out.println("getMatchingLocalIpAddress: this is a local address");
+                        return ifAddr.getBroadcast().getHostAddress();
+                    }
+
+                    // If this matches a broadcast/subnet address, return it as is.
+                    if (ip.equals(ifAddr.getBroadcast().getHostAddress())) {
+System.out.println("getMatchingLocalIpAddress: broadcast addr: " + ip);
+                        return ip;
+                    }
+                }
+            }
+        }
+        catch (SocketException e) {}
+
+        // no match
+        return null;
+    }
+
+
+
     /**
      * Takes a list of dotted-decimal formatted IP address strings and orders them
      * so that those on local subnets are first and others come last.
      * This only works for IPv4.
+     *
+     * @param ipAddresses list of addresses to order; null if arg is null
      * @return ordered list of given IP addresses in dotted-decimal form with those
      *         on local subnets listed first.
      */
     public static List<String> orderIPAddresses(List<String> ipAddresses) {
+
+        if (ipAddresses == null) {
+            return null;
+        }
 
         // Eliminate duplicates in arg
         HashSet<String> ipSet = new HashSet<String>(ipAddresses);
@@ -350,8 +487,6 @@ public class EtUtils {
         // iterate through argument list of addresses
         outerLoop:
         for (String ip : ipSet) {
-            boolean ipAddressAdded = false;
-
             try {
                 // iterate through local list of addresses
                 Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
@@ -376,20 +511,18 @@ public class EtUtils {
                         for (int j = 0; j < prefixLength; ++j) {
                             subnetMask |= (1 << 31-j);
                         }
-
                         String localIP = addrv4.getHostAddress();
                         try {
                             // If local and arg addresses are on the same subnet,
                             // we gotta match to put at the head of the list.
-                            if (onSameSubnet2(ip, localIP, subnetMask)) {
+                            if (onSameSubnet(ip, localIP, subnetMask)) {
                                 ipList.addFirst(ip);
-                                ipAddressAdded = true;
 //System.out.println("Add " + ip + " to list top");
                                 continue outerLoop;
                             }
                         }
                         // try the next address
-                        catch (EtException e) {continue;}
+                        catch (EtException e) {}
                     }
                 }
             }
@@ -399,14 +532,131 @@ public class EtUtils {
 
             // This arg address is not on any of the local subnets,
             // so put it at the end of the list.
-            if (!ipAddressAdded) {
 //System.out.println("Add " + ip + " to list bottom");
-                ipList.addLast(ip);
-            }
+            ipList.addLast(ip);
         }
 
         return ipList;
     }
+
+
+    /**
+     * Takes a list of dotted-decimal formatted IP address strings and orders them
+     * so that those on the given local subnet are first, those on other local subnets
+     * are next, and all others come last.
+     * This only works for IPv4.
+     *
+     * @param ipAddresses list of addresses to order; null if arg is null
+     * @param preferredAddress if not null, it is the preferred subnet(broadcast) address
+     *                         used in sorting so that addresses on the given list which
+     *                         exist on the preferred subnet are first on the returned list.
+     *                         If a local, non-subnet ip address is given, it will be
+     *                         converted internally to the subnet it is on.
+     * @return ordered list of given IP addresses in dotted-decimal form with those
+     *         on the given local subnet listed first, those on other local subnets listed
+     *         next, and all others last.
+     */
+    public static List<String> orderIPAddresses(List<String> ipAddresses,
+                                                String preferredAddress) {
+
+        if (ipAddresses == null) {
+            return null;
+        }
+
+        // Eliminate duplicates in arg list
+        HashSet<String> ipSet = new HashSet<String>(ipAddresses);
+
+        // List of all IP addrs, ordered
+        LinkedList<String> ipList = new LinkedList<String>();
+
+        // List of IP addrs on preferred subnet
+        LinkedList<String> preferred = new LinkedList<String>();
+
+        // Convert the preferred address into a local subnet address
+        String prefSubnet = null;
+        try {
+            // Will be null if not local
+            prefSubnet = getBroadcastAddress(preferredAddress);
+        }
+        catch (EtException e) {
+            // preferredAddresses is null or not in dotted-decimal format, so ignore
+        }
+
+        // Iterate through argument list of addresses
+        outerLoop:
+        for (String ip : ipSet) {
+
+            // Convert the list address into a local subnet address
+            String ipSubNet = null;
+            try {
+                // Will be null if not local
+                ipSubNet = getBroadcastAddress(preferredAddress);
+            }
+            catch (EtException e) {
+                // preferredAddresses is null or not in dotted-decimal format
+            }
+
+            try {
+                // Iterate through list of local addresses
+                Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+                while (enumer.hasMoreElements()) {
+                    NetworkInterface ni = enumer.nextElement();
+                    if (!ni.isUp() || ni.isLoopback()) {
+                        continue;
+                    }
+                    List<InterfaceAddress> ifAddrs = ni.getInterfaceAddresses();
+
+                    for (InterfaceAddress ifAddr : ifAddrs) {
+                        Inet4Address addrv4;
+                        try { addrv4 = (Inet4Address)ifAddr.getAddress(); }
+                        catch (ClassCastException e) {
+                            // probably IPv6 so ignore
+                            continue;
+                        }
+
+                        // If this is on the same subnet as the preferred address,
+                        // place it on the preferred list.
+                        if (prefSubnet != null && prefSubnet.equals(ipSubNet)) {
+System.out.println("orderIPAddresses: ip " + ip + " on preferred subnet: " + prefSubnet);
+                            preferred.add(ip);
+                            continue outerLoop;
+                        }
+
+                        // Turn net prefix len into integer subnet mask
+                        short prefixLength = ifAddr.getNetworkPrefixLength();
+                        int subnetMask = 0;
+                        for (int j = 0; j < prefixLength; ++j) {
+                            subnetMask |= (1 << 31-j);
+                        }
+                        String localIP = addrv4.getHostAddress();
+                        try {
+                            // If local and arg addresses are on the same subnet,
+                            // we gotta match to put at the head of the list.
+                            if (onSameSubnet(ip, localIP, subnetMask)) {
+                                ipList.addFirst(ip);
+                                //System.out.println("Add " + ip + " to list top");
+                                continue outerLoop;
+                            }
+                        }
+                        // try the next address
+                        catch (EtException e) {}
+                    }
+                }
+            }
+            catch (SocketException e) {}
+
+            // This arg address is not on any of the local subnets,
+            // so put it at the end of the list.
+//System.out.println("Add " + ip + " to list bottom");
+            ipList.addLast(ip);
+        }
+
+        // Add any preferred addresses to top of list
+        ipList.addAll(0, preferred);
+
+        return ipList;
+    }
+
 
     /**
      * This method tells whether the 2 given IP addresses in dot-decimal notation
@@ -419,7 +669,7 @@ public class EtUtils {
      *
      * @returns {@code true} if on same subnet, else {@code false}.
      */
-    static boolean onSameSubnet2(String ipAddress1, String ipAddress2, int subnetMask)
+    static boolean onSameSubnet(String ipAddress1, String ipAddress2, int subnetMask)
                                     throws EtException
     {
         if (ipAddress1 == null || ipAddress2 == null) {
@@ -436,12 +686,41 @@ public class EtUtils {
         int addr1 = (ipBytes1[0] << 24) | (ipBytes1[1] << 16) | (ipBytes1[2] << 8) | ipBytes1[3];
         int addr2 = (ipBytes2[0] << 24) | (ipBytes2[1] << 16) | (ipBytes2[2] << 8) | ipBytes2[3];
 
-        if ((addr1 & subnetMask) == (addr2 & subnetMask)) {
-            return true;
+        return (addr1 & subnetMask) == (addr2 & subnetMask);
+    }
+
+
+    /**
+     * This method tells whether the 2 given IP addresses (one in dot-decimal
+     * notation and the other in raw form) are on the same subnet or not given
+     * a subnet mask in integer form (local byte order). This only works for IPv4.
+     *
+     * @param ipAddress1 first  IP address in dot-decimal notation
+     * @param ipAddress2 second IP address in raw form (net byte order
+     *                   meaning highest order byte in element 0)
+     * @param subnetMask subnet mask as LOCAL-byte-ordered 32 bit int
+     *
+     * @returns {@code true} if on same subnet, else {@code false}.
+     */
+    static boolean onSameSubnet(String ipAddress1, byte[] ipAddress2, int subnetMask)
+                                    throws EtException
+    {
+        if (ipAddress1 == null || ipAddress2 == null) {
+            throw new EtException("null arg(s)");
         }
 
-        return false;
+        byte[] ipBytes1 = isDottedDecimal(ipAddress1);
+
+        if (ipBytes1 == null)  {
+            throw new EtException("first IP address arg is not dot-decimal format");
+        }
+
+        int addr1 = (ipBytes1[0]   << 24) | (ipBytes1[1]   << 16) | (ipBytes1[2]   << 8) | ipBytes1[3];
+        int addr2 = (ipAddress2[0] << 24) | (ipAddress2[1] << 16) | (ipAddress2[2] << 8) | ipAddress2[3];
+
+        return (addr1 & subnetMask) == (addr2 & subnetMask);
     }
+
 
     /**
      * This method tells whether the given IPv4 address is in dot-decimal notation or not.
@@ -450,8 +729,9 @@ public class EtUtils {
      *
      * @param ipAddress IPV4 address
      * @returns IPV4 address in numeric form if arg is valid dot-decimal address, else null
+     *          (in network byte order with highest order byte in element 0).
      */
-    static byte[] isDottedDecimal(String ipAddress)
+    public static byte[] isDottedDecimal(String ipAddress)
     {
         if (ipAddress == null) return null;
 
