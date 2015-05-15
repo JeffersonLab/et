@@ -12,7 +12,7 @@
  *                                                                            *
  *----------------------------------------------------------------------------*/
 
-package org.jlab.coda.et.monitorGuiNew;
+package org.jlab.coda.et.monitorGui;
 
 import java.lang.*;
 import java.net.*;
