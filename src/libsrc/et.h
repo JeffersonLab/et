@@ -68,7 +68,6 @@ extern "C" {
 #define ET_SERVER_PORT     11111 /* tcp server port */
 
 #define ET_MULTICAST_ADDR  "239.200.0.0"    /* random multicast addr */
-#define ET_BROADCAST_ADDR  "129.57.29.255"  /* jlab daq group subnet */
     
 #define ET_EVENT_GROUPS_MAX 500 /* max # of groups events are divided into */
 
