@@ -1131,7 +1131,8 @@ public class EtSystemOpen {
                 tcpPort = config.getTcpPort();
 
                 // Is ET local?
-                if (config.getHost().equals(EtConstants.hostLocal) || config.getHost().equals("localhost")) {
+                if (config.getHost().equals(EtConstants.hostLocal) ||
+                    config.getHost().equals("localhost")) {
                     etOnLocalHost = true;
                 }
                 else {
@@ -1187,8 +1188,9 @@ public class EtSystemOpen {
                 addrList.add(hostAddress);
             }
             else {
-                // Put IP addresses in list with those on local subnets first
-                addrList = EtUtils.orderIPAddresses(hostAddresses);
+                // Put IP addresses in list with those on preferred local subnets first,
+                // other local subnets next, and all others last
+                addrList = EtUtils.orderIPAddresses(hostAddresses, config.getNetworkInterface());
             }
 
             // If one IP address fails, perhaps another will work
@@ -1221,8 +1223,15 @@ public class EtSystemOpen {
 
                     // Pick outgoing interface & ephemeral port BEFORE connecting
                     if (config.getNetworkInterface() != null) {
-//System.out.println("connect(): bind outgoing data to " + config.getNetworkInterface());
-                        sock.bind(new InetSocketAddress(config.getNetworkInterface(), 0));
+                        // The outgoing network interface address may be a specific IP address
+                        // or it may be a broadcast/subnet address. If it is a broadcast
+                        // address, find the specific IP associated with it and use that
+                        // to bind to.
+                        String ip = EtUtils.getMatchingLocalIpAddress(config.getNetworkInterface());
+                        if (ip != null) {
+System.out.println("connect(): bind outgoing data to " + config.getNetworkInterface());
+                            sock.bind(new InetSocketAddress(ip, 0));
+                        }
                     }
 
                     // Make actual TCP connection with 3 second timeout
@@ -1241,17 +1250,14 @@ System.out.println("connect(): SUCCESS creating socket");
                 catch (SocketException ex) {
 System.out.println("connect(): FAILED setting socket options");
                     excep = ex;
-                    continue;
                 }
                 catch (IOException ex) {
 System.out.println("connect(): FAILED creating connection to " + connectionHost);
                     excep = ex;
-                    continue;
                 }
                 catch (Exception ex) {
 System.out.println("connect(): FAILED creating connection to " + connectionHost);
                     excep = ex;
-                    continue;
                 }
             }
 
