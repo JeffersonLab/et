@@ -185,6 +185,12 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
   if (pInfo->byteOrder != 0x04030201) {
       if (pInfo->byteOrder == 0x01020304) {
         et_logmsg("ERROR", "et_mem_attach: ET system file is wrong endian\n");
+        /* This error may occur because it's a Java ET system and therefore big endian. */
+        if (pInfo->systemType == ET_SWAP32(ET_SYSTEM_TYPE_JAVA)) {
+            et_logmsg("ERROR", "et_mem_attach: This ET system file is used only for Java ET systems\n");
+            close(fd);
+            return ET_ERROR_JAVASYS;
+        }
       }
       else {
           et_logmsg("ERROR", "et_mem_attach: ET system file removed but process running - kill ET & restart\n");
@@ -194,10 +200,10 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
   }
   
   /* check system type */   
-  if (pInfo->systemType != ET_SYSTEM_TYPE_C) {
+  if (pInfo->systemType == ET_SYSTEM_TYPE_JAVA) {
       et_logmsg("ERROR", "et_mem_attach: This ET system file is used only for Java ET systems\n");
       close(fd);
-      return ET_ERROR;
+      return ET_ERROR_JAVASYS;
   }
   
   /* check major version number */
