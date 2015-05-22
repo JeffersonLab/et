@@ -174,7 +174,7 @@ void et_freeAnswers(et_response *answer) {
  *         and all others come last. Return NULL if an arg is NULL
  *         or error. If successful, all the elements of the returned linked-list
  *         need to be freed by the caller.
- *         Returns NULL if response arg is NULL or no addresses contained response arg
+ *         Returns NULL if response apreferredSubnetrg is NULL or no addresses contained response arg
  */
 codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
                             char* preferredSubnet) {
@@ -204,7 +204,7 @@ printf("et_orderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
             if (strcmp(local->broadcast, bcastAddress) == 0) {
                 onSameSubnet = 1;
                 printf("et_orderIpAddrs: on SAME subnet\n");
-                if (strcmp(preferredSubnet, bcastAddress) == 0) {
+                if (preferredSubnet != NULL && strcmp(preferredSubnet, bcastAddress) == 0) {
                     onPreferredSubnet = 1;
                     preferredCount++;
                     printf("et_orderIpAddrs: on PREFFERED subnet\n");
