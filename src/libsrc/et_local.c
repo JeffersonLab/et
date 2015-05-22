@@ -554,9 +554,16 @@ int etl_alive(et_sys_id id)
 {
   et_id *etid = (et_id *) id;
   int alive;
-  et_system_lock(etid->sys);
+  /* This routine is called by ET system while it's cleaning up
+     after client death, etc. During this time it has the
+     system mutex locked already so do NOT do it here. */
+  if (etid->cleanup != 1) {
+      et_system_lock(etid->sys);
+  }
   alive = etid->alive;
-  et_system_unlock(etid->sys);
+  if (etid->cleanup != 1) {
+      et_system_unlock(etid->sys);
+  }
   
   return alive;
 }
