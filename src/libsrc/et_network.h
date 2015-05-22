@@ -125,7 +125,8 @@ extern int   et_findserver2(const char *etname, char *ethost, int *port,
                             
 extern void  et_freeAnswers(et_response *answer);
 
-extern codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo);
+extern codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
+                                   char* preferredSubnet);
 
 #ifdef	__cplusplus
 }
