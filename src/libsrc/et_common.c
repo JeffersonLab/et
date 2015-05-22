@@ -71,8 +71,8 @@ void et_logmsg (char *sev, char *fmt, ...)
  *****************************************************/
 int et_findlocality(const char *filename, et_openconfig openconfig)
 {     
-  char ethost[ET_MAXHOSTNAMELEN];
-  et_open_config *config = (et_open_config *) openconfig;
+    char ethost[ET_IPADDRSTRLEN];
+    et_open_config *config = (et_open_config *) openconfig;
     
   /* if local client opens ET system as remote (thru server) ...
    * This option is for those applications (such as system
@@ -109,7 +109,7 @@ int et_findlocality(const char *filename, et_openconfig openconfig)
     waittime.tv_sec  = 0;
     waittime.tv_usec = 10000; /* 0.1 sec */
     
-    /* send only 1 broadcast with a 0.1 sec wait */
+    /* send only 1 broad/multicast with a 0.1 sec wait */
     err = et_findserver2(filename, ethost, &port, &inetaddr, NULL, config, 1, &waittime);
     if ((err == ET_ERROR) || (err == ET_ERROR_TIMEOUT)) {
       et_logmsg("ERROR", "et_findlocality, cannot find ET system\n");
@@ -207,9 +207,14 @@ int et_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
    * system, remotely, or anywhere.
    */
   locality = et_findlocality(filename, openconfig);
-  /* if host is local on SUN ... */
-  if (locality == ET_LOCAL) {
+  /* if host is local ... */
+  if (locality == ET_LOCAL) {      
     status = etl_open(id, filename, openconfig);
+    /* If this is a Java-based ET sys, try opening it as remote client. */
+    if (status == ET_ERROR_JAVASYS) {
+        et_logmsg("ERROR", "et_open: cannot open Java ET file, try as remote client\n");
+        status = etr_open(id, filename, openconfig);
+    }
   }
   /* else if host is remote ... */
   else if (locality == ET_REMOTE) {
