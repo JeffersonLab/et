@@ -295,13 +295,11 @@ int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
   if ((idfrom->locality != ET_REMOTE) && (idto->locality != ET_REMOTE)) {
     status = localET_2_localET(id_from, id_to, att_from, att_to,
     				           config, num, ntransferred);
-printf("status 1 = %d\n", status);
   }
   /* else if getting events from remote ET and sending to local ET ... */
   else if ((idfrom->locality == ET_REMOTE) && (idto->locality != ET_REMOTE)) {
     status = remoteET_2_ET(id_from, id_to, att_from, att_to,
     				       config, num, ntransferred);
-printf("status 2 = %d\n", status);
   }
   /* else if getting events from local ET and sending to remote ET or
    * else going from remote to remote systems.
@@ -312,7 +310,6 @@ printf("status 2 = %d\n", status);
   else {
     status = ET_2_remoteET(id_from, id_to, att_from, att_to,
     				       config, num, ntransferred);
-printf("status 3 = %d\n", status);
   }
   
   if (auto_config) {
