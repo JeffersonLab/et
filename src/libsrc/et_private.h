@@ -826,9 +826,9 @@ typedef struct et_response_t {
     char  canon[ET_MAXHOSTNAMELEN]; /**< Canonical name of sending host. */
     char  castIP[ET_IPADDRSTRLEN];  /**< Original broad/multicast IP addr. */
     uint32_t *addrs;                /**< Array of 32bit net byte ordered addresses (1 for each addr). */
-    char  **ipaddrs;                /**< Array of addresses (dotted-decimal string) of host
-                                         (all for multicast, on subnet for broadcast). */
-    struct et_response_t *next;        /**< Next response in linked list. */
+    char  **ipaddrs;                /**< Array of all IP addresses (dot-decimal string) of host. */
+    char  **bcastaddrs;             /**< Array of all broadcast addresses (dot-decimal string) of host. */
+    struct et_response_t *next;     /**< Next response in linked list. */
 } et_response;
 
 
