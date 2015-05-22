@@ -910,6 +910,12 @@ public class EtSystemOpenConfig {
      */
     public void setNetworkInterface(String networkInterface) throws EtException {
         if (networkInterface != null) {
+            // Check for dot-decimal format
+            byte[] addr = EtUtils.isDottedDecimal(networkInterface);
+            if (addr == null) {
+                throw new EtException("not in dot-decimal (presentation) format");
+            }
+
             try {InetAddress.getByName(networkInterface);}
             catch (UnknownHostException ex) {
                 throw new EtException("not a valid network interface");
