@@ -394,7 +394,7 @@ int etl_close(et_sys_id id)
     return et_system_close(id);
   }
   
-  if (et_alive(id)) {
+  if (etl_alive(id)) {
     /* check for this process' attachments to stations */
     for (i=0; i < etid->sys->config.nattachments; i++) {
       if (etid->sys->proc[etid->proc].att[i] != -1) {
@@ -457,7 +457,7 @@ int etl_forcedclose(et_sys_id id)
     return et_system_close(id);
   }
   
-  if (et_alive(id)) {
+  if (etl_alive(id)) {
     /* check for this process' attachments to stations */
     for (i=0; i < etid->sys->config.nattachments; i++) {
       if (etid->sys->proc[etid->proc].att[i] != -1) {
@@ -488,7 +488,7 @@ int etl_kill(et_sys_id id)
         return ET_OK;
     }
     
-    if (et_alive(id)) {
+    if (etl_alive(id)) {
         /* check for this process' attachments to stations */
         for (i=0; i < etid->sys->config.nattachments; i++) {
             if (etid->sys->proc[etid->proc].att[i] != -1) {
@@ -506,7 +506,7 @@ int etl_kill(et_sys_id id)
     /* Record that fact that close has been called so no more access of shared mem */
     etid->closed = 1;
   
-    if (et_alive(id)) {
+    if (etl_alive(id)) {
         et_system_lock(etid->sys);
         etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
         etid->sys->nprocesses--;
@@ -576,7 +576,7 @@ int etl_wait_for_alive(et_sys_id id)
   sleeptime.tv_sec  = 0;
   sleeptime.tv_nsec = 10000000;
 
-  while (!et_alive(id)) {
+  while (!etl_alive(id)) {
     nanosleep(&sleeptime, NULL);
   }
   return ET_OK;
