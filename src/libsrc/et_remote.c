@@ -2600,14 +2600,14 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     }
 
     /* Pick out wait & no-allocate parts of mode.
-    * Value of wait is checked in et_events_get. */
+     * Value of wait is checked in et_events_get. */
     netWait = wait = mode & ET_WAIT_MASK;
 
     if (wait == ET_TIMED) {
         /* timespec to int */
         microSec = deltatime->tv_sec*1000000 + deltatime->tv_nsec/1000;
     }
-
+    
     /* When using the network, do NOT use SLEEP mode because that
      * may block all usage of this API's network communication methods.
      * Use repeated calls in TIMED mode. In between those calls,
@@ -2631,7 +2631,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         iterations = microSec/newTimeInterval;
         if (microSec % newTimeInterval > 0) iterations++;
     }
-
+    
     /* Modifying the whole event has precedence over modifying
      * only the header should the user specify both.
      */
@@ -2647,7 +2647,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     transfer[4] = htonl(num);
     transfer[5] = 0;
     transfer[6] = 0;
-
+    
     if (deltatime) {
         transfer[5] = htonl(deltatime->tv_sec);
         transfer[6] = htonl(deltatime->tv_nsec);
@@ -2656,7 +2656,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     while (1) {
         /* Give other routines that write over the network a chance to run */
         if (delay) nanosleep(&waitTime, NULL);
-
+        
         et_tcp_lock(etid);
         if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             et_tcp_unlock(etid);
@@ -2666,7 +2666,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
             free(newevents);
             return ET_ERROR_WRITE;
         }
-    
+        
         if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             et_tcp_unlock(etid);
             if (etid->debug >= ET_DEBUG_ERROR) {
@@ -2678,6 +2678,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         
         err = ntohl(err);
 
+        /* if timeout, try again */
         if (err == ET_ERROR_TIMEOUT) {
             /* Only get here if using SLEEP or TIMED modes */
             et_tcp_unlock(etid);
@@ -2689,7 +2690,8 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
             free(newevents);
             return err;
         }
-        else if (err != ET_OK) {
+        /* if another error and not a valid response (# of events), return error */
+        else if (err < 0) {
             et_tcp_unlock(etid);
             free(newevents);
             return err;
@@ -2701,7 +2703,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     // tcp mutex is locked after leaving above while loop
         
     nevents = err;
-
+    
     /* read total size of data to come - in bytes */
     if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         et_tcp_unlock(etid);
@@ -2815,7 +2817,7 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         *nread = nevents;
     }
     free(newevents);
-
+    
     return ET_OK;
 }
 
