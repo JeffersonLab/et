@@ -45,11 +45,14 @@ public class EtSystemOpen {
     /** List of all IP addresses (dot decimal) of the host the ET system resides on. */
     private ArrayList<String> hostAddresses;
 
+    /** List of all broadcast addresses (dot decimal) of the host the ET system resides on. */
+    private ArrayList<String> broadcastAddresses;
+
     /** Port number of the ET system's tcp server. */
     private int tcpPort;
 
     /** In case of multiple responding ET systems, a map of their addresses & ports. */
-    private LinkedHashMap<ArrayList<String>, Integer> responders;
+    private LinkedHashMap<ArrayList<String>[], Integer> responders;
 
     /** Is this object connected to a real, live ET system? */
     private boolean connected;
@@ -109,9 +112,10 @@ public class EtSystemOpen {
      */
     public EtSystemOpen(EtSystemOpenConfig config) {
         this.config = new EtSystemOpenConfig(config);
-        debug = EtConstants.debugError;
-        responders = new LinkedHashMap<ArrayList<String>, Integer>(20);
+        debug = EtConstants.debugInfo;
+        responders = new LinkedHashMap<ArrayList<String>[], Integer>(20);
         hostAddresses = new ArrayList<String>();
+        broadcastAddresses = new ArrayList<String>();
 
         // get set of all host's IP addresses (dot-decimal)
         localHostIpAddrs = new ArrayList<String>();
@@ -172,9 +176,17 @@ public class EtSystemOpen {
      *  @return the address (dot decimal) of the host the opened ET system is running on */
     public String getHostAddress() {return hostAddress;}
 
-    /** Gets list of all the IP addresses (dot decimal) of the host the opened ET system is running on.
-     * @return list of all the IP addresses (dot decimal) of the host the opened ET system is running on */
+    /** Gets list of all the IP addresses (dot decimal)
+     * of the host the opened ET system is running on.
+     * @return list of all the IP addresses (dot decimal)
+     *         of the host the opened ET system is running on */
     public ArrayList<String> getHostAddresses() {return hostAddresses;}
+
+    /** Gets list of all the broadcast addresses (dot decimal)
+     * of the host the opened ET system is running on.
+     * @return list of all the broadcast addresses (dot decimal)
+     *         of the host the opened ET system is running on */
+    public ArrayList<String> getBroadcastAddresses() {return broadcastAddresses;}
 
     /** Gets the name of the ET system (file).
      *  @return ET system name */
@@ -218,7 +230,7 @@ public class EtSystemOpen {
 
     /** Gets a map of the hosts and ports of responding ET systems to broad/multicasts.
      *  @return a map of the hosts and ports of responding ET systems to broad/multicasts */
-    public LinkedHashMap<ArrayList<String>, Integer> getResponders() {return responders;}
+    public LinkedHashMap<ArrayList<String>[], Integer> getResponders() {return responders;}
 
     /** Gets whether a local, C-based ET system was opened and a JNI library was used
      *  to access events directly instead of over sockets.
@@ -243,7 +255,16 @@ public class EtSystemOpen {
             }
             return new String[] {hostAddress};
         }
-        return (String []) responders.keySet().toArray();
+        Set<ArrayList<String>[]> setOfAddrListArrays = responders.keySet();
+        ArrayList<String> addrs = new ArrayList<String>();
+
+        for (ArrayList<String>[] addrListArray : setOfAddrListArrays) {
+            for (ArrayList<String> addrList : addrListArray) {
+                addrs.addAll(addrList);
+            }
+        }
+
+        return (String []) addrs.toArray();
     }
 
     /** Gets all port numbers when multiple ET systems respond.
@@ -304,6 +325,7 @@ public class EtSystemOpen {
         // clear out any previously stored objects
         responders.clear();
         hostAddresses.clear();
+        broadcastAddresses.clear();
 
         // Put outgoing packet info into a byte array to send to ET systems
         ByteArrayOutputStream  baos = new ByteArrayOutputStream(122);
@@ -606,9 +628,11 @@ public class EtSystemOpen {
                 if (responders.size() > 1) {
                     // if picking first responding ET system ...
                     if (config.getResponsePolicy() == EtConstants.policyFirst) {
-                        Iterator<Map.Entry<ArrayList<String>,Integer>> i = responders.entrySet().iterator();
-                        Map.Entry<ArrayList<String>,Integer> entry = i.next();
-                        hostAddresses = entry.getKey();
+                        Iterator<Map.Entry<ArrayList<String>[],Integer>> i = responders.entrySet().iterator();
+                        Map.Entry<ArrayList<String>[], Integer> entry = i.next();
+                        ArrayList<String>[] addrLists = entry.getKey();
+                        hostAddresses  = addrLists[0];
+                        broadcastAddresses = addrLists[1];
                         hostAddress = hostAddresses.get(0);
                         tcpPort = entry.getValue();
                         etOnLocalHost = isHostLocal(hostAddresses);
@@ -618,11 +642,12 @@ public class EtSystemOpen {
                         // compare local host to responding hosts
                         etOnLocalHost = false;
 
-                        for (Map.Entry<ArrayList<String>, Integer> entry : responders.entrySet()) {
-                            ArrayList<String> addrList = entry.getKey();
+                        for (Map.Entry<ArrayList<String>[], Integer> entry : responders.entrySet()) {
+                            ArrayList<String>[] addrLists = entry.getKey();
                             // see if this responder is local
-                            if (isHostLocal(addrList)) {
-                                hostAddresses = entry.getKey();
+                            if (isHostLocal(addrLists[0])) {
+                                hostAddresses  = addrLists[0];
+                                broadcastAddresses = addrLists[1];
                                 hostAddress = hostAddresses.get(0);
                                 tcpPort = entry.getValue();
                                 etOnLocalHost = true;
@@ -632,9 +657,11 @@ public class EtSystemOpen {
 
                         // if no local host found, pick first responder
                         if (!etOnLocalHost) {
-                            Iterator<Map.Entry<ArrayList<String>,Integer>> i = responders.entrySet().iterator();
-                            Map.Entry<ArrayList<String>,Integer> entry = i.next();
-                            hostAddresses = entry.getKey();
+                            Iterator<Map.Entry<ArrayList<String>[],Integer>> i = responders.entrySet().iterator();
+                            Map.Entry<ArrayList<String>[],Integer> entry = i.next();
+                            ArrayList<String>[] addrLists = entry.getKey();
+                            hostAddresses  = addrLists[0];
+                            broadcastAddresses = addrLists[1];
                             hostAddress = hostAddresses.get(0);
                             tcpPort = entry.getValue();
                         }
@@ -652,6 +679,7 @@ public class EtSystemOpen {
             System.out.println("findServerPort: cannot find server, quitting");
         }
 
+        broadcastAddresses.clear();
         hostAddresses.clear();
         hostAddress = null;
         tcpPort = 0;
@@ -677,8 +705,12 @@ public class EtSystemOpen {
         DataInputStream dis = new DataInputStream(bais);
         // In case of multiple addresses from a responding ET system, a list of addresses. */
         ArrayList<String> addresses = new ArrayList<String>(20);
+        ArrayList<String> broadAddresses = new ArrayList<String>(20);
+        ArrayList<String>[] lists = new  ArrayList[2];
+        lists[0] = addresses;
+        lists[1] = broadAddresses;
 
-        // decode packet from ET system:  (NEW!!!)
+        // Decode packet from ET system:
         //
         // (0)  ET magic numbers (3 ints)
         // (1)  ET version #
@@ -694,16 +726,25 @@ public class EtSystemOpen {
         // (8)  length of next string
         // (9)    canonical name of host
         // (10) number of IP addresses
-        // (11)   32bit, net-byte ordered IPv4 address assoc with following address
-        // (12)   length of next string
-        // (13)       first dotted-decimal IPv4 address
-        // (14)   32bit, net-byte ordered IPv4 address assoc with following address
-        // (15)   length of next string
-        // (16)       second dotted-decimal IPv4 address ...
+        // Loop over # of addresses
+        //  |    (11)   32bit, net-byte ordered IPv4 address assoc with following address
+        //  |    (12)   length of next string (dot-decimal addr)
+        //  V    (13)   dot-decimal IPv4 address
         //
-        // All known IP addresses are sent here both in numerical & dotted-decimal forms.
+        // The following was added to allow easy matching of subnets.
+        // Although item (14) it is the same as item (10), it's repeated
+        // here as a precaution. If, for a client, 14 does not have the same
+        // value as 10, then the ET system must be of an older variety without
+        // the following data. Thus, things are backwards compatible.
         //
-
+        // (14) number of broadcast addresses
+        // Loop over # of addresses
+        //  |    (15)   length of next string (broadcast addr)
+        //  V    (16)   dotted-decimal broadcast address
+        //              corresponding to same order in previous loop
+        //
+        // All known IP addresses & their corresponding broadcast addresses
+        // are sent here both in numerical & dotted-decimal forms.
 
         // (0)  ET magic numbers (3 ints)
         int magic1 = dis.readInt();
@@ -798,7 +839,7 @@ public class EtSystemOpen {
 //System.out.println("replyMatch:  canonical name len = " + length);
 //System.out.println("replyMatch:  canonical name = " + canonicalName);
 
-        // (10) # of following addresses
+        // (10) # of following IP addresses
         int numAddrs = dis.readInt();
         if (numAddrs < 0) {
             return noMatch;
@@ -806,7 +847,7 @@ public class EtSystemOpen {
 //System.out.println("replyMatch:  # of addresses to come = " + numAddrs);
 
         int addr;
-        String repliedHostAddress = null;
+        String repliedAddress = null;
 
         for (int i=0; i<numAddrs; i++) {
             // (11) 32 bit network byte ordered address - not currently used
@@ -820,12 +861,37 @@ public class EtSystemOpen {
             // (13) read host address (minus ending null)
             buf = new byte[length];
             dis.readFully(buf, 0, length);
-            try {repliedHostAddress = new String(buf, 0, length - 1, "ASCII");}
+            try {repliedAddress = new String(buf, 0, length - 1, "ASCII");}
             catch (UnsupportedEncodingException e) {}
-//System.out.println("replyMatch:  addr #" + i + ": string addr = " + repliedHostAddress);
+//System.out.println("replyMatch:  addr #" + i + ": string addr = " + repliedAddress);
 
             // store things
-            addresses.add(repliedHostAddress);
+            addresses.add(repliedAddress);
+        }
+
+        // (14) # of following broadcast addresses
+        int numBrAddrs = dis.readInt();
+//System.out.println("replyMatch:  # of broadcast addresses to come = " + numAddrs);
+        // Only do the following parsing if 10 = 14:
+        if (numBrAddrs == numAddrs) {
+            for (int i = 0; i < numAddrs; i++) {
+                // (15) read length of string address
+                length = dis.readInt();
+//System.out.println("replyMatch:  addr #" + i + ": string len = " + length);
+
+                // (16) read broadcast address (minus ending null)
+                buf = new byte[length];
+                dis.readFully(buf, 0, length);
+                try {
+                    repliedAddress = new String(buf, 0, length - 1, "ASCII");
+                }
+                catch (UnsupportedEncodingException e) {
+                }
+System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAddress);
+
+                // store things
+                broadAddresses.add(repliedAddress);
+            }
         }
 
         if (debug >= EtConstants.debugInfo) {
@@ -833,15 +899,14 @@ public class EtSystemOpen {
                     ", replied IP addr = " + repliedIpAddress +
                     ", uname = " + repliedUname);
             for (int i=0; i<numAddrs; i++) {
-                System.out.println("          : addr " + (i + 1) + " = " + addresses.get(i));
+                System.out.println("          :    addr " + (i + 1) + " = " + addresses.get(i));
+                System.out.println("          : br addr " + (i + 1) + " = " + broadAddresses.get(i));
             }
             System.out.println();
         }
 
         dis.close();
         bais.close();
-
-        //InetAddress localHost = InetAddress.getLocalHost();      //UnknownHostEx
 
         // if we're looking for a host anywhere
         if (config.getHost().equals(EtConstants.hostAnywhere)) {
@@ -860,9 +925,10 @@ public class EtSystemOpen {
             // host does not know about this particular IP address? It may not
             // be able to connect, but might be able to with one of the others.
             // So we try them one at a time until a we get a valid connection.
-            responders.put(addresses, port);
+            responders.put(lists, port);
 
             // store info here in case only 1 response
+            broadcastAddresses = broadAddresses;
             hostAddresses = addresses;
             hostAddress = addresses.get(0);
             tcpPort = port;
@@ -894,10 +960,11 @@ public class EtSystemOpen {
             // If we're here, then we have a remote responder.
             // Store address(es) & port in lists in case there are several systems
             // that respond and user must chose which one he wants
-            responders.put(addresses, port);
+            responders.put(lists, port);
 
             // store info here in case only 1 response
             etOnLocalHost = false;
+            broadcastAddresses = broadAddresses;
             hostAddresses = addresses;
             hostAddress = addresses.get(0);
             tcpPort = port;
@@ -917,6 +984,7 @@ public class EtSystemOpen {
 
                         // Store values. In this case no other match will be examined.
                         etOnLocalHost = true;
+                        broadcastAddresses = broadAddresses;
                         hostAddresses = addresses;
                         hostAddress = address;
                         tcpPort = port;
@@ -949,6 +1017,7 @@ public class EtSystemOpen {
 
                         // Store values. In this case no other match will be examined.
                         etOnLocalHost = isHostLocal(addresses);
+                        broadcastAddresses = broadAddresses;
                         hostAddresses = addresses;
                         hostAddress = address;
                         tcpPort = port;
@@ -1190,7 +1259,10 @@ public class EtSystemOpen {
             else {
                 // Put IP addresses in list with those on preferred local subnets first,
                 // other local subnets next, and all others last
-                addrList = EtUtils.orderIPAddresses(hostAddresses, config.getNetworkInterface());
+System.out.println("connect(): order ET's IP addresses with preferred = "
+                           + config.getNetworkInterface());
+                addrList = EtUtils.orderIPAddresses(hostAddresses, broadcastAddresses,
+                                                    config.getNetworkInterface());
             }
 
             // If one IP address fails, perhaps another will work
@@ -1229,7 +1301,7 @@ public class EtSystemOpen {
                         // to bind to.
                         String ip = EtUtils.getMatchingLocalIpAddress(config.getNetworkInterface());
                         if (ip != null) {
-System.out.println("connect(): bind outgoing data to " + config.getNetworkInterface());
+System.out.println("connect(): bind outgoing data to " + ip);
                             sock.bind(new InetSocketAddress(ip, 0));
                         }
                     }

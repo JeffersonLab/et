@@ -3451,6 +3451,195 @@ int codanetGetIfNames(char ***ifNames, int *count) {
 
 
 /**
+ * Given a dot-decimal IP address as an argument, this method will return that
+ * if it matches one of the local IP addresses. Given a broadcast or subnet
+ * address it will return a local IP address on that subnet. If there are no
+ * matches, NULL is returned. Non-NULL returned string must be freed.
+ *
+ * @param ip IP or subnet address in dot-decimal format
+ * @param matchingIp pointer to string filled in with matching local address
+ *                   on the same subnet; else null if no match or no local IP
+ *                   addresses found
+ *
+ * @returns ET/CMSG_OK            if successful
+ * @returns ET/CMSG_BAD_ARGUMENT  if either arg is null or ip not in dot-decimal format
+ */
+int codanetGetMatchingLocalIpAddress(char *ip, char **matchingIp) {
+    
+    char *pChar;
+    int isDottedDecimal = 0;
+    struct sockaddr *sa;
+    struct ifi_info *ifi, *ifihead;
+    
+    if (ip == NULL || matchingIp == NULL) {
+        return CODA_BAD_ARGUMENT;
+    }
+    
+    /* Check to see if ip arg is in dot-decimal form. If not, return error. */
+    isDottedDecimal = codanetIsDottedDecimal(ip, NULL);
+    if (!isDottedDecimal) return CODA_BAD_ARGUMENT;
+    
+    /* Look through IPv4 interfaces + all aliases */
+    ifihead = ifi = codanetGetInterfaceInfo(AF_INET, 1);
+    if (ifi == NULL) {
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sGetMatchingLocalIpAddress: cannot find network interface info\n", codanetStr);
+        }
+        return CODA_ERROR;
+    }
+        
+    /* First check to see if it matches a local IP address, if so return it */
+    ifi = ifihead;
+    for (;ifi != NULL; ifi = ifi->ifi_next) {
+        /* ignore loopback or down interface */
+        if ((ifi->ifi_flags & IFF_LOOPBACK) || !(ifi->ifi_flags & IFF_UP)) {
+            continue;
+        }
+        
+        /* if there is an address listed ... */
+        if ( (sa = ifi->ifi_addr) != NULL) {
+            pChar = sock_ntop_host(sa, sizeof(*sa));
+            
+            /* Compare IP addresses. If match, return it */
+            if (strcmp(ip, pChar) == 0) {
+                *matchingIp = strdup(ip);
+                codanetFreeInterfaceInfo(ifihead);
+                return CODA_OK;
+            }
+        }
+    }
+    
+    
+    /* Next check to see if it matches a local subnet address,
+       if so return an IP on that subnet. */
+    ifi = ifihead;
+    for (;ifi != NULL; ifi = ifi->ifi_next) {
+        /* ignore loopback or down interface */
+        if ((ifi->ifi_flags & IFF_LOOPBACK) || !(ifi->ifi_flags & IFF_UP)) {
+            continue;
+        }
+        
+        /* if there is a broadcast/subnet address listed ... */
+        if ( (sa = ifi->ifi_brdaddr) != NULL) {
+            pChar = sock_ntop_host(sa, sizeof(*sa));
+            
+            /* Compare. If match, return associated IP address */
+            if (strcmp(pChar, ip) == 0) {
+                
+                if ( (sa = ifi->ifi_addr) != NULL) {
+                    pChar = sock_ntop_host(sa, sizeof(*sa));
+                    *matchingIp = strdup(pChar);
+                    codanetFreeInterfaceInfo(ifihead);
+                    return CODA_OK;
+                }
+            }
+        }
+    }
+    
+    /* free memory */
+    codanetFreeInterfaceInfo(ifihead);
+        
+    /* no match */
+    *matchingIp = NULL;
+    return CODA_OK;
+}
+
+
+/**
+ * Given a local IP address as an argument, this routine will return its
+ * broadcast or subnet address. If it already is a broadcast address,
+ * that is returned. If address is not local or none can be found,
+ * NULL is returned. Non-NULL returned string must be freed.
+ *
+ * @param ip IP or subnet address in dot-decimal format
+ * @param broadcastIp pointer to string filled in with matching local broacast/subnet
+ *                    address; else NULL if no match or no local IP addresses found
+ *
+ * @returns ET/CMSG_OK            if successful
+ * @returns ET/CMSG_BAD_ARGUMENT  if either arg is null or ip not in dot-decimal format
+ */
+int codanetGetBroadcastAddress(char *ip, char **broadcastIp) {
+    
+    char *pChar;
+    int isDottedDecimal = 0;
+    struct sockaddr *sa;
+    struct ifi_info *ifi, *ifihead;
+    
+    if (ip == NULL || broadcastIp == NULL) {
+        return CODA_BAD_ARGUMENT;
+    }
+    
+    /* Check to see if ip arg is in dot-decimal form. If not, return error. */
+    isDottedDecimal = codanetIsDottedDecimal(ip, NULL);
+    if (!isDottedDecimal) return CODA_BAD_ARGUMENT;
+    
+    /* Look through IPv4 interfaces + all aliases */
+    ifihead = ifi = codanetGetInterfaceInfo(AF_INET, 1);
+    if (ifi == NULL) {
+        if (codanetDebug >= CODA_DEBUG_ERROR) {
+            fprintf(stderr, "%sGetBroadcastAddress: cannot find network interface info\n", codanetStr);
+        }
+        return CODA_ERROR;
+    }
+    
+    /* First check to see if it matches a local broadcast address, if so return it */
+    ifi = ifihead;
+    for (;ifi != NULL; ifi = ifi->ifi_next) {
+        /* ignore loopback or down interface */
+        if ((ifi->ifi_flags & IFF_LOOPBACK) || !(ifi->ifi_flags & IFF_UP)) {
+            continue;
+        }
+        
+        /* if there is a broadcast address listed ... */
+        if ( (sa = ifi->ifi_brdaddr) != NULL) {
+            pChar = sock_ntop_host(sa, sizeof(*sa));
+            
+            /* Compare IP addresses. If match, return it */
+            if (strcmp(ip, pChar) == 0) {
+                *broadcastIp = strdup(ip);
+                codanetFreeInterfaceInfo(ifihead);
+                return CODA_OK;
+            }
+        }
+    }
+    
+    
+    /* Next check to see if it matches a local IP address,
+       if so return its associated broadcast address. */
+    ifi = ifihead;
+    for (;ifi != NULL; ifi = ifi->ifi_next) {
+        /* ignore loopback or down interface */
+        if ((ifi->ifi_flags & IFF_LOOPBACK) || !(ifi->ifi_flags & IFF_UP)) {
+            continue;
+        }
+        
+        /* if there is an IP address listed ... */
+        if ( (sa = ifi->ifi_addr) != NULL) {
+            pChar = sock_ntop_host(sa, sizeof(*sa));
+            
+            /* Compare. If match, return associated broadcast address */
+            if (strcmp(pChar, ip) == 0) {
+                
+                if ( (sa = ifi->ifi_brdaddr) != NULL) {
+                    pChar = sock_ntop_host(sa, sizeof(*sa));
+                    *broadcastIp = strdup(pChar);
+                    codanetFreeInterfaceInfo(ifihead);
+                    return CODA_OK;
+                }
+            }
+        }
+    }
+    
+    /* free memory */
+    codanetFreeInterfaceInfo(ifihead);
+    
+    /* no match */
+    *broadcastIp = NULL;
+    return CODA_OK;
+}
+
+
+/**
  * This routine returns an allocated array of dotted-decimal IP addresses
  * and the array size in the arguments. To free all allocated memory,
  * free each of ipAddrs' count elements, then free ipAddrs itself.

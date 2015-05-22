@@ -126,12 +126,21 @@ void et_freeAnswers(et_response *answer) {
   
     while (answer != NULL) {
         next = answer->next;
+        
         if (answer->ipaddrs != NULL) {
             for (i=0; i<answer->addrCount; i++) {
                 free(answer->ipaddrs[i]);
             }
             free(answer->ipaddrs);
         }
+        
+        if (answer->bcastaddrs != NULL) {
+            for (i=0; i<answer->addrCount; i++) {
+                free(answer->bcastaddrs[i]);
+            }
+            free(answer->bcastaddrs);
+        }
+        
         free(answer->addrs);
         free(answer);
         answer = next;
@@ -140,57 +149,66 @@ void et_freeAnswers(et_response *answer) {
 
 
 /**
- * This routine takes all the dotted-decimal IP addresses contained in the
- * response arg and returns them in a list ordered so that the addresses on
- * the same subnets as the IP addresses in the netinfo arg are first in the
- * list. This allows an ET client, who is broad/multicasting to find an ET
- * system, to try and make a TCP connection with an address on a local subnet
+ * This routine takes a response from a single ET system (which is dot-decimal
+ * formatted IP address strings and their corresponding broadcast addresses)
+ * and orders the IP addresses so that those on the preferred local subnet are first,
+ * those on other local subnets are next, and all others come last.
+ * This only works for IPv4.<p>
+ *
+ * This allows an ET client, who is broad/multicasting to find an ET
+ * system, to try and make a TCP connection with an address on a given subnet
  * first. All the elements of the returned linked-list need to be freed by the
- * caller.
+ * caller by calling etNetFreeAddrList(codaIpList list) once on the list head.
+ * This routine only works for IPv4.
  *
  * @param response pointer to structure containing ET system's response to a
- *                 broad/multicast which contains all the IP addresses of its host.
+ *                 broad/multicast which contains all the IP addresses of its host
+ *                 and the corresponding broadcast addresses too.
  * @param netinfo  pointer to structure containing all local network information
+ * @param preferredSubnet the subnet whose IP address(es) will be first on the
+ *                        returned list
  *
- * @return a linked list of IP addresses in dotted-decimal format with all the
- *         IP addresses in the response arg ordered so that those on the same
- *         subnets as the local host are first. Return NULL if an arg is NULL
+ * @return a linked list of IP addresses in dot-decimal format with all the
+ *         IP addresses in the response arg ordered so that those on the
+ *         preferred subnet are first, those on other local subnets are next,
+ *         and all others come last. Return NULL if an arg is NULL
  *         or error. If successful, all the elements of the returned linked-list
  *         need to be freed by the caller.
+ *         Returns NULL if response arg is NULL or no addresses contained response arg
  */
-codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo) {
+codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
+                            char* preferredSubnet) {
     
-    int i, err, sameSubnet, firstTime=1;
-    char *ipAddress;
-    codaIpList *listItem, *lastItem, *firstItem = NULL;
+    int i, err, onSameSubnet, onPreferredSubnet, preferredCount=0, firstTime=1;
+    char *ipAddress, *bcastAddress;
+    codaIpList *listItem, *lastItem, *lastPrefItem, *firstItem = NULL, *firstPrefItem = NULL;
     codaIpAddr *local;
-
+    
+    if (response == NULL) return NULL;
 
     for (i=0; i < response->addrCount; i++) {
         ipAddress = response->ipaddrs[i];
+        bcastAddress = response->bcastaddrs[i];
         local = netinfo;
-        sameSubnet = 0;
-/*printf("got response address %s\n", ipAddress);*/
+        onSameSubnet = 0;
+        onPreferredSubnet = 0;
+/*printf("et_orderIpAddrs: got response address %s\n", ipAddress);*/
 
         /* Compare with local subnets */
         while (local != NULL) {
-            if (local->addr == NULL) break;
-/*
-printf("ET ip = %s, local ip = %s, local netmask bin = 0x%x\n",
-                   ipAddress, local->addr,
-                   ntohl(local->netmask.sin_addr.s_addr));
-*/
+            if (local->broadcast == NULL || bcastAddress == NULL) break;
 
-            err = codanetOnSameSubnet2(ipAddress, local->addr,
-                                       ntohl(local->netmask.sin_addr.s_addr),
-                                       &sameSubnet);
-            if (err != CODA_OK) {
-                codanetFreeAddrList(firstItem);
-                return NULL;
-            }
+printf("et_orderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
+                    ipAddress, bcastAddress, local->broadcast);
 
-            if (sameSubnet) {
-                /* quit if we found a match */
+            if (strcmp(local->broadcast, bcastAddress) == 0) {
+                onSameSubnet = 1;
+                printf("et_orderIpAddrs: on SAME subnet\n");
+                if (strcmp(preferredSubnet, bcastAddress) == 0) {
+                    onPreferredSubnet = 1;
+                    preferredCount++;
+                    printf("et_orderIpAddrs: on PREFFERED subnet\n");
+                }
                 break;
             }
 
@@ -202,33 +220,60 @@ printf("ET ip = %s, local ip = %s, local netmask bin = 0x%x\n",
             codanetFreeAddrList(firstItem);
             return NULL;
         }
-
-        if (firstTime) {
+        strncpy(listItem->addr, ipAddress, CODA_IPADDRSTRLEN);
+        
+        if (onPreferredSubnet) {
+            if (firstPrefItem == NULL) {
+                lastPrefItem = firstPrefItem = listItem;
+                continue;
+            }
+        }
+        else if (firstItem == NULL) {
             lastItem = firstItem = listItem;
-            firstTime = 0;
+            continue;
         }
 
-        strncpy(listItem->addr, ipAddress, CODA_IPADDRSTRLEN);
-
-        if (sameSubnet) {
-/*printf("same subnet, head of list\n");*/
+        if (onPreferredSubnet) {
+/*printf("et_orderIpAddrs: pref subnet, head of list\n");*/
             /* Put it at the head of the list */
-            if (listItem != firstItem) {
-                listItem->next = firstItem;
-                firstItem = listItem;
-            }
+            listItem->next = firstPrefItem;
+            firstPrefItem = listItem;
+        }
+        else if (onSameSubnet) {
+/*printf("et_orderIpAddrs: same subnet, head of list\n");*/
+            /* Put it at the head of the list */
+            listItem->next = firstItem;
+            firstItem = listItem;
         }
         else {
-/*printf("diff subnet, end of list\n");*/
+/*printf("et_orderIpAddrs: diff subnet, end of list\n");*/
             /* Put it at the end of the list */
-            if (listItem != lastItem) {
-                lastItem->next = listItem;
-                lastItem = listItem;
-            }
+            lastItem->next = listItem;
+            lastItem = listItem;
         }
     }
+    
+    /* Now put preferred list at head of total list */
+    
+    /* No lists at all  */
+    if (firstPrefItem == NULL && firstItem == NULL) {
+        return NULL;
+    }
+    /* No list combining needed here */
+    else if (firstPrefItem != NULL && firstItem == NULL) {
+printf("et_orderIpAddrs: only items in preferred subnet list\n");
+        return firstPrefItem;
+    }
+    /* No list combining needed here */
+    else if (firstPrefItem == NULL && firstItem != NULL) {
+        return firstItem;
+    }
+    
+    /* Combine lists */
+    lastPrefItem->next = firstItem;
+    lastPrefItem = firstItem;
 
-    return firstItem;
+    return firstPrefItem;
 }
 
 
@@ -238,7 +283,7 @@ printf("ET ip = %s, local ip = %s, local netmask bin = 0x%x\n",
  * first response and 1.1 second for the second.
  *
  * @param etname    ET system file name
- * @param ethost    returns name of ET system's host
+ * @param ethost    returns IP address (dot-decimal) of ET system's host
  * @param port      returns ET system's TCP port
  * @param inetaddr  returns host address as network-byte-ordered, 32-bit unsigned int
  * @param config    configuration passed to et_open
@@ -282,7 +327,7 @@ int et_findserver(const char *etname, char *ethost, int *port,
 int et_responds(const char *etname)
 {
     int   port;
-    char  ethost[ET_MAXHOSTNAMELEN];
+    char  ethost[ET_IPADDRSTRLEN];
     uint32_t inetaddr;
     et_openconfig  openconfig; /* opaque structure */
     et_open_config *config;    /* real structure   */
@@ -344,12 +389,11 @@ int et_responds(const char *etname)
  * to the result of running "uname" on this host.
  *
  * @param etname    ET system file name
- * @param ethost    returns name of ET system's host
+ * @param ethost    returns IP address (dot-decimal) of ET system's host
  * @param port      returns ET system's TCP port
  * @param inetaddr  returns host address as network-byte-ordered, 32-bit unsigned int
- * @param allETinfo returns a pointer to structure (linked list) with all of the ET system's
- *                  response information;
- *                  may be null if all relevant info given in ethost, port, and inetaddr args
+ * @param allETinfo returns a pointer to structure with all of the ET system's
+ *                  response information
  * @param config    configuration passed to et_open
  * @param trys      max # of times to broadcast UDP packet
  * @param waittime  wait time for response to broad/multicast
@@ -369,7 +413,8 @@ int et_responds(const char *etname)
 int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetaddr,
                    et_response **allETinfo, et_open_config *config, int trys, struct timeval *waittime)
 {
-    int          i, j, k, l, m, n, err, version, addrCount, castType, gotMatch=0, subnetCount=0, ipAddrCount=0;
+    int          i, j, k, l, m, n, err, version, addrCount, addrCount2, castType;
+    int          gotMatch=0, subnetCount=0, ipAddrCount=0;
     int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0, magicInts[3];
     const int    on=1, timeincr[]={0,1,2,3,4,5};
     uint32_t     addr;
@@ -748,28 +793,39 @@ anotherpacket:
           
                 /* decode packet from ET system:
                  *
-                 * (0)  ET magic numbers (3 ints)
-                 * (1)  ET version #
-                 * (2)  port of tcp server thread (not udp config->port)
-                 * (3)  ET_BROADCAST or ET_MULTICAST (int)
-                 * (4)  length of next string
-                 * (5)    broadcast address (dotted-dec) if broadcast received or
-                 *        multicast address (dotted-dec) if multicast received
-                 *        (see int #3)
-                 * (6)  length of next string
-                 * (7)    hostname given by "uname" (used as a general
-                 *        identifier of this host no matter which interface is used)
-                 * (8)  length of next string
-                 * (9)    canonical name of host
-                 * (10) number of IP addresses
-                 * (11)   32bit, net-byte ordered IPv4 address assoc with following address
-                 * (12)   length of next string
-                 * (13)       first dotted-decimal IPv4 address
-                 * (14)   32bit, net-byte ordered IPv4 address assoc with following address
-                 * (15)   length of next string
-                 * (16)       second dotted-decimal IPv4 address ...
-                 *
-                 * All known IP addresses are sent here both in numerical & dotted-decimal forms.
+                 *  (0)  ET magic numbers (3 ints)
+                 *  (1)  ET version #
+                 *  (2)  port of tcp server thread (not udp config->port)
+                 *  (3)  ET_BROADCAST or ET_MULTICAST (int)
+                 *  (4)  length of next string
+                 *  (5)    broadcast address (dotted-dec) if broadcast received or
+                 *         multicast address (dotted-dec) if multicast received
+                 *         (see int #3)
+                 *  (6)  length of next string
+                 *  (7)    hostname given by "uname" (used as a general
+                 *         identifier of this host no matter which interface is used)
+                 *  (8)  length of next string
+                 *  (9)    canonical name of host
+                 *  (10) number of IP addresses
+                 *  Loop over # of addresses
+                 *   |    (11)   32bit, net-byte ordered IPv4 address assoc with following address
+                 *   |    (12)   length of next string (dot-decimal addr)
+                 *   V    (13)   dot-decimal IPv4 address
+                 * 
+                 *  The following was added to allow easy matching of subnets.
+                 *  Although item (14) it is the same as item (10), it's repeated
+                 *  here as a precaution. If, for a client, 14 does not have the same
+                 *  value as 10, then the ET system must be of an older variety without
+                 *  the following data. Thus, things are backwards compatible.
+                 * 
+                 *  (14) number of broadcast addresses
+                 *  Loop over # of addresses
+                 *   |    (15)   length of next string (broadcast addr)
+                 *   V    (16)   dotted-decimal broadcast address
+                 *               corresponding to same order in previous loop
+                 * 
+                 *  All known IP addresses & their corresponding broadcast addresses
+                 *  are sent here both in numerical & dotted-decimal forms.
                  */
            
                 pbuf = buffer;
@@ -831,7 +887,7 @@ anotherpacket:
                             printf("et_findserver: reply to broad & multicast\n");
                         }
                         else {
-                            printf("et_findserver: reply -> don't know if broad or multi casting\n");
+                            printf("et_findserver: reply -> don't know if broad or multicasting\n");
                         }
                     }
 
@@ -934,9 +990,69 @@ anotherpacket:
                         pbuf += length;
                     }
 
+                    /* get number of broadcast addrs (must be same as # of IP addrs) */
+                    memcpy(&addrCount2, pbuf, sizeof(addrCount2));
+                    addrCount2 = ntohl(addrCount2);
+                    pbuf += sizeof(addrCount2);
+                    
+                    /* If we have valid broadcast data, read it in, if not, ignore */
+                    if (addrCount2 == addrCount) {
+                        /* allocate mem - arrays of char *'s */
+                        answer->bcastaddrs =  (char **)calloc(addrCount, sizeof(char *));
+                        if (answer->bcastaddrs == NULL) {
+                            for (k=0; k<numsockets; k++) {
+                                close(send[k].sockfd);
+                            }
+                            free(send);
+                            freeIpAddrs(ipAddrs, ipAddrCount);
+                            free(answer->ipaddrs);
+                            free(answer->addrs);
+                            free(answer);
+                            et_freeAnswers(answer_first);
+                            return ET_ERROR_NOMEM;
+                        }
+                        
+                        /* read in all the addrs */
+                        for (k=0; k < addrCount; k++) {                        
+                            memcpy(&length, pbuf, sizeof(length));
+                            length = ntohl(length);
+                            if ((length < 1) || (length > ET_MAXHOSTNAMELEN)) {
+                                for (l=0; l < k; l++) {
+                                    free(answer->bcastaddrs[l]);
+                                }
+                                free(answer->bcastaddrs);
+                                free(answer->ipaddrs);
+                                free(answer->addrs);
+                                free(answer);
+                                break;
+                            }
+                            pbuf += sizeof(length);
+                            
+                            answer->bcastaddrs[k] = strdup(pbuf); /* ending NULL is sent so we're OK */
+                            if (answer->bcastaddrs[k] == NULL) {
+                                for (l=0; l<numsockets; l++) {
+                                    close(send[l].sockfd);
+                                }
+                                free(send);
+                                freeIpAddrs(ipAddrs, ipAddrCount);
+                                for (l=0; l < k; l++) {
+                                    free(answer->bcastaddrs[l]);
+                                }
+                                free(answer->bcastaddrs);
+                                free(answer->ipaddrs);
+                                free(answer->addrs);
+                                free(answer);
+                                et_freeAnswers(answer_first);
+                                return ET_ERROR_NOMEM;
+                            }
+                            answer->bcastaddrs[k][length-1] = '\0';
+                            pbuf += length;
+                        }
+                    }
+                    
                     if (debug) {
-                        printf("et_findserver: RESPONSE from %s at %d with cast addr = %s and uname = %s\n",
-                               answer->ipaddrs[0], answer->port, answer->castIP, answer->uname);
+                        printf("et_findserver: RESPONSE from %s w/ bcast %s at %d with cast addr = %s and uname = %s\n",
+                               answer->ipaddrs[0], answer->bcastaddrs[0], answer->port, answer->castIP, answer->uname);
                     }
                     numresponses++;
             
@@ -986,7 +1102,12 @@ if (debug) printf("et_findserver: got a match to local or specific: %s\n", answe
                         strcpy(ethost, answer->ipaddrs[n]);
                         *port = answer->port;
                         *inetaddr = answer->addrs[n];
-                        
+                        if (allETinfo != NULL) {
+                            /* remove answer from linked list & return the first of new list */
+                            answer_first = removeResponseFromList(answer_first, answer);
+                            *allETinfo = answer;
+                        }
+                        /* free the rest of the linked list */                                                
                         et_freeAnswers(answer_first);
                         return ET_OK;
                     }

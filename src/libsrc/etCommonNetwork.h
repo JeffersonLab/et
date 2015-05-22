@@ -297,7 +297,9 @@ extern int   codanetGetBroadcastAddrs(codaIpList **addrs, codaDotDecIpAddrs *bca
 extern int   codanetGetIpaddrs(char ***ipAddrs, int *count, char *host);
 extern int   codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex);
 extern int   codanetGetIfNames(char ***ifNames, int *count);
-
+extern int   codanetGetMatchingLocalIpAddress(char *ip, char **matchingIp);
+extern int   codanetGetBroadcastAddress(char *ip, char **broadcastIp);
+    
 
     
 

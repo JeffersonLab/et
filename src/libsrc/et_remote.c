@@ -58,7 +58,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     int port=0;
     uint32_t inetaddr = 0;
     et_id *etid;
-    char *buf, *pbuf, ethost[ET_MAXHOSTNAMELEN];
+    char *buf, *pbuf, *ifBroadcastIP=NULL, *ifRegularIP=NULL, ethost[ET_IPADDRSTRLEN];
     et_response *response=NULL;
 
     double          dstart, dnow, dtimeout;
@@ -101,14 +101,37 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     if (config->cast == ET_DIRECT) {
         port = config->serverport;
     }
-
+    
+    /*
+     * If the "interface" was set in the open config, we don't know if it
+     * was set to a regular IP address or a broadcast/subnet address. We need
+     * a regular IP address for binding the sending end of the socket we will
+     * create here. We also need the broadcast address for sorting the IP
+     * addresses we get back from the ET system when calling et_findserver.
+     * We can generate both right now.
+     */
+    if (config->interface != NULL) {
+        /* First find an IP address given either an IP or broadcast address. */
+        err = codanetGetMatchingLocalIpAddress(config->interface, &ifRegularIP);
+        if (err != CODA_OK) {
+            ifRegularIP = NULL;
+        }
+        
+        /* Next find a broadcast address given either an IP or broadcast address. */
+        err = codanetGetBroadcastAddress(config->interface, &ifBroadcastIP);
+        if (err != CODA_OK) {
+            ifBroadcastIP = NULL;
+        }
+    }
+        
     while(1) {
         if (port > 0) {
             /* make the network connection */
             if (inetaddr == 0) {
 et_logmsg("INFO","etr_open: try to connect to host %s on port %d\n",ethost,port);
-                if (etNetTcpConnect(ethost, config->interface, (unsigned short)port,
-                    config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
+                if (etNetTcpConnect(ethost, ifRegularIP, (unsigned short)port,
+                                    config->tcpSendBufSize, config->tcpRecvBufSize,
+                                    config->tcpNoDelay,
                     &sockfd, NULL) == ET_OK) {
                         et_logmsg("INFO","          success!\n");
                         break;
@@ -116,8 +139,9 @@ et_logmsg("INFO","etr_open: try to connect to host %s on port %d\n",ethost,port)
             }
             else {
 et_logmsg("INFO","etr_open: try to connect to address %u (host %s) on port %d\n",inetaddr,ethost,port);
-                if (etNetTcpConnect2(inetaddr, config->interface, (unsigned short)port,
-                    config->tcpSendBufSize, config->tcpRecvBufSize, config->tcpNoDelay,
+                if (etNetTcpConnect2(inetaddr, ifRegularIP, (unsigned short)port,
+                                     config->tcpSendBufSize, config->tcpRecvBufSize,
+                                     config->tcpNoDelay,
                     &sockfd, NULL) == ET_OK) {
                         et_logmsg("INFO","          success!\n");
                         break;
@@ -131,7 +155,7 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
 
                 struct timeval timeout = {3,0}; /* 3 second timeout for TCP connection */
                 int connected = 0;
-                codaIpList *dotDecAddr;
+                codaIpList *dotDecAddr, *first;
                 if (response == NULL) {
                     /* use ethost, port */
                     et_logmsg("INFO","          success, but response is NULL!\n");
@@ -140,14 +164,20 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
          
                 /* First order them so the IP addresses on the
                  * same subnets as this client are tried first. */
-                dotDecAddr = et_orderIpAddrs(response, config->netinfo);
+                first = dotDecAddr = et_orderIpAddrs(response, config->netinfo, ifBroadcastIP);
+                
+                et_logmsg("INFO","etr_open: list of ordered IP addresses:\n");
+                while (first != NULL) {
+                    printf("%s\n", first->addr);
+                    first = first->next;
+                }
 
                 /* Try the IP addresses sent by ET system, one-by-one. */
                 while (dotDecAddr != NULL) {
 et_logmsg("INFO","etr_open: try host %s\n",dotDecAddr->addr);
-                    err = etNetTcpConnectTimeout2(dotDecAddr->addr, config->interface, (unsigned short)port,
-                            config->tcpSendBufSize, config->tcpRecvBufSize,
-                            config->tcpNoDelay, &timeout, &sockfd, NULL);
+                    err = etNetTcpConnectTimeout2(dotDecAddr->addr, ifRegularIP, (unsigned short)port,
+                                                  config->tcpSendBufSize, config->tcpRecvBufSize,
+                                                  config->tcpNoDelay, &timeout, &sockfd, NULL);
                     if (err == ET_ERROR_TIMEOUT) {
 et_logmsg("INFO","etr_open: Timed out, try next IP address\n");
                     }
@@ -192,7 +222,15 @@ et_logmsg("INFO","etr_open: connected to host %s on port %d\n",dotDecAddr->addr,
         nanosleep(&sleeptime, NULL);
 #endif
     }
-
+    
+    if (ifRegularIP != NULL) {
+        free(ifRegularIP);
+    }
+    
+    if (ifBroadcastIP != NULL) {
+        free(ifBroadcastIP);
+    }
+    
     /* check for errors */
     /*printf("etr_open: port %d sockfd = 0x%x\n",port,sockfd);*/
     if ((port == 0) || (sockfd < 0)) {

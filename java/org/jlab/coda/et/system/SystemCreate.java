@@ -19,6 +19,7 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader;
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Priority;
@@ -60,7 +61,13 @@ public class SystemCreate {
     private EtEventImpl[] events;
 
     /** All local IP addresses */
-    private InetAddress[]netAddresses;
+    private InetAddress[] netAddresses;
+
+    /** All local IP addresses in dot-decimal strings. */
+    String[] ipAddresses;
+
+    /** All broadcast addresses in dot-decimal strings. */
+    String[] broadAddresses;
 
     /** Flag telling if the ET system is running. */
     private boolean running;
@@ -204,16 +211,59 @@ public class SystemCreate {
         }
 
         // store local IP addresses
+//        try {
+//            netAddresses = InetAddress.getAllByName(InetAddress.getLocalHost().getHostName());
+//        }
+//        catch (UnknownHostException ex) {
+//            if (config.getDebug() >= EtConstants.debugError) {
+//                System.out.println("cannot find local IP addresses");
+//                ex.printStackTrace();
+//            }
+//            throw new EtException("Cannot find local IP addresses");
+//        }
+
+        ArrayList<String> ipAddrs = new ArrayList<String>();
+        ArrayList<String> broadAddrs = new ArrayList<String>();
+        ArrayList<Inet4Address> ipAddrObjs = new ArrayList<Inet4Address>();
+
         try {
-            netAddresses = InetAddress.getAllByName(InetAddress.getLocalHost().getHostName());
-        }
-        catch (UnknownHostException ex) {
-            if (config.getDebug() >= EtConstants.debugError) {
-                System.out.println("cannot find local IP addresses");
-                ex.printStackTrace();
+            // Iterate through list of local interfaces
+            Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+            while (enumer.hasMoreElements()) {
+                NetworkInterface ni = enumer.nextElement();
+                if (!ni.isUp() || ni.isLoopback()) {
+                    // Ignore loopback address and interfaces that are down
+                    continue;
+                }
+                List<InterfaceAddress> ifAddrs = ni.getInterfaceAddresses();
+
+                for (InterfaceAddress ifAddr : ifAddrs) {
+                    Inet4Address addrv4;
+                    try { addrv4 = (Inet4Address)ifAddr.getAddress(); }
+                    catch (ClassCastException e) {
+                        // Probably IPv6 so ignore
+                        continue;
+                    }
+
+                    // Get IPv4 address object
+                    ipAddrObjs.add(addrv4);
+                    // Get IP address string
+                    ipAddrs.add(addrv4.getHostAddress());
+                    // Get corresponding broadcast address string
+                    broadAddrs.add(ifAddr.getBroadcast().getHostAddress());
+                }
             }
-            throw new EtException("Cannot find local IP addresses");
         }
+        catch (SocketException e) {}
+
+        netAddresses = new InetAddress[0];
+        netAddresses = ipAddrObjs.toArray(netAddresses);
+
+        ipAddresses = new String[0];
+        ipAddresses = ipAddrs.toArray(ipAddresses);
+
+        broadAddresses = new String[0];
+        broadAddresses = broadAddrs.toArray(broadAddresses);
 
         // start things running
         startUp();
@@ -343,6 +393,8 @@ public class SystemCreate {
         attachments    = null;
         events         = null;
         netAddresses   = null;
+        ipAddresses    = null;
+        broadAddresses = null;
         stationLock    = null;
         killAllThreads = false;
         running        = false;
@@ -1661,7 +1713,7 @@ public class SystemCreate {
         EtUtils.intToBytes(config.getMulticastPort(), info, off+=4);
 
         // # of interfaces and multicast addresses
-        EtUtils.intToBytes(netAddresses.length, info, off+=4);
+        EtUtils.intToBytes(ipAddresses.length, info, off+=4);
         EtUtils.intToBytes(config.getMulticastAddrs().size(), info, off+=4);
 
         int len;
@@ -1669,8 +1721,8 @@ public class SystemCreate {
         int totalStringLen = 0;
 
         // length of interface address strings
-        for (InetAddress addr : netAddresses) {
-            len = addr.getHostAddress().length() + 1;
+        for (String addr : ipAddresses) {
+            len = addr.length() + 1;
             EtUtils.intToBytes(len, info, off+=4);
             totalInts++;
             totalStringLen += len;
@@ -1699,9 +1751,9 @@ public class SystemCreate {
         off += 4;
         byte[] outString;
 
-        for (InetAddress addr : netAddresses) {
+        for (String addr : ipAddresses) {
             try {
-                outString = addr.getHostAddress().getBytes("ASCII");
+                outString = addr.getBytes("ASCII");
                 System.arraycopy(outString, 0, info, off, outString.length);
                 off += outString.length;
             }

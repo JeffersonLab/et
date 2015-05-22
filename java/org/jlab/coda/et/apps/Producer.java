@@ -16,6 +16,8 @@ package org.jlab.coda.et.apps;
 
 
 import java.lang.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
@@ -44,7 +46,7 @@ public class Producer {
                 "       -s     event size in bytes\n" +
                 "       -g     group from which to get new events (1,2,...)\n" +
                 "       -p     ET server port\n" +
-                "       -i     outgoing network interface IP address (dot-decimal)\n\n" +
+                "       -i     preferred subnet/interface (dot-decimal)\n\n" +
                 "        This consumer works by making a direct connection to the\n" +
                 "        ET system's server port.\n");
     }
@@ -67,6 +69,8 @@ public class Producer {
             }
             else if (args[i].equalsIgnoreCase("-i")) {
                 netInterface = args[++i];
+//                byte[] b = EtUtils.isDottedDecimal(netInterface);
+//                if (b == null) netInterface = null;
             }
             else if (args[i].equalsIgnoreCase("-host")) {
                 host = args[++i];
@@ -163,22 +167,48 @@ public class Producer {
             return;
         }
 
+        ArrayList<String> lst = new ArrayList<String>();
+        lst.add("110.17.19.16");
+        lst.add("111.17.19.16");
+        lst.add("129.57.29.64");
+        lst.add("112.7.29.6");
+        lst.add("129.57.29.6");
+
+        ArrayList<String> blst = new ArrayList<String>();
+        blst.add("110.17.19.255");
+        blst.add("111.17.19.255");
+        blst.add("129.57.29.255");
+        blst.add("112.7.29.255");
+        blst.add("129.57.29.255");
+
+        String[] adds = new String[0];
+        System.out.println("adds array before = " + adds.length);
+
+        adds = lst.toArray(adds);
+        System.out.println("adds array after = " + adds.length);
+
+        List<String> result = EtUtils.orderIPAddresses(lst, blst, "129.57.29.255");
+        System.out.println("Result list = ");
+        for (String s : result) {
+            System.out.println(s);
+        }
+
         try {
             // Make a direct connection to ET system's tcp server
-            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
-            config.setConnectRemotely(remote);
+//            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
+//            config.setConnectRemotely(remote);
 
             // EXAMPLE: Broadcast to find ET system
-            //EtSystemOpenConfig config = new EtSystemOpenConfig();
-            //config.setHost(host);
-            //config.setEtName(etName);
-            //config.addBroadcastAddr("129.57.29.255"); // this call is not necessary
+//            EtSystemOpenConfig config = new EtSystemOpenConfig();
+//            config.setHost(host);
+//            config.setEtName(etName);
+//            config.addBroadcastAddr("129.57.29.255"); // this call is not necessary
 
-            // EXAMPLE: Multicast to find ET system
-            //ArrayList<String> mAddrs = new ArrayList<String>();
-            //mAddrs.add(EtConstants.multicastAddr);
-            //EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host,
-            //                                mAddrs, EtConstants.multicastPort, 32);
+//            EXAMPLE: Multicast to find ET system
+            ArrayList<String> mAddrs = new ArrayList<String>();
+            mAddrs.add(EtConstants.multicastAddr);
+            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, EtConstants.hostAnywhere,
+                                                               mAddrs, port, 32);
 
             if (netInterface != null) config.setNetworkInterface(netInterface);
 

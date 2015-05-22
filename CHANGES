@@ -63,3 +63,12 @@ ET-15.0
 12/12/14
     - fix bug in which C ET system seg faults due to null pointer in server code handling
       et_event_new() from remote and no-share C clients
+
+5/2015
+    - have ET sys send broadcast addresses in addition to IP addresses when client connecting
+    - setNetworkInterface() now sets the preferred subnet. It can now accept a subnet address
+        or a regular IP address which it will internally convert to a subnet address.
+        It will set the outgoing interface to that subnet as well as choosing the ET sys
+        IP address on that same subnet so both ends of the socket are well-defined.
+    - if C client is trying to open a local, Java-based ET system file, it will recognize
+      this and instead of returning an error, it will attemp a remote connection (using sockets).

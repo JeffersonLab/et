@@ -279,9 +279,9 @@ public class EtSystem {
             if (debug >= EtConstants.debugError) {
                 int count = 1;
                 System.out.println("The following hosts responded:");
-                for (Map.Entry<ArrayList<String>,Integer> entry : sys.getResponders().entrySet()) {
+                for (Map.Entry<ArrayList<String>[],Integer> entry : sys.getResponders().entrySet()) {
                     System.out.println("  host #" + (count++) + " at port " + entry.getValue());
-                    ArrayList<String> addrList = entry.getKey();
+                    ArrayList<String> addrList = entry.getKey()[0];
                     for (String s : addrList) {
                         System.out.println("    " + s);
                     }

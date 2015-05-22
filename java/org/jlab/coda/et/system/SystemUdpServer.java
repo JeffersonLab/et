@@ -82,8 +82,8 @@ class SystemUdpServer extends Thread {
             try {
 System.out.println("setting up for multicast on port " + config.getMulticastPort());
                 MulticastSocket sock = new MulticastSocket(config.getMulticastPort());
-                sock.setReceiveBufferSize(512);
-                sock.setSendBufferSize(512);
+                sock.setReceiveBufferSize(1024);
+                sock.setSendBufferSize(1024);
                 ListeningThread lis = new ListeningThread(sys, sock, tGroup);
                 lis.start();
             }
@@ -102,8 +102,8 @@ System.out.println("setting up for multicast on port " + config.getMulticastPort
 System.out.println("setting up for broadcast on port " + config.getUdpPort());
             DatagramSocket sock = new DatagramSocket(config.getUdpPort());
             sock.setBroadcast(true);
-            sock.setReceiveBufferSize(512);
-            sock.setSendBufferSize(512);
+            sock.setReceiveBufferSize(1024);
+            sock.setSendBufferSize(1024);
             ListeningThread lis = new ListeningThread(sys, sock, tGroup);
             lis.start();
         }
@@ -195,15 +195,15 @@ class ListeningThread extends Thread {
      */
     public void run() {
         // packet & buffer to receive UDP packets
-        byte[] rBuffer = new byte[512]; // much larger than needed
-        DatagramPacket rPacket = new DatagramPacket(rBuffer, 512);
+        byte[] rBuffer = new byte[1024]; // much larger than needed
+        DatagramPacket rPacket = new DatagramPacket(rBuffer, 1024);
 
         // Prepare output buffer we send in answer to inquiries:
         //
         // (0)  ET magic numbers (3 ints)
         // (1)  ET version #
         // (2)  port of tcp server thread (not udp config->port)
-        // (3)  ET_BROADCAST or ET_MULTICAST (int)
+        // (3)  Constants.broadcast .multicast or broadAndMulticast (int)
         // (4)  length of next string
         // (5)    broadcast address (dotted-dec) if broadcast received or
         //        multicast address (dotted-dec) if multicast received
@@ -211,18 +211,28 @@ class ListeningThread extends Thread {
         // (6)  length of next string
         // (7)    hostname given by "uname" (used as a general
         //        identifier of this host no matter which interface is used)
-
         // (8)  length of next string
         // (9)    canonical name of host
         // (10) number of IP addresses
-        // (11)   32bit, net-byte ordered IPv4 address assoc with following address
-        // (12)   length of next string
-        // (13)       first dotted-decimal IPv4 address
-        // (14)   32bit, net-byte ordered IPv4 address assoc with following address
-        // (15)   length of next string
-        // (16)       second dotted-decimal IPv4 address ...
+        // Loop over # of addresses
+        //  |    (11)   32bit, net-byte ordered IPv4 address assoc with following address
+        //  |    (12)   length of next string (dot-decimal addr)
+        //  V    (13)   dot-decimal IPv4 address
         //
-        // All known IP addresses are sent here both in numerical & dotted-decimal forms.
+        // The following was added to allow easy matching of subnets.
+        // Although item (14) it is the same as item (10), it's repeated
+        // here as a precaution. If, for a client, 14 does not have the same
+        // value as 10, then the ET system must be of an older variety without
+        // the following data. Thus, things are backwards compatible.
+        //
+        // (14) number of broadcast addresses
+        // Loop over # of addresses
+        //  |    (15)   length of next string (broadcast addr)
+        //  V    (16)   dotted-decimal broadcast address
+        //              corresponding to same order in previous loop
+        //
+        // All known IP addresses & their corresponding broadcast addresses
+        // are sent here both in numerical & dotted-decimal forms.
         //
 
         // buffer for reading ET name
@@ -237,9 +247,12 @@ class ListeningThread extends Thread {
             String hostName = addr.getHostName();
 
             // the send buffer needs to be of byte size ...
-            int bufferSize = 10*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
+            int bufferSize = 11*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
             for (InetAddress netAddress : sys.getNetAddresses()) {
                 bufferSize += 8 + netAddress.getHostAddress().length() + 1;
+            }
+            for (String address : sys.broadAddresses) {
+                bufferSize += 4 + address.length() + 1;
             }
 
             baos = new ByteArrayOutputStream(bufferSize);
@@ -270,7 +283,7 @@ class ListeningThread extends Thread {
             dos.write(canon.getBytes("ASCII"));
             dos.writeByte(0);
 
-            // (10) number of addresses to follow
+            // (10) number of IP addresses to follow
             dos.writeInt(sys.getNetAddresses().length);
 
             // Send all addresses (32 bit and dot-decimal) associated with this host
@@ -281,13 +294,26 @@ class ListeningThread extends Thread {
                 for (int j = 0; j < 4; j++) {
                     addr32 = addr32 << 8 | (((int) (netAddress.getAddress())[j]) & 0xFF);
                 }
-// System.out.println("sending addr32 = " + addr32 + ", IP addr = " + netAddress.getHostAddress());
+//System.out.println("sending addr32 = " + addr32 + ", IP addr = " + netAddress.getHostAddress());
                 // (11)
                 dos.writeInt(addr32);
                 // (12)
                 dos.writeInt(netAddress.getHostAddress().length() + 1);
                 // (13)
                 dos.write(netAddress.getHostAddress().getBytes("ASCII"));
+                dos.writeByte(0);
+            }
+
+            // (14) number of broadcast addresses to follow (exact same as item 10)
+            dos.writeInt(sys.broadAddresses.length);
+
+            // Send 1 broadcast address for each associated IP address in the above loop
+            for (String address : sys.broadAddresses) {
+//System.out.println("sending broad = " + address);
+                // (15)
+                dos.writeInt(address.length() + 1);
+                // (16)
+                dos.write(address.getBytes("ASCII"));
                 dos.writeByte(0);
             }
 
@@ -343,7 +369,7 @@ class ListeningThread extends Thread {
                 if (magic1 != EtConstants.magicNumbers[0] ||
                     magic2 != EtConstants.magicNumbers[1] ||
                     magic3 != EtConstants.magicNumbers[2])  {
-//System.out.println("SystemUdpServer:  Magic numbers did NOT match");
+System.out.println("SystemUdpServer:  Magic numbers did NOT match");
                     continue;
                 }
 
