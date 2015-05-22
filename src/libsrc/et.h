@@ -169,7 +169,8 @@ extern "C" {
 #define ET_ERROR_BADARG   -15
 #define ET_ERROR_SOCKET   -16
 #define ET_ERROR_NETWORK  -17
-#define ET_ERROR_CLOSED   -18 /* Changed, Added */
+#define ET_ERROR_CLOSED   -18
+#define ET_ERROR_JAVASYS  -19
 
 /* debug levels */
 #define ET_DEBUG_NONE   0
