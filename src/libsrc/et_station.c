@@ -953,7 +953,7 @@ int et_station_detach(et_sys_id id, et_att_id att)
   if (etid->closed) {
       et_mem_unlock(etid);
       if (etid->debug >= ET_DEBUG_ERROR) {
-          et_logmsg("ERROR", "et_station_attach, et id is closed\n");
+          et_logmsg("ERROR", "et_station_dettach, et id is closed\n");
       }
       return ET_ERROR_CLOSED;
   }
