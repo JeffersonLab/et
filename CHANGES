@@ -71,4 +71,10 @@ ET-15.0
         It will set the outgoing interface to that subnet as well as choosing the ET sys
         IP address on that same subnet so both ends of the socket are well-defined.
     - if C client is trying to open a local, Java-based ET system file, it will recognize
-      this and instead of returning an error, it will attemp a remote connection (using sockets).
+        this and instead of returning an error, it will attemp a remote connection (using sockets).
+    - mutex protect reading/writing of heartbeat so no issues with reading old, cached values
+        of heartbeat and thinking the system is dead when it is not.
+    - fix bug in which et_alive will try to lock an already locked system mutex during internal
+        calls to it while cleaning up after dead clients and such. This was causing the ET system
+        to stop functioning after client died.
+    - find bug in remote et_events_get() causing an error to be returned even if OK.
