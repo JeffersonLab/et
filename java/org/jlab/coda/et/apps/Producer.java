@@ -167,32 +167,6 @@ public class Producer {
             return;
         }
 
-        ArrayList<String> lst = new ArrayList<String>();
-        lst.add("110.17.19.16");
-        lst.add("111.17.19.16");
-        lst.add("129.57.29.64");
-        lst.add("112.7.29.6");
-        lst.add("129.57.29.6");
-
-        ArrayList<String> blst = new ArrayList<String>();
-        blst.add("110.17.19.255");
-        blst.add("111.17.19.255");
-        blst.add("129.57.29.255");
-        blst.add("112.7.29.255");
-        blst.add("129.57.29.255");
-
-        String[] adds = new String[0];
-        System.out.println("adds array before = " + adds.length);
-
-        adds = lst.toArray(adds);
-        System.out.println("adds array after = " + adds.length);
-
-        List<String> result = EtUtils.orderIPAddresses(lst, blst, "129.57.29.255");
-        System.out.println("Result list = ");
-        for (String s : result) {
-            System.out.println(s);
-        }
-
         try {
             // Make a direct connection to ET system's tcp server
 //            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
