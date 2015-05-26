@@ -19,7 +19,6 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader;
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Priority;
