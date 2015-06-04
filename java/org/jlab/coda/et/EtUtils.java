@@ -341,11 +341,11 @@ public class EtUtils {
      * @param ip IP or subnet address in dotted-decimal format
      * @return matching local address on the same subnet;
      *         else null if no match
-     * @throws EtException if arg is null or not in dotted-decimal format
+     * @throws EtException if arg not in dotted-decimal format
      */
     public static String getMatchingLocalIpAddress(String ip) throws EtException {
         if (ip == null) {
-            throw new EtException("arg is null");
+            return null;
         }
 
         byte[] ipBytes = isDottedDecimal(ip);
@@ -613,22 +613,21 @@ System.out.println("getMatchingLocalIpAddress: ==== broadcast addr: " + ip);
         catch (EtException e) {
             // preferredAddresses is null or not in dotted-decimal format, so ignore
         }
-System.out.println("orderIPAddresses: preferred subnet: " + prefSubnet);
-        if (broadAddresses != null) {
-            System.out.println("broadcastAddress NOT NULL:");
-            for (String s : broadAddresses)
-            System.out.println(s);
-        }
+
+//System.out.println("orderIPAddresses: preferred subnet: " + prefSubnet);
+//        if (broadAddresses != null) {
+//            System.out.println("broadcastAddress NOT NULL:");
+//            for (String s : broadAddresses)
+//            System.out.println(s);
+//        }
 
         // Iterate through argument list of addresses
         outerLoop:
         for (int i=0; i < ipAddresses.size(); i++) {
 
-            String ipSubNet = null;
-
             // If the remote IP addresses are accompanied by their subnet addresses ...
             if (broadAddresses != null && broadAddresses.size() > i) {
-                ipSubNet = broadAddresses.get(i);
+                String ipSubNet = broadAddresses.get(i);
 
                 try {
                     // Iterate through list of local addresses and see if its
