@@ -78,3 +78,6 @@ ET-15.0
         calls to it while cleaning up after dead clients and such. This was causing the ET system
         to stop functioning after client died.
     - find bug in remote et_events_get() causing an error to be returned even if OK.
+
+ET-15.1 (created 6/5/2015)
+    - same as 15.0
