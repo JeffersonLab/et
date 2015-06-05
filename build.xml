@@ -8,7 +8,7 @@
     <property environment="env"/>
 
     <!-- Version -->
-    <property name="et.version" value="15.1" />
+    <property name="et.version" value="15.0" />
 
     <!-- Debug -->
     <property name="javac.debug" value="on" />
