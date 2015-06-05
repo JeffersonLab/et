@@ -135,10 +135,10 @@ if debug:
     env.Append(CCFLAGS = '-g', PROGSUFFIX = debugSuffix)
 
 elif platform == 'SunOS':
-    env.Append(CCFLAGS = '-xO3')
+    env.Append(CCFLAGS = ['-xO3'])
 
 else:
-    env.Append(CCFLAGS = '-O3')
+    env.Append(CCFLAGS = ['-O3'])
 
 
 # Take care of 64/32 bit issues
