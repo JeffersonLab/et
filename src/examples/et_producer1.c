@@ -263,22 +263,22 @@ int main(int argc,char **argv)
     et_open_config_init(&openconfig);
 
     /* EXAMPLE: direct connection to ET */
-   et_open_config_setcast(openconfig, ET_DIRECT);
-   et_open_config_sethost(openconfig, host);
-   et_open_config_setserverport(openconfig, serverPort);
-   /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
-   et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
-   if (strlen(interface) > 6) {
-       et_open_config_setinterface(openconfig, interface);
-   }
+//   et_open_config_setcast(openconfig, ET_DIRECT);
+//   et_open_config_sethost(openconfig, host);
+//   et_open_config_setserverport(openconfig, serverPort);
+//   /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
+//   et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
+//   if (strlen(interface) > 6) {
+//       et_open_config_setinterface(openconfig, interface);
+//   }
 
     /* EXAMPLE: multicasting to find ET */
-    /*
+    
     et_open_config_setcast(openconfig, ET_MULTICAST);
     et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
     et_open_config_setmultiport(openconfig, 11112);
     et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
-    */
+    
    
     /* EXAMPLE: broadcasting to find ET */
     /*et_open_config_setcast(openconfig, ET_BROADCAST);*/

@@ -1802,7 +1802,7 @@ int codanetTcpRead(int fd, void *vptr, int n)
   
     while (nleft > 0) {
         if ( (nread = read(fd, ptr, nleft)) < 0) {
-            /*
+            
             if (errno == EINTR)            fprintf(stderr, "call interrupted\n");
             else if (errno == EAGAIN)      fprintf(stderr, "non-blocking return, or socket timeout\n");
             else if (errno == EWOULDBLOCK) fprintf(stderr, "nonblocking return\n");
@@ -1812,7 +1812,7 @@ int codanetTcpRead(int fd, void *vptr, int n)
             else if (errno == EINVAL)      fprintf(stderr, "fd not suitable for reading\n");
             else if (errno == EFAULT)      fprintf(stderr, "buffer is outside address space\n");
             else {perror("xxxNetTcpRead");}
-            */
+            
             if (errno == EINTR) {
                 nread = 0;		/* and call read() again */
             }
