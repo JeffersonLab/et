@@ -1183,6 +1183,15 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
         Exception excep = null;
         boolean gotConnection = false;
 
+        String outgoingIp = null;
+        if (config.getNetworkInterface() != null) {
+            // The outgoing network interface address may be a specific IP address
+            // or it may be a broadcast/subnet address. If it is a broadcast
+            // address, find the specific IP associated with it and use that
+            // to bind to.
+            outgoingIp = EtUtils.getMatchingLocalIpAddress(config.getNetworkInterface());
+        }
+
         t1 = t2 = System.currentTimeMillis();
 
         while (t2 <= (t1 + config.getWaitTime())) {
@@ -1299,10 +1308,15 @@ System.out.println("connect(): order ET's IP addresses with preferred = "
                         // or it may be a broadcast/subnet address. If it is a broadcast
                         // address, find the specific IP associated with it and use that
                         // to bind to.
-                        String ip = EtUtils.getMatchingLocalIpAddress(config.getNetworkInterface());
-                        if (ip != null) {
-System.out.println("connect(): bind outgoing data to " + ip);
-                            sock.bind(new InetSocketAddress(ip, 0));
+                        if (outgoingIp != null) {
+                            try {
+                                sock.bind(new InetSocketAddress(outgoingIp, 0));
+System.out.println("connect(): bound outgoing data to " + outgoingIp);
+                            }
+                            catch (IOException e) {
+                                // If we cannot bind to this IP address, forget about it
+System.out.println("connect(): tried but FAILED to bind outgoing data to " + outgoingIp);
+                            }
                         }
                     }
 
@@ -1340,6 +1354,10 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
                 catch (InterruptedException e) {}
 
                 t2 = System.currentTimeMillis();
+
+                //TODO: One possibility to consider is that if networkInterface != null,
+                //TODO: then perhaps it's binding to the preferred subnet that's causing
+                //TODO: problems. In future think about trying loop without that binding.
                 continue;
             }
 
