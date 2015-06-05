@@ -364,7 +364,7 @@ public final class EtConstants {
     /** Major ET version number. */
     public static final int    version             = 14;
     /** Minor ET version number. */
-    public static final int    minorVersion        = 0;
+    public static final int    minorVersion        = 1;
     /** Maximum number of attachments to an ET system. */
     public static final int    attachmentsMax      = 110;
     //static final int    ipAddrStrLen        = 16;
