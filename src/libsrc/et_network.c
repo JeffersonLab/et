@@ -159,7 +159,6 @@ void et_freeAnswers(et_response *answer) {
  * system, to try and make a TCP connection with an address on a given subnet
  * first. All the elements of the returned linked-list need to be freed by the
  * caller by calling etNetFreeAddrList(codaIpList list) once on the list head.
- * This routine only works for IPv4.
  *
  * @param response pointer to structure containing ET system's response to a
  *                 broad/multicast which contains all the IP addresses of its host
@@ -171,10 +170,9 @@ void et_freeAnswers(et_response *answer) {
  * @return a linked list of IP addresses in dot-decimal format with all the
  *         IP addresses in the response arg ordered so that those on the
  *         preferred subnet are first, those on other local subnets are next,
- *         and all others come last. Return NULL if an arg is NULL
- *         or error. If successful, all the elements of the returned linked-list
+ *         and all others come last. If successful, the returned linked-list
  *         need to be freed by the caller.
- *         Returns NULL if response apreferredSubnetrg is NULL or no addresses contained response arg
+ *         Returns NULL if response arg is NULL or no addresses contained in response arg
  */
 codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
                             char* preferredSubnet) {
@@ -198,16 +196,16 @@ codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
         while (local != NULL) {
             if (local->broadcast == NULL || bcastAddress == NULL) break;
 
-printf("et_orderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
-                    ipAddress, bcastAddress, local->broadcast);
+/*printf("et_orderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
+                    ipAddress, bcastAddress, local->broadcast);*/
 
             if (strcmp(local->broadcast, bcastAddress) == 0) {
                 onSameSubnet = 1;
-                printf("et_orderIpAddrs: on SAME subnet\n");
+/*printf("et_orderIpAddrs: on SAME subnet\n");*/
                 if (preferredSubnet != NULL && strcmp(preferredSubnet, bcastAddress) == 0) {
                     onPreferredSubnet = 1;
                     preferredCount++;
-                    printf("et_orderIpAddrs: on PREFFERED subnet\n");
+/*printf("et_orderIpAddrs: on PREFFERED subnet\n");*/
                 }
                 break;
             }
@@ -261,7 +259,7 @@ printf("et_orderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
     }
     /* No list combining needed here */
     else if (firstPrefItem != NULL && firstItem == NULL) {
-printf("et_orderIpAddrs: only items in preferred subnet list\n");
+/*printf("et_orderIpAddrs: only items in preferred subnet list\n");*/
         return firstPrefItem;
     }
     /* No list combining needed here */
