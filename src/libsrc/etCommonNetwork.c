@@ -3816,6 +3816,134 @@ int codanetGetIpAddrs(char ***ipAddrs, int *count, char *host) {
 
 
 /**
+* This routine takes a list of items, each item being a dot-decimal
+* formatted IP address and its corresponding broadcast address,
+* and orders the list so that IP addresses on the preferred local subnet are first,
+* those on other local subnets are next, and all others come last.
+* This only works for IPv4.<p>
+*
+* All the elements of the returned linked-list need to be freed by the
+* caller by calling {@link codanetFreeAddrList(codaIpList *addr)} once on the list head.
+*
+* @param ipList   pointer to a linked-list of structures, each containing an IP address and
+*                 its corresponding broadcast address.
+* @param netinfo  pointer to structure containing all local network information
+* @param preferredSubnet the subnet whose IP address(es) will be first on the
+*                        returned list
+*
+* @return a linked list of IP addresses in dot-decimal format with all the
+*         IP addresses in the response arg ordered so that those on the
+*         preferred subnet are first, those on other local subnets are next,
+*         and all others come last. If successful, the returned linked-list
+*         need to be freed by the caller.
+*         Returns NULL if ipList arg is NULL or no addresses contained in it
+*/
+codaIpList *codanetOrderIpAddrs(codaIpList *ipList, codaIpAddr *netinfo,
+                                char* preferredSubnet) {
+    
+    int i, err, onSameSubnet, onPreferredSubnet, preferredCount=0, firstTime=1;
+    char *ipAddress, *bcastAddress;
+    codaIpList *listItem, *lastItem, *lastPrefItem, *firstItem = NULL, *firstPrefItem = NULL;
+    codaIpAddr *local;
+    
+    if (ipList == NULL) return NULL;
+    
+    while (ipList != NULL) {
+        ipAddress = ipList->addr;
+        bcastAddress = ipList->bAddr;
+        local = netinfo;
+        onSameSubnet = 0;
+        onPreferredSubnet = 0;
+        /*printf("codanetOrderIpAddrs: got list address %s\n", ipAddress);*/
+        
+        /* Compare with local subnets */
+        while (local != NULL) {
+            if (local->broadcast == NULL || bcastAddress == NULL) break;
+            
+            printf("codanetOrderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
+            ipAddress, bcastAddress, local->broadcast);
+            
+            if (strcmp(local->broadcast, bcastAddress) == 0) {
+                onSameSubnet = 1;
+                printf("codanetOrderIpAddrs: on SAME subnet\n");
+                if (preferredSubnet != NULL && strcmp(preferredSubnet, bcastAddress) == 0) {
+                    onPreferredSubnet = 1;
+                    preferredCount++;
+                    printf("codanetOrderIpAddrs: on PREFFERED subnet\n");
+                }
+                break;
+            }
+            
+            local = local->next;
+        }
+        
+        listItem = (codaIpList *) calloc(1, sizeof(codaIpList));
+        if (listItem == NULL) {
+            codanetFreeAddrList(firstItem);
+            return NULL;
+        }
+        strncpy(listItem->addr, ipAddress, CODA_IPADDRSTRLEN);
+        
+        if (onPreferredSubnet) {
+            if (firstPrefItem == NULL) {
+                lastPrefItem = firstPrefItem = listItem;
+                ipList = ipList->next;
+                continue;
+            }
+        }
+        else if (firstItem == NULL) {
+            lastItem = firstItem = listItem;
+            ipList = ipList->next;
+            continue;
+        }
+        
+        if (onPreferredSubnet) {
+            /*printf("et_orderIpAddrs: pref subnet, head of list\n");*/
+            /* Put it at the head of the list */
+            listItem->next = firstPrefItem;
+            firstPrefItem = listItem;
+        }
+        else if (onSameSubnet) {
+            /*printf("et_orderIpAddrs: same subnet, head of list\n");*/
+            /* Put it at the head of the list */
+            listItem->next = firstItem;
+            firstItem = listItem;
+        }
+        else {
+            /*printf("et_orderIpAddrs: diff subnet, end of list\n");*/
+            /* Put it at the end of the list */
+            lastItem->next = listItem;
+            lastItem = listItem;
+        }
+        
+        ipList = ipList->next;
+    }
+    
+    /* Now put preferred list at head of total list */
+    
+    /* No lists at all  */
+    if (firstPrefItem == NULL && firstItem == NULL) {
+        return NULL;
+    }
+    /* No list combining needed here */
+    else if (firstPrefItem != NULL && firstItem == NULL) {
+        printf("et_orderIpAddrs: only items in preferred subnet list\n");
+        return firstPrefItem;
+    }
+    /* No list combining needed here */
+    else if (firstPrefItem == NULL && firstItem != NULL) {
+        return firstItem;
+    }
+    
+    /* Combine lists */
+    lastPrefItem->next = firstItem;
+    lastPrefItem = firstItem;
+    
+    return firstPrefItem;
+}
+
+
+/**
  * This routine finds out if the operating system is Linux or not.
  * 
  * @param isLinux pointer to int which gets filled with 1 if Linux, else 0

@@ -105,6 +105,7 @@ extern int etDebug;
 #define   codanetFreeAddrList           etNetFreeAddrList
 #define   codanetGetBroadcastAddrs      etNetGetBroadcastAddrs
 #define   codanetGetIpAddrs             etNetGetIpAddrs
+#define   codanetOrderIpAddrs           etNetOrderIpAddrs
 #define   codanetMcastSetIf             etNetMcastSetIf
 #define   codanetGetIfNames             etNetGetIfNames
 
@@ -188,8 +189,9 @@ struct ifi_info {
 
 /** Structure to handle dotted-decimal IP addresses in a linked list. */
 typedef struct codaIpList_t {
-    char                addr[CODA_IPADDRSTRLEN]; /**< Single dotted-decimal address. */
-    struct codaIpList_t *next;                   /**< Next item in linked list. */
+    char                addr[CODA_IPADDRSTRLEN];  /**< Single dotted-decimal address for IP address. */
+    char                bAddr[CODA_IPADDRSTRLEN]; /**< Single dotted-decimal address for broadcast address. */
+    struct codaIpList_t *next;                    /**< Next item in linked list. */
 } codaIpList;
 
 /** Structure to handle multiple dotted-decimal IP addresses. */
@@ -297,6 +299,8 @@ extern int   codanetGetBroadcastAddrs(codaIpList **addrs, codaDotDecIpAddrs *bca
 extern int   codanetGetIpaddrs(char ***ipAddrs, int *count, char *host);
 extern int   codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex);
 extern int   codanetGetIfNames(char ***ifNames, int *count);
+extern codaIpList *codanetOrderIpAddrs(codaIpList *ipList, codaIpAddr *netinfo,
+                                       char* preferredSubnet);
 extern int   codanetGetMatchingLocalIpAddress(char *ip, char **matchingIp);
 extern int   codanetGetBroadcastAddress(char *ip, char **broadcastIp);
     
