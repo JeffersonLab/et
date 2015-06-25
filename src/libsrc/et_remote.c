@@ -2067,7 +2067,7 @@ int etr_events_new(et_sys_id id, et_att_id att, et_event *evs[],
 
         /* if allocating memory for event data as is normally the case ... */
         if (noalloc == 0) {
-            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL) {
+            if ((newevents[i]->pdata = malloc(eventsize)) == NULL) {
                 if (etid->debug >= ET_DEBUG_ERROR) {
                     et_logmsg("ERROR", "etr_events_new, cannot allocate memory\n");
                 }
@@ -2317,7 +2317,7 @@ int etr_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
 
         /* if allocating memory for event data as is normally the case ... */
         if (noalloc == 0) {
-            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL) {
+            if ((newevents[i]->pdata = malloc(eventsize)) == NULL) {
                 if (etid->debug >= ET_DEBUG_ERROR) {
                     et_logmsg("ERROR", "etr_events_new_group, cannot allocate memory\n");
                 }
@@ -2537,30 +2537,28 @@ int etr_event_get(et_sys_id id, et_att_id att, et_event **ev,
     eventsize = (size_t) newevent->memsize;
 #endif
 
-    if (!(mode & ET_NOALLOC)) {
+    if ((newevent->pdata = malloc(eventsize)) == NULL) {
+        et_tcp_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "etr_event_get, cannot allocate memory\n");
+        }
+        free(newevent);
+        return ET_ERROR_REMOTE;
+    }
 
-        if ((newevent->pdata = malloc(eventsize)) == NULL) {
+    /* read data */
+    if (len > 0) {
+        if (etNetTcpRead(sockfd, newevent->pdata, len) != len) {
             et_tcp_unlock(etid);
             if (etid->debug >= ET_DEBUG_ERROR) {
-                et_logmsg("ERROR", "etr_event_get, cannot allocate memory\n");
+                et_logmsg("ERROR", "etr_event_get, read error\n");
             }
+            free(newevent->pdata);
             free(newevent);
-            return ET_ERROR_REMOTE;
-        }
-
-        /* read data */
-        if (len > 0) {
-            if (etNetTcpRead(sockfd, newevent->pdata, len) != len) {
-                et_tcp_unlock(etid);
-                if (etid->debug >= ET_DEBUG_ERROR) {
-                    et_logmsg("ERROR", "etr_event_get, read error\n");
-                }
-                free(newevent->pdata);
-                free(newevent);
-                return ET_ERROR_READ;
-            }
+            return ET_ERROR_READ;
         }
     }
+
     et_tcp_unlock(etid);
 
     *ev = newevent;
@@ -2776,29 +2774,28 @@ int etr_events_get(et_sys_id id, et_att_id att, et_event *evs[],
         eventsize = (size_t) newevents[i]->memsize;
 #endif
 
-        if (!(mode & ET_NOALLOC)) {
-            if ((newevents[i]->pdata = (void *) malloc(eventsize)) == NULL) {
-                if (etid->debug >= ET_DEBUG_ERROR) {
-                    et_logmsg("ERROR", "etr_events_get, cannot allocate memory\n");
-                }
-                free(newevents[i]);
-                error = ET_ERROR_REMOTE;
-                break;
+        if ((newevents[i]->pdata = malloc(eventsize)) == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "etr_events_get, cannot allocate memory\n");
             }
+            free(newevents[i]);
+            error = ET_ERROR_REMOTE;
+            break;
+        }
 
-            if (len > 0) {
-                if (etNetTcpRead(sockfd, newevents[i]->pdata, len) != len) {
-                    if (etid->debug >= ET_DEBUG_ERROR) {
-                        et_logmsg("ERROR", "etr_events_get, read error\n");
-                    }
-                    free(newevents[i]->pdata);
-                    free(newevents[i]);
-                    error = ET_ERROR_READ;
-                    break;
+        if (len > 0) {
+            if (etNetTcpRead(sockfd, newevents[i]->pdata, len) != len) {
+                if (etid->debug >= ET_DEBUG_ERROR) {
+                    et_logmsg("ERROR", "etr_events_get, read error\n");
                 }
+                free(newevents[i]->pdata);
+                free(newevents[i]);
+                error = ET_ERROR_READ;
+                break;
             }
         }
     }
+
     et_tcp_unlock(etid);
 
     if (error != ET_OK) {
