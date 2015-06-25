@@ -37,7 +37,7 @@ static void *signal_thread (void *arg);
 int main(int argc,char **argv) {  
     int             i, j, c, i_tmp, status, swtch, numRead;
     int             flowMode=ET_STATION_SERIAL, position=1, pposition=1;
-    int             errflg=0, chunk=1, size=32, qSize=0, verbose=0, blocking=1;
+    int             errflg=0, chunk=1, size=32, qSize=0, verbose=0, remote=0, blocking=1;
     int		        con[ET_STATION_SELECT_INTS];
     int             sendBufSize=0, recvBufSize=0, noDelay=0;
     unsigned short  serverPort = ET_SERVER_PORT;
@@ -79,7 +79,7 @@ int main(int argc,char **argv) {
       memset(et_name, 0, ET_FILENAME_LENGTH);
       memset(stationName, 0, ET_STATNAME_LENGTH);
 
-      while ((c = getopt_long_only(argc, argv, "vn:s:p:f:c:q:", long_options, 0)) != EOF) {
+      while ((c = getopt_long_only(argc, argv, "vrn:s:p:f:c:q:", long_options, 0)) != EOF) {
       
           if (c == -1)
               break;
@@ -199,6 +199,10 @@ int main(int argc,char **argv) {
                   verbose = ET_DEBUG_INFO;
                   break;
 
+              case 'r':
+                  remote = 1;
+                  break;
+
               case ':':
               case 'h':
               case '?':
@@ -211,7 +215,7 @@ int main(int argc,char **argv) {
           fprintf(stderr,
                   "usage: %s  %s\n%s\n%s\n\n",
                   argv[0],
-                  "-f <ET name> -host <ET host> -s <station name> [-h] [-v] [-nb]",
+                  "-f <ET name> -host <ET host> -s <station name> [-h] [-v] [-nb] [-r] ",
                   "                    [-p <ET server port>] [-c <chunk size>] [-q <queue size>]",
                   "                    [-pos <station position>] [-ppos <parallel station position>]",
                   "                    [-rb <buf size>] [-sb <buf size>] [-nd]");
@@ -221,6 +225,7 @@ int main(int argc,char **argv) {
           fprintf(stderr, "          -s create station of this name\n");
           fprintf(stderr, "          -h help\n");
           fprintf(stderr, "          -v verbose output\n");
+          fprintf(stderr, "          -r act as remote (TCP) client even if ET system is local\n");
           fprintf(stderr, "          -nb make station non-blocking\n");
           fprintf(stderr, "          -p ET server port\n");
           fprintf(stderr, "          -c number of events in one get/put array\n");
@@ -271,6 +276,9 @@ int main(int argc,char **argv) {
     et_open_config_setserverport(openconfig, serverPort);
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
     et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
+    if (remote) {
+        et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+    }
     if (et_open(&id, et_name, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
         exit(1);
@@ -333,7 +341,7 @@ int main(int argc,char **argv) {
         /*status = et_events_get(id, attach1, pe, ET_TIMED, &timeout, chunk, &numRead);*/
 
         /* example of reading array of up to "chunk" events */
-        status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, chunk, &numRead);
+        status = et_events_get(id, attach1, pe, ET_SLEEP | ET_NOALLOC, NULL, chunk, &numRead);
         if (status == ET_OK) {
             ;
         }
@@ -361,8 +369,8 @@ int main(int argc,char **argv) {
             printf("%s: socket communication error\n", argv[0]);
             goto error;
         }
-        else if (status != ET_OK) {
-            printf("%s: get error\n", argv[0]);
+        else {
+            printf("%s: get error, status = %d\n", argv[0], status);
             goto error;
         }
 

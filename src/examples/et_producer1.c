@@ -351,7 +351,7 @@ int main(int argc,char **argv)
             printf("%s: socket communication error\n", argv[0]);
             goto error;
         }
-        else if (status != ET_OK) {
+        else {
             printf("%s: request error\n", argv[0]);
             goto error;
         }
@@ -389,7 +389,7 @@ int main(int argc,char **argv)
             printf("%s: socket communication error\n", argv[0]);
             goto error;
         }
-        else if (status != ET_OK) {
+        else {
             printf("%s: put error, status = %d\n", argv[0], status);
             goto error;
         }
