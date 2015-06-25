@@ -427,6 +427,10 @@ char *et_perror(int error) {
             sprintf(temp, "ET_ERROR_CLOSED:  et_close() as been called, id is now invalid\n");
             break;
 
+        case ET_ERROR_JAVASYS:
+            sprintf(temp, "ET_ERROR_CLOSED:  C code trying to open Java-based ET system file locally\n");
+            break;
+
         default:
             sprintf(temp, "?et_perror...no such error: %d\n",error);
             break;
