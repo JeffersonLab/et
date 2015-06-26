@@ -150,27 +150,31 @@ extern "C" {
                                        events are flowing in parallel. Only used when
                                        gathering monitoring data of stations (not for config).*/
 
-/* errors */
-#define ET_OK              0
-#define ET_ERROR          -1
-#define ET_ERROR_TOOMANY  -2
-#define ET_ERROR_EXISTS   -3
-#define ET_ERROR_WAKEUP   -4
-#define ET_ERROR_TIMEOUT  -5
-#define ET_ERROR_EMPTY    -6
-#define ET_ERROR_BUSY     -7
-#define ET_ERROR_DEAD     -8
-#define ET_ERROR_READ     -9
-#define ET_ERROR_WRITE    -10
-#define ET_ERROR_REMOTE   -11
-#define ET_ERROR_NOREMOTE -12
-#define ET_ERROR_TOOBIG   -13
-#define ET_ERROR_NOMEM    -14
-#define ET_ERROR_BADARG   -15
-#define ET_ERROR_SOCKET   -16
-#define ET_ERROR_NETWORK  -17
-#define ET_ERROR_CLOSED   -18
-#define ET_ERROR_JAVASYS  -19
+/**
+ * @defgroup errors Errors
+ * @{
+ */
+#define ET_OK              0   /**< No error. */
+#define ET_ERROR          -1   /**< General error. */
+#define ET_ERROR_TOOMANY  -2   /**< Too many somethings (stations, attachments, temp events, ET system responses) exist. */
+#define ET_ERROR_EXISTS   -3   /**< ET system file or station already exists. */
+#define ET_ERROR_WAKEUP   -4   /**< Sleeping routine woken up by {@link et_wakeup_attachment()} or {@link et_wakeup_all()}. */
+#define ET_ERROR_TIMEOUT  -5   /**< Timed out. */
+#define ET_ERROR_EMPTY    -6   /**< No events available in async mode. */
+#define ET_ERROR_BUSY     -7   /**< Resource is busy. */
+#define ET_ERROR_DEAD     -8   /**< ET system is dead. */
+#define ET_ERROR_READ     -9   /**< Network read error */
+#define ET_ERROR_WRITE    -10  /**< Network write error, */
+#define ET_ERROR_REMOTE   -11  /**< Cannot allocate memory in remote client. */
+#define ET_ERROR_NOREMOTE -12  /**< (Currently not used). */
+#define ET_ERROR_TOOBIG   -13  /**< Client is 32 bits & server is 64 (or vice versa) and event is too big for one. */
+#define ET_ERROR_NOMEM    -14  /**< Cannot allocate memory. */
+#define ET_ERROR_BADARG   -15  /**< Bad argument given to function. */
+#define ET_ERROR_SOCKET   -16  /**< Socket option could not be set. */
+#define ET_ERROR_NETWORK  -17  /**< Host name or address could not be resolved, or cannot connect. */
+#define ET_ERROR_CLOSED   -18  /**< ET system has been closed by client. */
+#define ET_ERROR_JAVASYS  -19  /**< C code trying to open Java-based ET system file locally. */
+/** @} */
 
 /* debug levels */
 #define ET_DEBUG_NONE   0
@@ -208,8 +212,7 @@ extern "C" {
 /* event get/new routines' event flow flags */
 #define ET_MODIFY 4		/* remote user will modify event */
 #define ET_MODIFY_HEADER 8	/* remote user will modify only header */
-#define ET_DUMP          16	/* remote user want events automatically dumped (not put) */
-/* event get/new routines' memory allocation flags */
+#define ET_DUMP          16	/* in remote get and not modifying, server dumps (not puts) events automatically back into ET. */
 #define ET_NOALLOC       32	/* remote user will not allocate mem but use existing buf */
 
 /* et_open waiting modes */
