@@ -377,15 +377,15 @@ public class EtUtils {
 
                     // If this matches an actual local IP address, return it
                     if (ip.equals(addrv4.getHostAddress()))  {
-System.out.println("getMatchingLocalIpAddress: this is a local address");
+//System.out.println("getMatchingLocalIpAddress: this is a local address");
                         return ip;
                     }
 
                     // If this matches a broadcast/subnet address, return
                     // an actual local IP address on this subnet.
                     if (ip.equals(ifAddr.getBroadcast().getHostAddress())) {
-System.out.println("getMatchingLocalIpAddress: broadcast addr, use this IP on that subnet: " +
-                           addrv4.getHostAddress());
+//System.out.println("getMatchingLocalIpAddress: broadcast addr, use this IP on that subnet: " +
+//                           addrv4.getHostAddress());
                         return addrv4.getHostAddress();
                     }
                 }
@@ -465,21 +465,21 @@ System.out.println("getMatchingLocalIpAddress: broadcast addr, use this IP on th
                         // probably IPv6 so ignore
                         continue;
                     }
-System.out.println("getMatchingLocalIpAddress: ip (" + ip + ") =? local addr(" +
-addrv4.getHostAddress() + ")");
+//System.out.println("getMatchingLocalIpAddress: ip (" + ip + ") =? local addr(" +
+//addrv4.getHostAddress() + ")");
 
                     // If this matches an actual local IP address,
                     // return its broadcast address
                     if (ip.equals(addrv4.getHostAddress()))  {
-System.out.println("getMatchingLocalIpAddress: ==== this is a local address");
+//System.out.println("getMatchingLocalIpAddress: ==== this is a local address");
                         return ifAddr.getBroadcast().getHostAddress();
                     }
 
-System.out.println("getMatchingLocalIpAddress: ip (" + ip + ") =? broad addr(" +
-                    ifAddr.getBroadcast().getHostAddress() + ")");
+//System.out.println("getMatchingLocalIpAddress: ip (" + ip + ") =? broad addr(" +
+//                    ifAddr.getBroadcast().getHostAddress() + ")");
                     // If this matches a broadcast/subnet address, return it as is.
                     if (ip.equals(ifAddr.getBroadcast().getHostAddress())) {
-System.out.println("getMatchingLocalIpAddress: ==== broadcast addr: " + ip);
+//System.out.println("getMatchingLocalIpAddress: ==== broadcast addr: " + ip);
                         return ip;
                     }
                 }
@@ -596,7 +596,7 @@ System.out.println("getMatchingLocalIpAddress: ==== broadcast addr: " + ip);
             return null;
         }
 
-        System.out.println("orderIPAddresses: IN");
+//System.out.println("orderIPAddresses: IN");
 
         // List of all IP addrs, ordered
         LinkedList<String> ipList = new LinkedList<String>();
@@ -657,14 +657,14 @@ System.out.println("getMatchingLocalIpAddress: ==== broadcast addr: " + ip);
                                 prefSubnet.equals(ipSubNet) &&
                                 prefSubnet.equals(localBroadcastAddr)) {
 
-System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on preferred subnet: " + prefSubnet);
+//System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on preferred subnet: " + prefSubnet);
                                 preferred.add(ipAddresses.get(i));
                                 continue outerLoop;
                             }
                             // If the 2 are on the same subnet but not on the preferred address,
                             // place it first on the regular list.
                             else if (localBroadcastAddr.equals(ipSubNet)) {
-System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on local subnet: " + localBroadcastAddr);
+//System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on local subnet: " + localBroadcastAddr);
                                 ipList.addFirst(ipAddresses.get(i));
                                 continue outerLoop;
                             }
@@ -679,7 +679,7 @@ System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on local sub
 //System.out.println("Add " + ip + " to list bottom");
             ipList.addLast(ipAddresses.get(i));
         }
-        System.out.println("\n");
+//System.out.println("\n");
 
         // Add any preferred addresses to top of list
         ipList.addAll(0, preferred);
