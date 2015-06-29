@@ -900,8 +900,10 @@ public class EtSystemOpenConfig {
 
     /**
      * Set the network interface (in dotted-decimal format) used for connecting to the ET system.
-     * The interface may be specified by giving a specific IP address or a broadcast (subnet)
-     * address.
+     * The interface may be specified by giving a valid, local IP address or a broadcast (subnet)
+     * address. If it is a broadcast address, it will convert that to the specific IP associated
+     * with it.
+     *
      * @param networkInterface the network interface used for connecting to the ET system,
      *                         or null if none specified. Address may be either a specific
      *                         or broadcast IP dotted-decimal.
