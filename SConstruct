@@ -254,17 +254,17 @@ if not coda.configureJNI(env):
 ###############################
 
 if 'doc' in COMMAND_LINE_TARGETS:
-    coda.generateDocs(env, False, False, True, "java/org/jlab/coda/et")
+    coda.generateDocs(env, True, False, True, "java/org/jlab/coda/et")
 
 if 'undoc' in COMMAND_LINE_TARGETS:
     coda.removeDocs(env)
 
 
 # use "doc" on command line to create tar file
-Help('doc                 create javadoc (in ./doc)\n')
+Help('doc                 create doxygen/javadoc (in ./doc)\n')
 
 # use "undoc" on command line to create tar file
-Help('undoc               remove javadoc (in ./doc)\n')
+Help('undoc               remove doxygen/javadoc (in ./doc)\n')
 
 
 #########################
