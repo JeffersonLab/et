@@ -71,7 +71,7 @@ ET-15.0
         It will set the outgoing interface to that subnet as well as choosing the ET sys
         IP address on that same subnet so both ends of the socket are well-defined.
     - if C client is trying to open a local, Java-based ET system file, it will recognize
-        this and instead of returning an error, it will attemp a remote connection (using sockets).
+        this and instead of returning an error, it will attempt a remote connection (using sockets).
     - mutex protect reading/writing of heartbeat so no issues with reading old, cached values
         of heartbeat and thinking the system is dead when it is not.
     - fix bug in which et_alive will try to lock an already locked system mutex during internal
@@ -81,3 +81,9 @@ ET-15.0
 
 ET-15.1 (created 6/5/2015)
     - same as 15.0
+    - fix bug in remote et_event(s)_get which is given a ET_NOALLOC flag ORed into the ET_SLEEP arg.
+      ET_NOALLOC no longer used in get.
+    - et_openconfig_, et_event_, et_statconfig_, et_sysconfig_, & et_bridge_ return additional errors
+      due to more rigorous argument checking.
+    - doxygen doc comments placed in files for all user functions.
+    - enable generation of doxygen pages through scons
