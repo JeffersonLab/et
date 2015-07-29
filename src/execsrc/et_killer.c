@@ -26,7 +26,8 @@
 
 
 int main(int argc,char **argv) {  
-    int             c, i_tmp, status, remote, numEvents, eventSize, errflg=0, verbose=0;
+    int             c, i_tmp, status, remote, numEvents, errflg=0, verbose=0;
+    size_t          eventSize;
     unsigned short  serverPort = ET_SERVER_PORT, udpPort = ET_MULTICAST_PORT;
     char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16];
     et_sys_id       id;
