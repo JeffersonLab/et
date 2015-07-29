@@ -1648,36 +1648,50 @@ int etr_attach_geteventsmake(et_sys_id id, et_att_id att_id,
 /*                   ET EVENT STUFF                   */
 /******************************************************/
 
-/******************************************************
- * This routine is a little different than other
- * et_event_get/set routines as it must only
- * be used in a remote application. Use this in conjunction
- * with the mode flag of ET_NOALLOC in et_event(s)_new.
- * This allows the user to avoid allocating event data
- * memory, but instead to supply a buffer. This buffer
- * is given by the "data" argument in the following routine.
- * If the user does a "put" of an event with having set
- * the buffer, the user-supplied buffer is not freed.
- ******************************************************/
-int et_event_setdatabuffer(et_sys_id id, et_event *pe, void *data)
-{
+/**
+ * @addtogroup eventFields Single event
+ * @{
+ */
+
+
+/**
+ * This routine set an event's data buffer for a remote user.
+ *
+ * This routine is a little different than other et_event_get/set routines as it must only
+ * be used in a remote application. Use this in conjunction with the mode flag of @ref ET_NOALLOC
+ * in @ref et_events_new. This allows the user to avoid allocating event data memory, but instead
+ * to supply a buffer. This buffer is given by the "data" argument of this routine.
+ * If the user does a "put" of an event having called this routine to set its buffer,
+ * that user-supplied buffer is not freed.
+ *
+ * @param id
+ * @param pe
+ * @parem data
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if user is not remote or data arg is NULL.
+ */
+int et_event_setdatabuffer(et_sys_id id, et_event *pe, void *data) {
+
     et_id *etid = (et_id *) id;
 
     if (etid->locality != ET_REMOTE) {
         if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_event_setdatapointer, user must be remote to use this routine\n");
+            et_logmsg("ERROR", "et_event_setdatabuffer, user must be remote to use this routine\n");
         }
         return ET_ERROR;
     }
     if (data == NULL) {
         if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_event_setdatapointer, data argument cannot be null\n");
+            et_logmsg("ERROR", "et_event_setdatabuffer, data argument cannot be null\n");
         }
         return ET_ERROR;
     }
     pe->pdata = data;
     return ET_OK;
 }
+
+/** @} */
 
 /******************************************************/
 int etr_event_new(et_sys_id id, et_att_id att, et_event **ev,

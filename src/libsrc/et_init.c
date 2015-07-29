@@ -161,8 +161,7 @@ void et_init_station(et_station *ps)
   et_init_llist(&ps->list_out);
   
   /* This is done last so error recovery is easier.
-   * We'll know settings are "unused" consistant.
-   */
+   * We'll know settings are "unused" consistent. */
   ps->data.status = ET_STATION_UNUSED;
 }
 

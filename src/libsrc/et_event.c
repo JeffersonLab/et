@@ -75,7 +75,10 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
 
 
 /**
- * @defgroup events Event routines
+ * @defgroup events Events
+ *
+ * These routines handle events.
+ *
  * @{
  */
 
@@ -1510,10 +1513,10 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num) {
  * @returns @ref ET_OK            if successful
  * @returns @ref ET_ERROR         if bad argument(s), event not owned by attachment,
  *                                  error unmapping temp event
- * @returns @ref ET_ERROR_CLOSED}  if et_close already called
- * @returns @ref ET_ERROR_READ}    for a remote user's network read error
- * @returns @ref ET_ERROR_WRITE}   for a remote user's network write error
- * @returns @ref ET_ERROR_DEAD}    if ET system is dead
+ * @returns @ref ET_ERROR_CLOSED  if et_close already called
+ * @returns @ref ET_ERROR_READ    for a remote user's network read error
+ * @returns @ref ET_ERROR_WRITE   for a remote user's network write error
+ * @returns @ref ET_ERROR_DEAD    if ET system is dead
  */
 int et_event_dump(et_sys_id id, et_att_id att, et_event *pe) {
 
@@ -1722,7 +1725,10 @@ int et_events_dump(et_sys_id id, et_att_id att, et_event *pe[], int num)
  ---------------------------------------------------*/
 
 /**
- * @defgroup eventFields Individual event
+ * @defgroup eventFields Single event
+ *
+ * These routines handle the elements of a single event.
+ *
  * @{
  */
 
@@ -1740,11 +1746,11 @@ int et_events_dump(et_sys_id id, et_att_id att, et_event *pe[], int num)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL,
  */
-int et_event_getgroup(et_event *pe, int *grp)
-{ 
-  if (pe == NULL || grp == NULL) return ET_ERROR;
-  *grp = pe->group;
-  return ET_OK;
+int et_event_getgroup(et_event *pe, int *grp) {
+
+    if (pe == NULL || grp == NULL) return ET_ERROR;
+    *grp = pe->group;
+    return ET_OK;
 }
 
 /**
@@ -1757,14 +1763,14 @@ int et_event_getgroup(et_event *pe, int *grp)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if pe is NULL, pri arg is neither ET_LOW or ET_HIGH.
  */
-int et_event_setpriority(et_event *pe, int pri)
-{ 
-  if (pe == NULL || (pri != ET_HIGH && pri != ET_LOW)) {
-    return ET_ERROR;
-  }
-  
-  pe->priority = pri;
-  return ET_OK;
+int et_event_setpriority(et_event *pe, int pri) {
+
+    if (pe == NULL || (pri != ET_HIGH && pri != ET_LOW)) {
+        return ET_ERROR;
+    }
+
+    pe->priority = pri;
+    return ET_OK;
 }
 
 /**
@@ -1776,11 +1782,11 @@ int et_event_setpriority(et_event *pe, int pri)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_getpriority(et_event *pe, int *pri)
-{ 
-  if (pe == NULL || pri == NULL) return ET_ERROR;
-  *pri = pe->priority;
-  return ET_OK;
+int et_event_getpriority(et_event *pe, int *pri) {
+
+    if (pe == NULL || pri == NULL) return ET_ERROR;
+    *pri = pe->priority;
+    return ET_OK;
 }
 
 /**
@@ -1792,11 +1798,11 @@ int et_event_getpriority(et_event *pe, int *pri)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if pe is NULL, len is negative, or len is bigger than event memory.
  */
-int et_event_setlength(et_event *pe, size_t len)
-{ 
-  if (pe == NULL || len < 0 || len > pe->memsize) return ET_ERROR;
-  pe->length = len;
-  return ET_OK;
+int et_event_setlength(et_event *pe, size_t len) {
+
+    if (pe == NULL || len < 0 || len > pe->memsize) return ET_ERROR;
+    pe->length = len;
+    return ET_OK;
 }
 
 /**
@@ -1808,11 +1814,11 @@ int et_event_setlength(et_event *pe, size_t len)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_getlength(et_event *pe, size_t *len)
-{ 
-  if (pe == NULL || len == NULL) return ET_ERROR;
-  *len = (size_t) pe->length;
-  return ET_OK;
+int et_event_getlength(et_event *pe, size_t *len) {
+
+    if (pe == NULL || len == NULL) return ET_ERROR;
+    *len = (size_t) pe->length;
+    return ET_OK;
 }
 
 /**
@@ -1824,11 +1830,11 @@ int et_event_getlength(et_event *pe, size_t *len)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_getdata(et_event *pe, void **data)
-{ 
-  if (pe == NULL || data == NULL) return ET_ERROR;
-  *data = pe->pdata;
-  return ET_OK;
+int et_event_getdata(et_event *pe, void **data) {
+
+    if (pe == NULL || data == NULL) return ET_ERROR;
+    *data = pe->pdata;
+    return ET_OK;
 }
 
 /**
@@ -1843,19 +1849,19 @@ int et_event_getdata(et_event *pe, void **data)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if pe is NULL, con is NULL, num < 1, or num > ET_STATION_SELECT_INTS.
  */
-int et_event_setcontrol(et_event *pe, int con[], int num)
-{ 
-  int i;
-  
-  if (pe == NULL || con == NULL || num < 1 || num > ET_STATION_SELECT_INTS) {
-    return ET_ERROR;
-  }
-  
-  for (i=0; i < num; i++) {
-    pe->control[i] = con[i];
-  }
-  
-  return ET_OK;
+int et_event_setcontrol(et_event *pe, int con[], int num) {
+
+    int i;
+
+    if (pe == NULL || con == NULL || num < 1 || num > ET_STATION_SELECT_INTS) {
+        return ET_ERROR;
+    }
+
+    for (i=0; i < num; i++) {
+        pe->control[i] = con[i];
+    }
+
+    return ET_OK;
 }
 
 /**
@@ -1867,17 +1873,17 @@ int et_event_setcontrol(et_event *pe, int con[], int num)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_getcontrol(et_event *pe, int con[])
-{ 
-  int i;
-  
-  if (pe == NULL || con == NULL) return ET_ERROR;
-  
-  for (i=0; i < ET_STATION_SELECT_INTS; i++) {
-    con[i] = pe->control[i];
-  }
-  
-  return ET_OK;
+int et_event_getcontrol(et_event *pe, int con[]) {
+
+    int i;
+
+    if (pe == NULL || con == NULL) return ET_ERROR;
+
+    for (i=0; i < ET_STATION_SELECT_INTS; i++) {
+        con[i] = pe->control[i];
+    }
+
+    return ET_OK;
 }
 
 /**
@@ -1901,17 +1907,17 @@ int et_event_getcontrol(et_event *pe, int con[])
  * @returns @ref ET_ERROR  if pe is NULL or datastatus is not ET_DATA_OK,
  *                         ET_DATA_CORRUPT, or ET_DATA_POSSIBLY_CORRUPT
  */
-int et_event_setdatastatus(et_event *pe, int datastatus)
-{ 
-  if ((pe == NULL) ||
-          ((datastatus != ET_DATA_OK) &&
-           (datastatus != ET_DATA_CORRUPT) &&
-           (datastatus != ET_DATA_POSSIBLY_CORRUPT))) {
-    return ET_ERROR;
-  }
-  
-  pe->datastatus = datastatus;
-  return ET_OK;
+int et_event_setdatastatus(et_event *pe, int datastatus) {
+
+    if ((pe == NULL) ||
+        ((datastatus != ET_DATA_OK) &&
+         (datastatus != ET_DATA_CORRUPT) &&
+         (datastatus != ET_DATA_POSSIBLY_CORRUPT))) {
+        return ET_ERROR;
+    }
+
+    pe->datastatus = datastatus;
+    return ET_OK;
 }
 
 /**
@@ -1934,11 +1940,11 @@ int et_event_setdatastatus(et_event *pe, int datastatus)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_getdatastatus(et_event *pe, int *datastatus)
-{ 
-  if (pe == NULL || datastatus == NULL) return ET_ERROR;
-  *datastatus = pe->datastatus;
-  return ET_OK;
+int et_event_getdatastatus(et_event *pe, int *datastatus) {
+
+    if (pe == NULL || datastatus == NULL) return ET_ERROR;
+    *datastatus = pe->datastatus;
+    return ET_OK;
 }
 
 /**
@@ -1958,37 +1964,37 @@ int et_event_getdatastatus(et_event *pe, int *datastatus)
  * @returns @ref ET_ERROR  if pe is NULL or endian is not ET_ENDIAN_BIG, ET_ENDIAN_LITTLE,
  *                         ET_ENDIAN_LOCAL, ET_ENDIAN_NOTLOCAL, or ET_ENDIAN_SWITCH.
  */
-int et_event_setendian(et_event *pe, int endian)
-{
-  int err, myendian;
-  
-  if ( (err = etNetLocalByteOrder(&myendian)) != ET_OK) {
-    return err;
-  }
-  
-  if ((pe == NULL) ||
-      ((endian != ET_ENDIAN_BIG)      &&
-       (endian != ET_ENDIAN_LITTLE)   &&
-       (endian != ET_ENDIAN_LOCAL)    &&
-       (endian != ET_ENDIAN_NOTLOCAL) &&
-       (endian != ET_ENDIAN_SWITCH)))     {
-    return ET_ERROR;
-  }
-  
-  if ((endian == ET_ENDIAN_BIG) || (endian == ET_ENDIAN_LITTLE)) {
-    pe->byteorder = (myendian == endian) ? 0x04030201 : 0x01020304;
-  }
-  else if (endian == ET_ENDIAN_LOCAL) {
-    pe->byteorder = 0x04030201;
-  }
-  else if (endian == ET_ENDIAN_NOTLOCAL) {
-    pe->byteorder = 0x01020304;
-  }
-  else {
-    pe->byteorder = ET_SWAP32(pe->byteorder);
-  }
+int et_event_setendian(et_event *pe, int endian) {
 
-  return ET_OK;
+    int err, myendian;
+
+    if ( (err = etNetLocalByteOrder(&myendian)) != ET_OK) {
+        return err;
+    }
+
+    if ((pe == NULL) ||
+        ((endian != ET_ENDIAN_BIG)      &&
+         (endian != ET_ENDIAN_LITTLE)   &&
+         (endian != ET_ENDIAN_LOCAL)    &&
+         (endian != ET_ENDIAN_NOTLOCAL) &&
+         (endian != ET_ENDIAN_SWITCH)))     {
+        return ET_ERROR;
+    }
+
+    if ((endian == ET_ENDIAN_BIG) || (endian == ET_ENDIAN_LITTLE)) {
+        pe->byteorder = (myendian == endian) ? 0x04030201 : 0x01020304;
+    }
+    else if (endian == ET_ENDIAN_LOCAL) {
+        pe->byteorder = 0x04030201;
+    }
+    else if (endian == ET_ENDIAN_NOTLOCAL) {
+        pe->byteorder = 0x01020304;
+    }
+    else {
+        pe->byteorder = ET_SWAP32(pe->byteorder);
+    }
+
+    return ET_OK;
 }
 
 /**
@@ -2002,22 +2008,22 @@ int et_event_setendian(et_event *pe, int endian)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_getendian(et_event *pe, int *endian)
-{ 
-  int err, myendian, notmyendian;
-  
-  if (pe == NULL || endian == NULL) {
-    return ET_ERROR;
-  }
-  
-  if ( (err = etNetLocalByteOrder(&myendian)) != ET_OK) {
-      return err;
-  }
-  
-  notmyendian = (myendian == ET_ENDIAN_BIG) ? ET_ENDIAN_LITTLE : ET_ENDIAN_BIG;
-  *endian = (pe->byteorder == 0x04030201) ? myendian : notmyendian;
-  
-  return ET_OK;
+int et_event_getendian(et_event *pe, int *endian) {
+
+    int err, myendian, notmyendian;
+
+    if (pe == NULL || endian == NULL) {
+        return ET_ERROR;
+    }
+
+    if ( (err = etNetLocalByteOrder(&myendian)) != ET_OK) {
+        return err;
+    }
+
+    notmyendian = (myendian == ET_ENDIAN_BIG) ? ET_ENDIAN_LITTLE : ET_ENDIAN_BIG;
+    *endian = (pe->byteorder == 0x04030201) ? myendian : notmyendian;
+
+    return ET_OK;
 }
 
 /**
@@ -2032,14 +2038,13 @@ int et_event_getendian(et_event *pe, int *endian)
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
  */
-int et_event_needtoswap(et_event *pe, int *swap)
-{   
-  if (pe == NULL || swap == NULL) return ET_ERROR;
-  *swap = (pe->byteorder == 0x04030201) ? ET_NOSWAP : ET_SWAP;
-  
-  return ET_OK;
-}
+int et_event_needtoswap(et_event *pe, int *swap) {
 
+    if (pe == NULL || swap == NULL) return ET_ERROR;
+    *swap = (pe->byteorder == 0x04030201) ? ET_NOSWAP : ET_SWAP;
+
+    return ET_OK;
+}
 
 /** @} */
 /** @} */

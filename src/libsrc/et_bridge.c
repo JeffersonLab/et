@@ -49,15 +49,36 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
 /*               BRIDGE CONFIGURATION                */
 /*****************************************************/
 
-int et_bridge_config_init(et_bridgeconfig *config)
-{
+/**
+ * @defgroup bridge Bridge
+ *
+ *  These routines are used both to configure a bridge between 2 ET systems and to
+ *  actually run the bridge.
+ *
+ * @{
+ */
+
+/**
+ * This routine initializes a configuration used to establish a bridge
+ * between 2 ET systems.
+ *
+ * This MUST be done prior to setting any configuration parameters or all setting
+ * routines will return an error.
+ *
+ * @param config   pointer to an bridge configuration variable
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if arg is NULL or failure to allocate memory for configuration data storage.
+ */
+int et_bridge_config_init(et_bridgeconfig *config) {
+
     et_bridge_config *bc;
-  
+
     bc = (et_bridge_config *) malloc(sizeof(et_bridge_config));
-    if (bc == NULL) {
+    if (config == NULL || bc == NULL) {
         return ET_ERROR;
     }
-  
+
     /* default configuration for a station */
     bc->mode_from            = ET_SLEEP;
     bc->mode_to              = ET_SLEEP;
@@ -69,189 +90,354 @@ int et_bridge_config_init(et_bridgeconfig *config)
     bc->timeout_to.tv_nsec   = 0;
     bc->func                 = NULL;
     bc->init                 = ET_STRUCT_OK;
-  
+
     *config = (et_bridgeconfig) bc;
     return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_destroy(et_bridgeconfig sconfig)
-{
-  if (sconfig != NULL) {
+
+/**
+ * This routine frees the memory allocated when a bridge configuration is initialized
+ * by @ref et_bridge_config_init.
+ *
+ * @param sconfig   bridge configuration.
+ *
+ * @returns @ref ET_OK.
+ */
+int et_bridge_config_destroy(et_bridgeconfig sconfig) {
+
+    if (sconfig == NULL) return ET_OK;
     free((et_bridge_config *) sconfig);
-  }
-  return ET_OK;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_setmodefrom(et_bridgeconfig config, int val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  if ((val != ET_SLEEP) &&
-      (val != ET_TIMED) &&
-      (val != ET_ASYNC))  {
-    return ET_ERROR;
-  }
-  
-  bc->mode_from = val;
-  return ET_OK;
+
+/**
+ * This routine sets the mode of getting events from the "from" ET system.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        is set to either @ref ET_SLEEP, @ref ET_TIMED, or @ref ET_ASYNC and determines
+ *                   the mode of getting events from the "from" ET system.
+ *                   The default is ET_SLEEP.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized;
+ *                          if val is not ET_SLEEP, ET_TIMED, or ET_ASYNC.
+ */
+int et_bridge_config_setmodefrom(et_bridgeconfig config, int val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    if ((val != ET_SLEEP) &&
+        (val != ET_TIMED) &&
+        (val != ET_ASYNC))  {
+        return ET_ERROR;
+    }
+
+    bc->mode_from = val;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_getmodefrom(et_bridgeconfig config, int *val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (val == NULL) return ET_ERROR;
-  *val = bc->mode_from;
-  return ET_OK;
+
+/**
+ * This routine gets the mode of getting events from the "from" ET system.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        int pointer that gets filled with either @ref ET_SLEEP, @ref ET_TIMED,
+ *                   or @ref ET_ASYNC.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or config not initialized.
+ */
+int et_bridge_config_getmodefrom(et_bridgeconfig config, int *val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val == NULL || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *val = bc->mode_from;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_setmodeto(et_bridgeconfig config, int val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  if ((val != ET_SLEEP) &&
-      (val != ET_TIMED) &&
-      (val != ET_ASYNC))  {
-    return ET_ERROR;
-  }
-  
-  bc->mode_to = val;
-  return ET_OK;
+
+/**
+ * This routine sets the mode of getting new events from the "to" ET system.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        is set to either @ref ET_SLEEP, @ref ET_TIMED, or @ref ET_ASYNC and determines
+ *                   the mode of getting new events from the "to" ET system.
+ *                   The default is ET_SLEEP.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized;
+ *                          if val is not ET_SLEEP, ET_TIMED, or ET_ASYNC.
+ */
+int et_bridge_config_setmodeto(et_bridgeconfig config, int val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    if ((val != ET_SLEEP) &&
+        (val != ET_TIMED) &&
+        (val != ET_ASYNC))  {
+        return ET_ERROR;
+    }
+
+    bc->mode_to = val;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_getmodeto(et_bridgeconfig config, int *val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (val == NULL) return ET_ERROR;
-  *val = bc->mode_to;
-  return ET_OK;
+
+/**
+ * This routine gets the mode of getting new events from the "to" ET system.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        int pointer that gets filled with either @ref ET_SLEEP, @ref ET_TIMED,
+ *                   or @ref ET_ASYNC.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or config not initialized.
+ */
+int et_bridge_config_getmodeto(et_bridgeconfig config, int *val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val == NULL || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *val = bc->mode_to;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_setchunkfrom(et_bridgeconfig config, int val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  if (val < 1)  {
-    return ET_ERROR;
-  }
-  
-  bc->chunk_from = val;
-  return ET_OK;
+
+/**
+ * This routine sets the maximum number of events to get from the "from" ET system
+ * in a single call to @ref et_events_get - the number of events to get in one chunk.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        chunk size is any int > 0 with default being 100.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized;
+ *                          if val is < 1.
+ */
+int et_bridge_config_setchunkfrom(et_bridgeconfig config, int val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val < 1 || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    bc->chunk_from = val;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_getchunkfrom(et_bridgeconfig config, int *val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (val == NULL) return ET_ERROR;
-  *val = bc->chunk_from;
-  return ET_OK;
+
+/**
+ * This routine gets the maximum number of events to get from the "from" ET system
+ * in a single call to @ref et_events_get - the number of events to get in one chunk.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        int pointer that gets filled with chunk size.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or config not initialized.
+ */
+int et_bridge_config_getchunkfrom(et_bridgeconfig config, int *val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val == NULL || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *val = bc->chunk_from;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_setchunkto(et_bridgeconfig config, int val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  if (val < 1)  {
-    return ET_ERROR;
-  }
-  
-  bc->chunk_to = val;
-  return ET_OK;
+
+/**
+ * This routine sets the maximum number of new events to get from the "to" ET system
+ * in a single call to @ref et_events_new - the number of events to get in one chunk.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        chunk size is any int > 0 with default being 100.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized;
+ *                          if val is < 1.
+ */
+int et_bridge_config_setchunkto(et_bridgeconfig config, int val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val < 1 || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    bc->chunk_to = val;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_getchunkto(et_bridgeconfig config, int *val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (val == NULL) return ET_ERROR;
-  *val = bc->chunk_to;
-  return ET_OK;
+
+/**
+ * This routine gets the maximum number of new events to get from the "to" ET system
+ * in a single call to @ref et_events_new - the number of events to get in one chunk.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        int pointer that gets filled with chunk size.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or config not initialized.
+ */
+int et_bridge_config_getchunkto(et_bridgeconfig config, int *val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val == NULL || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *val = bc->chunk_to;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_settimeoutfrom(et_bridgeconfig config, struct timespec val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  bc->timeout_from = val;
-  return ET_OK;
+
+/**
+ * This routine sets the time to wait for the "from" ET system during all @ref et_events_get
+ * calls when the mode is set to ET_TIMED.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        time to wait for events from the "from" ET system (default = 0 sec).
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized.
+ */
+int et_bridge_config_settimeoutfrom(et_bridgeconfig config, struct timespec val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    bc->timeout_from = val;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_gettimeoutfrom(et_bridgeconfig config, struct timespec *val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (val == NULL) return ET_ERROR;
-  *val = bc->timeout_from;
-  return ET_OK;
+
+/**
+ * This routine gets the time to wait for the "from" ET system during all @ref et_events_get
+ * calls when the mode is set to ET_TIMED.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        pointer that gets filled with time to wait for events from the "from" ET system.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or config not initialized.
+ */
+int et_bridge_config_gettimeoutfrom(et_bridgeconfig config, struct timespec *val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val == NULL || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *val = bc->timeout_from;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_settimeoutto(et_bridgeconfig config, struct timespec val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  bc->timeout_to = val;
-  return ET_OK;
+
+/**
+ * This routine sets the time to wait for the "to" ET system during all @ref et_events_new
+ * calls when the mode is set to ET_TIMED.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        time to wait for new events from the "to" ET system (default = 0 sec).
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized.
+ */
+int et_bridge_config_settimeoutto(et_bridgeconfig config, struct timespec val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    bc->timeout_to = val;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_gettimeoutto(et_bridgeconfig config, struct timespec *val)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (val == NULL) return ET_ERROR;
-  *val = bc->timeout_to;
-  return ET_OK;
+
+/**
+ * This routine gets the time to wait for the "to" ET system during all @ref et_events_new
+ * calls when the mode is set to ET_TIMED.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        pointer that gets filled with time to wait for new events from the "to" ET system.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or config not initialized.
+ */
+int et_bridge_config_gettimeoutto(et_bridgeconfig config, struct timespec *val) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (val == NULL || bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *val = bc->timeout_to;
+    return ET_OK;
 }
 
-/*****************************************************/
-int et_bridge_config_setfunc(et_bridgeconfig config, ET_SWAP_FUNCPTR func)
-{
-  et_bridge_config *bc = (et_bridge_config *) config;
-  
-  if (bc->init != ET_STRUCT_OK) {
-    return ET_ERROR;
-  }
-   
-  bc->func = func;
-  return ET_OK;
+
+/**
+ * This routine sets the function used to automatically swap data from one endian
+ * to another when bridging events between two ET systems.
+ *
+ * The function must be of the form: int func(et_event *src, et_event *dest, int bytes, int same_endian)
+ * and must return ET_OK if successful, else ET_ERROR. The arguments consists of: src which is a pointer
+ * to the event whose data is to be swapped, dest which is a pointer to the event where the swapped data
+ * goes, bytes which tells the length of the data in bytes, and same_endian which is a flag equalling
+ * one if the machine and the data are of the same endian and zero otherwise. This function must be
+ * able to work with src and dest being the same event. With this as a prototype, the user can write
+ * a routine which swaps data in the appropriate manner. Notice that the first two arguments are
+ * pointers to events and not data buffers. This allows the writer of such a routine to have access
+ * to any of the event's header information. In general, such functions should NOT call
+ * @ref et_event_setendian in order to change the registered endian value of the data. This is already
+ * taken care of in @ref et_events_bridge.
+ *
+ * @param sconfig    bridge configuration.
+ * @param val        swapping function pointer.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if config is NULL or not initialized.
+ */
+int et_bridge_config_setfunc(et_bridgeconfig config, ET_SWAP_FUNCPTR func) {
+
+    et_bridge_config *bc = (et_bridge_config *) config;
+
+    if (bc == NULL || bc->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    bc->func = func;
+    return ET_OK;
 }
 
 
@@ -259,65 +445,97 @@ int et_bridge_config_setfunc(et_bridgeconfig config, ET_SWAP_FUNCPTR func)
 /*                 BRIDGE ROUTINES                   */
 /*****************************************************/
 
+/**
+ * This routine transfers events between two ET systems in which events are copied from the "from" ET system
+ * and placed into the "to" ET system.
+ *
+ * A function may be provided to swap the data during the transfer.
+ * For the best performance, the process calling this routine should be on the same machine as either
+ * the "from" or "to" ET systems. Some experimentation is in order to determine which of the two machines
+ * will run the bridging faster. The author's experience suggests that placing the process on the machine
+ * with the most processors or computing power will probably give the best results.
+ *
+ * @param id_from        ET system id from which the events are copied.
+ * @param id_to          ET system id into which the events are placed.
+ * @param att_from       attachment to a station on the "from" ET system.
+ * @param att_to         attachment to a station on the "to" ET system (usually GrandCentral).
+ * @param bconfig        configuration of the remaining transfer parameters.
+ * @param num            total number of events desired to be transferred.
+ * @param ntransferred   int pointer that gets filled with the total number of events that were
+ *                       actually transferred at the routine's return.
+ *
+ * @returns @ref ET_OK             if successful.
+ * @returns @ref ET_ERROR          if error.
+ * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user.
+ * @returns @ref ET_ERROR_READ     for a remote user's network read error.
+ * @returns @ref ET_ERROR_WRITE    for a remote user's network write error.
+ * @returns @ref ET_ERROR_DEAD     if ET system is dead.
+ * @returns @ref ET_ERROR_WAKEUP   if told to stop sleeping while trying to get an event.
+ * @returns @ref ET_ERROR_TIMEOUT  if timeout on @ref ET_TIMED option.
+ * @returns @ref ET_ERROR_BUSY     if cannot get access to events due to activity of other processes
+ *                                 when in @ref ET_ASYNC mode.
+ * @returns @ref ET_ERROR_EMPTY    if no events available in @ref ET_ASYNC mode.
+ */
 int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
-		             et_att_id att_from, et_att_id att_to,
-		             et_bridgeconfig bconfig,
-		             int num, int *ntransferred)
-{
+                     et_att_id att_from, et_att_id att_to,
+                     et_bridgeconfig bconfig,
+                     int num, int *ntransferred) {
 
-  et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
-  et_bridge_config *config;
-  et_bridgeconfig   default_config = NULL;
-  int status=ET_ERROR, auto_config=0;
-  
-  *ntransferred = 0;
-  
-  /* The program calling this routine has already opened 2 ET
-   * systems. Therefore, both must have been compatible with 
-   * the ET lib used to compile this program and are then
-   * compatible with eachother as well.
-   */
-  
-  /* if no configuration is given, use defaults */
-  if (bconfig == NULL) {
-    auto_config = 1;
-    if (et_bridge_config_init(&default_config) == ET_ERROR) {
-      if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
-        et_logmsg("ERROR", "et_events_bridge, null arg for \"bconfig\", cannot use default\n");
-      }
-      return ET_ERROR;
+    et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
+    et_bridge_config *config;
+    et_bridgeconfig   default_config = NULL;
+    int status=ET_ERROR, auto_config=0;
+
+    *ntransferred = 0;
+
+    /* The program calling this routine has already opened 2 ET
+     * systems. Therefore, both must have been compatible with
+     * the ET lib used to compile this program and are then
+     * compatible with eachother as well.
+     */
+
+    /* if no configuration is given, use defaults */
+    if (bconfig == NULL) {
+        auto_config = 1;
+        if (et_bridge_config_init(&default_config) == ET_ERROR) {
+            if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
+                et_logmsg("ERROR", "et_events_bridge, null arg for \"bconfig\", cannot use default\n");
+            }
+            return ET_ERROR;
+        }
+        bconfig = default_config;
     }
-    bconfig = default_config;
-  }
-  config = (et_bridge_config *) bconfig;
-  
-  /* if we have a local ET to local ET transfer ... */
-  if ((idfrom->locality != ET_REMOTE) && (idto->locality != ET_REMOTE)) {
-    status = localET_2_localET(id_from, id_to, att_from, att_to,
-    				           config, num, ntransferred);
-  }
-  /* else if getting events from remote ET and sending to local ET ... */
-  else if ((idfrom->locality == ET_REMOTE) && (idto->locality != ET_REMOTE)) {
-    status = remoteET_2_ET(id_from, id_to, att_from, att_to,
-    				       config, num, ntransferred);
-  }
-  /* else if getting events from local ET and sending to remote ET or
-   * else going from remote to remote systems.
-   *
-   * If we have a remote ET to remote ET transfer, we
-   * can use either ET_2_remoteET or remoteET_2_ET.
-   */
-  else {
-    status = ET_2_remoteET(id_from, id_to, att_from, att_to,
-    				       config, num, ntransferred);
-  }
-  
-  if (auto_config) {
-    et_bridge_config_destroy(default_config);
-  }
-  
-  return status;
+    config = (et_bridge_config *) bconfig;
+
+    /* if we have a local ET to local ET transfer ... */
+    if ((idfrom->locality != ET_REMOTE) && (idto->locality != ET_REMOTE)) {
+        status = localET_2_localET(id_from, id_to, att_from, att_to,
+                                   config, num, ntransferred);
+    }
+        /* else if getting events from remote ET and sending to local ET ... */
+    else if ((idfrom->locality == ET_REMOTE) && (idto->locality != ET_REMOTE)) {
+        status = remoteET_2_ET(id_from, id_to, att_from, att_to,
+                               config, num, ntransferred);
+    }
+        /* else if getting events from local ET and sending to remote ET or
+         * else going from remote to remote systems.
+         *
+         * If we have a remote ET to remote ET transfer, we
+         * can use either ET_2_remoteET or remoteET_2_ET.
+         */
+    else {
+        status = ET_2_remoteET(id_from, id_to, att_from, att_to,
+                               config, num, ntransferred);
+    }
+
+    if (auto_config) {
+        et_bridge_config_destroy(default_config);
+    }
+
+    return status;
 }
+
+/** @} */
 
 /******************************************************/
 static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
