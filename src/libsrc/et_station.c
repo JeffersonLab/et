@@ -23,10 +23,6 @@
 #include <unistd.h>
 #include <sched.h>
 
-#ifdef sun
-# include <thread.h>
-#endif
-
 #include "et_private.h"
 
 /* prototypes */

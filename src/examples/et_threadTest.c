@@ -24,9 +24,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
-#ifdef sun
-#include <thread.h>
-#endif
+
 #include "et.h"
 
 /* prototype */
@@ -177,13 +175,6 @@ int main(int argc,char **argv) {
           exit(1);
       }
 
-  
-#ifdef sun
-    /* prepare to run signal handling thread concurrently */
-    thr_setconcurrency(thr_getconcurrency() + 1);
-#endif
-
-  
     /* open ET system */
     et_open_config_init(&openconfig);
     et_open_config_setmode(openconfig, ET_DIRECT);

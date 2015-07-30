@@ -24,25 +24,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-
-#if  !(defined VXWORKS || defined sun)
 #include <stdint.h>
-#endif
 
-
-#ifdef VXWORKS
-
-#include <vxWorks.h>
-#include <time.h>
-#include <semLib.h>
-#define INET_ATON_ERR   ERROR
-
-#else
 
 #define INET_ATON_ERR   0
 #include <inttypes.h>
 
-#endif
 
 #ifdef	__cplusplus
 extern "C" {

@@ -22,22 +22,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <netdb.h>
-
-#ifndef VXWORKS
-
 #include <strings.h>
 #include <sys/time.h>
-
-#else
-
-#include <time.h>
-#include <vxWorks.h>
-#include <taskLib.h>
-#define getpid       taskIdSelf
-#define UINT32_MAX  (4294967295U)
-
-#endif
-
 
 #include "et_private.h"
 #include "et_network.h"
@@ -53,7 +39,6 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 {
     et_open_config *config = (et_open_config *) openconfig;
     int sockfd=-1, length, bufsize, version, nselects;
-    int vxdelay;
     int err=ET_OK, openerror=ET_OK, transfer[8], incoming[9];
     int port=0;
     uint32_t inetaddr = 0;
@@ -63,11 +48,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
     double          dstart, dnow, dtimeout;
     struct timespec sleeptime;
-#if defined linux || defined __APPLE__
     struct timeval  start, now;
-#else
-    struct timespec start, now;
-#endif
 
     /* system id */
     etid = (et_id *) *id;
@@ -75,18 +56,12 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     strcpy(ethost, config->host);
 
     /* keep track of starting time */
-#if defined linux || defined __APPLE__
     gettimeofday(&start, NULL);
     dstart = start.tv_sec + 1.e-6*(start.tv_usec);
-#else
-    clock_gettime(CLOCK_REALTIME, &start);
-    dstart = start.tv_sec + 1.e-9*(start.tv_nsec);
-#endif
 
     /* 0.5 sec per sleep (2Hz) */
     sleeptime.tv_sec  = 0;
     sleeptime.tv_nsec = 500000000;
-    vxdelay = 6;
 
     /* set minimum time to wait for connection to ET */
     /* if timeout == 0, wait "forever" */
@@ -208,21 +183,12 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
         }
 
         /* see if the min time has elapsed, if so quit. */
-#if defined linux || defined __APPLE__
         gettimeofday(&now, NULL);
         dnow = now.tv_sec + 1.e-6*(now.tv_usec);
-#else
-        clock_gettime(CLOCK_REALTIME, &now);
-        dnow = now.tv_sec + 1.e-9*(now.tv_nsec);
-#endif
         if (dtimeout < dnow - dstart) {
             break;
         }
-#ifdef VXWORKS
-        taskDelay(vxdelay);
-#else
         nanosleep(&sleeptime, NULL);
-#endif
     }
     
     if (ifRegularIP != NULL) {
@@ -262,7 +228,7 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     strcpy(etid->ethost, ethost);
 
     /* find client's iov_max value */
-#if defined VXWORKS || defined __APPLE__
+#if defined __APPLE__
     etid->iov_max = ET_IOV_MAX;
 #else
     if ( (etid->iov_max = sysconf(_SC_IOV_MAX)) == -1) {

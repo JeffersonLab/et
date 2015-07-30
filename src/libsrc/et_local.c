@@ -30,9 +30,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifdef sun
-#include <thread.h>
-#endif
 
 #include "et_private.h"
 #include "et_network.h"
@@ -59,10 +56,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   struct timespec heartbeat;
   int      i, err, status, my_index, systemType, byteOrder, correctEndian=0;
   char     buffer[20], *pSharedMem;
-#ifdef sun
-  int      con;
-#endif
-  
+
   /* system id */
   etid = (et_id *) *id;
   
@@ -218,15 +212,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   etid->sys->proc[my_index].pid = my_pid;
   etid->sys->proc[my_index].et_status = ET_PROC_ETOK;
   et_system_unlock(etid->sys);
-  
-#ifdef sun
-    con = thr_getconcurrency();
-    if (con < 1) {
-      con = 1;
-    }
-    thr_setconcurrency(con + ET_EXTRA_THREADS);
-#endif
-  
+
   if ((status = et_start_heartbeat(etid)) != ET_OK) {
     et_system_lock(etid->sys);
     et_init_process(etid->sys, my_index);
@@ -375,9 +361,6 @@ int etl_close(et_sys_id id)
 {
   et_id *etid = (et_id *) id;
   int i;
-#ifdef sun
-  int con;
-#endif
 
   /* Don't allow simultaneous access of shared mem as we're about to unmap it */
   et_memWrite_lock(etid);
@@ -416,18 +399,7 @@ int etl_close(et_sys_id id)
     etid->sys->nprocesses--;
     et_init_process(etid->sys, etid->proc);
   }
-  
-  #ifdef sun
-    con = thr_getconcurrency();
-    if (con < ET_EXTRA_THREADS + 1) {
-      con = 1;
-    }
-    else {
-      con = con - ET_EXTRA_THREADS;
-    }
-    thr_setconcurrency(con);
-  #endif
-  
+
   et_stop_heartmonitor(etid);
   et_stop_heartbeat(etid);
   
@@ -519,18 +491,7 @@ int etl_kill(et_sys_id id)
         etid->sys->nprocesses--;
         et_init_process(etid->sys, etid->proc);
     }
-  
-#ifdef sun
-    con = thr_getconcurrency();
-    if (con < ET_EXTRA_THREADS + 1) {
-        con = 1;
-    }
-    else {
-        con = con - ET_EXTRA_THREADS;
-    }
-    thr_setconcurrency(con);
-#endif
-  
+
     et_stop_heartmonitor(etid);
     et_stop_heartbeat(etid);
   

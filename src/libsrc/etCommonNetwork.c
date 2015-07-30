@@ -535,7 +535,7 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
      * http://curl.haxx.se/mail/lib-2003-10/0201.html
      * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6369541
      *
-     * Sooo, let's us the non-reentrant version and simply protect
+     * Sooo, let's use the non-reentrant version and simply protect
      * with our own mutex.
      */
  
@@ -899,7 +899,7 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
      * http://curl.haxx.se/mail/lib-2003-10/0201.html
      * http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6369541
      *
-     * Sooo, let's us the non-reentrant version and simply protect
+     * Sooo, let's use the non-reentrant version and simply protect
      * with our own mutex.
     */
  

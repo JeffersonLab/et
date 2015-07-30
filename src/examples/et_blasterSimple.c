@@ -28,9 +28,7 @@
 #include <sys/time.h>
 #include <math.h>
 #include <pthread.h>
-#ifdef sun
-#include <thread.h>
-#endif
+
 #include "et.h"
 
 

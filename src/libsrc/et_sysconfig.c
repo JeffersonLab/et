@@ -20,10 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifndef VXWORKS
 #include <strings.h>
-#endif
 
 #include "et_private.h"
 #include "et_network.h"

@@ -30,10 +30,6 @@
 #include <sys/select.h>
 #include <fcntl.h>
 
-#ifdef sun
-#include <thread.h>
-#endif
-
 #include "et_private.h"
 #include "et_network.h"
 #include "et_data.h"
@@ -177,9 +173,6 @@ static void *et_listen_thread(void *arg)
   char               filename[ET_FILENAME_LENGTH];
   socklen_t          slen;
   struct sockaddr_in cliaddr;
-#ifdef sun
-  int con;
-#endif
 
   /* setup socket for receiving udp packets */
   err = etNetUdpReceive((unsigned short)config->port, listenaddr, cast == ET_MULTICAST, &sockfd);
@@ -194,12 +187,6 @@ static void *et_listen_thread(void *arg)
     exit(1);
   }
 /*printf("Listening on port %d, address %s\n", config->port, addr);*/
-
-#ifdef sun
-  /* increase concurrency for this thread */
-  con = thr_getconcurrency();
-  thr_setconcurrency(con + 1);
-#endif
 
   /* Prepare output buffer we send in answer to inquiries:
    *
@@ -617,9 +604,6 @@ static void *et_client_thread(void *arg)
   char et_name[ET_FILENAME_LENGTH];
   et_threadinfo    info;
   et_id            *etid;
-#ifdef sun
-  int  con;
-#endif
 
   info   = *((et_threadinfo *) arg);
   connfd = info.connfd;
@@ -684,23 +668,11 @@ static void *et_client_thread(void *arg)
     pthread_exit(NULL);
   }
 
-#ifdef sun
-  /* increase concurrency for this thread */
-  con = thr_getconcurrency();
-  thr_setconcurrency(con + 1);
-#endif
-
   /* wait for and process client requests */
   et_command_loop(&info);
 
   /* we are done with connected socket */
   close(connfd);
-
-#ifdef sun
-  /* decrease concurrency as this thread disappears */
-  con = thr_getconcurrency();
-  thr_setconcurrency(con - 1);
-#endif
 
   /* quit thread */
   pthread_exit(NULL);

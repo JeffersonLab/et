@@ -13,7 +13,7 @@
  *----------------------------------------------------------------------------*
  *
  * Description:
- *      Wrapper routines for remote clients (eg. on vxWorks) that don't
+ *      Wrapper routines for remote clients that don't
  *	need all the system or local-client stuff. A few routines (those
  *	independent of being remote or local) are copied from this file and
  *	that to mimimize the library size.
@@ -24,12 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#ifdef VXWORKS
-#include <time.h>
-#else
 #include <sys/time.h>
-#endif
 
 #include "et_private.h"
 #include "et_network.h"

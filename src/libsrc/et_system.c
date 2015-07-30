@@ -27,9 +27,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <dlfcn.h>
-#ifdef sun
-#include <thread.h>
-#endif
 
 #include "et_private.h"
 #include "et_network.h"
@@ -100,9 +97,6 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
             size_system, size_stations, size_histo, total_size;
     int     i, err, status, num_try, try_max, groupsDiffer=0;
     unsigned int hbeat;
-#ifdef sun
-    int          con, con_add;
-#endif
     pthread_attr_t  attr;
     struct timespec waitforme, monitor, beat;
     et_sys_config  *config = (et_sys_config *) sconfig;
@@ -123,31 +117,6 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
         monitor.tv_sec += monitor.tv_nsec/1000000000 + 1;
         monitor.tv_nsec = 0;
     }
-
-#ifdef sun
-    /*
-     * want one thread for each station's conductor + extra threads
-     * for heartbeat production and detection + 1 for main thd +
-     * 1 for add stations thd + 2 for udp & tcp threads. However,
-     * if we exceed system resources, we'll need to try something
-     * more conservative.
-     */
-    con = thr_getconcurrency();
-    if (thr_setconcurrency(con + config->nstations + ET_EXTRA_THREADS + 4) != 0) {
-      /* exceeded # of threads allowed so reduce and try again */
-      if (thr_setconcurrency(config->nstations + ET_EXTRA_THREADS + 4) != 0) {
-        /* exceeded # of threads allowed so try fixed number */
-        if (thr_setconcurrency(20) != 0) {
-          /* exceeded # of threads allowed so let system choose */
-          thr_setconcurrency(0);
-        }
-      }
-    }
-    con_add = thr_getconcurrency() - con;
-    if (con_add < 1) {
-      con_add = 0;
-    }
-#endif
 
     /* get thread attribute ready */
     status = pthread_attr_init(&attr);
@@ -328,11 +297,6 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
     et_init_mem_sys(etid, config);
     /* This is used to translate ET pointers between processes.*/
     etid->sys->pmap = (void *) pSharedMem;
-
-#ifdef sun
-    /* keep track of thread concurrency increase */
-    etid->sys->con_add = con_add;
-#endif
 
     /* initialize station mem, llist & station mutexes */
     et_init_mem_station(etid);
@@ -524,21 +488,6 @@ int et_system_close(et_sys_id id) {
         return ET_ERROR;
     }
 
-#ifdef sun
-    {
-      int con, con_add = etid->sys->con_add;
-    
-      con = thr_getconcurrency();
-      if (con < con_add + 1) {
-        con = 1;
-      }
-      else {
-        con -= con_add;
-      }
-      thr_setconcurrency(con);
-    }
-#endif
-
     /* stop tcp server thread */
     et_sys_stopthread(etid->sys->tid_srv);
 
@@ -653,9 +602,6 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   sys->bitInfo      = 0;
 #endif
 
-#ifdef sun
-  sys->con_add      = 0;
-#endif
   sys->pmap         = NULL;
   sys->heartbeat    = 0;
   sys->mainpid      = getpid();

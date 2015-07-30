@@ -648,9 +648,7 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
 	      sys->config.nstations,
 	      sys->config.nattachments,
 	      sys->config.nprocesses);
-#ifdef sun
-  printf(", concurrency added(%d)", sys->con_add);
-#endif
+
   if (sys->config.netinfo.count > 0) {
     printf("\n    network interfaces(%d):", sys->config.netinfo.count);
     for (i=0; i < sys->config.netinfo.count; i++) {

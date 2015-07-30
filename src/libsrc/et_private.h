@@ -20,10 +20,7 @@
 #ifndef __et_private_h
 #define __et_private_h
 
-#if  !(defined VXWORKS || defined sun)
 #include <stdint.h>
-#endif
-
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -36,23 +33,17 @@
 extern "C" {
 #endif
 
-/* The data-type model for this architecture is set
- * by solaris to _LP64 or _ILP32. Linux defines 
- * __WORDSIZE to be 64 or 32. vxworks seems to do
- * nothing so define that as ILP32.
- */
+/* The data-type model for Linux defines  __WORDSIZE to be 64 or 32. */
 #ifdef linux
   #if __WORDSIZE == 64
     #define _LP64 1
   #else
     #define _ILP32 1
   #endif
-#elif defined VXWORKS
-  #define _ILP32 1
 #endif
 
-#define ET_VERSION 15           /**< Major version number. */
-#define ET_VERSION_MINOR 1      /**< Minor version number. */
+#define ET_VERSION 16           /**< Major version number. */
+#define ET_VERSION_MINOR 0      /**< Minor version number. */
 
 #define ET_LANG_C     0         /**< C language version of ET software. */
 #define ET_LANG_CPP   1         /**< C++ language version of ET software.  */
@@ -409,9 +400,6 @@ typedef struct et_system_t {
                                         makes for an awkward linked list, but it survives mapping the shared
                                         memory to a different spot). */
   pid_t            mainpid;        /**< Unix pid of ET system. */
-#ifdef sun
-  int              con_add;        /**< Concurrency added to process calling et_system_start for Solaris. */
-#endif
   void            *pmap;           /**< Pointer to mapped mem in ET system's process (used for user-called routines to
                                         read/write pointers correctly from shared mem). */
   pthread_mutex_t  mutex;          /**< Pthread mutex to protect system data during changes. */

@@ -36,24 +36,8 @@
 int et_sharedmutex(void) {
     int shared = ET_MUTEX_NOSHARE;
 
-#ifdef VXWORKS
-  shared = ET_MUTEX_SHARE;
-#else
 #ifdef __APPLE__
   shared = ET_MUTEX_NOSHARE; /* For OS X  5/28/04  D. L. */
-#else
-    /*
-       In the 2.6 kernel of linux, _SC_THREAD_PROCESS_SHARED is 200112
-       for some odd reason.
-       In Redhat enterprise 4, mutex sharing works; however in all earlier
-       versions of linux, mutexes cannot be shared.
-       Theoretically sharing should work in Redhat enterprise 3, but
-       pthread_cond_signal segmentation faults and so no sharing is allowed.
-       If the ET system is being compiled for any linux prior to RE 4,
-       compile with the flag -DEARLY_LINUX.
-    */
-#ifdef EARLY_LINUX
-  shared = ET_MUTEX_NOSHARE;
 #else
   /* Perhaps the operating system can tell us */
   if (sysconf(_SC_THREAD_PROCESS_SHARED) >= 1) {
@@ -63,8 +47,6 @@ int et_sharedmutex(void) {
   else {
     shared = ET_MUTEX_NOSHARE;
   }
-#endif
-#endif
 #endif
 
   return shared;
