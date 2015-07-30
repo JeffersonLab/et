@@ -25,10 +25,7 @@
 #include <netinet/in.h>	 /* sockaddr_in{}, sockaddr_storage{} and other Internet defns */
 #include <netinet/tcp.h> /* TCP_NODELAY def */
 #include <net/if.h>	     /* find broacast addr */
-
-#ifndef VXWORKS
 #include <sys/time.h>    /* struct timeval */
-#endif
 
 
 /* cmsg or et definitions here */
@@ -114,29 +111,7 @@ extern int etDebug;
 /* convenient network definitions (from Richard Stevens ) */
 #define SA                  struct sockaddr
 #define LISTENQ             10
-
-#ifdef VXWORKS
-#define INET_ATON_ERR   ERROR
-#define socklen_t int
-#else
-#define INET_ATON_ERR   0
-#endif
-
-#ifdef VXWORKS
-/*
-struct sockaddr_storage {
-    uint8_t ss_len;
-    sa_family_t ss_family;
-};
-*/
-#endif
-
-#ifdef VXWORKS
-
-/** Implementation of strdup for vxWorks in et_common.c. */
-extern char *strdup(const char *s1);
-
-#endif
+#define INET_ATON_ERR       0
 
 
 

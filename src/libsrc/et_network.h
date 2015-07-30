@@ -20,18 +20,8 @@
 #ifndef __et_network_h
 #define __et_network_h
 
-#ifdef VXWORKS
-#include <ioLib.h>       /* writev */
-#include <inetLib.h>    /* htonl stuff */
-#else
 #include <arpa/inet.h>	 /* htonl stuff */
-#endif
-
-#ifdef sun
-#include <sys/sockio.h>  /* find broacast addr */
-#else
 #include <sys/ioctl.h>   /* find broacast addr */
-#endif
 
 #include "et_private.h"
 
@@ -39,9 +29,7 @@
 extern "C" {
 #endif
 
-#if defined sun || defined linux || defined VXWORKS || defined __APPLE__
-#  define socklen_t int
-#endif
+#define socklen_t int
 
 #ifdef linux
   #ifndef _SC_IOV_MAX
@@ -49,51 +37,8 @@ extern "C" {
   #endif
 #endif
 
-#define	SA                  struct sockaddr
-#define LISTENQ             10
-#define ET_SOCKBUFSIZE      49640  /* multiple of 1460 - ethernet MSS */
-#define ET_IOV_MAX          16     /* minimum for POSIX systems */
-
-/* are 2 nodes the same or different? */
-#define ET_NODE_SAME 0
-#define ET_NODE_DIFF 1
-
-/*
- * Make solaris compatible with Linux. On Solaris,
- * _BIG_ENDIAN  or  _LITTLE_ENDIAN is defined
- * depending on the architecture.
- */
-#ifdef sun
-
-  #define __LITTLE_ENDIAN 1234
-  #define __BIG_ENDIAN    4321
-
-  #if defined(_BIG_ENDIAN)
-    #define __BYTE_ORDER __BIG_ENDIAN
-  #else
-    #define __BYTE_ORDER __LITTLE_ENDIAN
-  #endif
-
-/*
- * On vxworks, _BIG_ENDIAN = 1234 and _LITTLE_ENDIAN = 4321,
- * which is backwards. _BYTE_ORDER is also defined.
- * In types/vxArch.h, these definitions are carefully set
- * to these reversed values. In other header files such as
- * netinet/ip.h & tcp.h, the values are normal (ie
- * _BIG_ENDIAN = 4321). What's this all about?
- */
-#elif VXWORKS
-
-  #define __LITTLE_ENDIAN 1234
-  #define __BIG_ENDIAN    4321
-
-  #if _BYTE_ORDER == _BIG_ENDIAN
-    #define __BYTE_ORDER __BIG_ENDIAN
-  #else
-    #define __BYTE_ORDER __LITTLE_ENDIAN
-  #endif
-
-#endif
+#define	SA            struct sockaddr
+#define ET_IOV_MAX    16     /* minimum for POSIX systems */
 
 
 /* Byte swapping for 64 bits. */

@@ -24,19 +24,6 @@
 #include <errno.h>
 #include <netdb.h>
 
-#ifdef VXWORKS
-
-#include <vxWorks.h>
-#include <taskLib.h>
-#include <sockLib.h>
-#include <inetLib.h>
-#include <hostLib.h>
-#include <ioLib.h>
-#include <time.h>
-#include <net/uio.h>
-#include <net/if_dl.h>
-
-#else
 
 #include <strings.h>
 #include <sys/uio.h>
@@ -47,11 +34,7 @@
 #include <ifaddrs.h>
 #endif
 
-#endif
 
-#ifdef sun
-#include <sys/filio.h>
-#endif
 #include "et_network.h"
 
 
@@ -707,11 +690,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
         tv.tv_usec = 10000; /* 0.01 sec */
         
         /* wait for responses from ET systems */
-#ifdef VXWORKS
-        taskDelay(lastdelay*60);
-#else
         nanosleep(&delaytime, NULL);
-#endif
 
         /* select */
         err = select(biggestsockfd + 1, &rset, NULL, NULL, &tv);
@@ -783,12 +762,8 @@ anotherpacket:
 
                 /* see if there's another packet to be read on this socket */
                 bytes = 0;
-#ifdef VXWORKS
-                ioctl(send[j].sockfd, FIONREAD, (int) &bytes);
-#else
                 ioctl(send[j].sockfd, FIONREAD, (void *) &bytes);
-#endif
-          
+
                 /* decode packet from ET system:
                  *
                  *  (0)  ET magic numbers (3 ints)

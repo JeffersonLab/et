@@ -33,20 +33,8 @@
 #include <netdb.h>       /* herrno */
 #include <sys/types.h>   /* basic system data types */
 #include <sys/socket.h>  /* basic socket definitions */
+#include <sys/ioctl.h>   /* find broacast addr */
 
-#ifdef VXWORKS
-
-#include <vxWorks.h>
-#include <taskLib.h>
-#include <sockLib.h>
-#include <inetLib.h>
-#include <hostLib.h>
-#include <ioLib.h>
-#include <time.h>
-#include <net/uio.h>
-#include <net/if_dl.h>
-
-#else
 
 #include <strings.h>
 #include <sys/uio.h>
@@ -60,14 +48,7 @@
 #include <ifaddrs.h>
 #endif
 
-#endif
 
-#ifdef sun
-#include <sys/filio.h>
-#include <sys/sockio.h>  /* find broacast addr */
-#else
-#include <sys/ioctl.h>   /* find broacast addr */
-#endif
 
 extern int h_errno;
 
@@ -76,37 +57,11 @@ extern int h_errno;
 /* set debug level for network stuff here */
 int etDebug = 0;
 
-#ifndef VXWORKS
 
 /* mutex to protect non-reentrant gethostbyname in Linux since the
  * gethostbyname_r is so buggy. */
 static pthread_mutex_t getHostByNameMutex = PTHREAD_MUTEX_INITIALIZER;
 
-#else
-
-static struct hostent h;
-static struct sockaddr_in sin;
-static char   *addrlist[2];
-static char   *aliaslist[1];
-
-struct hostent *gethostbyname(const char *hostName) 
-{
-    int host;
-    if ((host = hostGetByName((char *)hostName))==ERROR) return(NULL);
-    h.h_addrtype = AF_INET;
-    h.h_name = (char *)hostName;
-    h.h_addr_list = addrlist;
-    addrlist[0] = (char *) &sin.sin_addr;
-    h.h_length = sizeof(sin.sin_addr);
-    bzero ((char *)&sin, sizeof(sin));
-    sin.sin_addr.s_addr = host;
-    /* no aliases */
-    aliaslist[0] = NULL;
-    h.h_aliases = aliaslist;
-    return (&h);
-}
-
-#endif
 
 
 /**
@@ -212,20 +167,12 @@ int codanetTcpListen(int nonblocking, unsigned short port,
 
     /* make this socket non-blocking if desired */
     if (nonblocking) {
-#ifdef VXWORKS
-    val = ioctl(listenfd, FIONBIO, 1);
-    if (val < 0) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpListen: setsockopt error\n", codanetStr);
-        return(CODA_SOCKET_ERROR);
+        val = fcntl(listenfd, F_GETFL, 0);
+        if (val > -1) {
+            fcntl(listenfd, F_SETFL, val | O_NONBLOCK);
+        }
     }
-#else
-    val = fcntl(listenfd, F_GETFL, 0);
-    if (val > -1) {
-        fcntl(listenfd, F_SETFL, val | O_NONBLOCK);
-    }
-#endif
-    }
-  
+
     /* don't let anyone else have this port */
     err = bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
     if (err < 0) {
@@ -326,11 +273,7 @@ static void connect_w_to(void) {
     fd_set myset;
     struct timeval tv;
     int valopt;
-#ifdef VXWORKS
-    int lon;
-#else
     socklen_t lon;
-#endif
 
     // Create socket
     soc = socket(AF_INET, SOCK_STREAM, 0);
@@ -353,11 +296,7 @@ static void connect_w_to(void) {
         fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno));
         exit(0);
     }
-#ifdef VXWORKS
-    if (ioctl(soc, FIONBIO, (int)&on) < 0) {
-#else
     if (ioctl(soc, FIONBIO, &on) < 0) {
-#endif
         fprintf(stderr, "Error ioctl(..., FIONBIO) (%s)\n", strerror(errno));
         exit(0);
     }
@@ -416,22 +355,16 @@ static void connect_w_to(void) {
         exit(0);
     }
     
-#ifdef VXWORKS
-    if (ioctl(soc, FIONBIO, (int)&off) < 0) {
-#else
     if (ioctl(soc, FIONBIO, &off) < 0) {
-#endif
         fprintf(stderr, "Error ioctl(..., FIONBIO) (%s)\n", strerror(errno));
         exit(0);
     }
 }
 
-#ifndef VXWORKS
 
 /**
  * This routine is a replacement for connect() with an additional timeout
- * argument. Already defined in vxWorks. Assumes sockfd is for a nonblocking
- * socket.
+ * argument. Assumes sockfd is for a nonblocking socket.
  *
  * @param sockfd  socket file descriptor of nonblocking socket
  * @param pAddr   pointer to sockaddr struct
@@ -509,7 +442,6 @@ static int connectWithTimeout(int sockfd, struct sockaddr *pAddr, socklen_t addr
     return 1;
 }
 
-#endif
 
 
 /**
@@ -526,7 +458,7 @@ static int connectWithTimeout(int sockfd, struct sockaddr *pAddr, socklen_t addr
  * @param localPort   pointer which gets filled in with local (ephemeral) port number
  *
  * @returns ET/CMSG_OK                          if successful
- * @returns ET_ERROR_TIMEOUT/CMSG_TIMEOUT       if connection attempt timed out (vxWorks gives network error)
+ * @returns ET_ERROR_TIMEOUT/CMSG_TIMEOUT       if connection attempt timed out
  * @returns ET_ERROR_BADARG/CMSG_BAD_ARGUMENT   if ip_adress or fd args are NULL
  * @returns ET_ERROR_NOMEM/CMSG_OUT_OF_MEMORY   if out of memory
  * @returns ET_ERROR_SOCKET/CMSG_SOCKET_ERROR   if socket could not be created or socket options could not be set.
@@ -540,17 +472,10 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
     int                 res, sockfd, err=0;
     const int           on=1, off=0;
     struct sockaddr_in  servaddr;
-#ifndef VXWORKS
     int                 status;
     struct in_addr      **pptr;
     struct hostent      *hp;
     int h_errnop        = 0;
-#ifdef sun
-    struct hostent      *result;
-    char                *buff;
-    int buflen          = 8192;
-#endif
-#endif
 
     if (ip_address == NULL || fd == NULL || timeout == NULL) {
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: null argument(s)\n", codanetStr);
@@ -599,121 +524,10 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
     servaddr.sin_port   = htons(port);
 
     /* make socket nonblocking so we can implement a timeout */
-#ifdef VXWORKS
-    if (ioctl(sockfd, FIONBIO, (int)&on) < 0) {
-#else
     if (ioctl(sockfd, FIONBIO, &on) < 0) {
-#endif
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: ioctl error\n", codanetStr);
         return(CODA_SOCKET_ERROR);
     }
-
-#if defined VXWORKS
-
-    err = codanetStringToNumericIPaddr(ip_address, &servaddr);
-    if (err != CODA_OK || err == ERROR) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: unknown server address for host %s\n",
-        codanetStr, ip_address);
-        return(CODA_NETWORK_ERROR);
-    }
-
-    if (connectWithTimeout(sockfd,(struct sockaddr *) &servaddr, sizeof(servaddr), timeout) == ERROR) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: error or timeout in connect\n", codanetStr);
-        return(CODA_NETWORK_ERROR);
-    }
-    else {
-        if (codanetDebug >= CODA_DEBUG_INFO) fprintf(stderr, "%sTcpConnectTimeout: connected to server\n", codanetStr);
-    }
-
-    /* find & return the local port number of this socket */
-    if (localPort != NULL) {
-        int prt, len;
-        struct sockaddr_in ss;
-
-        len = sizeof(ss);
-        if (getsockname(sockfd, (SA *) &ss, &len) == 0) {
-            *localPort = (int) ntohs(ss.sin_port);
-        }
-        else {
-            *localPort = 0;
-        }
-    }
-    
-    /*
-     * Need to make things reentrant so use gethostbyname_r.
-     * Unfortunately the linux folks defined the function 
-     * differently from the solaris folks!
-     */
-#elif defined sun
-	
-    /* Malloc hostent local structure and buffer to store canonical hostname, aliases etc.*/
-    if ( (result = (struct hostent *)malloc(sizeof(struct hostent))) == NULL) {
-        return(CODA_OUT_OF_MEMORY);
-    }
-    
-    if ( (buff = (char *)malloc(buflen)) == NULL) {
-        free(result);
-        return(CODA_OUT_OF_MEMORY);
-    }
-
-    if ((hp = gethostbyname_r(ip_address, result, buff, buflen, &h_errnop)) == NULL){
-        close(sockfd);
-        free(result);
-        free(buff);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnectTimeout: hostname error - %s\n",
-                                                      codanetStr, codanetHstrerror(h_errnop));
-        return(CODA_NETWORK_ERROR);
-    }
-    /*printf("Gethostbyname => %s %d \n", hp->h_name,(int)hp->h_addr_list[0]);*/
-
-    pptr = (struct in_addr **) hp->h_addr_list;
-
-    for ( ; *pptr != NULL; pptr++) {
-        memcpy(&servaddr.sin_addr, *pptr, sizeof(struct in_addr));
-        res = connectWithTimeout(sockfd, (SA *) &servaddr, sizeof(servaddr), timeout);
-        if (res < 0) {
-            err = CODA_ERROR;
-            if (codanetDebug >= CODA_DEBUG_WARN) {
-                fprintf(stderr, "%sTcpConnectTimeout: error attempting to connect to server, %s\n", codanetStr, strerror(errno));
-            }
-        }
-        else if (res == 0) {
-            err = CODA_TIMEOUT;
-            if (codanetDebug >= CODA_DEBUG_INFO) {
-                fprintf(stderr, "%sTcpConnectTimeout: timed out attempting to connect to server\n", codanetStr);
-            }
-        }
-        else {
-            err = CODA_OK;
-            if (codanetDebug >= CODA_DEBUG_INFO) {
-                fprintf(stderr, "%sTcpConnectTimeout: connected to server\n", codanetStr);
-            }
-            break;
-        }
-    }
-    
-    free(result);
-    free(buff);
-
-    /* if there's no error, find & return the local port number of this socket */
-    if (err != -1 && localPort != NULL) {
-        int prt;
-        socklen_t len;
-        struct sockaddr_in ss;
-      
-        len = sizeof(ss);
-        if (getsockname(sockfd, (SA *) &ss, &len) == 0) {
-            *localPort = (int) ntohs(ss.sin_port);
-        }
-        else {
-            *localPort = 0;
-        }
-    }
-   
-/*#elif defined linux || defined Darwin*/
-#else
 
     /*
      * There seem to be serious bugs with Linux implementation of
@@ -786,20 +600,14 @@ int codanetTcpConnectTimeout(const char *ip_address, unsigned short port,
     if (status != 0) {
         coda_err_abort(status, "Unlock gethostbyname Mutex");
     }
-    
-#endif
-  
+
     if (err != CODA_OK) {
         close(sockfd);
         return(err);
     }
   
     /* return socket to blocking mode */
-#ifdef VXWORKS
-    if (ioctl(sockfd, FIONBIO, (int)&off) < 0) {
-#else
     if (ioctl(sockfd, FIONBIO, &off) < 0) {
-#endif
         close(sockfd);
         if (codanetDebug >= CODA_DEBUG_ERROR) {
             fprintf(stderr, "%sTcpConnectTimeout: ioctl error\n", codanetStr);
@@ -856,16 +664,7 @@ int codanetTcpConnectTimeout2(const char *ip_address, const char *interface, uns
     isDottedDecimal = codanetIsDottedDecimal(ip_address, NULL);
     if (!isDottedDecimal) return CODA_ERROR;
     
-#if defined VXWORKS
-    inetaddr = (uint32_t) inet_addr((char *) ip_address);
-    err = (int) inetaddr;
-    /* If ip_address = 255.255.255.255, then err = -1 (= ERROR), but
-     * that's OK since no server has that address anyway. */
-
-    if (err == ERROR) {
-#else
     if (inet_pton(AF_INET, ip_address, &inetaddr) < 1) {
-#endif
         if (codanetDebug >= CODA_DEBUG_ERROR) {
             fprintf(stderr, "%sTcpConnectTimeout2: unknown address for host %s\n", codanetStr, ip_address);
         }
@@ -935,41 +734,13 @@ int codanetTcpConnectTimeout2(const char *ip_address, const char *interface, uns
 
 
     /* make socket nonblocking so we can implement a timeout */
-#ifdef VXWORKS
-    if (ioctl(sockfd, FIONBIO, (int)&on) < 0) {
-#else
     if (ioctl(sockfd, FIONBIO, &on) < 0) {
-#endif
         if (codanetDebug >= CODA_DEBUG_ERROR) {
             fprintf(stderr, "%sTcpConnectTimeout2: ioctl error\n", codanetStr);
         }
         return(CODA_SOCKET_ERROR);
     }
 
-#if defined VXWORKS
-
-    err = codanetStringToNumericIPaddr(ip_address, &servaddr);
-    if (err != CODA_OK || err == ERROR) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) {
-            fprintf(stderr, "%sTcpConnectTimeout2: unknown server address for host %s\n",codanetStr,ip_address);
-        }
-        return(CODA_NETWORK_ERROR);
-    }
-
-    if (connectWithTimeout(sockfd,(struct sockaddr *) &servaddr, sizeof(servaddr), timeout) == ERROR) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) {
-            fprintf(stderr, "%sTcpConnectTimeout2: error or timeout in connect\n", codanetStr);
-        }
-        return(CODA_NETWORK_ERROR);
-    }
-    else if (codanetDebug >= CODA_DEBUG_INFO) {
-        fprintf(stderr, "%sTcpConnectTimeout2: connected to server\n", codanetStr);
-    }
-
-#else
-    
     err = connectWithTimeout(sockfd, (SA *) &servaddr, sizeof(servaddr), timeout);
     if (err < 0) {
         close(sockfd);
@@ -989,8 +760,7 @@ int codanetTcpConnectTimeout2(const char *ip_address, const char *interface, uns
         fprintf(stderr, "%sTcpConnectTimeout2: connected to server\n", codanetStr);
     }
 
-#endif
-      
+
     /* since there's no error, find & return the local port number of this socket */
     if (localPort != NULL) {
         int prt;
@@ -1007,11 +777,7 @@ int codanetTcpConnectTimeout2(const char *ip_address, const char *interface, uns
     }
 
     /* return socket to blocking mode */
-#ifdef VXWORKS
-    if (ioctl(sockfd, FIONBIO, (int)&off) < 0) {
-#else
     if (ioctl(sockfd, FIONBIO, &off) < 0) {
-#endif
         close(sockfd);
         if (codanetDebug >= CODA_DEBUG_ERROR) {
             fprintf(stderr, "%sTcpConnectTimeout2: ioctl error\n", codanetStr);
@@ -1049,17 +815,10 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
     int                 sockfd, err=0, isDottedDecimal=0;
     const int           on=1;
     struct sockaddr_in  servaddr;
-#ifndef VXWORKS
     int                 status;
     struct in_addr      **pptr;
     struct hostent      *hp;
     int h_errnop        = 0;
-#ifdef sun
-    struct hostent      *result;
-    char                *buff;
-    int buflen          = 8192;
-#endif
-#endif
 
     if (ip_address == NULL || fd == NULL) {
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: null argument(s)\n", codanetStr);
@@ -1071,20 +830,7 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
     isDottedDecimal = codanetIsDottedDecimal(ip_address, NULL);
     if (isDottedDecimal) {
         uint32_t inetaddr;
-#if defined VXWORKS
-        inetaddr = (uint32_t) inet_addr((char *) ip_address);
-        err = (int) inetaddr;
-        /* If ip_address = 255.255.255.255, then err = -1 (= ERROR)
-         * no matter what. There's no way to check for an error in this
-         * case so assume things are OK. */
-        if (strcmp("255.255.255.255", ip_address) == 0) {
-            err = OK;
-        }
-  
-        if (err == ERROR) {
-#else
         if (inet_pton(AF_INET, ip_address, &inetaddr) < 1) {
-#endif
             if (codanetDebug >= CODA_DEBUG_ERROR) {
                 fprintf(stderr, "%sTcpConnect: unknown address for host %s\n", codanetStr, ip_address);
             }
@@ -1146,104 +892,6 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
     memset((void *)&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port   = htons(port);
-
-#if defined VXWORKS
-
-    err = codanetStringToNumericIPaddr(ip_address, &servaddr);
-    if (err != CODA_OK || err == ERROR) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: unknown server address for host %s\n",
-        codanetStr, ip_address);
-        return(CODA_NETWORK_ERROR);
-    }
-
-    if (connect(sockfd,(struct sockaddr *) &servaddr, sizeof(servaddr)) == ERROR) {
-        close(sockfd);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: error in connect\n", codanetStr);
-        return(CODA_NETWORK_ERROR);
-    }
-    else {
-        if (codanetDebug >= CODA_DEBUG_INFO) fprintf(stderr, "%sTcpConnect: connected to server\n", codanetStr);
-    }
-
-    /* find & return the local port number of this socket */
-    if (localPort != NULL) {
-        int prt, len;
-        struct sockaddr_in ss;
-
-        len = sizeof(ss);
-        if (getsockname(sockfd, (SA *) &ss, &len) == 0) {
-            *localPort = (int) ntohs(ss.sin_port);
-        }
-        else {
-            *localPort = 0;
-        }
-    }
-    
-    /*
-    * Need to make things reentrant so use gethostbyname_r.
-    * Unfortunately the linux folks defined the function
-    * differently from the solaris folks!
-    */
-#elif defined sun
-    
-    /* Malloc hostent local structure and buffer to store canonical hostname, aliases etc.*/
-    if ( (result = (struct hostent *)malloc(sizeof(struct hostent))) == NULL) {
-    return(CODA_OUT_OF_MEMORY);
-    }
-    if ( (buff = (char *)malloc(buflen)) == NULL) {
-        return(CODA_OUT_OF_MEMORY);
-    }
-
-    if ((hp = gethostbyname_r(ip_address, result, buff, buflen, &h_errnop)) == NULL){
-        close(sockfd);
-        if (result != NULL) free(result);
-        free(buff);
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: hostname error - %s\n",
-        codanetStr, codanetHstrerror(h_errnop));
-        return(CODA_NETWORK_ERROR);
-    }
-    /*printf("Gethostbyname => %s %d \n", hp->h_name,(int)hp->h_addr_list[0]);*/
-
-    pptr = (struct in_addr **) hp->h_addr_list;
-
-    for ( ; *pptr != NULL; pptr++) {
-        memcpy(&servaddr.sin_addr, *pptr, sizeof(struct in_addr));
-        if ((err = connect(sockfd, (SA *) &servaddr, sizeof(servaddr))) < 0) {
-            free(result);
-            free(buff);
-            if (codanetDebug >= CODA_DEBUG_WARN) {
-                fprintf(stderr, "%sTcpConnect: error attempting to connect to server\n", codanetStr);
-            }
-        }
-        else {
-            /* free the hostent and buff*/
-            free(result);
-            free(buff);
-            if (codanetDebug >= CODA_DEBUG_INFO) {
-                fprintf(stderr, "%sTcpConnect: connected to server\n", codanetStr);
-            }
-            break;
-        }
-    }
-
-    /* if there's no error, find & return the local port number of this socket */
-    if (err != -1 && localPort != NULL) {
-        int prt;
-        socklen_t len;
-        struct sockaddr_in ss;
-      
-        len = sizeof(ss);
-        if (getsockname(sockfd, (SA *) &ss, &len) == 0) {
-            *localPort = (int) ntohs(ss.sin_port);
-        }
-        else {
-            *localPort = 0;
-        }
-    }
-   
-    /*#elif defined linux || defined Darwin*/
-#else
 
     /*
      * There seem to be serious bugs with Linux implementation of
@@ -1307,9 +955,7 @@ int codanetTcpConnect(const char *ip_address, const char *interface, unsigned sh
     if (status != 0) {
         coda_err_abort(status, "Unlock gethostbyname Mutex");
     }
-    
-#endif
-  
+
     if (err == -1) {
         close(sockfd);
         if (codanetDebug >= CODA_DEBUG_ERROR)
@@ -1402,30 +1048,6 @@ int codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short 
     servaddr.sin_port   = htons(port);
     servaddr.sin_addr.s_addr = inetaddr;
 
-#ifdef VXWORKS
-    if (connect(sockfd,(struct sockaddr *) &servaddr, sizeof(servaddr)) == ERROR) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) {
-            fprintf(stderr, "%sTcpConnect2: error attempting to connect to server\n", codanetStr);
-        }
-        close(sockfd);
-        return ERROR;
-    }
-  
-    /* find & return the local port number of this socket */
-    if (localPort != NULL) {
-        int prt, len;
-        struct sockaddr_in ss;
-      
-        len = sizeof(ss);
-        if (getsockname(sockfd, (SA *) &ss, &len) == 0) {
-            *localPort = (int) ntohs(ss.sin_port);
-        }
-        else {
-            *localPort = 0;
-        }
-    }
-
-#else
     if ((err = connect(sockfd, (SA *) &servaddr, sizeof(servaddr))) < 0) {
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect2: error attempting to connect to server\n",
                                                       codanetStr);
@@ -1445,8 +1067,7 @@ int codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short 
             *localPort = 0;
         }
     }
-#endif
-  
+
     if (err == -1) {
         close(sockfd);
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect2: socket connect error, %s\n",
@@ -1476,17 +1097,10 @@ int codanetTcpConnect2(uint32_t inetaddr, const char *interface, unsigned short 
 int codanetStringToNumericIPaddr(const char *ip_address, struct sockaddr_in *addr)
 {
     int err=0, isDottedDecimal=0, j, i[4];
-#ifndef VXWORKS
     int                 status;
     struct in_addr      **pptr;
     struct hostent      *hp;
     int h_errnop        = 0;
-  #ifdef sun
-    struct hostent      *result;
-    char                *buff;
-    int buflen          = 8192;
-  #endif
-#endif
 
     if (ip_address == NULL) {
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sStringToNumericIPaddr: null argument\n", codanetStr);
@@ -1499,76 +1113,12 @@ int codanetStringToNumericIPaddr(const char *ip_address, struct sockaddr_in *add
      */
     isDottedDecimal = codanetIsDottedDecimal(ip_address, NULL);
 
-#if defined VXWORKS
-
-    if (isDottedDecimal) {
-        err = addr->sin_addr.s_addr = (int) inet_addr((char *) ip_address);
-        /* If ip_address = 255.255.255.255, then err = -1 (= ERROR)
-         * no matter what. There's no way to check for an error in this
-         * case so assume things are OK.
-         */
-        if (strcmp("255.255.255.255", ip_address) == 0) {
-            err = 0;
-        }
-    }
-    else {
-        err = addr->sin_addr.s_addr = hostGetByName((char *) ip_address);
-    }
-  
-    if (err == ERROR) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) {
-            fprintf(stderr, "%sStringToNumericIPaddr: unknown address for host %s\n", codanetStr, ip_address);
-        }
-        return(CODA_NETWORK_ERROR);
-    }
-
-#else
-
     if (isDottedDecimal) {
         if (inet_pton(AF_INET, ip_address, &addr->sin_addr) < 1) {
             return(CODA_NETWORK_ERROR);
         }
         return(CODA_OK);
     }
-  
-
-    /*
-     * Need to make things reentrant so use gethostbyname_r.
-     * Unfortunately the linux folks defined the function 
-     * differently from the solaris folks!
-     */
-  #if defined sun
-	
-    /* Malloc hostent local structure and buffer to store canonical hostname, aliases etc.*/
-    if ( (result = (struct hostent *)malloc(sizeof(struct hostent))) == NULL) {
-        return(CODA_OUT_OF_MEMORY);
-    }
-    if ( (buff = (char *)malloc(buflen)) == NULL) {
-        return(CODA_OUT_OF_MEMORY);
-    }
-
-    if ((hp = gethostbyname_r(ip_address, result, buff, buflen, &h_errnop)) == NULL){
-        if (result != NULL) free(result);
-        free(buff);
-        if (codanetDebug >= CODA_DEBUG_ERROR) {
-            fprintf(stderr, "%sStringToNumericIPaddr: hostname error - %s\n", codanetStr, codanetHstrerror(h_errnop));
-        }
-        return(CODA_NETWORK_ERROR);
-    }
-    /*printf("Gethostbyname => %s %d \n", hp->h_name,(int)hp->h_addr_list[0]);*/
-
-    pptr = (struct in_addr **) hp->h_addr_list;
-
-    for ( ; *pptr != NULL; pptr++) {
-        memcpy(&addr->sin_addr, *pptr, sizeof(struct in_addr));
-        break;
-    }
-  
-    free(result);
-    free(buff);
-
-    /* else linux || Darwin */
-  #else
 
     /*
      * There seem to be serious bugs with Linux implementation of
@@ -1608,10 +1158,7 @@ int codanetStringToNumericIPaddr(const char *ip_address, struct sockaddr_in *add
     if (status != 0) {
         coda_err_abort(status, "Unlock gethostbyname Mutex");
     }
-  
-  #endif 
-#endif 
-    
+
     return(CODA_OK);
 }
 
@@ -1667,11 +1214,7 @@ int codanetAccept(int fd, struct sockaddr *sa, socklen_t *salenptr)
     int  n;
 
   again:
-#ifdef VXWORKS
-    if ((n = accept(fd, sa, (int *)salenptr)) < 0) {
-#else
     if ((n = accept(fd, sa, salenptr)) < 0) {
-#endif
 
 #ifdef	EPROTO
         if (errno == EPROTO || errno == ECONNABORTED) {
@@ -1945,25 +1488,16 @@ int codanetLocalSocketAddress(int sockfd, char *ipAddress)
     char *ip;
     struct sockaddr_in *sa;
 
-#ifdef VXWORKS_5
-    struct sockaddr_in ss;
-    int len = sizeof(ss);
-#else
     struct sockaddr_storage ss;
     socklen_t len = sizeof(ss);
-#endif
-    
+
     if (sockfd < 0 || ipAddress == NULL) return(CODA_BAD_ARGUMENT);
     
     if (getsockname(sockfd, (SA *) &ss, &len) < 0) {
         return (CODA_ERROR);
     }
 
-#ifdef VXWORKS_5
-    if (ss.sin_family == AF_INET) {
-#else
     if (ss.ss_family == AF_INET) {
-#endif
         sa = (struct sockaddr_in *) &ss;
         ip = inet_ntoa(sa->sin_addr);
         strncpy(ipAddress, ip, CODA_IPADDRSTRLEN-1);
@@ -2125,35 +1659,6 @@ const char *codanetHstrerror(int err)
  */
 int codanetNodeSame(const char *node1, const char *node2, int *same)
 {
-#ifdef VXWORKS
-    int nodeAddr1, nodeAddr2;
-
-    if ((node1 == NULL) || (node2 == NULL) || same == NULL) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sNodeSame: bad argument(s)\n", codanetStr);
-        return CODA_BAD_ARGUMENT;
-    }
-
-    /* do a quick check of name against name, it may work */
-    if (strcmp(node1, node2) == 0) {
-        *same = 1;
-        return CODA_OK;
-    }
-
-    nodeAddr1 = hostGetByName((char *)node1);
-    if (nodeAddr1 == ERROR)
-        return CODA_ERROR;
-
-    nodeAddr2 = hostGetByName((char *)node2);
-    if (nodeAddr2 == ERROR)
-        return CODA_ERROR;
-
-    if (nodeAddr1 == nodeAddr2)
-        *same = 1;
-    else
-        *same = 0;
-    return CODA_OK;
-
-#else
     struct hostent *hptr;
     char **pptr;
     /* save up to maxAddresses ip addresses for each node */
@@ -2207,7 +1712,6 @@ int codanetNodeSame(const char *node1, const char *node2, int *same)
   
     *same = 0;
     return CODA_OK;
-#endif
 }
 
 
@@ -2224,34 +1728,6 @@ int codanetNodeSame(const char *node1, const char *node2, int *same)
  */
 int codanetNodeIsLocal(const char *host, int *isLocal)
 {
-#ifdef VXWORKS
-    int hostAddr1, hostAddr2;
-    char name[CODA_MAXHOSTNAMELEN];
-
-    if (host == NULL || isLocal == NULL) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sNodeIsLocal: bad argument(s)\n", codanetStr);
-        return CODA_BAD_ARGUMENT;
-    }
-
-    hostAddr1 = hostGetByName((char *)host);
-    if(hostAddr1 == ERROR)
-        return CODA_ERROR;
-
-    if(gethostname(name,CODA_MAXHOSTNAMELEN))
-        return CODA_ERROR;
-
-    hostAddr2 = hostGetByName(name);
-    if(hostAddr2 == ERROR)
-        return CODA_ERROR;
-
-    if(hostAddr1 == hostAddr2)
-        *isLocal = 1;
-    else
-        *isLocal = 0;
-
-    return CODA_OK;
-
-#else
     struct utsname myname;
     int status, same=0;
     int debugTemp, debug=0;
@@ -2286,12 +1762,11 @@ int codanetNodeIsLocal(const char *host, int *isLocal)
         *isLocal = 0;
   
     return CODA_OK;
-#endif
 }
 
 
 /**
- * This routine returns the host name returned by "uname" (on vxworks use gethostname).
+ * This routine returns the host name returned by "uname".
  *
  * @param host    pointer filled in with name of local host from uname
  * @param length  number of bytes in host arg
@@ -2302,16 +1777,6 @@ int codanetNodeIsLocal(const char *host, int *isLocal)
  */
 int codanetGetUname(char *host, int length)
 {
-#ifdef VXWORKS
-    if (host == NULL || length < 2) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sGetUname: bad argument(s)\n", codanetStr);
-        return CODA_BAD_ARGUMENT;
-    }
-
-    if (gethostname(host, length) < 0) return CODA_ERROR;
-    return CODA_OK;
-
-#else
     struct utsname myname;
   
     if (host == NULL || length < 2) {
@@ -2330,7 +1795,6 @@ int codanetGetUname(char *host, int length)
     host[length-1] = '\0';
   
     return CODA_OK;
-#endif
 }
 
 
@@ -2347,11 +1811,6 @@ int codanetGetUname(char *host, int length)
  */
 int codanetLocalHost(char *host, int length)
 {
-#ifdef VXWORKS
-
-    return codanetGetUname(host, length);
-
-#else
     struct utsname myname;
     struct hostent *hptr;
     int status;
@@ -2390,7 +1849,6 @@ int codanetLocalHost(char *host, int length)
     }
 
     return(CODA_OK);
-#endif
 }
 
 
@@ -2406,30 +1864,6 @@ int codanetLocalHost(char *host, int length)
  */
 int codanetLocalAddress(char *address)
 {
-#ifdef VXWORKS
-
-    char name[CODA_MAXHOSTNAMELEN];
-    union {
-        char ip[4];
-        int  ipl;
-    } u;
-
-    if (address == NULL) {
-        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sLocalAddress: bad argument\n", codanetStr);
-        return(CODA_BAD_ARGUMENT);
-    }
-
-    if (gethostname(name,CODA_MAXHOSTNAMELEN)) return(CODA_ERROR);
-
-    u.ipl = hostGetByName(name);
-    if (u.ipl == -1) return(CODA_ERROR);
-
-    sprintf(address,"%d.%d.%d.%d",u.ip[0],u.ip[1],u.ip[2],u.ip[3]);
-
-    return(CODA_OK);
-
-#else
-  
     struct utsname myname;
     struct hostent *hptr;
     char           **pptr, *val;
@@ -2482,8 +1916,6 @@ int codanetLocalAddress(char *address)
     }
   
     return(CODA_OK);
-  
-#endif
 }
 
 
@@ -2507,25 +1939,16 @@ static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
     switch (sa->sa_family) {
         case AF_INET: {
             struct sockaddr_in  *sin = (struct sockaddr_in *) sa;
-#ifdef VXWORKS
-            if (inet_ntoa(sin->sin_addr) == NULL) {
-                if (codanetDebug >= CODA_DEBUG_ERROR) {
-                    fprintf(stderr, "sock_ntop_host: error calling inet_ntoa\n");
-                }
-                return(NULL);
-            }
-#else
             if (inet_ntop(AF_INET, &sin->sin_addr, str, sizeof(str)) == NULL) {
                 if (codanetDebug >= CODA_DEBUG_ERROR) {
                     fprintf(stderr, "sock_ntop_host: %s\n", strerror(errno));
                 }
                 return(NULL);
             }
-#endif
             return(str);
         }
 
-#if defined IPV6 && !defined VXWORKS
+#if defined IPV6
         case AF_INET6: {
             struct sockaddr_in6  *sin6 = (struct sockaddr_in6 *) sa;
 
@@ -2564,33 +1987,20 @@ static char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
  */
 int codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex) {
     int err;
-#ifdef VXWORKS_5
-    struct sockaddr_in ss;
-    int len = sizeof(ss);
-#else
     struct sockaddr_storage ss;
     socklen_t len = sizeof(ss);
-#endif
 
     if (getsockname(sockfd, (SA *) &ss, &len) < 0) {
         return(CODA_ERROR);
     }
 
-#ifdef VXWORKS_5
-    switch (AF_INET) {
-#else
     switch (ss.ss_family) {
-#endif
         case AF_INET: {
             struct in_addr      inaddr;
             struct ifreq        ifreq;
 
             if (ifindex > 0) {
-#ifdef VXWORKS
-                if (ifIndexToIfName((unsigned short)ifindex, ifreq.ifr_name) != OK) {
-#else
                 if (if_indextoname(ifindex, ifreq.ifr_name) == NULL) {
-#endif
                     /* i/f index not found */
                     return(CODA_ERROR);
                 }
@@ -2598,11 +2008,7 @@ int codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex) {
             } else if (ifname != NULL) {
                 strncpy(ifreq.ifr_name, ifname, IFNAMSIZ);
 doioctl:
-#ifdef VXWORKS
-                if (ioctl(sockfd, SIOCGIFADDR, (int)&ifreq) < 0) {
-#else
                 if (ioctl(sockfd, SIOCGIFADDR, &ifreq) < 0) {
-#endif
                     return(CODA_ERROR);
                 }
                 memcpy(&inaddr,
@@ -2611,13 +2017,8 @@ doioctl:
             } else
                 inaddr.s_addr = htonl(INADDR_ANY);  /* remove prev. set default */
 
-#ifdef VXWORKS
-                err = setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF,
-                                 (char *)&inaddr, sizeof(struct in_addr));
-#else
                 err = setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF,
                                  &inaddr, sizeof(struct in_addr));
-#endif
                 if (err < 0) return(CODA_SOCKET_ERROR);
                 return(CODA_OK);
             }
@@ -2631,20 +2032,12 @@ doioctl:
                     /* must supply either index or name */
                     return(CODA_BAD_ARGUMENT);
                 }
-#ifdef VXWORKS
-                if ( (idx = ifNameToIndex(ifname)) == 0) {
-#else
                 if ( (idx = if_nametoindex(ifname)) == 0) {
-#endif
                     /* i/f name not found */
                     return(CODA_ERROR);
                 }
             }
-#ifdef VXWORKS
-            err = setsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, (char *)&idx, sizeof(idx));
-#else
             err = setsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &idx, sizeof(idx));
-#endif
             if (err < 0) return(CODA_SOCKET_ERROR);
             return(CODA_OK);
         }
@@ -2794,12 +2187,8 @@ struct ifi_info *codanetGetInterfaceInfo(int family, int doaliases)
         ifc.ifc_len = len;
         ifc.ifc_buf = buf;
         
-  #if defined VXWORKS
-        if (ioctl(sockfd, SIOCGIFCONF, (int) &ifc) < 0) {
-  #else
         if (ioctl(sockfd, SIOCGIFCONF, &ifc) < 0) {
-  #endif
-  
+
             if (errno != EINVAL || lastlen != 0) {
 fprintf(stderr, "et_get_ifi_info: ioctl error\n");
                 close(sockfd);
@@ -2863,11 +2252,7 @@ fprintf(stderr, "et_get_ifi_info: ioctl error\n");
         memcpy(lastname, ifr->ifr_name, IFNAMSIZ);
 
         ifrcopy = *ifr;
-  #ifdef VXWORKS
-        ioctl(sockfd, SIOCGIFFLAGS, (int)&ifrcopy);
-  #else
         ioctl(sockfd, SIOCGIFFLAGS, &ifrcopy);
-  #endif
         flags = ifrcopy.ifr_flags;
         /* ignore if interface not up */
         if ((flags & IFF_UP) == 0) {
@@ -2891,11 +2276,7 @@ fprintf(stderr, "et_get_ifi_info: ioctl error\n");
                     memcpy(ifi->ifi_addr, sinptr, sizeof(struct sockaddr_in));
 
                     if (flags & IFF_BROADCAST) {
-  #ifdef VXWORKS
-                        ioctl(sockfd, SIOCGIFBRDADDR, (int)&ifrcopy);
-  #else
                         ioctl(sockfd, SIOCGIFBRDADDR, &ifrcopy);
-  #endif
                         sinptr = (struct sockaddr_in *) &ifrcopy.ifr_broadaddr;
                         ifi->ifi_brdaddr = calloc(1, sizeof(struct sockaddr_in));
 /*printf("et_get_ifi_info: Broadcast addr = %s\n", inet_ntoa(sinptr->sin_addr));*/
@@ -2903,22 +2284,14 @@ fprintf(stderr, "et_get_ifi_info: ioctl error\n");
                     }
 
                     if (flags & IFF_POINTOPOINT) {
-  #ifdef VXWORKS
-                        ioctl(sockfd, SIOCGIFDSTADDR, (int)&ifrcopy);
-  #else
                         ioctl(sockfd, SIOCGIFDSTADDR, &ifrcopy);
-  #endif
                         sinptr = (struct sockaddr_in *) &ifrcopy.ifr_dstaddr;
                         ifi->ifi_dstaddr = calloc(1, sizeof(struct sockaddr_in));
                         memcpy(ifi->ifi_dstaddr, sinptr, sizeof(struct sockaddr_in));
                     }
 
                     /* Get the subnet mask as well (added by Timmer) */
-#ifdef VXWORKS
-                    err = ioctl(sockfd, SIOCGIFNETMASK, (int)&ifrcopy);
-#else
                     err = ioctl(sockfd, SIOCGIFNETMASK, &ifrcopy);
-#endif
                     if (err == 0) {
                         sinptr = (struct sockaddr_in *) &ifrcopy.ifr_addr;
                         ifi->ifi_netmask = calloc(1, sizeof(struct sockaddr_in));
@@ -3021,9 +2394,6 @@ int codanetGetNetworkInfo(codaIpAddr **ipaddrs, codaNetInfo *info)
     struct ifi_info   *ifi, *ifihead;
     struct sockaddr   *sa;
     struct hostent    *hptr;
-#ifdef VXWORKS
-    char              vxhost[CODA_MAXHOSTNAMELEN];
-#endif
     int               i, debug=0;
     char              **pptr, *pChar, host[CODA_MAXHOSTNAMELEN];
     codaIpAddr         *ipaddr=NULL, *prev=NULL, *first=NULL;
@@ -3113,22 +2483,7 @@ int codanetGetNetworkInfo(codaIpAddr **ipaddrs, codaNetInfo *info)
     while (ipaddr != NULL) {
 
         /* try gethostbyaddr for each address until one succeeds */
-#ifdef VXWORKS
-        
-        if (hostGetByAddr(ipaddr->saddr.sin_addr.s_addr, vxhost) < 0) {
-            if (codanetDebug >= CODA_DEBUG_ERROR) {
-                fprintf(stderr,"%sGetNetworkInfo: error in hostGetByAddr, host unknown\n", codanetStr);
-            }
-            hptr = NULL;
-        }
-        else {
-            hptr = gethostbyname(vxhost);
-        }
-        
-        if (hptr != NULL) {
-        
-#else
-        
+
         hptr = gethostbyaddr((const char *)&ipaddr->saddr.sin_addr,
                               sizeof(struct in_addr), AF_INET);
         /* Occasionally, hptr is NULL since there is no OS data about an address,
@@ -3142,7 +2497,6 @@ int codanetGetNetworkInfo(codaIpAddr **ipaddrs, codaNetInfo *info)
 
         else {
 
-#endif
             /* copy canonical name ... */
             if (hptr->h_name != NULL) {
                 strncpy(first->canon, hptr->h_name, CODA_MAXHOSTNAMELEN-1);
@@ -3679,20 +3033,17 @@ int codanetGetIpAddrs(char ***ipAddrs, int *count, char *host) {
     }
 
     if (!hostIsLocal) {
-#ifndef VXWORKS
         /* make gethostbyname thread-safe */
         status = pthread_mutex_lock(&getHostByNameMutex);
         if (status != 0) {
             coda_err_abort(status, "Lock gethostbyname Mutex");
         }
-#endif   
+
         if ((hp = gethostbyname(host)) == NULL) {
-#ifndef VXWORKS
             status = pthread_mutex_unlock(&getHostByNameMutex);
             if (status != 0) {
                 coda_err_abort(status, "Unlock gethostbyname Mutex");
             }
-#endif
             if (codanetDebug >= CODA_DEBUG_ERROR) {
                 fprintf(stderr, "%sGetIpaddrs: hostname error - %s\n", codanetStr, codanetHstrerror(h_errnop));
             }
@@ -3731,13 +3082,10 @@ int codanetGetIpAddrs(char ***ipAddrs, int *count, char *host) {
             }
         }
 
-#ifndef VXWORKS
         status = pthread_mutex_unlock(&getHostByNameMutex);
         if (status != 0) {
             coda_err_abort(status, "Unlock gethostbyname Mutex");
         }
-#endif
-
     }
     
     /* else the host is local. */
@@ -3953,12 +3301,6 @@ codaIpList *codanetOrderIpAddrs(codaIpList *ipList, codaIpAddr *netinfo,
  */
 int codanetIsLinux(int *isLinux)
 {
-#ifdef VXWORKS
-
-    if (isLinux != NULL) *isLinux = 0;
-    return CODA_OK;
-
-#else
     struct utsname mysystem;
 
     /* find out the operating system of the machine we're on */
@@ -3975,7 +3317,6 @@ int codanetIsLinux(int *isLinux)
     }
 
     return CODA_OK;
-#endif
 }
 
 
@@ -4000,11 +3341,7 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
     struct sockaddr_in servaddr;
 
     /* put broad/multicast address into net-ordered binary form */
-#ifdef VXWORKS
-    if (inet_aton((char *)address, &castaddr) == INET_ATON_ERR) {
-#else
     if (inet_aton(address, &castaddr) == INET_ATON_ERR) {
-#endif
         fprintf(stderr, "%sUdpReceive: inet_aton error\n", codanetStr);
         return CODA_ERROR;
     }
