@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(et_15_1)
+project(et_16_0)
 
 include_directories($ENV{CODA}/common/include $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
 
@@ -42,4 +42,4 @@ set(SOURCE_FILES
     src/examples/et_producer.c
     )
 
-add_executable(et_15_1 ${SOURCE_FILES})
+add_executable(et_16_0 ${SOURCE_FILES})
