@@ -93,9 +93,7 @@ def is64BitMachine(env, platform, machine):
             return True
     else:
         ccflags = ''
-        if platform == 'SunOS':
-            ccflags = '-xarch=amd64'
-        
+
         # Run the test
         conf = Configure( env, custom_tests = { 'CheckBits' : CheckHas64Bits } )
         ret = conf.CheckBits(ccflags)
@@ -114,16 +112,7 @@ def is64BitMachine(env, platform, machine):
 
 def configure32bits(env, use32bits, platform):
     """Setup environment on 64 bit machine to handle 32 or 64 bit libs and executables."""
-    if platform == 'SunOS':
-        if not use32bits:
-            if machine == 'sun4u':
-                env.Append(CCFLAGS =   ['-xarch=native64', '-xcode=pic32'],
-                           LINKFLAGS = ['-xarch=native64', '-xcode=pic32'])
-            else:
-                env.Append(CCFLAGS =   ['-xarch=amd64'],
-                           LINKFLAGS = ['-xarch=amd64'])
-
-    elif platform == 'Darwin':
+    if platform == 'Darwin':
         if not use32bits:
             env.Append(CCFLAGS =   ['-arch x86_64'],
                        LINKFLAGS = ['-arch x86_64', '-Wl', '-bind_at_load'])
@@ -133,82 +122,6 @@ def configure32bits(env, use32bits, platform):
             env.Append(CCFLAGS = ['-m32'], LINKFLAGS = ['-m32'])
 
     return
-
-
-
-def configureVxworks(env, vxVersion, platform):
-    """Setup everything for vxWorks cross compilation."""
-    ## Figure out which version of vxworks is being used.
-    ## Do this by finding out which ccppc is first in our PATH.
-    #vxCompilerPath = Popen('which ccppc', shell=True, stdout=PIPE, stderr=PIPE).communicate()[0]
-    
-    ## Then ty to grab the major version number from the PATH
-    #matchResult = re.match('/site/vxworks/(\\d).+', vxCompilerPath)
-    #if matchResult != None:
-        ## Test if version number was obtained
-        #try:
-            #vxVersion = int(matchResult.group(1))
-        #except IndexError:
-            #print 'ERROR finding vxworks version, set to 6 by default\n'
-    
-    vxInc = ''
-
-    if vxVersion == 5.5:
-        vxbase = '/site/vxworks/5.5/ppc'
-        vxInc  = [vxbase + '/target/h']
-        env.Append(CPPDEFINES = ['VXWORKS_5'])
-    elif vxVersion == 6.0:
-        vxbase = '/site/vxworks/6.0/ppc/gnu/3.3.2-vxworks60'
-        vxInc  = ['/site/vxworks/6.0/ppc/vxworks-6.0/target/h',
-                  '/site/vxworks/6.0/ppc/vxworks-6.0/target/h/wrn/coreip']
-        env.Append(CPPDEFINES = ['VXWORKS_6'])
-    else:
-        print 'Unknown version of vxWorks, exiting'
-        return 0
-
-
-    if platform == 'Linux':
-        if vxVersion == 5.5:
-            vxbin = vxbase + '/host/x86-linux/bin/'
-        else:
-            vxbin = vxbase + '/x86-linux2/bin/'
-    elif platform == 'SunOS':
-        if vxVersion >= 6:
-            print '\nVxworks 6.x compilation not allowed on solaris'
-            return 0
-        vxbin = vxbase + '/host/sun4-solaris2/bin/'
-        if machine == 'i86pc':
-            print '\nVxworks compilation not allowed on x86 solaris'
-            return 0
-    else:
-        print '\nVxworks compilation not allowed on ' + platform
-        return 0
-        
-                    
-    # If the supplied vxworks path is bad, rely
-    # on the PATH to find vxworks executables
-    if not os.path.exists(vxbin):
-        vxbin = ''
-    
-
-    env.Replace(SHLIBSUFFIX = '.o')
-    # Get rid of -shared and use -r
-    env.Replace(SHLINKFLAGS = '-r')
-    # Redefine SHCFLAGS/SHCCFLAGS to get rid of -fPIC (in Linux)
-    vxFlags = '-fno-builtin -fvolatile -fstrength-reduce -mlongcall -mcpu=604'
-    env.Replace(SHCFLAGS  = vxFlags)
-    env.Replace(SHCCFLAGS = vxFlags)
-    env.Append(CFLAGS     = vxFlags)
-    env.Append(CCFLAGS    = vxFlags)
-    env.Append(CPPPATH    = vxInc)
-    env.Append(CPPDEFINES = ['CPU=PPC604', 'VXWORKS', '_GNU_TOOL', 'VXWORKSPPC', 'POSIX_MISTAKE', 'NO_RW_LOCK'])
-    env['CC']     = vxbin + 'ccppc'
-    env['CXX']    = vxbin + 'g++ppc'
-    env['SHLINK'] = vxbin + 'ldppc'
-    env['AR']     = vxbin + 'arppc'
-    env['RANLIB'] = vxbin + 'ranlibppc'
-    
-    return 1
 
 
 

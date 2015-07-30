@@ -68,18 +68,6 @@ debug = GetOption('ddebug')
 if debug: print "Enable debugging"
 Help('--dbg               compile with debug flag\n')
 
-# vxworks 5.5 option
-AddOption('--vx5.5', dest='doVX55', default=False, action='store_true')
-useVxworks55 = GetOption('doVX55')
-if useVxworks55: print "Use vxWorks version 5.5"
-Help('--vx5.5             cross compile for vxworks 5.5\n')
-
-# vxworks 6.0 option
-AddOption('--vx6.0', dest='doVX60', default=False, action='store_true')
-useVxworks60 = GetOption('doVX60')
-if useVxworks60: print "Use vxWorks version 6.0"
-Help('--vx6.0             cross compile for vxworks 6.0\n')
-
 # 32 bit option
 AddOption('--32bits', dest='use32bits', default=False, action='store_true')
 use32bits = GetOption('use32bits')
@@ -117,26 +105,12 @@ Help('--bindir=<dir>      copy binary  files to directory <dir> when doing insta
 # Compile flags
 #########################
 
-# 2 possible versions of vxWorks
-useVxworks = False
-if useVxworks55:
-    useVxworks = True
-    vxVersion  = 5.5
-elif useVxworks60:
-    useVxworks = True
-    vxVersion  = 6.0
-
-
 # Debug/optimization flags
 debugSuffix = ''
 if debug:
     debugSuffix = '-dbg'
     # Compile with -g and add debugSuffix to all executable names
     env.Append(CCFLAGS = '-g', PROGSUFFIX = debugSuffix)
-
-elif platform == 'SunOS':
-    env.Append(CCFLAGS = ['-xO3'])
-
 else:
     env.Append(CCFLAGS = ['-O3'])
 
@@ -152,37 +126,19 @@ elif not use32bits:
 execLibs = ['']
 
 
-# If using vxworks ...
-if useVxworks:
-    
-    use32bits = True
-    osname = 'vxworks'+ str(vxVersion) + '-ppc'
+if noReadWriteLocks:
+    env.Append(CPPDEFINES = ['NO_RW_LOCK'])
 
-    if not coda.configureVxworks(env, vxVersion, platform):
-        print '\nCannot set enviroment for vxWorks ' + str(vxVersion) + ', exiting\n'
-        Exit(0)
-
-# else if NOT using vxworks ...
-else:
-    if noReadWriteLocks:
-        env.Append(CPPDEFINES = ['NO_RW_LOCK'])
-
-    # Platform dependent quantities.
-    # Default to standard Linux libs.
-    execLibs = ['m', 'pthread', 'dl', 'rt']
-    
-    if platform == 'SunOS':
-        env.Append(CCFLAGS = ['-mt'])
-        env.Append(CPPDEFINES = ['_GNU_SOURCE', '_REENTRANT', '_POSIX_PTHREAD_SEMANTICS', 'SunOS'])
-        execLibs = ['m', 'posix4', 'pthread', 'socket', 'resolv', 'nsl', 'dl']
-    
-    elif platform == 'Darwin':
-        execLibs = ['pthread', 'dl']
-        env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined',  '-flat_namespace', 'suppress'])
-        env.Append(CCFLAGS = ['-fmessage-length=0'])
+# Platform dependent quantities.
+# Default to standard Linux libs.
+execLibs = ['m', 'pthread', 'dl', 'rt']
+if platform == 'Darwin':
+    execLibs = ['pthread', 'dl']
+    env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined',  '-flat_namespace', 'suppress'])
+    env.Append(CCFLAGS = ['-fmessage-length=0'])
 
 
-if is64bits and use32bits and not useVxworks:
+if is64bits and use32bits:
     osname = osname + '-32'
 
 print "OSNAME =", osname
@@ -272,9 +228,6 @@ Help('undoc               remove doxygen/javadoc (in ./doc)\n')
 #########################
 
 if 'tar' in COMMAND_LINE_TARGETS:
-    if platform == 'SunOS':
-        print '\nMake tar file from Linux or MacOS please\n'
-        Exit(0)
     coda.generateTarFile(env, 'et', versionMajor, versionMinor)
 
 # use "tar" on command line to create tar file
@@ -289,10 +242,6 @@ Help('tar                 create tar file (in ./tar)\n')
 Export('env archDir incInstallDir libInstallDir binInstallDir archIncInstallDir execLibs debugSuffix')
 
 # Run lower level build files
-if useVxworks:
-    env.SConscript('src/libsrc/SConscript.vx',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
-    env.SConscript('src/examples/SConscript.vx', variant_dir='src/examples/'+archDir, duplicate=0)
-else:
-    env.SConscript('src/libsrc/SConscript',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
-    env.SConscript('src/execsrc/SConscript',  variant_dir='src/execsrc/'+archDir,  duplicate=0)
-    env.SConscript('src/examples/SConscript', variant_dir='src/examples/'+archDir, duplicate=0)
+env.SConscript('src/libsrc/SConscript',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
+env.SConscript('src/execsrc/SConscript',  variant_dir='src/execsrc/'+archDir,  duplicate=0)
+env.SConscript('src/examples/SConscript', variant_dir='src/examples/'+archDir, duplicate=0)
