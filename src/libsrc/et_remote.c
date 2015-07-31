@@ -103,7 +103,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
         if (port > 0) {
             /* make the network connection */
             if (inetaddr == 0) {
-et_logmsg("INFO","etr_open: try to connect to host %s on port %d through my %s\n",ethost,port,ifRegularIP);
+et_logmsg("INFO","etr_open: try to connect to host %s on port %d through my %s interface\n",ethost,port,ifRegularIP);
                 if (etNetTcpConnect(ethost, ifRegularIP, (unsigned short)port,
                                     config->tcpSendBufSize, config->tcpRecvBufSize,
                                     config->tcpNoDelay,
@@ -113,7 +113,7 @@ et_logmsg("INFO","etr_open: try to connect to host %s on port %d through my %s\n
                     }
             }
             else {
-et_logmsg("INFO","etr_open: try to connect to address %u (host %s) on port %d through my %s\n",
+et_logmsg("INFO","etr_open: try to connect to address %u (host %s) on port %d through my %s interface\n",
           inetaddr,ethost,port,ifRegularIP);
                 if (etNetTcpConnect2(inetaddr, ifRegularIP, (unsigned short)port,
                                      config->tcpSendBufSize, config->tcpRecvBufSize,
@@ -150,7 +150,7 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
 
                 /* Try the IP addresses sent by ET system, one-by-one. */
                 while (dotDecAddr != NULL) {
-et_logmsg("INFO","etr_open: try host %s on port %d through my %s\n",
+et_logmsg("INFO","etr_open: try host %s on port %d through my %s interface\n",
           dotDecAddr->addr,port,ifRegularIP);
                     err = etNetTcpConnectTimeout2(dotDecAddr->addr, ifRegularIP, (unsigned short)port,
                                                   config->tcpSendBufSize, config->tcpRecvBufSize,
