@@ -1747,7 +1747,7 @@ int codanetNodeIsLocal(const char *host, int *isLocal)
         codanetDebug = debugTemp;
         return CODA_ERROR;
     }
-  
+
     if ( (status = codanetNodeSame(host, myname.nodename, &same)) != CODA_OK) {
         if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sNodeIsLocal: error in codanetNodeSame\n", codanetStr);
         codanetDebug = debugTemp;
@@ -3430,3 +3430,117 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
 
     return CODA_OK;
 }
+
+
+/**
+ * This routine is used in the ET system to create a server's udp
+ * socket to receive udp packets.
+ *
+ * @param port           listening udp port number
+ * @param multicastAddrs array of multicast addresses to listen for
+ * @param addrCount      number of multicast addresses in array
+ * @param fd             pointer to int which gets filled with listening socket's file descriptor
+ *
+ * @returns ET/CMSG_OK                        if successful
+ * @returns ET/CMSG_ERROR                     if cannot find network interface info
+ * @returns ET_ERROR_SOCKET/CMSG_SOCKET_ERROR if socket could not be created or socket options could not be set.
+ */
+int codanetUdpReceiveAll(unsigned short port, char multicastAddrs[][CODA_IPADDRSTRLEN], int addrCount, int *fd) {
+
+    int                i, err, sockfd;
+    const int          on = 1;
+    struct in_addr     castaddr;
+    struct sockaddr_in servaddr;
+
+    /* Accept packets arriving at all addresses */
+    bzero((void *)&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(port);
+
+    /* Create socket */
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sUdpReceive: socket error\n", codanetStr);
+        return CODA_SOCKET_ERROR;
+    }
+
+    /* Allow multiple copies of this to run on same host */
+    err = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (void *) &on, sizeof(on));
+    if (err < 0) {
+        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sUdpReceive: setsockopt error\n", codanetStr);
+        return CODA_SOCKET_ERROR;
+    }
+
+    printf("%sUdpReceive: addrCount = %d\n",codanetStr, addrCount);
+    /* Add each multicast address to multicast group on each network interface */
+    for (i=0; i < addrCount; i++) {
+
+        struct ifi_info  *ifi, *ifihead;
+        struct ip_mreq    mreq;
+        struct sockaddr   *sa;
+        printf("%sUdpReceive: mcast addr = %s\n",codanetStr, multicastAddrs[i]);
+
+        /* Put multicast address into net-ordered binary form */
+        if (inet_aton(multicastAddrs[i], &castaddr) == INET_ATON_ERR) {
+            fprintf(stderr, "%sUdpReceive: inet_aton error\n", codanetStr);
+            return CODA_ERROR;
+        }
+
+        memcpy(&mreq.imr_multiaddr, &castaddr, sizeof(struct in_addr));
+
+        /* Look through all IPv4 interfaces */
+        ifihead = ifi = codanetGetInterfaceInfo(AF_INET, 0);
+        if (ifi == NULL) {
+            if (codanetDebug >= CODA_DEBUG_ERROR) {
+                fprintf(stderr, "%sGetNetworkInfo: cannot find network interface info\n", codanetStr);
+            }
+            return CODA_ERROR;
+        }
+
+        for (;ifi != NULL; ifi = ifi->ifi_next) {
+            /* Do NOT ignore loopback interface for now */
+
+            /* If the interface is up */
+            if (ifi->ifi_flags & IFF_UP) {
+                /* if there is an address listed ... */
+                if ( (sa = ifi->ifi_addr) != NULL) {
+                    /* Accept multicast over this interface */
+printf("%sUdpReceive: joining %s on interface %s on port %hu\n", codanetStr, multicastAddrs[i], ifi->ifi_name, port);
+                    memcpy(&mreq.imr_interface,
+                           &((struct sockaddr_in *) sa)->sin_addr,
+                           sizeof(struct in_addr));
+
+                    err = setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *) &mreq, sizeof(mreq));
+                    if (err < 0) {
+                        perror("codaNetUdpReceive: ");
+                        codanetFreeInterfaceInfo(ifihead);
+                        if (codanetDebug >= CODA_DEBUG_ERROR) {
+                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error: %s\n", codanetStr);
+                        }
+                        return CODA_SOCKET_ERROR;
+                    }
+                }
+            }
+        }
+
+        /* free memory */
+        codanetFreeInterfaceInfo(ifihead);
+    }
+
+    /* Only allow packets to this port & address to be received */
+
+    err = bind(sockfd, (SA *) &servaddr, sizeof(servaddr));
+    if (err < 0) {
+        char errnostr[255];
+        sprintf(errnostr,"err=%d ",errno);
+        perror(errnostr);
+        if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sUdpReceive: bind error\n", codanetStr);
+        return CODA_SOCKET_ERROR;
+    }
+
+    if (fd != NULL) *fd = sockfd;
+
+    return CODA_OK;
+}
+
