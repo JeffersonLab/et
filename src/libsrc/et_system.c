@@ -491,15 +491,8 @@ int et_system_close(et_sys_id id) {
     /* stop tcp server thread */
     et_sys_stopthread(etid->sys->tid_srv);
 
-    /* stop broad/multicast listening threads */
-    for (i=0; i < config.bcastaddrs.count; i++) {
-//printf("et_system_close: stop listening thd on bcast = %s\n", config.bcastaddrs.addr[i]);
-        et_sys_stopthread(config.bcastaddrs.tid[i]);
-    }
-    for (i=0; i < config.mcastaddrs.count; i++) {
-//printf("et_system_close: stop listening thd on mcast = %s\n", config.mcastaddrs.addr[i]);
-        et_sys_stopthread(config.mcastaddrs.tid[i]);
-    }
+    /* stop broad/multicast listening thread */
+    et_sys_stopthread(etid->sys->tid_mul);
 
     /* stop heartbeat & heartmonitor threads */
     et_sys_stopthread(etid->sys->tid_hb);
