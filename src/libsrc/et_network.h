@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#define socklen_t int
+//#define socklen_t int
 
 #ifdef linux
   #ifndef _SC_IOV_MAX

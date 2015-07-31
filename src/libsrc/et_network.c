@@ -24,12 +24,14 @@
 #include <errno.h>
 #include <netdb.h>
 
-
+/*
 #include <strings.h>
 #include <sys/uio.h>
 #include <sys/time.h>
 #include <sys/select.h>
 #include <sys/utsname.h>
+*/
+
 #ifdef __APPLE__
 #include <ifaddrs.h>
 #endif
@@ -45,8 +47,8 @@
  */
 uint64_t et_ntoh64(uint64_t n) {
     uint64_t h;
-    uint64_t tmp = ntohl(n & 0x00000000ffffffff);
-    h = ntohl(n >> 32);
+    uint64_t tmp = ntohl((uint32_t) (n & 0x00000000ffffffff));
+    h = ntohl((uint32_t) (n >> 32));
     h |= tmp << 32;
     return h;
 }
@@ -160,9 +162,9 @@ void et_freeAnswers(et_response *answer) {
 codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
                             char* preferredSubnet) {
     
-    int i, err, onSameSubnet, onPreferredSubnet, preferredCount=0, firstTime=1;
+    int i, onSameSubnet, onPreferredSubnet, preferredCount=0, firstTime=1;
     char *ipAddress, *bcastAddress;
-    codaIpList *listItem, *lastItem, *lastPrefItem, *firstItem = NULL, *firstPrefItem = NULL;
+    codaIpList *listItem, *lastItem = NULL, *lastPrefItem = NULL, *firstItem = NULL, *firstPrefItem = NULL;
     codaIpAddr *local;
     
     if (response == NULL) return NULL;
@@ -252,7 +254,6 @@ codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
     
     /* Combine lists */
     lastPrefItem->next = firstItem;
-    lastPrefItem = firstItem;
 
     return firstPrefItem;
 }
@@ -394,11 +395,11 @@ int et_responds(const char *etname)
 int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetaddr,
                    et_response **allETinfo, et_open_config *config, int trys, struct timeval *waittime)
 {
-    int          i, j, k, l, m, n, err, version, addrCount, addrCount2, castType;
+    int          i, j, k, l, m, n, err, addrCount, addrCount2;
     int          gotMatch=0, subnetCount=0, ipAddrCount=0;
-    int          length, len_net, lastdelay, maxtrys=6, serverport=0, debug=0, magicInts[3];
+    int          len_net, lastdelay, maxtrys=6, serverport=0, debug=0;
     const int    on=1, timeincr[]={0,1,2,3,4,5};
-    uint32_t     addr;
+    uint32_t     version, length, addr, magicInts[3], castType;
     codaIpList   *baddr;
    
     /* encoding & decoding packets */
@@ -444,7 +445,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     }
   
     /* allocate space to store all our outgoing stuff */
-    send = (struct senddata *) calloc(subnetCount + config->mcastaddrs.count,
+    send = (struct senddata *) calloc((size_t) (subnetCount + config->mcastaddrs.count),
                                       sizeof(struct senddata));
     if (send == NULL) {
         fprintf(stderr, "et_findserver: cannot allocate memory\n");
@@ -592,7 +593,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
              * if ttl = 1 since that's the default.
              */
             if (config->ttl != 1) {
-                unsigned char ttl = config->ttl;
+                unsigned char ttl = (unsigned char) config->ttl;
           
                 err = setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_TTL, (void *) &ttl, sizeof(ttl));
                 if (err < 0){
@@ -626,7 +627,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
         delaytime.tv_sec  = 0;
         delaytime.tv_nsec = 0;
     }
-    lastdelay = delaytime.tv_sec;
+    lastdelay = (int) delaytime.tv_sec;
   
     /* make select return after 0.01 seconds */
     tv.tv_sec  = 0;
@@ -658,7 +659,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     pbuf   += sizeof(version);
   
     /* length of ET system name string */
-    length  = strlen(etname)+1;
+    length  = (uint32_t) strlen(etname)+1;
     len_net = htonl(length);
     memcpy(pbuf, &len_net, sizeof(len_net));
     pbuf += sizeof(len_net);
@@ -678,7 +679,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     
         /* Increase waiting time for response each round. */
         delaytime.tv_sec = lastdelay + timeincr[i];
-        lastdelay = delaytime.tv_sec;
+        lastdelay = (int)delaytime.tv_sec;
     
         /* reset "rset" value each time select is called */
         for (j=0; j<numsockets; j++) {
@@ -721,7 +722,6 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 }
           
 anotherpacket:
-
                 /* get back a packet from a server */
                 len = sizeof(cliaddr);
                 n = recvfrom(send[j].sockfd, (void *) buffer, sizeof(buffer), 0, (SA *) &cliaddr, &len);
@@ -829,7 +829,7 @@ anotherpacket:
 
                     /* get ET system's TCP port */
                     memcpy(&serverport, pbuf, sizeof(serverport));
-                    serverport = ntohl(serverport);
+                    serverport = ntohl((uint32_t)serverport);
                     if ((serverport < 1) || (serverport > 65536)) {
                         free(answer);
                         break;
@@ -841,7 +841,7 @@ anotherpacket:
                     memcpy(&castType, pbuf, sizeof(castType));
                     castType = ntohl(castType);
                     // NOT USED ANYMORE, just set to ET_MULTICAST for everything, ignore
-                    answer->castType = castType;
+                    answer->castType = (int)castType;
                     pbuf += sizeof(castType);
 
                     /* get broad/multicast IP original packet sent to */
@@ -884,7 +884,7 @@ anotherpacket:
 
                     /* get number of IP addrs */
                     memcpy(&addrCount, pbuf, sizeof(addrCount));
-                    addrCount = ntohl(addrCount);
+                    addrCount = ntohl((uint32_t)addrCount);
                     if ((addrCount < 0) || (addrCount > 20)) {
                         free(answer);
                         break;
@@ -893,8 +893,8 @@ anotherpacket:
                     pbuf += sizeof(addrCount);
 
                     /* allocate mem - arrays of ints & char *'s */
-                    answer->addrs = (uint32_t *)calloc(addrCount, sizeof(uint32_t));
-                    answer->ipaddrs =  (char **)calloc(addrCount, sizeof(char *));
+                    answer->addrs = (uint32_t *)calloc((size_t)addrCount, sizeof(uint32_t));
+                    answer->ipaddrs =  (char **)calloc((size_t)addrCount, sizeof(char *));
                     if (answer->addrs == NULL || answer->ipaddrs == NULL) {
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
@@ -948,13 +948,13 @@ anotherpacket:
 
                     /* get number of broadcast addrs (must be same as # of IP addrs) */
                     memcpy(&addrCount2, pbuf, sizeof(addrCount2));
-                    addrCount2 = ntohl(addrCount2);
+                    addrCount2 = ntohl((uint32_t)addrCount2);
                     pbuf += sizeof(addrCount2);
                     
                     /* If we have valid broadcast data, read it in, if not, ignore */
                     if (addrCount2 == addrCount) {
                         /* allocate mem - arrays of char *'s */
-                        answer->bcastaddrs =  (char **)calloc(addrCount, sizeof(char *));
+                        answer->bcastaddrs =  (char **)calloc((size_t)addrCount, sizeof(char *));
                         if (answer->bcastaddrs == NULL) {
                             for (k=0; k<numsockets; k++) {
                                 close(send[k].sockfd);
