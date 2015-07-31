@@ -18,13 +18,15 @@
  *----------------------------------------------------------------------------*/
 
 #include <stdio.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <math.h>
 #include <unistd.h>
+/*
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+*/
 
 #include "et_private.h"
 
@@ -41,7 +43,6 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
   mode_t    mode;
 
   /* get system's pagesize in bytes: 8192-sun, 4096-linux */
-  /*pagesize = sysconf(_SC_PAGESIZE);*/
   pagesize = (size_t) getpagesize();
 
   /* Calculate mem size for everything, adding room for initial data in mapped mem */
@@ -108,7 +109,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
  * usedsize       : desired size of mapped memory given as arg
  *                : to et_mem_create.
  */
-void *et_mem_write_first_block(char *ptr,
+void et_mem_write_first_block(char *ptr,
                                uint32_t headerByteSize, uint64_t eventByteSize,
                                uint64_t headerPosition, uint64_t dataPosition,
                                uint64_t totalByteSize,  uint64_t usedByteSize)
@@ -137,7 +138,7 @@ void *et_mem_write_first_block(char *ptr,
  */
 int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
 {
-  int        fd, correctEndian=0;
+  int        fd;
   char      *ptr;
   size_t     totalsize;
   void      *pmem;
@@ -243,8 +244,7 @@ int et_mem_size(const char *name, size_t *totalsize, size_t *usedsize)
   int     fd;
   void   *pmem;
   char   *ptr;
-  et_mem  info;
-  
+
   /* open file */
   if ((fd = open(name, O_RDWR, S_IRWXU)) < 0) {
     return ET_ERROR;
