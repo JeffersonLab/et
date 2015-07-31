@@ -72,6 +72,7 @@ extern int etDebug;
 #define   codanetTcpConnectTimeout2     etNetTcpConnectTimeout2
 #define   codanetGetListeningSocket     etNetGetListeningSocket
 #define   codanetUdpReceive             etNetUdpReceive
+#define   codanetUdpReceiveAll          etNetUdpReceiveAll
 
 #define   codanetTcpRead                etNetTcpRead
 #define   codanetTcpRead3iNB            etNetTcpRead3iNB
@@ -240,6 +241,7 @@ extern int   codanetGetListeningSocket(int nonblocking, unsigned short startingP
                                        int *finalPort, int *fd);
 extern int   codanetAccept(int fd, struct sockaddr *sa, socklen_t *salenptr);
 extern int   codanetUdpReceive(unsigned short port, const char *address, int multicast, int *fd);
+extern int   codanetUdpReceiveAll(unsigned short port, char multicastAddrs[][CODA_IPADDRSTRLEN], int addrCount, int *fd);
 
 extern int   codanetTcpRead(int fd, void *vptr, int n);
 extern int   codanetTcpRead3iNB(int fd, int *i1, int *i2, int *i3);
