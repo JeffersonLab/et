@@ -46,379 +46,290 @@ typedef struct et_threadinfo_t {
 
 /* prototypes */
 static void *et_client_thread(void *arg);
-static void *et_listen_thread(void *arg);
 static void  et_command_loop(et_threadinfo *info);
 
 
-/************************************************************
- * This thread starts one thread for each local IP address
- * (from one or more interfaces), each local subnet broadcast
- * address, and each desired multicast address. The aim is that
- * the ET system can be listening on each for a UDP packet
- * looking to find this ET system.
- ************************************************************/
-void *et_cast_thread(void *arg)
-{
-  et_netthread    *threadarg = (et_netthread *) arg;
-  et_netthread    *newarg;
-  et_sys_config   *config = threadarg->config;
-  et_id           *etid   = threadarg->id;
-  int             i=0;
-  pthread_attr_t  attr;
-  char            unamehost[ET_MAXHOSTNAMELEN];
-
-  /* get thread attribute ready */
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-  /* get uname of this host */
-  if (etNetGetUname(unamehost, ET_MAXHOSTNAMELEN) != ET_OK) {
-    strcpy(unamehost, "..."); /* nothing will match this */
-  }
-  
-  /* thread for each subnet broadcast IP address - listen for broadcasts */
-  for (i=0; i < config->bcastaddrs.count; i++) {
-    /* allocate struct for passing info to listening thread */
-    newarg = (et_netthread *) malloc(sizeof(et_netthread));
-    if (newarg == NULL) {
-      if (etid->debug >= ET_DEBUG_SEVERE) {
-        et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
-      }
-      exit(1);
-    }
-    /* each thread gets a slightly different arg passed to it */
-    newarg->id = etid;
-    newarg->cast = ET_BROADCAST;
-    newarg->config = config;
-    newarg->listenaddr = config->bcastaddrs.addr[i];
-    strcpy(newarg->uname, unamehost);
-
-    pthread_create(&config->bcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
-  }
-
-  /* Thread for the general subnet broadcast IP address of 255.255.255.255 to
-   * listen for broadcasts (sent by java clients). Some recent versions of the
-   * Mac OS give an error when binding a socket to the 255.255.255.255 address.
-   * If the error occurs, exit that listen thread and forget about it.
-   */
-  newarg = (et_netthread *) malloc(sizeof(et_netthread));
-  if (newarg == NULL) {
-    if (etid->debug >= ET_DEBUG_SEVERE) {
-      et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
-    }
-    exit(1);
-  }
-  /* each thread gets a slightly different arg passed to it */
-  newarg->id = etid;
-  newarg->cast = ET_BROADCAST;
-  newarg->config = config;
-  newarg->listenaddr = "255.255.255.255";
-  /* Store this info permanently as it is NOT in the original call to et_system_config_init.
-   * There is room for it, however, as that routine returns on error otherwise. */ 
-  strcpy(config->bcastaddrs.addr[config->bcastaddrs.count++], "255.255.255.255");
-  strcpy(newarg->uname, unamehost);
-
-  pthread_create(&config->bcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
-
-  /* If we wanted to, we could specify the interface address to accept
-   * the multicast packet on, but we'll forget about it for now.
-   */
-
-  /* thread for each multicast address */
-  for (i=0; i<config->mcastaddrs.count; i++) {
-    /* each thread gets a slightly different arg passed to it */
-    newarg = (et_netthread *) malloc(sizeof(et_netthread));
-    if (newarg == NULL) {
-      if (etid->debug >= ET_DEBUG_SEVERE) {
-        et_logmsg("SEVERE", "et_cast_thread: cannot allocate memory\n");
-      }
-      exit(1);
-    }
-    newarg->id = etid;
-    newarg->cast = ET_MULTICAST;
-    newarg->config = config;
-    newarg->listenaddr = config->mcastaddrs.addr[i];
-    strcpy(newarg->uname, unamehost);
-
-    pthread_create(&config->mcastaddrs.tid[i], &attr, et_listen_thread, (void *) newarg);
-  }
-
-  /* send signal to main thread that this thread has started */
-  etid->race = -1;
-
-  return NULL;
-}
-
-
-/************************************************************
- * Thread for listening to clients who broadcast or
- * multicast.
+/**
+ * This routine implements a thread which is listening on all addresses for a UDP
+ * packet looking to find this ET system.
+ *
+ * @param arg pointer to et_netthread structure for passing in info.
  */
-static void *et_listen_thread(void *arg)
-{
-  et_netthread       *threadarg  = (et_netthread *) arg;
-  et_sys_config      *config     = threadarg->config;
-  et_id              *etid       = threadarg->id;
-  int                cast        = threadarg->cast;
-  char               *uname      = threadarg->uname;
-  char               *listenaddr = threadarg->listenaddr;
-  codaIpInfo         *pinfo      = config->netinfo.ipinfo;
-  int                ipAddrCount = config->netinfo.count;
+void *et_cast_thread(void *arg) {
 
-  int                i, j, k, version, sockfd, nbytes, length, len, err;
-  int                magicInts[3], addrCount=0, debug=0;
-  uint32_t           netint;
-  size_t             bufsize;
-  char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+1+5*sizeof(int)];
-  char               filename[ET_FILENAME_LENGTH];
-  socklen_t          slen;
-  struct sockaddr_in cliaddr;
+    et_netthread       *threadarg = (et_netthread *) arg;
+    et_sys_config      *config = threadarg->config;
+    et_id              *etid   = threadarg->id;
+    pthread_attr_t     attr;
+    char               uname[ET_MAXHOSTNAMELEN];
+    codaIpInfo         *pinfo = config->netinfo.ipinfo;
+    int                cast = ET_MULTICAST; /* not used anymore */
+    int                ipAddrCount = config->netinfo.count;
+    int                i=0, j, version, sockfd, nbytes, length, err;
+    int                magicInts[3], debug=0;
+    uint32_t           k, len, netint;
+    size_t             bufsize;
+    char               *outbuf, *pbuf, inbuf[ET_FILENAME_LENGTH+1+5*sizeof(int)];
+    char               filename[ET_FILENAME_LENGTH];
+    socklen_t          slen;
+    struct sockaddr_in cliaddr;
 
-  /* setup socket for receiving udp packets */
-  err = etNetUdpReceive((unsigned short)config->port, listenaddr, cast == ET_MULTICAST, &sockfd);
-  if (err != ET_OK || sockfd < 0) {
-    if (etid->debug >= ET_DEBUG_SEVERE) {
-      et_logmsg("SEVERE", "et_listen_thread: problem opening socket\n");
-    }
-    /* if Mac OS bombs on binding to this address, just exit thread and forget about it */
-    if (strcmp("255.255.255.255", listenaddr) == 0) {
-      pthread_exit(NULL);
-    }
-    exit(1);
-  }
-/*printf("Listening on port %d, address %s\n", config->port, addr);*/
+    etid->debug = ET_DEBUG_INFO;
 
-  /* Prepare output buffer we send in answer to inquiries:
-   *
-   *  (0)  ET magic numbers (3 ints)
-   *  (1)  ET version #
-   *  (2)  port of tcp server thread (not udp config->port)
-   *  (3)  ET_BROADCAST or ET_MULTICAST (int)
-   *  (4)  length of next string
-   *  (5)    broadcast address (dotted-dec) if broadcast received or
-   *         multicast address (dotted-dec) if multicast received
-   *         (see int #3)
-   *  (6)  length of next string
-   *  (7)    hostname given by "uname" (used as a general
-   *         identifier of this host no matter which interface is used)
-   *  (8)  length of next string
-   *  (9)    canonical name of host
-   *  (10) number of IP addresses
-   *  Loop over # of addresses
-   *   |    (11)   32bit, net-byte ordered IPv4 address assoc with following address
-   *   |    (12)   length of next string (dot-decimal addr)
-   *   V    (13)   dot-decimal IPv4 address
-   * 
-   *  The following was added to allow easy matching of subnets.
-   *  Although item (14) it is the same as item (10), it's repeated
-   *  here as a precaution. If, for a client, 14 does not have the same
-   *  value as 10, then the ET system must be of an older variety without
-   *  the following data. Thus, things are backwards compatible.
-   * 
-   *  (14) number of broadcast addresses
-   *  Loop over # of addresses
-   *   |    (15)   length of next string (broadcast addr)
-   *   V    (16)   dotted-decimal broadcast address
-   *               corresponding to same order in previous loop
-   * 
-   *  All known IP addresses & their corresponding broadcast addresses
-   *  are sent here both in numerical & dotted-decimal forms.
-   *
-   */
-  if (debug)
-    printf("\n\net_listen_thread: listening on addr = %s @ port %d\n", listenaddr, config->port);
+    /* get thread attribute ready */
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  /* find length of necessary buffer */
-  bufsize = sizeof(magicInts) + 8*sizeof(int) + strlen(uname) + strlen(pinfo[0].canon) + strlen(listenaddr) + 3 /* 3 NULLs */;
-  
-  /* look through the list of all IP addresses (and related data) */
-  for (i=0; i < ipAddrCount; i++) {
-if (debug)
-printf("et_listen_thread: broadcast addr %s of IP addr #%d, MATCHES listening addr %s, so count addrs assoc. with it\n",
-              pinfo[i].broadcast, i, listenaddr);
-    addrCount++;
-    bufsize += 3*sizeof(int) + strlen(pinfo[i].addr) + 1 + strlen(pinfo[i].broadcast) + 1;
-  }
-
-  /* allocate packet's buffer */
-  if (debug) printf("et_listen_thread: malloc bufsize = %d\n", (int)bufsize);
-  if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
-      if (etid->debug >= ET_DEBUG_SEVERE) {
-          et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
-      }
-      exit(1);
-  }
-
-  /* ******************** */
-  /* put data into buffer */
-  /* ******************** */
-  
-  /* 0) magic numbers */
-  magicInts[0] = htonl(ET_MAGIC_INT1);
-  magicInts[1] = htonl(ET_MAGIC_INT2);
-  magicInts[2] = htonl(ET_MAGIC_INT3);
-  memcpy(pbuf, magicInts, sizeof(magicInts));
-  pbuf += sizeof(magicInts);
-
-  /* 1) ET version */
-  k = htonl(etid->version);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  /* 2) TCP server port */
-  k = htonl(etid->sys->port);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  /* 3) received broadcast or multicast packet? */
-  k = htonl(cast);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  /* 4 & 5) broadcast or multicast address (dotted-dec) */
-  len = strlen(listenaddr)+1;
-  k = htonl(len);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  memcpy(pbuf, listenaddr, len);
-  pbuf += len;
-  
-  /* 6 & 7) uname */
-  len = strlen(uname)+1;
-  k = htonl(len);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  memcpy(pbuf, uname, len);
-  pbuf += len;
-  
-  /* 8 & 9) canonical name if there is one */
-  len = strlen(pinfo[0].canon)+1;
-  if (len > 1) {
-    k = htonl(len);
-    memcpy(pbuf, &k, sizeof(k));
-    pbuf += sizeof(k);
-  
-    memcpy(pbuf, pinfo[0].canon, len);
-    pbuf += len;
-  }
-  else {
-      k = 0;
-      memcpy(pbuf, &k, sizeof(k));
-      pbuf += sizeof(k);
-  }
-  
-  /* 10) number of addresses to follow */
-  k = htonl(addrCount);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  /* look through the list of all IP addresses (and related data) */
-  for (i=0; i < ipAddrCount; i++) {    
-    /* 11) 32 bit IP address (already network byte ordered) */
-    netint = (uint32_t) pinfo[i].saddr.sin_addr.s_addr;
-    memcpy(pbuf, &netint, sizeof(netint));
-    pbuf += sizeof(netint);
-
-    /* 12 & 13) IP address (dotted-decimal), length first */
-    len = strlen(pinfo[i].addr)+1;
-    k = htonl(len);
-    memcpy(pbuf, &k, sizeof(k));
-    pbuf += sizeof(k);
-    if (debug)
-        printf("et_listen_thread: will send to cli, addr = %u, len = %d, addr = %s\n", netint, len, pinfo[i].addr);
-
-    memcpy(pbuf, pinfo[i].addr, len);
-    pbuf += len;
-  }
-  
-  /* 14) number of addresses to follow (allows other end to be backwards compatible with this addition) */
-  k = htonl(addrCount);
-  memcpy(pbuf, &k, sizeof(k));
-  pbuf += sizeof(k);
-  
-  /* look through the list of all IP addresses (and related data) */
-  for (i=0; i < ipAddrCount; i++) {   
-    /* 15 & 16) IP address (dotted-decimal), length first */
-    len = strlen(pinfo[i].broadcast)+1;
-    k = htonl(len);
-    memcpy(pbuf, &k, sizeof(k));
-    pbuf += sizeof(k);
-    if (debug)
-        printf("et_listen_thread: will send to cli, len = %d, broad addr = %s\n", len, pinfo[i].broadcast);
-   
-    memcpy(pbuf, pinfo[i].broadcast, len);
-    pbuf += len;
-  }  
-  
-  /* release memory allocated in et_cast_thread */
-  /* free(arg); */
-
-  for ( ; ; ) {
-    slen = sizeof(cliaddr);
-
-    /* read incoming data */
-    nbytes = recvfrom(sockfd, (void *) inbuf, ET_FILENAME_LENGTH+4,
-                               0, (SA *) &cliaddr, &slen);
-    if (nbytes < 0) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_listen_thread: error in recvfrom\n");
-      }
-      /* try listening for another packet */
-      continue;
+    /* get uname of this host */
+    memset(uname, 0, ET_MAXHOSTNAMELEN);
+    if (etNetGetUname(uname, ET_MAXHOSTNAMELEN) != ET_OK) {
+        strcpy(uname, "..."); /* nothing will match this */
     }
 
-    /* decode the data:
-     * (1) ET magic numbers (3 ints),
-     * (2) ET version #,
-     * (3) length of string,
-     * (4) ET file name
+    /* send signal to main thread that this thread has started */
+    etid->race = -1;
+
+    /* Setup socket for receiving udp packets on any local address
+     * and on the given multicast addresses. */
+    err = etNetUdpReceiveAll((unsigned short)config->port, config->mcastaddrs.addr,
+                             config->mcastaddrs.count, &sockfd);
+    if (err != ET_OK || sockfd < 0) {
+        if (etid->debug >= ET_DEBUG_SEVERE) {
+            et_logmsg("SEVERE", "et_cast_thread: problem opening socket\n");
+        }
+        exit(1);
+    }
+
+printf("Listening on port %d\n", config->port);
+
+    /* Prepare output buffer we send in answer to inquiries:
+     *
+     *  (0)  ET magic numbers (3 ints)
+     *  (1)  ET version #
+     *  (2)  port of tcp server thread (not udp config->port)
+     *  (3)  ET_BROADCAST or ET_MULTICAST (int) (not used now)
+     *  (4)  length of next string
+     *  (5)    broadcast address (dotted-dec) if broadcast received or
+     *         multicast address (dotted-dec) if multicast received
+     *         (see int #3) (not used now)
+     *  (6)  length of next string
+     *  (7)    hostname given by "uname" (used as a general
+     *         identifier of this host no matter which interface is used)
+     *  (8)  length of next string
+     *  (9)    canonical name of host
+     *  (10) number of IP addresses
+     *  Loop over # of addresses
+     *   |    (11)   32bit, net-byte ordered IPv4 address assoc with following address
+     *   |    (12)   length of next string (dot-decimal addr)
+     *   V    (13)   dot-decimal IPv4 address
+     *
+     *  The following was added to allow easy matching of subnets.
+     *  Although item (14) it is the same as item (10), it's repeated
+     *  here as a precaution. If, for a client, 14 does not have the same
+     *  value as 10, then the ET system must be of an older variety without
+     *  the following data. Thus, things are backwards compatible.
+     *
+     *  (14) number of broadcast addresses
+     *  Loop over # of addresses
+     *   |    (15)   length of next string (broadcast addr)
+     *   V    (16)   dotted-decimal broadcast address
+     *               corresponding to same order in previous loop
+     *
+     *  All known IP addresses & their corresponding broadcast addresses
+     *  are sent here both in numerical & dotted-decimal forms.
+     *
      */
-    pbuf = inbuf;
-    
-    /* read & check magic numbers */
-    memcpy(magicInts, pbuf, sizeof(magicInts));
-    pbuf += sizeof(magicInts);
-    if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
-        ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
-        ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
-        /* wrong magic numbers, listen for next packet */
-        continue;
+
+    /* find length of necessary buffer */
+    bufsize = sizeof(magicInts) + 8*sizeof(int) + strlen(uname) + strlen(pinfo[0].canon) + 3 /* 3 NULLs */;
+
+    /* look through the list of all IP addresses (and related data) */
+    for (i=0; i < ipAddrCount; i++) {
+        bufsize += 3*sizeof(int) + strlen(pinfo[i].addr) + 1 + strlen(pinfo[i].broadcast) + 1;
     }
+
+    /* allocate packet's buffer */
+    if (debug) printf("et_listen_thread: malloc bufsize = %d\n", (int)bufsize);
+    if ( (pbuf = outbuf = (char *) malloc(bufsize)) == NULL ) {
+        if (etid->debug >= ET_DEBUG_SEVERE) {
+            et_logmsg("SEVERE", "et_listen_thread: cannot allocate memory\n");
+        }
+        exit(1);
+    }
+
+    /* ******************** */
+    /* put data into buffer */
+    /* ******************** */
+
+    /* 0) magic numbers */
+    magicInts[0] = htonl(ET_MAGIC_INT1);
+    magicInts[1] = htonl(ET_MAGIC_INT2);
+    magicInts[2] = htonl(ET_MAGIC_INT3);
+    memcpy(pbuf, magicInts, sizeof(magicInts));
+    pbuf += sizeof(magicInts);
+
+    /* 1) ET version */
+    k = htonl((uint32_t)etid->version);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    /* 2) TCP server port */
+    k = htonl((uint32_t)etid->sys->port);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    /* 3) received broadcast or multicast packet? (not used at the receiving end) */
+    k = htonl((uint32_t)cast);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    /* 4 & 5) broadcast or multicast dot-decimal address (not used at the receiving end) */
+    /* Just send len = 0 and no IP address */
+    k = 0;
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    /*
+    memcpy(pbuf, listenaddr, len);
+    pbuf += len;
+     */
+
+    /* 6 & 7) uname */
+    len = (uint32_t) strlen(uname)+1;
+    k = htonl(len);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    memcpy(pbuf, uname, len);
+    pbuf += len;
+
+    /* 8 & 9) canonical name if there is one */
+    len = (uint32_t) strlen(pinfo[0].canon)+1;
+    if (len > 1) {
+        k = htonl(len);
+        memcpy(pbuf, &k, sizeof(k));
+        pbuf += sizeof(k);
+
+        memcpy(pbuf, pinfo[0].canon, len);
+        pbuf += len;
+    }
+    else {
+        k = 0;
+        memcpy(pbuf, &k, sizeof(k));
+        pbuf += sizeof(k);
+    }
+
+    /* 10) number of addresses to follow */
+    k = htonl((uint32_t) ipAddrCount);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    /* look through the list of all IP addresses (and related data) */
+    for (i=0; i < ipAddrCount; i++) {
+        /* 11) 32 bit IP address (already network byte ordered) */
+        netint = (uint32_t) pinfo[i].saddr.sin_addr.s_addr;
+        memcpy(pbuf, &netint, sizeof(netint));
+        pbuf += sizeof(netint);
+
+        /* 12 & 13) IP address (dotted-decimal), length first */
+        len = (uint32_t) strlen(pinfo[i].addr)+1;
+        k = htonl(len);
+        memcpy(pbuf, &k, sizeof(k));
+        pbuf += sizeof(k);
+        if (debug)
+            printf("et_listen_thread: will send to cli, addr = %u, len = %d, addr = %s\n", netint, len, pinfo[i].addr);
+
+        memcpy(pbuf, pinfo[i].addr, len);
+        pbuf += len;
+    }
+
+    /* 14) number of addresses to follow (allows other end to be backwards compatible with this addition) */
+    k = htonl((uint32_t) ipAddrCount);
+    memcpy(pbuf, &k, sizeof(k));
+    pbuf += sizeof(k);
+
+    /* look through the list of all IP addresses (and related data) */
+    for (i=0; i < ipAddrCount; i++) {
+        /* 15 & 16) IP address (dotted-decimal), length first */
+        len = (uint32_t) strlen(pinfo[i].broadcast)+1;
+        k = htonl(len);
+        memcpy(pbuf, &k, sizeof(k));
+        pbuf += sizeof(k);
+        if (debug)
+            printf("et_listen_thread: will send to cli, len = %d, broad addr = %s\n", len, pinfo[i].broadcast);
+
+        memcpy(pbuf, pinfo[i].broadcast, len);
+        pbuf += len;
+    }
+
+    /* release memory allocated in et_cast_thread */
+    /* free(arg); */
+
+    while (1) {
+        slen = sizeof(cliaddr);
+
+        /* read incoming data */
+        nbytes = recvfrom(sockfd, (void *) inbuf, ET_FILENAME_LENGTH+4,
+                          0, (SA *) &cliaddr, &slen);
+        if (nbytes < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_listen_thread: error in recvfrom\n");
+            }
+            /* try listening for another packet */
+            continue;
+        }
+
+        /* decode the data:
+         * (1) ET magic numbers (3 ints),
+         * (2) ET version #,
+         * (3) length of string,
+         * (4) ET file name
+         */
+        pbuf = inbuf;
+
+        /* read & check magic numbers */
+        memcpy(magicInts, pbuf, sizeof(magicInts));
+        pbuf += sizeof(magicInts);
+        if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
+            ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
+            ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
+            /* wrong magic numbers, listen for next packet */
+            continue;
+        }
 /*printf("et_listen_thread: passed magic number test\n");*/
 
-    /* read & check version number */
-    memcpy(&version, pbuf, sizeof(version));
-    version = ntohl(version);
-    pbuf += sizeof(version);
-    if (version !=  etid->version) {
-      /* wrong version, listen for next packet */
-      continue;
-    }
-    
-    /* read & check to see if we have a reasonable ET name length. */
-    memcpy(&length, pbuf, sizeof(length));
-    length = ntohl(length);
-    pbuf += sizeof(length);
-    if ((length < 1) || (length > ET_FILENAME_LENGTH)) {
-      /* not proper format, listen for next packet */
-      continue;
-    }
+        /* read & check version number */
+        memcpy(&version, pbuf, sizeof(version));
+        version = ntohl(version);
+        pbuf += sizeof(version);
+        if (version !=  etid->version) {
+            /* wrong version, listen for next packet */
+            continue;
+        }
 
-    /* read ET name */
-    memcpy(filename, pbuf, length);
+        /* read & check to see if we have a reasonable ET name length. */
+        memcpy(&length, pbuf, sizeof(length));
+        length = ntohl(length);
+        pbuf += sizeof(length);
+        if ((length < 1) || (length > ET_FILENAME_LENGTH)) {
+            /* not proper format, listen for next packet */
+            continue;
+        }
 
-    if (debug)
-      printf("et_listen_thread: received packet on %s @ %s for %s\n", uname, listenaddr, filename);
+        /* read ET name */
+        memcpy(filename, pbuf, length);
 
-    /* check if the ET system the client wants is ours */
-    if (strcmp(filename, etid->sys->config.filename) == 0) {
-      /* if we are the one the client is looking for, send a reply */
-      sendto(sockfd, (void *) outbuf, bufsize, 0, (SA *) &cliaddr, slen);
+        if (debug)
+            printf("et_listen_thread: received packet on %s for %s\n", uname, filename);
+
+        /* check if the ET system the client wants is ours */
+        if (strcmp(filename, etid->sys->config.filename) == 0) {
+            /* if we are the one the client is looking for, send a reply */
+            sendto(sockfd, (void *) outbuf, bufsize, 0, (SA *) &cliaddr, slen);
+        }
     }
-  }
 }
+
 
 /************************************************************
  * et_netserver is a server for remote clients and for local
