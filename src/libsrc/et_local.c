@@ -23,16 +23,19 @@
 #include <stddef.h>
 #include <string.h>
 #include <time.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/mman.h>
+/*
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/time.h>
+
+#include "et_network.h"
+*/
 
 #include "et_private.h"
-#include "et_network.h"
 
 /* Time intervals to wait in seconds for threads to start */
 #define ET_WAIT_HEARTBEAT  10
@@ -54,8 +57,8 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   et_id   *etid;
   pid_t    my_pid;
   struct timespec heartbeat;
-  int      i, err, status, my_index, systemType, byteOrder, correctEndian=0;
-  char     buffer[20], *pSharedMem;
+  int      i, err, status, my_index;
+  char     *pSharedMem;
 
   /* system id */
   etid = (et_id *) *id;
@@ -252,8 +255,8 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 int et_look(et_sys_id *id, const char *filename)
 {     
   et_id   *etid;
-  char     buffer[20], *pSharedMem;
-  int      err, byteOrder, systemType, correctEndian=0;
+  char     *pSharedMem;
+  int      err;
   et_mem   etInfo;
 
   /* argument checking */
@@ -418,7 +421,7 @@ int etl_close(et_sys_id id)
 /******************************************************/
 int etl_forcedclose(et_sys_id id)
 {
-  int i, status;
+  int i;
   et_id *etid = (et_id *) id;
  
   /* ET system must call et_system_close, not et_forcedclose */
@@ -447,7 +450,7 @@ int etl_forcedclose(et_sys_id id)
 /******************************************************/
 int etl_kill(et_sys_id id)
 {
-    int i, status;
+    int i;
     et_id *etid = (et_id *) id;
 
     /* If the ET server got a command from a client to kill itself ... */
