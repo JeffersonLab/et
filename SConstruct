@@ -34,10 +34,9 @@ platform = uname[0]
 machine  = uname[4]
 osname   = os.getenv('CODA_OSNAME', platform + '-' +  machine)
 
-# Create an environment while importing the user's PATH.
-# This allows us to get to the vxworks compiler for example.
-# So for vxworks, make sure the tools are in your PATH
-env = Environment(ENV = {'PATH' : os.environ['PATH']})
+# Create an environment while importing the user's PATH & LD_LIBRARY_PATH.
+# This allows us to get to other compilers for example.
+env = Environment(ENV = {'PATH' : os.environ['PATH'], 'LD_LIBRARY_PATH' : os.environ['LD_LIBRARY_PATH']})
 
 
 ################################
