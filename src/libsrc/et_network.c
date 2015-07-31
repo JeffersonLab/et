@@ -807,15 +807,15 @@ anotherpacket:
                     /* get ET magic #s */
                     memcpy(magicInts, pbuf, sizeof(magicInts));
                     pbuf += sizeof(magicInts);
-              
+
                     /* if the wrong magic numbers, reject it */
                     if (ntohl(magicInts[0]) != ET_MAGIC_INT1 ||
                         ntohl(magicInts[1]) != ET_MAGIC_INT2 ||
-                        ntohl(magicInts[2]) != ET_MAGIC_INT3)  {
+                        ntohl(magicInts[2]) != ET_MAGIC_INT3) {
                         free(answer);
                         break;
                     }
-         
+
                     /* get ET system's major version # */
                     memcpy(&version, pbuf, sizeof(version));
                     version = ntohl(version);
@@ -840,40 +840,23 @@ anotherpacket:
                     /* broad or multi cast? might be both for java. */
                     memcpy(&castType, pbuf, sizeof(castType));
                     castType = ntohl(castType);
-                    if ((castType != ET_BROADCAST) &&
-                        (castType != ET_MULTICAST) &&
-                        (castType != ET_BROADANDMULTICAST)) {
-                        free(answer);
-                        break;
-                    }
+                    // NOT USED ANYMORE, just set to ET_MULTICAST for everything, ignore
                     answer->castType = castType;
                     pbuf += sizeof(castType);
 
-                    if (debug) {
-                        if (castType == ET_BROADCAST) {
-                            printf("et_findserver: reply to broadcast\n");
-                        }
-                        else if (castType != ET_MULTICAST) {
-                            printf("et_findserver: reply to multicast\n");
-                        }
-                        else if (castType != ET_BROADANDMULTICAST) {
-                            printf("et_findserver: reply to broad & multicast\n");
-                        }
-                        else {
-                            printf("et_findserver: reply -> don't know if broad or multicasting\n");
-                        }
-                    }
-
                     /* get broad/multicast IP original packet sent to */
+                    // NOT USED ANYMORE, len always = 0
                     memcpy(&length, pbuf, sizeof(length));
                     length = ntohl(length);
-                    if ((length < 1) || (length > ET_IPADDRSTRLEN)) {
+                    if ((length < 0) || (length > ET_IPADDRSTRLEN)) {
                         free(answer);
                         break;
                     }
                     pbuf += sizeof(length);
-                    memcpy(answer->castIP, pbuf, length);
-                    pbuf += length;
+                    if (length > 0) {
+                        memcpy(answer->castIP, pbuf, length);
+                        pbuf += length;
+                    }
 
                     /* get ET system's uname */
                     memcpy(&length, pbuf, sizeof(length));
@@ -1024,8 +1007,8 @@ anotherpacket:
                     }
                     
                     if (debug) {
-                        printf("et_findserver: RESPONSE from %s w/ bcast %s at %d with cast addr = %s and uname = %s\n",
-                               answer->ipaddrs[0], answer->bcastaddrs[0], answer->port, answer->castIP, answer->uname);
+                        printf("et_findserver: RESPONSE from %s w/ bcast %s at %d and uname = %s\n",
+                               answer->ipaddrs[0], answer->bcastaddrs[0], answer->port, answer->uname);
                     }
                     numresponses++;
             
