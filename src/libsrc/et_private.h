@@ -804,7 +804,7 @@ extern void et_flush_events(et_id *id, et_att_id att, et_stat_id stat_id);
 
 /* mmap/memory functions */
 extern int   et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *totalSize);
-extern void *et_mem_write_first_block(char *ptr,
+extern void  et_mem_write_first_block(char *ptr,
                                       uint32_t headerByteSize, uint64_t eventByteSize,
                                       uint64_t headerPosition, uint64_t dataPosition,
                                       uint64_t totalByteSize,  uint64_t usedByteSize);
