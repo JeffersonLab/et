@@ -30,53 +30,56 @@
 #include <math.h>
 
 #include "et.h"
+#include "et_private.h"
 
 /* prototype */
 static void * signal_thread (void *arg);
 
-int main(int argc,char **argv)
-{
-    int             i, j, c, i_tmp, status, swappedData, numRead;
-    int             startingVal=0, errflg=0, group=1, chunk=1, size=32, verbose=0, delay=0, remote=0;
-    int             sendBufSize=0, recvBufSize=0, noDelay=0;
-    unsigned short  serverPort = ET_SERVER_PORT;
-    char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16], interface[16];
+int main(int argc,char **argv) {
+    int i, j, c, i_tmp, status, swappedData, numRead;
+    int startingVal = 0, errflg = 0, group = 1, chunk = 1, size = 32, verbose = 0, delay = 0, remote = 0;
+    int sendBufSize = 0, recvBufSize = 0, noDelay = 0;
+    unsigned short serverPort = ET_SERVER_PORT;
+    char et_name[ET_FILENAME_LENGTH], host[256], interface[16];
 
-    et_att_id	    attach1;
-    et_sys_id       id;
-    et_openconfig   openconfig;
-    et_event        **pe;
+    int mcastAddrCount = 0, mcastAddrMax = 10;
+    char mcastAddr[mcastAddrMax][ET_IPADDRSTRLEN];
+
+    et_att_id attach1;
+    et_sys_id id;
+    et_openconfig openconfig;
+    et_event **pe;
     struct timespec timeout;
 #if defined __APPLE__
     struct timeval  t1, t2;
 #else
     struct timespec t1, t2;
 #endif
-    sigset_t        sigblock;
-    pthread_t       tid;
+    sigset_t sigblock;
+    pthread_t tid;
 
     /* statistics variables */
-    double          rate=0.0, avgRate=0.0;
-    int64_t         count=0, totalCount=0, totalT=0, time, time1, time2;
+    double rate = 0.0, avgRate = 0.0;
+    int64_t count = 0, totalCount = 0, totalT = 0, time, time1, time2;
 
     /* control int array for event header */
-    int control[] = {17,8,-1,-1,0,0};
+    int control[] = {17, 8, -1, -1, 0, 0};
 
     /* 4 multiple character command-line options */
     static struct option long_options[] =
-    { {"host", 1, NULL, 1},
-      {"rb",   1, NULL, 2},
-      {"sb",   1, NULL, 3},
-      {"nd",   0, NULL, 4},
-      {0,0,0,0}
-    };
+            {{"host", 1, NULL, 1},
+             {"rb",   1, NULL, 2},
+             {"sb",   1, NULL, 3},
+             {"nd",   0, NULL, 4},
+             {0,      0, 0,    0}
+            };
 
     memset(host, 0, 16);
     memset(mcastAddr, 0, 16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vrn:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
-      
+    while ((c = getopt_long_only(argc, argv, "vrn:a:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
+
         if (c == -1)
             break;
 
@@ -146,6 +149,15 @@ int main(int argc,char **argv)
                 strcpy(interface, optarg);
                 break;
 
+            case 'a':
+                if (strlen(optarg) >= 16) {
+                    fprintf(stderr, "Multicast address is too long\n");
+                    exit(-1);
+                }
+                if (mcastAddrCount >= mcastAddrMax) break;
+                strcpy(mcastAddr[mcastAddrCount++], optarg);
+                break;
+
             case 1:
                 if (strlen(optarg) >= 255) {
                     fprintf(stderr, "host name is too long\n");
@@ -194,14 +206,14 @@ int main(int argc,char **argv)
                 errflg++;
         }
     }
-    
+
     if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
         fprintf(stderr,
                 "usage: %s  %s\n%s\n\n",
                 argv[0],
                 "-f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-d <delay>]",
                 "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]",
-                "                     [-rb <buf size>] [-sb <buf size>] [-nd]");
+                "                     [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>] [-nd]");
 
 
         fprintf(stderr, "          -host ET system's host\n");
@@ -218,15 +230,17 @@ int main(int argc,char **argv)
         fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
         fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
         fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
+
         fprintf(stderr, "          This consumer works by making a direct connection to the\n");
-        fprintf(stderr, "          ET system's server port.\n");
+        fprintf(stderr, "          ET system's server port unless at least one multicast address\n");
+        fprintf(stderr, "          is specified in which case multicasting is used to find the ET system\n");
         exit(2);
     }
 
     /* delay is in milliseconds */
     if (delay > 0) {
-        timeout.tv_sec  = delay/1000;
-        timeout.tv_nsec = (delay - (delay/1000)*1000)*1000000;
+        timeout.tv_sec = delay / 1000;
+        timeout.tv_nsec = (delay - (delay / 1000) * 1000) * 1000000;
     }
 
     /* allocate some memory */
@@ -248,39 +262,54 @@ int main(int argc,char **argv)
     }
 
     /* spawn signal handling thread */
-    pthread_create(&tid, NULL, signal_thread, (void *)NULL);
+    pthread_create(&tid, NULL, signal_thread, (void *) NULL);
 
     /******************/
     /* open ET system */
     /******************/
     et_open_config_init(&openconfig);
 
-    /* EXAMPLE: direct connection to ET */
-    /*
-   et_open_config_setcast(openconfig, ET_DIRECT);
-   et_open_config_sethost(openconfig, host);
-   et_open_config_setserverport(openconfig, serverPort);
-   */
-   /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
-   et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
-   if (strlen(interface) > 6) {
-       et_open_config_setinterface(openconfig, interface);
-   }
+    /* if multicasting to find ET */
+    if (mcastAddrCount > 0) {
+        printf("MULTICASTING\n\n");
+        /* add multicast addresses to listen to  */
+        for (j = 0; j < mcastAddrCount; j++) {
+            if (strlen(mcastAddr[j]) > 7) {
+                status = et_open_config_addmulticast(openconfig, mcastAddr[j]);
+                if (status != ET_OK) {
+                    printf("%s: bad multicast address argument\n", argv[0]);
+                    exit(1);
+                }
+                printf("%s: adding multicast address %s\n", argv[0], mcastAddr[j]);
+            }
+        }
+        et_open_config_setcast(openconfig, ET_MULTICAST);
+        et_open_config_setmultiport(openconfig, serverPort);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+    else {
+        printf("DIRECT\n\n");
+        /* direct connection to ET */
+        et_open_config_setcast(openconfig, ET_DIRECT);
+        et_open_config_sethost(openconfig, host);
+        et_open_config_setserverport(openconfig, serverPort);
+    }
 
-    /* EXAMPLE: multicasting to find ET */
-    
-    et_open_config_setcast(openconfig, ET_MULTICAST);
-    et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
-    et_open_config_setmultiport(openconfig, serverPort);
-    et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
-    
-   
+
+    /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
+    et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
+    if (strlen(interface) > 6) {
+        et_open_config_setinterface(openconfig, interface);
+    }
+
+
     /* EXAMPLE: broadcasting to find ET */
     /*et_open_config_setcast(openconfig, ET_BROADCAST);*/
     /*et_open_config_addbroadcast(openconfig, "129.57.29.255");*/
     /*et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);*/
     
     if (remote) {
+        printf("SET AS REMOTE\n\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
     }
     
