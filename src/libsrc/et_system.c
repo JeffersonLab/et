@@ -175,10 +175,10 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
 /*printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
   size_system, size_stations, size_histo, size_events, size_data); */
 
-    printf("before map: pSharedMem = %lp\n",pSharedMem);
+    printf("before map: pSharedMem = %p\n",pSharedMem);
     /* create the ET system memory */
     status = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
-    printf("after  initial map: pSharedMem = %lp\n",pSharedMem);
+    printf("after  initial map: pSharedMem = %p\n",pSharedMem);
 
     /* general error trying to create mapped memory */
     if (status != ET_OK && status != ET_ERROR_EXISTS) {
@@ -245,7 +245,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
 
         /* Recreating & remapping the ET system memory */
         err = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
-        printf("after  final create: pSharedMem = %lp\n",pSharedMem);
+        printf("after  final create: pSharedMem = %p\n",pSharedMem);
         if (err != ET_OK) {
             /* Cannot unmap memory */
             if (etid->debug >= ET_DEBUG_ERROR) {
@@ -258,7 +258,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
     }
 
     /* everything's OK so start up a new ET system */
-    printf("writing first block: pSharedMem = %lp\n",pSharedMem);
+    printf("writing first block: pSharedMem = %p\n",pSharedMem);
 
     /* memory has been mapped by now, fill first
        ET_INITIAL_SHARED_MEM_DATA_BYTES bytes with
