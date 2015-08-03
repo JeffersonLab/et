@@ -235,7 +235,7 @@ int codanetGetListeningSocket(int nonblocking, unsigned short startingPort,
     if (listenFd < 0) {
         if (codanetDebug >= CODA_DEBUG_ERROR) {
             fprintf(stderr, "%sServerListeningThread: ports %hu thru %hu busy\n",
-                    codanetStr, startingPort, startingPort+trylimit-1);
+                    codanetStr, startingPort, (unsigned short) (startingPort+trylimit-1));
         }
         return(CODA_SOCKET_ERROR);
     }
@@ -1465,7 +1465,7 @@ int codanetLocalByteOrder(int *endian)
     }
   }
   else {
-    if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sByteOrder: sizeof(short) = %u\n", codanetStr, sizeof(short));
+    if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sByteOrder: sizeof(short) = %u\n", codanetStr, (uint32_t)sizeof(short));
     return(CODA_ERROR);
   }
 }
@@ -3403,7 +3403,7 @@ int codanetUdpReceive(unsigned short port, const char *address, int multicast, i
                         perror("codaNetUdpReceive: ");
                         codanetFreeInterfaceInfo(ifihead);
                         if (codanetDebug >= CODA_DEBUG_ERROR) {
-                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error: %s\n", codanetStr);
+                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error\n", codanetStr);
                         }
                         return CODA_SOCKET_ERROR;
                     }
@@ -3516,7 +3516,7 @@ printf("%sUdpReceive: joining %s on interface %s on port %hu\n", codanetStr, mul
                         perror("codaNetUdpReceive: ");
                         codanetFreeInterfaceInfo(ifihead);
                         if (codanetDebug >= CODA_DEBUG_ERROR) {
-                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error: %s\n", codanetStr);
+                            fprintf(stderr, "%sUdpReceive: setsockopt IP_ADD_MEMBERSHIP error\n", codanetStr);
                         }
                         return CODA_SOCKET_ERROR;
                     }
