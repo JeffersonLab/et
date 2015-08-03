@@ -134,7 +134,6 @@ int et_event_getpriority(et_event *pe, int *pri)
 /******************************************************/
 int et_event_setlength(et_event *pe, size_t len)
 { 
-  if (len < 0) return ET_ERROR;
   if (len > pe->memsize) return ET_ERROR;
   pe->length = len;
   return ET_OK;
