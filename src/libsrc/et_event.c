@@ -130,7 +130,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
                                   size, etid->group);
     }
 
-    if ((att < 0) || (size < 0) || (pe == NULL)) {
+    if ((att < 0) || (pe == NULL)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_event_new, bad argument(s)\n");
         }
@@ -360,7 +360,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
         return ET_OK;
     }
   
-    if ((att < 0) || (size < 0) || (pe == NULL) || (num < 0)) {
+    if ((att < 0) || (pe == NULL) || (num < 0)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_events_new, bad argument(s)\n");
         }
@@ -642,7 +642,7 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
         return ET_OK;
     }
 
-    if ((att < 0) || (size < 0) || (pe == NULL) || (num < 0) || (group < 1)) {
+    if ((att < 0) || (pe == NULL) || (num < 0) || (group < 1)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_events_new_group, bad argument(s)\n");
         }
@@ -1800,7 +1800,7 @@ int et_event_getpriority(et_event *pe, int *pri) {
  */
 int et_event_setlength(et_event *pe, size_t len) {
 
-    if (pe == NULL || len < 0 || len > pe->memsize) return ET_ERROR;
+    if (pe == NULL || len > pe->memsize) return ET_ERROR;
     pe->length = len;
     return ET_OK;
 }
