@@ -848,7 +848,7 @@ anotherpacket:
                     // NOT USED ANYMORE, len always = 0
                     memcpy(&length, pbuf, sizeof(length));
                     length = ntohl(length);
-                    if ((length < 0) || (length > ET_IPADDRSTRLEN)) {
+                    if (length > ET_IPADDRSTRLEN) {
                         free(answer);
                         break;
                     }
