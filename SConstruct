@@ -133,7 +133,7 @@ if noReadWriteLocks:
 execLibs = ['m', 'pthread', 'dl', 'rt']
 if platform == 'Darwin':
     execLibs = ['pthread', 'dl']
-    env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined',  '-flat_namespace', 'suppress'])
+    env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined',  '-flat_namespace'])
     env.Append(CCFLAGS = ['-fmessage-length=0'])
 
 
