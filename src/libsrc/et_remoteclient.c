@@ -23,7 +23,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/time.h>
 
 #include "et_private.h"
@@ -272,7 +271,7 @@ int et_event_CODAswap(et_event *pe)
 {
   int length, same_endian=1;
   length = pe->length/sizeof(int);
-  
+
   /* DEPRECATED: Swapping is now done in evio library. */
   return ET_ERROR;
 
