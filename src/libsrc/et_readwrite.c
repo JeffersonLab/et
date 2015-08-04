@@ -22,14 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <pthread.h>
-
-#include <signal.h>
-#include <time.h>
 #include <errno.h>
-
-#include <sys/types.h>
 #include <sys/mman.h>
 
 #include "et_private.h"
@@ -1211,7 +1205,7 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
     et_system *sys = id->sys;
     et_station *ps = id->stats + stat_id;
     et_list    *pl = &ps->list_in;
-    int i, status, oldCount, index, scanList=1;
+    int i, status, index, scanList=1;
 
     *nread = 0;
 
@@ -1346,7 +1340,6 @@ int et_station_nread_group(et_id *id, et_stat_id stat_id, et_event *pe[], int mo
 
         pl->cnt -= index;
         ps->fix.in.first = NULL;
-        oldCount = pl->cnt;
 
         et_llist_unlock(pl);
         scanList = 0;
@@ -2030,7 +2023,7 @@ void et_flush_events(et_id *id, et_att_id att, et_stat_id stat_id)
   }
 
   /* calloc arrays since we don't know how big they are at compile time */
-  if ( (pe = (et_event **) calloc(nevents_max, sizeof(et_event *))) == NULL) {
+  if ( (pe = (et_event **) calloc((size_t) nevents_max, sizeof(et_event *))) == NULL) {
     if (id->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_flush_events, no memory left\n");
     }
@@ -2126,7 +2119,7 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
 {
   et_station *ps = id->stats + stat_id;
   int   i, j, status=ET_OK,
-        num_events, num_temps, num_written, num_new,
+        num_events, num_temps, num_written = 0, num_new,
         mode = ps->config.restore_mode,
         nevents_max = id->sys->config.nevents;
   et_event  *pe = id->events;
@@ -2134,7 +2127,7 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
   
   /* calloc arrays since we don't know how big they are at compile time */
   /* one array for the normal events */
-  if ( (pevent = (et_event **) calloc(nevents_max, sizeof(et_event *))) == NULL) {
+  if ( (pevent = (et_event **) calloc((size_t) nevents_max, sizeof(et_event *))) == NULL) {
     if (id->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_restore_events, no memory left\n");
     }
@@ -2144,7 +2137,7 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
    * et_event(s)_new but never put into the system. They may not contain
    * valid data and must be dumped
    */
-  if ( (new = (et_event **) calloc(nevents_max, sizeof(et_event *))) == NULL) {
+  if ( (new = (et_event **) calloc((size_t) nevents_max, sizeof(et_event *))) == NULL) {
     if (id->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_restore_events, no memory left\n");
     }
@@ -2180,7 +2173,7 @@ int et_restore_events(et_id *id, et_att_id att, et_stat_id stat_id)
   }
   
   /* calloc array size of number of recovered normal events */
-  if ( (ordered = (et_event **) calloc(num_events, sizeof(et_event *))) == NULL) {
+  if ( (ordered = (et_event **) calloc((size_t) num_events, sizeof(et_event *))) == NULL) {
     if (id->debug >= ET_DEBUG_SEVERE) {
       et_logmsg("SEVERE", "et_restore_events, no memory left\n");
     }
