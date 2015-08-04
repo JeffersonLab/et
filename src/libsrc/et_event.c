@@ -25,7 +25,6 @@
 #include <sys/time.h>
 
 #include "et_private.h"
-#include "et_network.h"
 
 /******************************************************/
 /* Make a temporary buffer for the extra large event
@@ -203,7 +202,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
     }
     else {
         /* translate a delta time into an absolute time */
-        int nsec_total;
+        long nsec_total;
 
 #if defined linux || defined __APPLE__
         struct timeval now;
@@ -440,7 +439,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
     }
     else {
         /* translate a delta time into an absolute time */
-        int nsec_total;
+        long nsec_total;
     
 #if defined linux || defined __APPLE__
         struct timeval now;
@@ -732,7 +731,7 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
     }
     else {
         /* translate a delta time into an absolute time */
-        int nsec_total;
+        long nsec_total;
 
 #if defined linux || defined __APPLE__
         struct timeval now;
@@ -978,7 +977,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
     }
     else {
         /* translate a delta time into an absolute time */
-        int nsec_total;
+        long nsec_total;
     
 #if defined linux || defined __APPLE__
         struct timeval now;
@@ -1193,7 +1192,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
     }
     else {
         /* translate a delta time into an absolute time */
-        int nsec_total;
+        long nsec_total;
     
 #if defined linux || defined __APPLE__
         struct timeval now;
