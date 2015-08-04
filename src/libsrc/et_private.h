@@ -73,9 +73,6 @@ extern "C" {
 /** Max value for heartbeat. */
 #define ET_HBMODULO UINT_MAX
 
-/** Number of extra POSIX threads ET client/producer will start. */
-#define ET_EXTRA_THREADS 2
-
 /*
  * Maximum # of user attachments/processes on the system.
  * This is used only to allocate space in the system structure
