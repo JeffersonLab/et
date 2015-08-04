@@ -22,11 +22,6 @@
 #include <sys/mman.h>
 #include <math.h>
 #include <unistd.h>
-/*
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-*/
 
 #include "et_private.h"
 
