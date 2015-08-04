@@ -34,7 +34,7 @@
  */
 /* Can operating system share pthread mutexes between processes? */
 int et_sharedmutex(void) {
-    int shared = ET_MUTEX_NOSHARE;
+    int shared;
 
 #ifdef __APPLE__
   shared = ET_MUTEX_NOSHARE; /* For OS X  5/28/04  D. L. */
