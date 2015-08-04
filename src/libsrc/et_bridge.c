@@ -20,14 +20,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <time.h>
-#include <sys/time.h>
-#include <unistd.h>
+
 #include <netdb.h>
 
 #include "et_private.h"
-#include "et_network.h"
 
 
 static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
@@ -484,7 +480,7 @@ int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
     et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
     et_bridge_config *config;
     et_bridgeconfig   default_config = NULL;
-    int status=ET_ERROR, auto_config=0;
+    int status, auto_config=0;
 
     *ntransferred = 0;
 
@@ -512,7 +508,7 @@ int et_events_bridge(et_sys_id id_from, et_sys_id id_to,
         status = localET_2_localET(id_from, id_to, att_from, att_to,
                                    config, num, ntransferred);
     }
-        /* else if getting events from remote ET and sending to local ET ... */
+    /* else if getting events from remote ET and sending to local ET ... */
     else if ((idfrom->locality == ET_REMOTE) && (idto->locality != ET_REMOTE)) {
         status = remoteET_2_ET(id_from, id_to, att_from, att_to,
                                config, num, ntransferred);
@@ -547,11 +543,11 @@ static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
   et_event **get, **put, **dump;
   int i, j, k, status=ET_OK;
   int swap=0, byteordershouldbe=0, same_endian;
-  int num_limit, num_2get, num_read=0, num_new=0, num_dump=0, num_new_prev=0;
+  int num_2get, num_read=0, num_new=0, num_dump=0, num_new_prev=0;
   int total_put=0, total_read=0, total_new=0;
-    
+
   /* never deal with more the total num of events in the "from" ET system */
-  num_limit = idfrom->nevents;
+  size_t num_limit = ((size_t)idfrom->nevents) & 0xffffffff;
   
   /* allocate arrays to hold the event pointers */
   if ((get = (et_event **) calloc(num_limit, sizeof(et_event *))) == NULL) {
@@ -682,7 +678,7 @@ static int localET_2_localET(et_sys_id id_from, et_sys_id id_to,
             /* event's data was written on same endian machine as this host? */
             same_endian = (put[i]->byteorder == 0x04030201) ? 1 : 0;
 
-            if ((*config->func) (get[j], put[i], get[j]->length, same_endian) != ET_OK) {
+            if ((*config->func) (get[j], put[i], (int)(get[j]->length), same_endian) != ET_OK) {
               /* put back those read in last et_events_get call */
               et_events_put(id_from, att_from, get, num_read);
               /* put new events into the "to" ET system */
@@ -767,14 +763,14 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
   et_event **put, **dump;
   int sockfd = idfrom->sockfd;
   int i=0, k, write_events=0, status=ET_OK, err;
-  uint64_t size, len;
+  uint64_t len /*,size*/;
   int swap=0, byteordershouldbe=0, same_endian;
-  int num_limit, num_2get, num_read=0, num_new=0, num_dump=0, num_new_prev=0;
+  int num_2get, num_read=0, num_new=0, num_dump=0;
   int total_put=0, total_read=0, total_new=0;
   int transfer[7], incoming[2], header[9+ET_STATION_SELECT_INTS];
   
   /* never deal with more the total num of events in the "from" ET system */
-  num_limit = idfrom->nevents;
+  size_t num_limit = ((size_t)idfrom->nevents) & 0xffffffff;
 
   /* allocate arrays to hold the event pointers */
   if ((dump = (et_event **) calloc(num_limit, sizeof(et_event *))) == NULL) {
@@ -808,16 +804,16 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
      */
     num_2get = (num - total_read < config->chunk_from) ? (num - total_read) : config->chunk_from;
     transfer[0] = htonl(ET_NET_EVS_GET);
-    transfer[1] = htonl(att_from);
-    transfer[2] = htonl(config->mode_from & ET_WAIT_MASK);
+    transfer[1] = htonl((uint32_t)att_from);
+    transfer[2] = htonl((uint32_t)(config->mode_from & ET_WAIT_MASK));
     transfer[3] = 0; /* we are not modifying data */
-    transfer[4] = htonl(num_2get);
+    transfer[4] = htonl((uint32_t)num_2get);
     transfer[5] = 0;
     transfer[6] = 0;
   
     if (config->mode_from == ET_TIMED) {
-      transfer[5] = htonl(config->timeout_from.tv_sec);
-      transfer[6] = htonl(config->timeout_from.tv_nsec);
+      transfer[5] = htonl((uint32_t)config->timeout_from.tv_sec);
+      transfer[6] = htonl((uint32_t)config->timeout_from.tv_nsec);
     }
  
     if (etNetTcpWrite(sockfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
@@ -837,7 +833,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
       free(dump); free(put);
       return ET_ERROR_READ;
     }
-    err = ntohl(err);
+    err = ntohl((uint32_t)err);
     
     if (err < 0) {
       et_tcp_unlock(idfrom);
@@ -854,11 +850,11 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
       free(dump); free(put);
       return ET_ERROR_READ;
     }
-    size = ET_64BIT_UINT(ntohl(incoming[0]),ntohl(incoming[1]));
+    /*size = ET_64BIT_UINT(ntohl(incoming[0]),ntohl(incoming[1]));*/
 
     num_read = err;
     total_read += num_read;
-    num_new_prev = total_new = 0;
+    total_new = 0;
     
     /* Now that we know how many events we are about to receive,
      * get the new events from the "to" ET system & fill w/data.
@@ -891,7 +887,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
         }
     
         /* data length in bytes */
-        len = ET_64BIT_UINT(ntohl(header[0]),ntohl(header[1]));
+        len = ET_64BIT_UINT(ntohl((uint32_t)header[0]),ntohl((uint32_t)header[1]));
     
         /* If data is larger than new event's memory size ... */
         if (len > put[i]->memsize) {
@@ -912,14 +908,14 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
     
         /* copy/read relevant event data */
         put[i]->length     = len;
-        put[i]->priority   = ntohl(header[4]) & ET_PRIORITY_MASK;
-        put[i]->datastatus =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
+        put[i]->priority   = ntohl((uint32_t)header[4]) & ET_PRIORITY_MASK;
+        put[i]->datastatus =(ntohl((uint32_t)header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
         put[i]->byteorder  = header[7];
         for (k=0; k < idto->nselects; k++) {
-          put[i]->control[k] = ntohl(header[k+9]);
+          put[i]->control[k] = ntohl((uint32_t)header[k+9]);
         }
     
-        if (etNetTcpRead(sockfd, put[i]->pdata, len) != len) {
+        if (etNetTcpRead(sockfd, put[i]->pdata, (int)len) != len) {
           if ((idfrom->debug >= ET_DEBUG_ERROR) || (idto->debug >= ET_DEBUG_ERROR)) {
             et_logmsg("ERROR", "et_events_bridge, reading event data error\n");
           }
@@ -935,7 +931,7 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
             /* event's data was written on same endian machine as this host */
             same_endian = (put[i]->byteorder == 0x04030201) ? 1 : 0;
 
-            if ((*config->func) (put[i], put[i], put[i]->length, same_endian) != ET_OK) {
+            if ((*config->func) (put[i], put[i], (int)put[i]->length, same_endian) != ET_OK) {
               write_events = 1;
               status = ET_ERROR;
               goto end;
@@ -972,8 +968,6 @@ static int remoteET_2_ET(et_sys_id id_from, et_sys_id id_to,
           goto end;
         }
       }
-      
-      num_new_prev = num_new;
     }
     /* No need to put remote events back since the "from" ET system
      * server has already put them back, and since we didn't allocate
@@ -1010,10 +1004,10 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
   et_id *idfrom = (et_id *) id_from, *idto = (et_id *) id_to;
   et_event **get=NULL, **put=NULL, **dump=NULL;
   int sockfd = idto->sockfd;
-  int i, j, k, status=ET_OK, err, headersize;
+  int i, j, k, status=ET_OK, err;
   int swap=0, byteorder, byteordershouldbe=0, same_endian;
   int transfer[5], index=0, iov_bufs=0, *header=NULL;
-  int num_limit, num_2get, num_read=0, num_new=0, num_dump=0, num_new_prev=0;
+  int num_2get, num_read=0, num_new=0, num_dump=0, num_new_prev=0;
   int total_put=0, total_read=0, total_new=0;
   uint64_t bytes;
   struct iovec *iov=NULL;
@@ -1029,8 +1023,8 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
    * will take up 600MB! So we need to limit them. We'll never need more
    * than that to deal with the total number of events in the "from" ET system.
    */
-  num_limit  = idfrom->nevents;
-  headersize = (7+ET_STATION_SELECT_INTS)*sizeof(int);
+  size_t num_limit = ((size_t)idfrom->nevents) & 0xffffffff;
+  size_t headersize = (7+ET_STATION_SELECT_INTS)*sizeof(int);
   
   /* allocate arrays to hold the event pointers */
   if ((get = (et_event **) calloc(num_limit, sizeof(et_event *))) == NULL) {
@@ -1079,7 +1073,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
   }
   
   transfer[0] = htonl(ET_NET_EVS_PUT);
-  transfer[1] = htonl(att_to);
+  transfer[1] = htonl((uint32_t)att_to);
   iov[iov_bufs].iov_base = (void *) transfer;
   iov[iov_bufs].iov_len  = sizeof(transfer);
   iov_bufs++;
@@ -1187,16 +1181,16 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
           }
         }
     
-        header[index]   = htonl(put[i]->place);
+        header[index]   = htonl((uint32_t)put[i]->place);
         header[index+1] = 0; /* not used */
         header[index+2] = htonl(ET_HIGHINT(get[j]->length));
         header[index+3] = htonl(ET_LOWINT(get[j]->length));
-        header[index+4] = htonl(get[j]->priority | get[j]->datastatus << ET_DATA_SHIFT);
+        header[index+4] = htonl((uint32_t) (get[j]->priority | get[j]->datastatus << ET_DATA_SHIFT));
         header[index+5] = byteorder;
         header[index+6] = 0; /* not used */
 
         for (k=0; k < ET_STATION_SELECT_INTS; k++) {
-          header[index+7+k] = htonl(get[j]->control[k]);
+          header[index+7+k] = htonl((uint32_t)get[j]->control[k]);
         }
     
         iov[iov_bufs].iov_base = (void *) &header[index];
@@ -1211,7 +1205,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
       
       if (num_new) {
         /* put the new events into the "to" ET system */
-        transfer[2] = htonl(num_new);
+        transfer[2] = htonl((uint32_t)num_new);
         transfer[3] = htonl(ET_HIGHINT(bytes));
         transfer[4] = htonl(ET_LOWINT(bytes));
 
@@ -1246,7 +1240,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
           status = ET_ERROR_READ;
           goto end;
         }
-        else if ( (status = ntohl(err)) != ET_OK) {
+        else if ( (status = ntohl((uint32_t)err)) != ET_OK) {
           et_tcp_unlock(idto);
           /* do NOT try to dump events we just wrote & failed */
           /* put back those read in last et_events_get call */
