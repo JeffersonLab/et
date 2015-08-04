@@ -22,12 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <sys/time.h>
-#include <sys/select.h>
 #include <fcntl.h>
 
 #include "et_private.h"
@@ -65,7 +60,7 @@ void *et_cast_thread(void *arg) {
     codaIpInfo         *pinfo = config->netinfo.ipinfo;
     int                cast = ET_MULTICAST; /* not used anymore */
     int                ipAddrCount = config->netinfo.count;
-    int                i=0, j, version, sockfd, nbytes, length, err;
+    int                i=0, version, sockfd, nbytes, length, err;
     int                magicInts[3], debug=0;
     uint32_t           k, len, netint;
     size_t             bufsize;
@@ -342,7 +337,7 @@ void *et_netserver(void *arg)
   et_sys_config   *config = threadarg->config;
   et_id           *etid   = threadarg->id;
   int             listenfd=0, endian, iov_max, debug=0;
-  int             i, err, bytes, flags=0, magicInts[3], port=0, trylimit=2000;
+  int             err, flags=0, magicInts[3], port=0;
   struct sockaddr_in cliaddr;
   socklen_t       addrlen, len;
   pthread_t       tid;
@@ -360,7 +355,7 @@ void *et_netserver(void *arg)
 
   /* find servers's iov_max value */
 #ifndef __APPLE__
-  if ( (iov_max = sysconf(_SC_IOV_MAX)) < 0) {
+  if ( (iov_max = (int)sysconf(_SC_IOV_MAX)) < 0) {
     /* set it to POSIX minimum by default (it always bombs on Linux) */
     iov_max = ET_IOV_MAX;
   }
@@ -511,7 +506,7 @@ void *et_netserver(void *arg)
 static void *et_client_thread(void *arg)
 {
   int  connfd, endian, err, length, bit64;
-  int  outgoing[10], incoming[5];
+  uint32_t  outgoing[10], incoming[5];
   char et_name[ET_FILENAME_LENGTH];
   et_threadinfo    info;
   et_id            *etid;
@@ -560,14 +555,14 @@ static void *et_client_thread(void *arg)
 
   /* send ET system info back to client */
   outgoing[0] = htonl(ET_OK);
-  outgoing[1] = htonl(info.endian);
-  outgoing[2] = htonl(etid->sys->config.nevents);
+  outgoing[1] = htonl((uint32_t)info.endian);
+  outgoing[2] = htonl((uint32_t)etid->sys->config.nevents);
   outgoing[3] = htonl(ET_HIGHINT(etid->sys->config.event_size));
   outgoing[4] = htonl(ET_LOWINT(etid->sys->config.event_size));
-  outgoing[5] = htonl(etid->version);
-  outgoing[6] = htonl(etid->nselects);
-  outgoing[7] = htonl(etid->lang);
-  outgoing[8] = htonl(etid->bit64);
+  outgoing[5] = htonl((uint32_t)etid->version);
+  outgoing[6] = htonl((uint32_t)etid->nselects);
+  outgoing[7] = htonl((uint32_t)etid->lang);
+  outgoing[8] = htonl((uint32_t)etid->bit64);
   /* not used */
   outgoing[9] = 0;
 
@@ -591,7 +586,7 @@ static void *et_client_thread(void *arg)
   error:
     /* if connection is NOT shut down, send reply */
     if (err == ET_ERROR) {
-      err = htonl(err);
+      err = htonl((uint32_t)err);
       if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_client_thread: write failure\n");
@@ -605,8 +600,9 @@ static void *et_client_thread(void *arg)
 /************************************************************/
 static void et_command_loop(et_threadinfo *info)
 {
-  int i, connfd, command, err, error, nevents_max, event_size, iov_max, bit64;
+  int i, connfd, command, err, iov_max, bit64;
   int *histogram=NULL, *header=NULL, attaches[ET_ATTACHMENTS_MAX];
+  size_t nevents_max;
   et_event     **events = NULL;
   struct iovec *iov;
   et_id        *etid = info->id;
@@ -616,8 +612,7 @@ static void et_command_loop(et_threadinfo *info)
   connfd      = info->connfd;
   iov_max     = info->iov_max;
   bit64       = info->bit64;
-  event_size  = etid->sys->config.event_size;
-  nevents_max = etid->sys->config.nevents;
+  nevents_max = (size_t ) etid->sys->config.nevents;
 
   /*
    * Keep track of all the attachments this client makes
@@ -685,10 +680,7 @@ static void et_command_loop(et_threadinfo *info)
       }*/
       goto end;
     }
-    command = ntohl(command);
-
-    /* init error value */
-    error = ET_OK;
+    command = ntohl((uint32_t)command);
 
     /* Since there are so many commands, break up things up a bit */
     if (command < ET_NET_STAT_GATTS) {
@@ -704,7 +696,7 @@ static void et_command_loop(et_threadinfo *info)
           et_att_id  att;
           int wait, incoming[4], transfer[3];
           struct timespec deltatime;
-          et_event *event;
+          et_event *event = NULL;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -796,7 +788,7 @@ static void et_command_loop(et_threadinfo *info)
         {
           et_att_id  att;
           int wait, num, nevents, incoming[5];
-          struct iovec iov[2];
+          struct iovec iovv[2];
           struct timespec deltatime;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
@@ -881,12 +873,12 @@ static void et_command_loop(et_threadinfo *info)
             break;
           }
 
-          iov[0].iov_base = (void *) &nevents;
-          iov[0].iov_len  = sizeof(nevents);
-          iov[1].iov_base = (void *) events;
-          iov[1].iov_len  = nevents*sizeof(et_event *);
+          iovv[0].iov_base = (void *) &nevents;
+          iovv[0].iov_len  = sizeof(nevents);
+          iovv[1].iov_base = (void *) events;
+          iovv[1].iov_len  = nevents*sizeof(et_event *);
 
-          if (etNetTcpWritev(connfd, iov, 2, iov_max) == -1) {
+          if (etNetTcpWritev(connfd, iovv, 2, iov_max) == -1) {
             goto end;
           }
         }
@@ -933,7 +925,7 @@ static void et_command_loop(et_threadinfo *info)
           nevents = incoming[1];
           len = nevents*sizeof(et_event *);
 
-          if (etNetTcpRead(connfd, (void *) events, len) != len) {
+          if (etNetTcpRead(connfd, (void *) events, (int)len) != len) {
             goto end;
           }
 
@@ -951,7 +943,7 @@ static void et_command_loop(et_threadinfo *info)
           int mode, incoming[6], transfer[3];
           size_t size;
           struct timespec deltatime;
-          et_event *event;
+          et_event *event = NULL;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -1051,7 +1043,7 @@ static void et_command_loop(et_threadinfo *info)
           et_att_id  att;
           int mode, nevents, num, incoming[7];
           size_t size;
-          struct iovec iov[2];
+          struct iovec iovv[2];
           struct timespec deltatime;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
@@ -1138,12 +1130,12 @@ static void et_command_loop(et_threadinfo *info)
               break;
           }
 
-          iov[0].iov_base = (void *) &nevents;
-          iov[0].iov_len  = sizeof(nevents);
-          iov[1].iov_base = (void *) events;
-          iov[1].iov_len  = nevents*sizeof(et_event *);
+          iovv[0].iov_base = (void *) &nevents;
+          iovv[0].iov_len  = sizeof(nevents);
+          iovv[1].iov_base = (void *) events;
+          iovv[1].iov_len  = nevents*sizeof(et_event *);
 
-          if (etNetTcpWritev(connfd, iov, 2, iov_max) == -1) {
+          if (etNetTcpWritev(connfd, iovv, 2, iov_max) == -1) {
               goto end;
           }
         }
@@ -1154,7 +1146,7 @@ static void et_command_loop(et_threadinfo *info)
           et_att_id  att;
           int mode, nevents, num, group, incoming[8];
           size_t size;
-          struct iovec iov[2];
+          struct iovec iovv[2];
           struct timespec deltatime;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
@@ -1236,12 +1228,12 @@ static void et_command_loop(et_threadinfo *info)
               break;
           }
 
-          iov[0].iov_base = (void *) &nevents;
-          iov[0].iov_len  = sizeof(nevents);
-          iov[1].iov_base = (void *) events;
-          iov[1].iov_len  = nevents*sizeof(et_event *);
+          iovv[0].iov_base = (void *) &nevents;
+          iovv[0].iov_len  = sizeof(nevents);
+          iovv[1].iov_base = (void *) events;
+          iovv[1].iov_len  = nevents*sizeof(et_event *);
 
-          if (etNetTcpWritev(connfd, iov, 2, iov_max) == -1) {
+          if (etNetTcpWritev(connfd, iovv, 2, iov_max) == -1) {
               goto end;
           }
         }
@@ -1288,7 +1280,7 @@ static void et_command_loop(et_threadinfo *info)
           nevents = incoming[1];
           len = nevents*sizeof(et_event *);
 
-          if (etNetTcpRead(connfd, (void *) events, len) != len) {
+          if (etNetTcpRead(connfd, (void *) events, (int)len) != len) {
             goto end;
           }
 
@@ -1303,10 +1295,11 @@ static void et_command_loop(et_threadinfo *info)
         case  ET_NET_EV_GET:
         {
           et_att_id  att;
-          int i, wait, modify, dumpEvents, incoming[5], header[10+ET_STATION_SELECT_INTS];
+          int wait, modify, dumpEvents;
+          uint32_t incoming[5], hheader[10+ET_STATION_SELECT_INTS];
           struct timespec deltatime;
-          struct iovec iov[2];
-          et_event *event;
+          struct iovec iovv[2];
+          et_event *event = NULL;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -1388,9 +1381,9 @@ static void et_command_loop(et_threadinfo *info)
             err = et_event_get(id, att, &event, wait, NULL);
           }
           
-          header[0] = htonl(err);
+          hheader[0] = htonl((uint32_t)err);
           if (err < ET_OK) {
-            if (etNetTcpWrite(connfd, (void *) header, sizeof(header[0])) != sizeof(header[0])) {
+            if (etNetTcpWrite(connfd, (void *) hheader, sizeof(hheader[0])) != sizeof(hheader[0])) {
               goto end;
             }
             break;
@@ -1408,7 +1401,7 @@ static void et_command_loop(et_threadinfo *info)
               et_event_put(id, att, event);
             }
             
-            err = htonl(ET_ERROR_TOOBIG);
+            err = htonl((uint32_t)ET_ERROR_TOOBIG);
             if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
@@ -1420,29 +1413,28 @@ static void et_command_loop(et_threadinfo *info)
           /* keep track of how this event is to be modified */
           event->modify = modify;
 
-          header[1] = htonl(ET_HIGHINT(event->length));
-          header[2] = htonl(ET_LOWINT(event->length));
-          header[3] = htonl(ET_HIGHINT(event->memsize));
-          header[4] = htonl(ET_LOWINT(event->memsize));
+          hheader[1] = htonl(ET_HIGHINT(event->length));
+          hheader[2] = htonl(ET_LOWINT(event->length));
+          hheader[3] = htonl(ET_HIGHINT(event->memsize));
+          hheader[4] = htonl(ET_LOWINT(event->memsize));
           /* send the priority & datastatus together and save space */
-          header[5] = htonl(event->priority |
-                            event->datastatus << ET_DATA_SHIFT);
+          hheader[5] = htonl((uint32_t) (event->priority | event->datastatus << ET_DATA_SHIFT));
           /* send an index into shared memory and NOT a pointer - for local Java clients */
-          header[6] = htonl(event->place);
-          header[7] = 0; /* not used */
-          header[8] = event->byteorder;
-          header[9] = 0; /* not used */
+          hheader[6] = htonl((uint32_t)event->place);
+          hheader[7] = 0; /* not used */
+          hheader[8] = (uint32_t) event->byteorder;
+          hheader[9] = 0; /* not used */
           for (i=0; i < ET_STATION_SELECT_INTS; i++) {
-            header[i+10] = htonl(event->control[i]);
+            hheader[i+10] = htonl((uint32_t)event->control[i]);
           }
 
-          iov[0].iov_base = (void *) header;
-          iov[0].iov_len  = sizeof(header);
-          iov[1].iov_base = event->pdata;
-          iov[1].iov_len  = event->length;
+          iovv[0].iov_base = (void *) hheader;
+          iovv[0].iov_len  = sizeof(hheader);
+          iovv[1].iov_base = event->pdata;
+          iovv[1].iov_len  = event->length;
 
           /* write data */
-          if (etNetTcpWritev(connfd, iov, 2, iov_max) == -1) {
+          if (etNetTcpWritev(connfd, iovv, 2, iov_max) == -1) {
             goto end;
           }
 
@@ -1460,12 +1452,12 @@ static void et_command_loop(et_threadinfo *info)
         case  ET_NET_EVS_GET:
         {
           et_att_id  att;
-          int i, j, wait, num, modify, nevents, index, dumpEvents;
+          int j, wait, num, modify, nevents=0, index, dumpEvents;
           size_t size, headersize;
 #ifdef _LP64
           uint64_t lengthSum = 0ULL;
 #endif
-          int incoming[6], outgoing[3];
+          uint32_t incoming[6], outgoing[3];
           struct timespec deltatime;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
@@ -1549,7 +1541,7 @@ static void et_command_loop(et_threadinfo *info)
           }
 
           if (err != ET_OK) {
-            err = htonl(err);
+            err = htonl((uint32_t)err);
             if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
               goto end;
             }
@@ -1572,7 +1564,7 @@ static void et_command_loop(et_threadinfo *info)
                   et_events_put(id, att, events, nevents);
                 }
 
-                err = htonl(ET_ERROR_TOOBIG);
+                err = htonl((uint32_t)ET_ERROR_TOOBIG);
                 if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
                   goto end;
                 }
@@ -1590,7 +1582,7 @@ static void et_command_loop(et_threadinfo *info)
             size += events[j]->length;
           }
 
-          outgoing[0] = htonl(nevents);
+          outgoing[0] = htonl((uint32_t)nevents);
           outgoing[1] = htonl(ET_HIGHINT(size));
           outgoing[2] = htonl(ET_LOWINT(size));
           iov[0].iov_base = (void *) outgoing;
@@ -1605,20 +1597,19 @@ static void et_command_loop(et_threadinfo *info)
             
             header[index+2] = htonl(ET_HIGHINT(events[i]->memsize));
             header[index+3] = htonl(ET_LOWINT(events[i]->memsize));
-            header[index+4] = htonl(events[i]->priority |
-                                    events[i]->datastatus << ET_DATA_SHIFT);
+            header[index+4] = htonl((uint32_t) (events[i]->priority | events[i]->datastatus << ET_DATA_SHIFT));
 /*printf("Event %d: len = %llu, memsize = %llu\n", i, events[i]->length,  events[i]->memsize);*/
                                     
 /*printf("Get %p, high = %x, low = %x\n", events[i],
 ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 */
             /* send an index into shared memory and NOT a pointer - for local Java clients */
-            header[index+5] = htonl(events[i]->place);
+            header[index+5] = htonl((uint32_t)events[i]->place);
             header[index+6] = 0; /* not used */
             header[index+7] = events[i]->byteorder;
             header[index+8] = 0; /* not used */
             for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-              header[index+9+j] = htonl(events[i]->control[j]);
+              header[index+9+j] = htonl((uint32_t)events[i]->control[j]);
             }
             iov[2*i+1].iov_base = (void *) &header[index];
             iov[2*i+1].iov_len  = headersize;
@@ -1644,7 +1635,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
         case  ET_NET_EV_PUT:
         {
-          int i, incoming[8+ET_STATION_SELECT_INTS];
+          uint32_t incoming[8+ET_STATION_SELECT_INTS];
           et_event    *pe;
           et_att_id   att;
 
@@ -1672,14 +1663,14 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           
           /* only read data if modifying everything */
           if (pe->modify == ET_MODIFY) {
-            if (etNetTcpRead(connfd, pe->pdata, (size_t)pe->length) != (size_t)pe->length) {
+            if (etNetTcpRead(connfd, pe->pdata, (int) pe->length) != pe->length) {
               goto end;
             }
           }
 
           err = et_event_put(id, att, pe);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -1688,9 +1679,9 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
         case  ET_NET_EVS_PUT:
         {
-          int i, j, nevents;
-          int incoming[4], header[7+ET_STATION_SELECT_INTS];
-          uint64_t size;
+          int j, nevents;
+          uint32_t incoming[4], hheader[7+ET_STATION_SELECT_INTS];
+          /*uint64_t size;*/
           size_t len;
           et_att_id  att;
 
@@ -1700,12 +1691,12 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
           att     = ntohl(incoming[0]);
           nevents = ntohl(incoming[1]);
-          size    = ET_64BIT_UINT(ntohl(incoming[2]),ntohl(incoming[3]));
-/*printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, size);*/
+/*          size    = ET_64BIT_UINT(ntohl(incoming[2]),ntohl(incoming[3]));
+printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, size);*/
 
           for (i=0; i < nevents; i++) {
 /*printf("etr_events_put: i = %d, read in header next, %d ints\n", i, 7+ET_STATION_SELECT_INTS);*/
-            if (etNetTcpRead(connfd, (void *) header, sizeof(header)) != sizeof(header)) {
+            if (etNetTcpRead(connfd, (void *)hheader, sizeof(hheader)) != sizeof(hheader)) {
               goto end;
             }
 
@@ -1713,24 +1704,24 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
            * The following ifdef avoids compiler warnings.
            */
 /*#ifdef _LP64
-            events[i] = (et_event *) ET_64BIT_P(ntohl(header[0]),ntohl(header[1]));
+            events[i] = (et_event *) ET_64BIT_P(ntohl(hheader[0]),ntohl(hheader[1]));
 #else
-            events[i] = (et_event *) ntohl(header[1]);
+            events[i] = (et_event *) ntohl(hheader[1]);
 #endif*/
-            events[i]              = ET_P2EVENT(etid, ntohl(header[0])); /* header[1] is NOT used */
+            events[i]              = ET_P2EVENT(etid, ntohl(hheader[0])); /* hheader[1] is NOT used */
 /*printf("etr_events_put: pointer = %p\n", events[i]);*/
-            events[i]->length      = ET_64BIT_UINT(ntohl(header[2]),ntohl(header[3]));
+            events[i]->length      = ET_64BIT_UINT(ntohl(hheader[2]),ntohl(hheader[3]));
             len                    = (size_t)events[i]->length;
 /*printf("etr_events_put: len = %d\n", (int)len); */
-            events[i]->priority    = ntohl(header[4]) & ET_PRIORITY_MASK;
-            events[i]->datastatus  =(ntohl(header[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
-            events[i]->byteorder   = header[5];
+            events[i]->priority    = ntohl(hheader[4]) & ET_PRIORITY_MASK;
+            events[i]->datastatus  =(ntohl(hheader[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
+            events[i]->byteorder   = hheader[5];
             for (j=0; j < ET_STATION_SELECT_INTS; j++) {
-              events[i]->control[j] = ntohl(header[j+7]);
+              events[i]->control[j] = ntohl(hheader[j+7]);
             }
             /* only read data if modifying everything */
             if (events[i]->modify == ET_MODIFY) {
-              if (etNetTcpRead(connfd, events[i]->pdata, len) != len) {
+              if (etNetTcpRead(connfd, events[i]->pdata, (int)len) != len) {
                 goto end;
               }
 /*printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i]->pdata))) );*/
@@ -1739,7 +1730,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 /*printf("etr_events_put: put event for real\n");*/
           err = et_events_put(id, att, events, nevents);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -1749,7 +1740,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_EV_NEW:
         {
           et_att_id att;
-          int mode, incoming[6], transfer[3];
+          int mode;
+          uint32_t incoming[6], transfer[3];
           uint64_t size;
           struct timespec deltatime;
           et_event *pe = NULL;
@@ -1847,13 +1839,13 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           if (err == ET_OK) {
               pe->modify = ET_MODIFY;
               /* send an index into shared memory and NOT a pointer - for local Java clients */
-              transfer[1] = htonl(pe->place);
+              transfer[1] = htonl((uint32_t)pe->place);
           }
           else {
               transfer[1] = 0;
           }
           
-          transfer[0] = htonl(err);
+          transfer[0] = htonl((uint32_t)err);
           transfer[2] = 0; /* not used */
 
           if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
@@ -1866,11 +1858,11 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_EVS_NEW:
         {
             et_att_id  att;
-            int i, mode, nevents, num, nevents_net;
-            int incoming[7];
+            int mode, nevents=0, num, nevents_net;
+            uint32_t incoming[7];
             uint64_t size;
             struct timespec deltatime;
-            struct iovec iov[2];
+            struct iovec iovv[2];
 
             if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
                 goto end;
@@ -1961,7 +1953,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             }
 
             if (err < 0) {
-                err = htonl(err);
+                err = htonl((uint32_t)err);
                 if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
                     goto end;
                 }
@@ -1971,16 +1963,16 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             for (i=0; i < nevents; i++) {
                 /* keep track of how this event is to be modified */
                 events[i]->modify = ET_MODIFY;
-                ints32[i] = htonl(events[i]->place);
+                ints32[i] = htonl((uint32_t)events[i]->place);
             }
 
-            nevents_net = htonl(nevents);
-            iov[0].iov_base = (void *) &nevents_net;
-            iov[0].iov_len  = sizeof(nevents_net);
-            iov[1].iov_base = (void *) ints32;
-            iov[1].iov_len  = nevents*sizeof(uint32_t);
+            nevents_net = htonl((uint32_t)nevents);
+            iovv[0].iov_base = (void *) &nevents_net;
+            iovv[0].iov_len  = sizeof(nevents_net);
+            iovv[1].iov_base = (void *) ints32;
+            iovv[1].iov_len  = nevents*sizeof(uint32_t);
 
-            if (etNetTcpWritev(connfd, iov, 2, iov_max) == -1) {
+            if (etNetTcpWritev(connfd, iovv, 2, iov_max) == -1) {
                 goto end;
             }
         }
@@ -1989,11 +1981,11 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_EVS_NEW_GRP:
         {
             et_att_id  att;
-            int i, mode, nevents, num, group, nevents_net;
-            int incoming[8];
+            int mode, nevents=0, num, group, nevents_net;
+            uint32_t incoming[8];
             uint64_t size;
             struct timespec deltatime;
-            struct iovec iov[2];
+            struct iovec iovv[2];
 
             if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
                 goto end;
@@ -2088,7 +2080,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             }
 
             if (err < 0) {
-                err = htonl(err);
+                err = htonl((uint32_t)err);
                 if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
                     goto end;
                 }
@@ -2102,16 +2094,16 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             for (i=0; i < nevents; i++) {
                 /* keep track of how this event is to be modified */
                 events[i]->modify = ET_MODIFY;
-                ints32[i] = htonl(events[i]->place);
+                ints32[i] = htonl((uint32_t)events[i]->place);
             }
 
-            nevents_net = htonl(nevents);
-            iov[0].iov_base = (void *) &nevents_net;
-            iov[0].iov_len  = sizeof(nevents_net);
-            iov[1].iov_base = (void *) ints32;
-            iov[1].iov_len  = nevents*sizeof(uint32_t);
+            nevents_net = htonl((uint32_t)nevents);
+            iovv[0].iov_base = (void *) &nevents_net;
+            iovv[0].iov_len  = sizeof(nevents_net);
+            iovv[1].iov_base = (void *) ints32;
+            iovv[1].iov_len  = nevents*sizeof(uint32_t);
 
-            if (etNetTcpWritev(connfd, iov, 2, iov_max) == -1) {
+            if (etNetTcpWritev(connfd, iovv, 2, iov_max) == -1) {
                 goto end;
             }
         }
@@ -2119,7 +2111,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
        case  ET_NET_EV_DUMP:
         {
-          int incoming[2];
+          uint32_t incoming[2];
           et_event    *pe;
           et_att_id   att;
 
@@ -2131,7 +2123,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           pe  = ET_P2EVENT(etid, ntohl(incoming[1]));
           err = et_event_dump(id, att, pe);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2140,7 +2132,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
         case  ET_NET_EVS_DUMP:
         {
-          int i, nevents, incoming[2];
+          uint32_t nevents, incoming[2];
           et_att_id  att;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
@@ -2149,7 +2141,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           att     = ntohl(incoming[0]);
           nevents = ntohl(incoming[1]);
 
-          if (etNetTcpRead(connfd, (void *) ints32, nevents*sizeof(int)) != nevents*sizeof(int)) {
+          if (etNetTcpRead(connfd, (void *) ints32, (int) (nevents*sizeof(int))) != nevents*sizeof(int)) {
             goto end;
           }
 
@@ -2160,7 +2152,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           err = et_events_dump(id, att, events, nevents);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2217,7 +2209,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           if (etNetTcpRead(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
             goto end;
           }
-          att = ntohl(att);
+          att = ntohl((uint32_t)att);
 
 /*printf("ET SERVER: got wake-up-all cmd for att id = %d\n", (int)att);*/
           et_wakeup_attachment(id, att);
@@ -2231,7 +2223,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           if (etNetTcpRead(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
-          stat_id = ntohl(stat_id);
+          stat_id = ntohl((uint32_t)stat_id);
 /*printf("ET SERVER: got wake-up-all cmd for station id = %d\n", (int)stat_id);*/
 
           et_wakeup_all(id, stat_id);
@@ -2250,7 +2242,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         {
           et_stat_id  stat_id;
           et_att_id   att;
-          int length, ipLength, outgoing[2], transfer[4];
+          uint32_t length, ipLength, outgoing[2], transfer[4];
           char host[ET_MAXHOSTNAMELEN], interface[ET_IPADDRSTRLEN];
           pid_t pid;
 
@@ -2291,8 +2283,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             }
           }
 
-          outgoing[0] = htonl(err);
-          outgoing[1] = htonl(att);
+          outgoing[0] = htonl((uint32_t)err);
+          outgoing[1] = htonl((uint32_t)att);
           if (etNetTcpWrite(connfd, (void *) outgoing, sizeof(outgoing)) != sizeof(outgoing)) {
             goto end;
           }
@@ -2307,7 +2299,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           if (etNetTcpRead(connfd, (void *) &att, sizeof(att)) != sizeof(att)) {
             goto end;
           }
-          att = ntohl(att);
+          att = ntohl((uint32_t)att);
 
           err = et_station_detach(id, att);
           /* keep track of all detachments */
@@ -2315,7 +2307,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
             attaches[att] = -1;
           }
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2329,8 +2321,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           et_stat_config sc;
           et_stat_id     stat_id;
           char stat_name[ET_STATNAME_LENGTH];
-          int incoming[14+ET_STATION_SELECT_INTS], transfer[2];
-          int i, position, pposition, lengthname, lengthfname, lengthlib, lengthclass;
+          uint32_t incoming[14+ET_STATION_SELECT_INTS], transfer[2];
+          int position, pposition, lengthname, lengthfname, lengthlib, lengthclass;
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
@@ -2370,8 +2362,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           err = et_station_create_at(id, &stat_id, stat_name,
                                     (et_statconfig) &sc, position, pposition);
 
-          transfer[0] = htonl(err);
-          transfer[1] = htonl(stat_id);
+          transfer[0] = htonl((uint32_t)err);
+          transfer[1] = htonl((uint32_t)stat_id);
           if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
@@ -2386,11 +2378,11 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           if (etNetTcpRead(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
-          stat_id = ntohl(stat_id);
+          stat_id = ntohl((uint32_t)stat_id);
 
           err = et_station_remove(id, stat_id);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
            goto end;
           }
@@ -2400,7 +2392,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_STAT_SPOS:
         {
           et_stat_id  stat_id;
-          int  position, pposition, transfer[3];
+          int  position, pposition;
+          uint32_t  transfer[3];
 
           if (etNetTcpRead(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
@@ -2411,7 +2404,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           err = et_station_setposition(id, stat_id, position, pposition);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2421,18 +2414,19 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_STAT_GPOS:
         {
           et_stat_id  stat_id;
-          int  position, pposition, transfer[3];
+          int  position, pposition;
+          uint32_t transfer[3];
 
           if (etNetTcpRead(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
-          stat_id = ntohl(stat_id);
+          stat_id = ntohl((uint32_t)stat_id);
 
           err = et_station_getposition(id, stat_id, &position, &pposition);
 
-          transfer[0] = htonl(err);
-          transfer[1] = htonl(position);
-          transfer[2] = htonl(pposition);
+          transfer[0] = htonl((uint32_t)err);
+          transfer[1] = htonl((uint32_t)position);
+          transfer[2] = htonl((uint32_t)pposition);
           if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
@@ -2443,7 +2437,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         {
           et_stat_id  stat_id;
           et_att_id   att;
-          int  transfer[2];
+          uint32_t  transfer[2];
 
           if (etNetTcpRead(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
@@ -2453,7 +2447,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           err = et_station_isattached(id, stat_id, att);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2464,7 +2458,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         {
           et_stat_id  stat_id;
           char stat_name[ET_STATNAME_LENGTH];
-          int  length, transfer[2];
+          uint32_t  length, transfer[2];
 
           if (etNetTcpRead(connfd, (void *) &length, sizeof(length)) != sizeof(length)) {
             goto end;
@@ -2476,8 +2470,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           err = et_station_exists(id, &stat_id, stat_name);
 
-          transfer[0] = htonl(err);
-          transfer[1] = htonl(stat_id);
+          transfer[0] = htonl((uint32_t)err);
+          transfer[1] = htonl((uint32_t)stat_id);
           if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
             goto end;
           }
@@ -2487,20 +2481,20 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_STAT_SSW:
         {
           et_stat_id  stat_id;
-          int i, incoming[1+ET_STATION_SELECT_INTS];
+          int incoming[1+ET_STATION_SELECT_INTS];
 
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
 
-          stat_id = ntohl(incoming[0]);
+          stat_id = ntohl((uint32_t)incoming[0]);
           for (i=0 ; i < ET_STATION_SELECT_INTS; i++) {
-            incoming[i] = ntohl(incoming[1+i]);
+            incoming[i] = ntohl((uint32_t)incoming[1+i]);
           }
           
           err = et_station_setselectwords(id, stat_id, incoming);
 
-          err = htonl(err);
+          err = htonl((uint32_t)err);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2511,18 +2505,18 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
         case  ET_NET_STAT_GSW:
         {
           et_stat_id  stat_id;
-          int i, sw[1+ET_STATION_SELECT_INTS];
+          int sw[1+ET_STATION_SELECT_INTS];
 
           if (etNetTcpRead(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
-          stat_id = ntohl(stat_id);
+          stat_id = ntohl((uint32_t)stat_id);
 
           err = et_station_getselectwords(id, stat_id, &sw[1]);
 
-          sw[0] = htonl(err);
+          sw[0] = htonl((uint32_t)err);
           for (i=1; i <= ET_STATION_SELECT_INTS; i++) {
-            sw[i] = htonl(sw[i]);
+            sw[i] = htonl((uint32_t)sw[i]);
           }
           if (etNetTcpWrite(connfd, (void *) sw, sizeof(sw)) != sizeof(sw)) {
             goto end;
@@ -2545,7 +2539,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           if (etNetTcpRead(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
             goto end;
           }
-          stat_id = ntohl(stat_id);
+          stat_id = ntohl((uint32_t)stat_id);
 
           name = buf + sizeof(transfer);
           if (command == ET_NET_STAT_LIB) {
@@ -2559,7 +2553,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
 
           if (err != ET_OK) {
-            transfer[0] = htonl(err);
+            transfer[0] = htonl((uint32_t)err);
             transfer[1] = 0;
             if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
               goto end;
@@ -2567,11 +2561,11 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           }
           else {
             len = strlen(name) + 1;
-            transfer[0] = htonl(err);
-            transfer[1] = htonl(len);
+            transfer[0] = htonl((uint32_t)err);
+            transfer[1] = htonl((uint32_t)len);
             memcpy(buf, transfer, sizeof(transfer));
             size = sizeof(transfer) + len;
-            if (etNetTcpWrite(connfd, (void *) buf, size) != size) {
+            if (etNetTcpWrite(connfd, (void *) buf, (int)size) != size) {
               goto end;
             }
           }
@@ -2592,7 +2586,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
       if (etNetTcpRead(connfd, (void *) &stat_id, sizeof(stat_id)) != sizeof(stat_id)) {
         goto end;
       }
-      stat_id = ntohl(stat_id);
+      stat_id = ntohl((uint32_t)stat_id);
 
       switch (command) {
         case  ET_NET_STAT_GATTS:
@@ -2632,8 +2626,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           goto end;
       }
       
-      transfer[0] = htonl(err);
-      transfer[1] = htonl(val);
+      transfer[0] = htonl((uint32_t)err);
+      transfer[1] = htonl((uint32_t)val);
       if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         goto end;
       }
@@ -2644,7 +2638,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
     else if (command < ET_NET_ATT_PUT) {
 
       et_stat_id  stat_id;
-      int  val, incoming[2];
+      int  val;
+      uint32_t incoming[2];
 
       if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
         goto end;
@@ -2675,7 +2670,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           goto end;
       }
       
-      err = htonl(err);
+      err = htonl((uint32_t)err);
       if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
         goto end;
       }
@@ -2691,7 +2686,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
       if (etNetTcpRead(connfd, (void *) &att_id, sizeof(att_id)) != sizeof(att_id)) {
         goto end;
       }
-      att_id = ntohl(att_id);
+      att_id = ntohl((uint32_t)att_id);
 
       switch (command) {
         case  ET_NET_ATT_PUT:
@@ -2713,7 +2708,7 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           goto end;
       }
       
-      transfer[0] = htonl(err);
+      transfer[0] = htonl((uint32_t)err);
       transfer[1] = htonl(ET_HIGHINT(llevents));
       transfer[2] = htonl(ET_LOWINT(llevents));
       if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
@@ -2761,8 +2756,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           val = pid;
           break;
         case  ET_NET_SYS_GRP:
-            {et_id *etid = (et_id *) id;
-            val = etid->sys->config.groupCount;}
+            {et_id *etidd = (et_id *) id;
+            val = etidd->sys->config.groupCount;}
             err = ET_OK;
           break;
         default:
@@ -2772,8 +2767,8 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           goto end;
       }
       
-      transfer[0] = htonl(err);
-      transfer[1] = htonl(val);
+      transfer[0] = htonl((uint32_t)err);
+      transfer[1] = htonl((uint32_t)val);
       if (etNetTcpWrite(connfd, (void *) transfer, sizeof(transfer)) != sizeof(transfer)) {
         goto end;
       }
@@ -2782,32 +2777,32 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
     /* the following commands distribute data about this ET system over the network */
     else if (command <= ET_NET_SYS_GRPS) {
       if (command == ET_NET_SYS_DATA) {
-        struct iovec iov[5];
-        int    outgoing[2], size;
+        struct iovec iovv[5];
+        uint32_t  outgoing[2], size;
         
         err = ET_OK;
         
-        if (et_data_sys(etid, &iov[1]) != ET_OK) {
+        if (et_data_sys(etid, &iovv[1]) != ET_OK) {
           err = ET_ERROR;
         }
-        else if (et_data_stats(etid, &iov[2]) != ET_OK) {
+        else if (et_data_stats(etid, &iovv[2]) != ET_OK) {
           err = ET_ERROR;
-          free(iov[1].iov_base);
+          free(iovv[1].iov_base);
         }
-        else if (et_data_atts(etid, &iov[3]) != ET_OK) {
+        else if (et_data_atts(etid, &iovv[3]) != ET_OK) {
           err = ET_ERROR;
-          free(iov[1].iov_base);
-          free(iov[2].iov_base);
+          free(iovv[1].iov_base);
+          free(iovv[2].iov_base);
         }
-        else if (et_data_procs(etid, &iov[4]) != ET_OK) {
+        else if (et_data_procs(etid, &iovv[4]) != ET_OK) {
           err = ET_ERROR;
-          free(iov[1].iov_base);
-          free(iov[2].iov_base);
-          free(iov[3].iov_base);
+          free(iovv[1].iov_base);
+          free(iovv[2].iov_base);
+          free(iovv[3].iov_base);
         }
 
         if (err != ET_OK) {
-          err = htonl(ET_ERROR);
+          err = htonl((uint32_t)ET_ERROR);
           if (etNetTcpWrite(connfd, (void *) &err, sizeof(err)) != sizeof(err)) {
             goto end;
           }
@@ -2819,36 +2814,36 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
            * allows the receiver to read that first bit of data and then to
            * allocate a buffer of the size necessary to hold all the real data.
            */
-          size = iov[1].iov_len + iov[2].iov_len + iov[3].iov_len + iov[4].iov_len;
+          size = (uint32_t) (iovv[1].iov_len + iovv[2].iov_len + iovv[3].iov_len + iovv[4].iov_len);
           outgoing[0] = htonl(ET_OK);
           outgoing[1] = htonl(size);
-          iov[0].iov_base = (void *) outgoing;
-          iov[0].iov_len  = sizeof(outgoing);
+          iovv[0].iov_base = (void *) outgoing;
+          iovv[0].iov_len  = sizeof(outgoing);
 
-          if (etNetTcpWritev(connfd, iov, 5, iov_max) == -1) {
-            free(iov[1].iov_base);
-            free(iov[2].iov_base);
-            free(iov[3].iov_base);
-            free(iov[4].iov_base);
+          if (etNetTcpWritev(connfd, iovv, 5, iov_max) == -1) {
+            free(iovv[1].iov_base);
+            free(iovv[2].iov_base);
+            free(iovv[3].iov_base);
+            free(iovv[4].iov_base);
             goto end;
           }
 
           /* free buffers allocated in "et_data_ ..." routines */
-          free(iov[1].iov_base);
-          free(iov[2].iov_base);
-          free(iov[3].iov_base);
-          free(iov[4].iov_base);
+          free(iovv[1].iov_base);
+          free(iovv[2].iov_base);
+          free(iovv[3].iov_base);
+          free(iovv[4].iov_base);
         }
       }
 
       /* send histogram data */
       else if (command == ET_NET_SYS_HIST) {
-          err = et_data_gethistogram(id, histogram+1, nevents_max+1);
+          err = et_data_gethistogram(id, histogram+1, (int) (nevents_max+1));
           /* sneak error code into histogram array for convenience in writing */
           histogram[0] = err;
 
           if (err != ET_OK) {
-              histogram[0] = htonl(histogram[0]);
+              histogram[0] = htonl((uint32_t)histogram[0]);
               if (etNetTcpWrite(connfd, (void *) histogram, sizeof(int)) != sizeof(int)) {
                   goto end;
               }
@@ -2856,9 +2851,9 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           else {
               /* swap data */
               for (i=0; i < nevents_max+2; i++) {
-                  histogram[i] = htonl(histogram[i]);
+                  histogram[i] = htonl((uint32_t)histogram[i]);
               }
-              if (etNetTcpWrite(connfd, (void *) histogram, sizeof(int)*(nevents_max+2)) !=
+              if (etNetTcpWrite(connfd, (void *) histogram, (int) (sizeof(int)*(nevents_max+2))) !=
                   sizeof(int)*(nevents_max+2)) {
                   goto end;
               }
@@ -2867,12 +2862,12 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
       /* send group data */
       else if (command == ET_NET_SYS_GRPS) {
-          et_id *etid = (et_id *) id;
+          et_id *etidd = (et_id *) id;
           int *groups;
-          int groupCount = etid->sys->config.groupCount;
+          int groupCount = etidd->sys->config.groupCount;
 
           /* send number of groups to follow */
-          i = htonl(groupCount);
+          i = htonl((uint32_t)groupCount);
           if (etNetTcpWrite(connfd, (void *) &i, sizeof(int)) != sizeof(int)) {
               goto end;
           }
@@ -2885,9 +2880,9 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
               return;
           }
           for (i=0; i < groupCount; i++) {
-              groups[i] = htonl(etid->sys->config.groups[i]);
+              groups[i] = htonl((uint32_t)etidd->sys->config.groups[i]);
           }
-          if (etNetTcpWrite(connfd, (void *) groups, groupCount*sizeof(int)) != groupCount*sizeof(int)) {
+          if (etNetTcpWrite(connfd, (void *) groups, (int) (groupCount*sizeof(int))) != groupCount*sizeof(int)) {
               goto end;
           }
 
