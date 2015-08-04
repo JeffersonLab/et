@@ -19,8 +19,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "et_private.h"
 #include "org_jlab_coda_et_EtJniAccess.h"
@@ -30,7 +28,7 @@ static int debug = 0;
 static int localByteOrder;
 
 /* cache some frequently used values */
-static jclass eventImplClass, byteBufferClass;
+static jclass eventImplClass;
 static jfieldID fid[4];
 static jmethodID constrMethodId2, constrMethodId3,
                  getPriorityVal, getDataStatusVal;
@@ -60,7 +58,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
     const char* mappedFile;
     et_sys_id id; /* (void *) */
     et_openconfig openconfig;
-    jclass clazz, class1, classEventImpl, byteBufferImpl;
+    jclass clazz, class1, classEventImpl;
     jmethodID mid;
 
     /* get C string from java arg */
@@ -101,9 +99,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
     /*******************************************/
     /* cache objects for efficient, future use */
     /*******************************************/
-    byteBufferImpl  = (*env)->FindClass(env, "java/nio/ByteBuffer");
-    byteBufferClass = (*env)->NewGlobalRef(env, byteBufferImpl);
- 
     classEventImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtEventImpl");
     eventImplClass = (*env)->NewGlobalRef(env, classEventImpl);
  
@@ -210,7 +205,7 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         }
 
         /* wrap data pointer in ByteBuffer object */
-        et_event_getdata(pe[i], (void **) &data);
+        et_event_getdata(pe[i], &data);
         byteBuf = (*env)->NewDirectByteBuffer(env, data, (jlong) pe[i]->memsize);
 
         /* create event object */
@@ -246,11 +241,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jint mode,
          jint sec, jint nsec, jint count, jint size, jint group)
 {
-    int i, j, numread, status, biteOrder;
+    int i, numread, status, biteOrder;
     void *data;
     et_event *pe[count];
     jclass clazz;
-    jboolean isCopy;
     jobjectArray eventArray;
     jobject event, byteBuf;
 
@@ -263,7 +257,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
     
     /* reading array of up to "count" events */
     status = et_events_new_group((et_sys_id)etId, (et_att_id)attId, pe, mode,
-                                  &deltaTime, size, count, group, &numread);
+                                  &deltaTime, (size_t)size, count, group, &numread);
     if (status != ET_OK) {
         if (status == ET_ERROR_DEAD) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
@@ -305,7 +299,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
         }
 
         /* wrap data pointer in ByteBuffer object */
-        et_event_getdata(pe[i], (void **) &data);
+        et_event_getdata(pe[i], &data);
         byteBuf = (*env)->NewDirectByteBuffer(env, data, (jlong) pe[i]->memsize);
 
         /* create event object */
@@ -339,7 +333,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_putEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId,
          jobjectArray events, jint length)
 {
-    int i, j, status, place, biteOrder;
+    int i, j, status, place;
     et_event *pe[length];
     jclass clazz = NULL;
     jobject event;
@@ -416,7 +410,7 @@ if (debug) printf("putEvents (native) : put 'em back\n");
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_dumpEvents
         (JNIEnv *env, jobject thisObj, jlong etId, jint attId, jobjectArray events, jint length)
 {
-    int i, j, status, place;
+    int i, status, place;
     et_event *pe[length];
     jclass clazz = NULL;
     jobject event;
