@@ -21,11 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <errno.h>
 
 #include "et_private.h"
-#include "et_network.h"
 #include "et_data.h"
 
 /* prototypes */
@@ -113,13 +111,13 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
     }
     return ET_ERROR_READ;
   }
-  err = ntohl(err);
+  err = ntohl((uint32_t)err);
   if (err != ET_OK) {
     return err;
   }
 
   /* read histogram data */
-  if (etNetTcpRead(sockfd, (void *) hist, sizeof(int)*(etid->nevents+1)) !=
+  if (etNetTcpRead(sockfd, (void *) hist,(int)(sizeof(int)*(etid->nevents+1))) !=
       sizeof(int)*(etid->nevents+1)) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etr_data_gethistogram, read error\n");
@@ -128,7 +126,7 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
   }
 
   for (i=0; i < size; i++) {
-    hist[i] = ntohl(hist[i]);
+    hist[i] = ntohl((uint32_t)hist[i]);
   }
 
   return ET_OK;
@@ -141,20 +139,20 @@ static int etr_data_gethistogram(et_sys_id id, int hist[], int size)
  ******************************************************/
 int et_data_sys(et_id *id, struct iovec *iov)
 {
-  int        i, events_owned=0, totalints=0;
-  int        ifcount, mcount, totalstringlen=0;
-  int        ints[28+2*ET_MAXADDRESSES], len[2*ET_MAXADDRESSES + 1];
+  uint32_t   i, events_owned=0, totalints=0;
+  uint32_t   ifcount, mcount, totalstringlen=0;
+  uint32_t   ints[28+2*ET_MAXADDRESSES], len[2*ET_MAXADDRESSES + 1];
   char       *buffer, *pbuf;
   size_t     buffersize;
   et_event   *pe;
 
   /* values which can change */
-  ints[0] = htonl(id->alive);
-  ints[1] = htonl(id->sys->heartbeat);
-  ints[2] = htonl(id->sys->ntemps);
-  ints[3] = htonl(id->sys->nstations);
-  ints[4] = htonl(id->sys->nattachments);
-  ints[5] = htonl(id->sys->nprocesses);
+  ints[0] = htonl((uint32_t)id->alive);
+  ints[1] = htonl((uint32_t)id->sys->heartbeat);
+  ints[2] = htonl((uint32_t)id->sys->ntemps);
+  ints[3] = htonl((uint32_t)id->sys->nstations);
+  ints[4] = htonl((uint32_t)id->sys->nattachments);
+  ints[5] = htonl((uint32_t)id->sys->nprocesses);
 
   /* find out how many events the system owns */
   pe = id->events;
@@ -167,56 +165,56 @@ int et_data_sys(et_id *id, struct iovec *iov)
   ints[6] = htonl(events_owned);
 
   /* find out if mutexes are locked */
-  ints[7] = htonl(test_mutex(&id->sys->mutex));
-  ints[8] = htonl(test_mutex(&id->sys->stat_mutex));
-  ints[9] = htonl(test_mutex(&id->sys->statadd_mutex));
+  ints[7] = htonl((uint32_t)test_mutex(&id->sys->mutex));
+  ints[8] = htonl((uint32_t)test_mutex(&id->sys->stat_mutex));
+  ints[9] = htonl((uint32_t)test_mutex(&id->sys->statadd_mutex));
 
   /* values which do NOT change */
-  ints[10] = htonl(id->endian);
-  ints[11] = htonl(id->share);
-  ints[12] = htonl(id->sys->mainpid);
-  ints[13] = htonl(id->sys->nselects);
-  ints[14] = htonl(id->sys->config.nevents);
+  ints[10] = htonl((uint32_t)id->endian);
+  ints[11] = htonl((uint32_t)id->share);
+  ints[12] = htonl((uint32_t)id->sys->mainpid);
+  ints[13] = htonl((uint32_t)id->sys->nselects);
+  ints[14] = htonl((uint32_t)id->sys->config.nevents);
   ints[15] = htonl(ET_HIGHINT(id->sys->config.event_size));
   ints[16] = htonl(ET_LOWINT (id->sys->config.event_size));
-  ints[17] = htonl(id->bit64);
+  ints[17] = htonl((uint32_t)id->bit64);
   
-  ints[18] = htonl(id->sys->config.ntemps);
-  ints[19] = htonl(id->sys->config.nstations);
-  ints[20] = htonl(id->sys->config.nattachments);
-  ints[21] = htonl(id->sys->config.nprocesses);
+  ints[18] = htonl((uint32_t)id->sys->config.ntemps);
+  ints[19] = htonl((uint32_t)id->sys->config.nstations);
+  ints[20] = htonl((uint32_t)id->sys->config.nattachments);
+  ints[21] = htonl((uint32_t)id->sys->config.nprocesses);
 
   /* tcp port to ET server */
-  ints[22] = htonl((int) id->sys->port);
+  ints[22] = htonl((uint32_t)id->sys->port);
   /* udp port direct/broadcasting to find ET server */
-  ints[23] = htonl((int) id->sys->config.port);
+  ints[23] = htonl((uint32_t)id->sys->config.port);
   /* udp port multicasting to find ET server (same as above in C version) */
-  ints[24] = htonl((int) id->sys->config.port);
+  ints[24] = htonl((uint32_t)id->sys->config.port);
 
   /* # of interfaces and multicast addresses */
-  ifcount  = id->sys->config.netinfo.count;
-  mcount   = id->sys->config.mcastaddrs.count;
+  ifcount  = (uint32_t) id->sys->config.netinfo.count;
+  mcount   = (uint32_t) id->sys->config.mcastaddrs.count;
   ints[25] = htonl(ifcount);
   ints[26] = htonl(mcount);
   totalints = 27;
 
   /* length of interface address strings */
   for (i=0; i < ifcount; i++) {
-    len[i] = strlen(id->sys->config.netinfo.ipinfo[i].addr)+1;
+    len[i] = (uint32_t) strlen(id->sys->config.netinfo.ipinfo[i].addr) + 1;
     ints[totalints++] = htonl(len[i]);
     totalstringlen += len[i];
   }
 
   /* length of multicast address strings */
   for (i=0; i < mcount; i++) {
-    len[i+ifcount] = strlen(id->sys->config.mcastaddrs.addr[i])+1;
+    len[i+ifcount] = (uint32_t) strlen(id->sys->config.mcastaddrs.addr[i]) + 1;
     ints[totalints++] = htonl(len[i+ifcount]);
     totalstringlen += len[i+ifcount];
   }
 
   /* length ET file name */
-  len[ifcount+mcount] = strlen(id->sys->config.filename)+1;
-  ints[totalints++] = htonl(len[ifcount+mcount]);
+  len[ifcount+mcount] = (uint32_t) strlen(id->sys->config.filename) + 1;
+  ints[totalints++] = htonl((uint32_t)(len[ifcount+mcount]));
   totalstringlen += len[ifcount+mcount];
 
   /* make buffer */
@@ -258,9 +256,9 @@ int et_data_sys(et_id *id, struct iovec *iov)
 int et_data_stats(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
-  int             i, j, natts, size, count, count1=0, count2=0, parallelHead=1;
-  int             ints[25+ET_ATTACHMENTS_MAX+ET_STATION_SELECT_INTS];
-  int             fnamelen, namelen, classlen, liblen;
+  uint32_t        i, j, natts, size, count, count1=0, count2=0, parallelHead=1;
+  uint32_t        ints[25+ET_ATTACHMENTS_MAX+ET_STATION_SELECT_INTS];
+  uint32_t        fnamelen, namelen, classlen, liblen;
   size_t          intsize, buffersize, actualsize=0;
   et_station     *ps, *pstat;
 
@@ -308,24 +306,24 @@ int et_data_stats(et_id *id, struct iovec *iov)
     }
 
     /* ints */
-    ints[1] = htonl(ps->num);
-    ints[2] = htonl(ps->data.status);
-    ints[3] = htonl(test_mutex(&ps->mutex));
+    ints[1] = htonl((uint32_t)ps->num);
+    ints[2] = htonl((uint32_t)ps->data.status);
+    ints[3] = htonl((uint32_t)test_mutex(&ps->mutex));
     for (natts=0,i=0; i < ET_ATTACHMENTS_MAX; i++) {
       if (ps->data.att[i] < 0) continue;
-      ints[4+natts++] = htonl(ps->data.att[i]);
+      ints[4+natts++] = htonl((uint32_t)ps->data.att[i]);
     }
-    ints[0] = htonl(natts);
+    ints[0] = htonl((uint32_t)natts);
     j = 4 + natts;
 
-    ints[j+0] = htonl(test_mutex(&ps->list_in.mutex));
-    ints[j+1] = htonl(ps->list_in.cnt);
+    ints[j+0] = htonl((uint32_t)test_mutex(&ps->list_in.mutex));
+    ints[j+1] = htonl((uint32_t)ps->list_in.cnt);
     ints[j+2] = htonl(ET_HIGHINT(ps->list_in.events_try));
     ints[j+3] = htonl(ET_LOWINT(ps->list_in.events_try));
     ints[j+4] = htonl(ET_HIGHINT(ps->list_in.events_in));
     ints[j+5] = htonl(ET_LOWINT(ps->list_in.events_in));
-    ints[j+6] = htonl(test_mutex(&ps->list_out.mutex));
-    ints[j+7] = htonl(ps->list_out.cnt);
+    ints[j+6] = htonl((uint32_t)test_mutex(&ps->list_out.mutex));
+    ints[j+7] = htonl((uint32_t)ps->list_out.cnt);
     ints[j+8] = htonl(ET_HIGHINT(ps->list_out.events_out));
     ints[j+9] = htonl(ET_LOWINT(ps->list_out.events_out));
    
@@ -337,31 +335,31 @@ int et_data_stats(et_id *id, struct iovec *iov)
       ints[j+10] = htonl(ET_STATION_PARALLEL_HEAD);
     }
     else {
-      ints[j+10] = htonl(ps->config.flow_mode);
+      ints[j+10] = htonl((uint32_t)ps->config.flow_mode);
     }
-    ints[j+11] = htonl(ps->config.user_mode);
-    ints[j+12] = htonl(ps->config.restore_mode);
-    ints[j+13] = htonl(ps->config.block_mode);
-    ints[j+14] = htonl(ps->config.prescale);
-    ints[j+15] = htonl(ps->config.cue);
-    ints[j+16] = htonl(ps->config.select_mode);
+    ints[j+11] = htonl((uint32_t)ps->config.user_mode);
+    ints[j+12] = htonl((uint32_t)ps->config.restore_mode);
+    ints[j+13] = htonl((uint32_t)ps->config.block_mode);
+    ints[j+14] = htonl((uint32_t)ps->config.prescale);
+    ints[j+15] = htonl((uint32_t)ps->config.cue);
+    ints[j+16] = htonl((uint32_t)ps->config.select_mode);
     for (i=0; i < ET_STATION_SELECT_INTS; i++) {
-      ints[j+17+i] = htonl(ps->config.select[i]);
+      ints[j+17+i] = htonl((uint32_t)ps->config.select[i]);
     }
     j += 17 + ET_STATION_SELECT_INTS;
 
     /* length of strings */
-    fnamelen = strlen(ps->config.fname)+1;
-    liblen   = strlen(ps->config.lib)+1;
-    classlen = strlen(ps->config.classs)+1;
-    namelen  = strlen(ps->name)+1;
+    fnamelen = (uint32_t)strlen(ps->config.fname)+1;
+    liblen   = (uint32_t)strlen(ps->config.lib)+1;
+    classlen = (uint32_t)strlen(ps->config.classs)+1;
+    namelen  = (uint32_t)strlen(ps->name)+1;
 
     ints[j+0] = htonl(fnamelen);
     ints[j+1] = htonl(liblen);
     ints[j+2] = htonl(classlen);
     ints[j+3] = htonl(namelen);
 
-    size = intsize*(25 + ET_STATION_SELECT_INTS + natts);
+    size = (uint32_t) (intsize*(25 + ET_STATION_SELECT_INTS + natts)) ;
 
     /* copy into buffer */
     memcpy((void *)pbuf, (void *) ints, size);
@@ -417,8 +415,8 @@ int et_data_stats(et_id *id, struct iovec *iov)
 int et_data_atts(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
-  int             i, j, count, count1=0, count2=0, events_owned;
-  int             ints[18], hostlen, namelen, iplen;
+  uint32_t        i, j, count, count1=0, count2=0, events_owned;
+  uint32_t        ints[18], hostlen, namelen, iplen;
   size_t          intsize, bufsize, actualsize=0;
   et_station     *ps;
   et_event       *pe;
@@ -446,7 +444,7 @@ int et_data_atts(et_id *id, struct iovec *iov)
   }
 
   /* the first number to send is the # of attachments */
-  count = htonl(count1);
+  count = htonl((uint32_t)count1);
   memcpy((void *) pbuf, (void *) &count,  intsize);
   pbuf += intsize;
 
@@ -461,12 +459,12 @@ int et_data_atts(et_id *id, struct iovec *iov)
     ps = id->grandcentral + id->sys->attach[i].stat;
 
     /* ints */
-    ints[0] = htonl(id->sys->attach[i].num);
-    ints[1] = htonl(id->sys->attach[i].proc);
-    ints[2] = htonl(id->sys->attach[i].stat);
-    ints[3] = htonl(id->sys->attach[i].pid);
-    ints[4] = htonl(id->sys->attach[i].blocked);
-    ints[5] = htonl(id->sys->attach[i].quit);
+    ints[0] = htonl((uint32_t)id->sys->attach[i].num);
+    ints[1] = htonl((uint32_t)id->sys->attach[i].proc);
+    ints[2] = htonl((uint32_t)id->sys->attach[i].stat);
+    ints[3] = htonl((uint32_t)id->sys->attach[i].pid);
+    ints[4] = htonl((uint32_t)id->sys->attach[i].blocked);
+    ints[5] = htonl((uint32_t)id->sys->attach[i].quit);
 
     /* find out how many events the attachment owns */
     pe = id->events;
@@ -477,7 +475,7 @@ int et_data_atts(et_id *id, struct iovec *iov)
       }
       pe++;
     }
-    ints[6] = htonl(events_owned);
+    ints[6] = htonl((uint32_t)events_owned);
 
     ints[7]  = htonl(ET_HIGHINT(id->sys->attach[i].events_put));
     ints[8]  = htonl(ET_LOWINT( id->sys->attach[i].events_put));
@@ -489,9 +487,9 @@ int et_data_atts(et_id *id, struct iovec *iov)
     ints[14] = htonl(ET_LOWINT( id->sys->attach[i].events_make));
         
     /* length of strings */
-    hostlen  = strlen(id->sys->attach[i].host)+1;
-    namelen  = strlen(ps->name)+1;
-    iplen    = strlen(id->sys->attach[i].interface)+1;
+    hostlen  = (uint32_t)strlen(id->sys->attach[i].host)+1;
+    namelen  = (uint32_t)strlen(ps->name)+1;
+    iplen    = (uint32_t)strlen(id->sys->attach[i].interface)+1;
     ints[15] = htonl(hostlen);
     ints[16] = htonl(namelen);
     ints[17] = htonl(iplen);
@@ -529,8 +527,8 @@ int et_data_atts(et_id *id, struct iovec *iov)
 int et_data_procs(et_id *id, struct iovec *iov)
 {
   char           *pbuf, *buffer;
-  int             i, j, count, count1=0, count2=0, natts;
-  int             ints[4+ET_ATTACHMENTS_MAX];
+  uint32_t        i, j, count, count1=0, count2=0, natts;
+  uint32_t        ints[4+ET_ATTACHMENTS_MAX];
   size_t          intsize, bufsize, size;
 
   /*
@@ -570,12 +568,12 @@ int et_data_procs(et_id *id, struct iovec *iov)
     }
 
     /* ints */
-    ints[1] = htonl(id->sys->proc[i].num);
-    ints[2] = htonl(id->sys->proc[i].heartbeat);
-    ints[3] = htonl(id->sys->proc[i].pid);
+    ints[1] = htonl((uint32_t)id->sys->proc[i].num);
+    ints[2] = htonl((uint32_t)id->sys->proc[i].heartbeat);
+    ints[3] = htonl((uint32_t)id->sys->proc[i].pid);
     for (natts=0,j=0; j < ET_ATTACHMENTS_MAX; j++) {
       if (id->sys->proc[i].att[j] < 0) continue;
-      ints[4+natts++] = htonl(id->sys->proc[i].att[j]);
+      ints[4+natts++] = htonl((uint32_t)id->sys->proc[i].att[j]);
     }
     ints[0] = htonl(natts);
 
@@ -605,7 +603,7 @@ int et_data_procs(et_id *id, struct iovec *iov)
  ******************************************************/
 static char *et_data_getsys(et_sysdata *sysdata, char *buffer)
 {
-  int i, ints[27], ifcount, mcount, len[2*ET_MAXADDRESSES + 1];
+  uint32_t i, ints[27], ifcount, mcount, len[2*ET_MAXADDRESSES + 1];
 
   if ((sysdata == NULL) || (buffer == NULL)) {
     return buffer;
@@ -679,7 +677,7 @@ static char *et_data_getsys(et_sysdata *sysdata, char *buffer)
 static char *et_data_getstat(et_statdata *statdata, int count, char *buffer)
 {
   int i, j, k, att, natts, len1, len2, len3, len4;
-  int ints[24+ET_ATTACHMENTS_MAX+ET_STATION_SELECT_INTS];
+  uint32_t ints[24+ET_ATTACHMENTS_MAX+ET_STATION_SELECT_INTS];
   size_t intsize = sizeof(int);
 
   if ((count == 0) || (statdata == NULL) || (buffer == NULL)) {
@@ -689,7 +687,7 @@ static char *et_data_getstat(et_statdata *statdata, int count, char *buffer)
 
   for (i=0; i < count; i++) {
     memcpy((void*) &natts, (void *)buffer, intsize);
-    natts = ntohl(natts);
+    natts = ntohl((uint32_t)natts);
     buffer += intsize;
     memcpy((void *)ints, (void *)buffer, intsize*(24+ ET_STATION_SELECT_INTS + natts));
 
@@ -736,13 +734,13 @@ static char *et_data_getstat(et_statdata *statdata, int count, char *buffer)
     len4 = ntohl(ints[k+3]);
     buffer += (k+4)*intsize;
 
-    memcpy((void *)statdata->fname, (void *)buffer, len1);
+    memcpy((void *)statdata->fname, (void *)buffer, (size_t)len1);
     buffer += len1;
-    memcpy((void *)statdata->lib,(void *)buffer, len2);
+    memcpy((void *)statdata->lib,(void *)buffer, (size_t)len2);
     buffer += len2;
-    memcpy((void *)statdata->classs,(void *)buffer, len3);
+    memcpy((void *)statdata->classs,(void *)buffer, (size_t)len3);
     buffer += len3;
-    memcpy((void *)statdata->name,(void *)buffer, len4);
+    memcpy((void *)statdata->name,(void *)buffer, (size_t)len4);
     buffer += len4;
 
     /* go to the next element in statdata array */
@@ -759,7 +757,7 @@ static char *et_data_getstat(et_statdata *statdata, int count, char *buffer)
  ******************************************************/
 static char *et_data_getatt(et_attdata *attdata, int count, char *buffer)
 {
-  int i, ints[18], len1, len2, len3;
+  uint32_t i, ints[18], len1, len2, len3;
 
   if ((count == 0) || (attdata == NULL) || (buffer == NULL)) {
     return buffer;
@@ -808,8 +806,8 @@ static char *et_data_getatt(et_attdata *attdata, int count, char *buffer)
  ******************************************************/
 static char *et_data_getproc(et_procdata *procdata, int count, char *buffer)
 {
-  int i, j, att, natts, ints[3+ET_ATTACHMENTS_MAX];
-  size_t intsize = sizeof(int);
+  uint32_t i, j, att, natts, ints[3+ET_ATTACHMENTS_MAX];
+  size_t   intsize = sizeof(int);
 
   if ((count == 0) || (procdata == NULL) || (buffer == NULL)) {
     return buffer;
@@ -848,8 +846,8 @@ static char *et_data_getproc(et_procdata *procdata, int count, char *buffer)
 int et_data_get(et_sys_id id, et_alldata *alldata)
 {
   et_id *etid = (et_id *) id;
-  int   err, bufsize, com, sockfd = etid->sockfd;
-  int   stat_count, att_count, proc_count;
+  int   err, com, sockfd = etid->sockfd;
+  uint32_t   stat_count, att_count, proc_count, bufsize;
   char  *pbuf, *buffer;
 
 
@@ -868,7 +866,7 @@ int et_data_get(et_sys_id id, et_alldata *alldata)
     }
     return ET_ERROR_READ;
   }
-  err = ntohl(err);
+  err = ntohl((uint32_t)err);
   if (err != ET_OK) {
     return err;
   }
