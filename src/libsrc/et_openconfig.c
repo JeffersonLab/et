@@ -706,7 +706,7 @@ int et_open_config_addbroadcast(et_openconfig sconfig, const char *val) {
 int et_open_config_removebroadcast(et_openconfig sconfig, const char *val) {
 
     et_open_config *sc = (et_open_config *) sconfig;
-    codaIpList *pBcastAddr, *pPrev=NULL, *pNext=NULL;
+    codaIpList *pBcastAddr, *pPrev=NULL;
 
     if (sc == NULL || sc->init != ET_STRUCT_OK || val == NULL) {
         return ET_ERROR;
