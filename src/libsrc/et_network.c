@@ -24,14 +24,6 @@
 #include <errno.h>
 #include <netdb.h>
 
-/*
-#include <strings.h>
-#include <sys/uio.h>
-#include <sys/time.h>
-#include <sys/select.h>
-#include <sys/utsname.h>
-*/
-
 #ifdef __APPLE__
 #include <ifaddrs.h>
 #endif
@@ -162,7 +154,7 @@ void et_freeAnswers(et_response *answer) {
 codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
                             char* preferredSubnet) {
     
-    int i, onSameSubnet, onPreferredSubnet, preferredCount=0, firstTime=1;
+    int i, onSameSubnet, onPreferredSubnet, preferredCount=0;
     char *ipAddress, *bcastAddress;
     codaIpList *listItem, *lastItem = NULL, *lastPrefItem = NULL, *firstItem = NULL, *firstPrefItem = NULL;
     codaIpAddr *local;
@@ -405,12 +397,8 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     /* encoding & decoding packets */
     char  *pbuf, buffer[4096]; /* should be way more than enough */
     char  outbuf[ET_FILENAME_LENGTH+1+5*sizeof(int)];
-    char  localhost[ET_MAXHOSTNAMELEN];
     char  localuname[ET_MAXHOSTNAMELEN];
-    char  **ipAddrs;
-    
-    char  specifiedhost[ET_MAXHOSTNAMELEN];
-    char  unqualifiedhost[ET_MAXHOSTNAMELEN];
+    char  **ipAddrs=NULL;
 
     int   numresponses=0, remoteresponses=0;
     et_response *answer, *answer_first=NULL, *answer_prev=NULL, *first_remote=NULL;
@@ -724,7 +712,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
 anotherpacket:
                 /* get back a packet from a server */
                 len = sizeof(cliaddr);
-                n = recvfrom(send[j].sockfd, (void *) buffer, sizeof(buffer), 0, (SA *) &cliaddr, &len);
+                n = (int) recvfrom(send[j].sockfd, (void *) buffer, sizeof(buffer), 0, (SA *) &cliaddr, &len);
 
                 /* if error ... */
                 if (n < 0) {
