@@ -26,14 +26,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/mman.h>
-/*
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/time.h>
-
-#include "et_network.h"
-*/
 
 #include "et_private.h"
 
