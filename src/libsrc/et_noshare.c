@@ -22,14 +22,10 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include <strings.h>
 #include <time.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #include "et_private.h"
 #include "et_network.h"
@@ -47,7 +43,8 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   et_mem etInfo;
   et_id *etid;
   struct timespec heartbeat;
-  int status, sockfd, length, bufsize, version, nselects;
+  int status, sockfd, version, nselects;
+  uint32_t length, bufsize;
   int systemType, byteOrder, correctEndian=0;
   int err=ET_OK, transfer[8], incoming[9];
   char *buf, *pbuf, *pSharedMem;
@@ -158,7 +155,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   
   /* find client's iov_max value */
 #ifndef __APPLE__
-  if ( (etid->iov_max = sysconf(_SC_IOV_MAX)) == -1) {
+  if ( (etid->iov_max = (int)sysconf(_SC_IOV_MAX)) == -1) {
     /* set it to POSIX minimum by default (it always bombs on Linux) */
     etid->iov_max = ET_IOV_MAX;
   }
@@ -172,10 +169,10 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   transfer[2]  = htonl(ET_MAGIC_INT3);
     
   /* endian */
-  transfer[3]  = htonl(etid->endian);
+  transfer[3]  = htonl((uint32_t)etid->endian);
 
   /* length of ET system name */
-  length = strlen(filename)+1;
+  length = (uint32_t)strlen(filename)+1;
   transfer[4] = htonl(length);
 #ifdef _LP64
   transfer[5] = 1;
@@ -200,7 +197,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   etid->sockfd = sockfd;
 
   /* put everything in one buffer */
-  bufsize = sizeof(transfer) + length;
+  bufsize = (uint32_t)sizeof(transfer) + length;
   if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open, cannot allocate memory\n");
@@ -231,7 +228,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     err = ET_ERROR_READ;
     goto error;
   }
-  err = ntohl(err);
+  err = ntohl((uint32_t)err);
   if (err != ET_OK) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_open: found the wrong ET system\n");
@@ -247,22 +244,22 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     goto error;
   }
   /* ET's endian */
-  etid->systemendian = ntohl(incoming[0]);
+  etid->systemendian = ntohl((uint32_t)incoming[0]);
   /* ET's total number of events */
-  etid->nevents = ntohl(incoming[1]);
+  etid->nevents = ntohl((uint32_t)incoming[1]);
   /* ET's max event size */
-  etid->esize = ET_64BIT_UINT(ntohl(incoming[2]),ntohl(incoming[3]));
+  etid->esize = ET_64BIT_UINT(ntohl((uint32_t)incoming[2]),ntohl((uint32_t)incoming[3]));
   /* ET's version number */
-  version = ntohl(incoming[4]);
+  version = ntohl((uint32_t)incoming[4]);
   /* ET's number of selection integers */
-  nselects = ntohl(incoming[5]);
+  nselects = ntohl((uint32_t)incoming[5]);
   /* ET's language */
-  etid->lang = ntohl(incoming[6]);
+  etid->lang = ntohl((uint32_t)incoming[6]);
   /* ET's 64 or 32 bit exe.This is here for remote apps in which 32 & 64 bit
    * apps can still talk to eachother. That's not true for us but we still
    * must follow the protocol.
    */
-  etid->bit64 = ntohl(incoming[7]);
+  etid->bit64 = ntohl((uint32_t)incoming[7]);
   
   if (version != etid->version) {
     if (etid->debug >= ET_DEBUG_ERROR) {
@@ -322,15 +319,15 @@ int etn_alive(et_sys_id id)
 
   /* if there's no communication error, return alive */
   if (status > 0) {
-    return ntohl(alive);
+    return ntohl((uint32_t)alive);
   }
   /* Socket error, so now monitor hbeat thru shared memory.
    * Monitoring this way takes a couple seconds (1.5X the
    * time for system's heart to beat), so only do it when
    * socket communication fails
    */
-  waittime.tv_sec  = 1.5*ET_BEAT_SEC;
-  waittime.tv_nsec = 1.5*ET_BEAT_NSEC;
+  waittime.tv_sec  = 3*ET_BEAT_SEC/2;
+  waittime.tv_nsec = 3*ET_BEAT_NSEC/2;
   if (waittime.tv_nsec > 1000000000L) {
     waittime.tv_nsec -= 1000000000L;
     waittime.tv_sec  += 1;
@@ -433,8 +430,8 @@ int etn_event_new(et_sys_id id, et_att_id att, et_event **ev,
   transfer[5] = 0;
   transfer[6] = 0;
   if (deltatime) {
-    transfer[5] = deltatime->tv_sec;
-    transfer[6] = deltatime->tv_nsec;
+    transfer[5] = (int)deltatime->tv_sec;
+    transfer[6] = (int)deltatime->tv_nsec;
   }
  
   et_tcp_lock(etid);
@@ -463,7 +460,7 @@ int etn_event_new(et_sys_id id, et_att_id att, et_event **ev,
    * The following ifdef avoids compiler warnings.
    */
 #ifdef _LP64
-  p   = (void *) ET_64BIT_P(incoming[1],incoming[2]);
+  p   = ET_64BIT_P(incoming[1],incoming[2]);
 #else
   p   = (void *) incoming[2];
 #endif
@@ -511,8 +508,8 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
   transfer[7] = 0;
   
   if (deltatime) {
-    transfer[6] = deltatime->tv_sec;
-    transfer[7] = deltatime->tv_nsec;
+    transfer[6] = (int)deltatime->tv_sec;
+    transfer[7] = (int)deltatime->tv_nsec;
   }
  
   et_tcp_lock(etid);
@@ -550,7 +547,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
    */
   size = nevents*sizeof(et_event *);  /* double use of size */
   
-  if (etNetTcpRead(sockfd, (void *) evs, size) != size) {
+  if (etNetTcpRead(sockfd, (void *) evs, (int)size) != size) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, read error\n");
@@ -608,8 +605,8 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
   transfer[8] = 0;
   
   if (deltatime) {
-    transfer[7] = deltatime->tv_sec;
-    transfer[8] = deltatime->tv_nsec;
+    transfer[7] = (int)deltatime->tv_sec;
+    transfer[8] = (int)deltatime->tv_nsec;
   }
  
   et_tcp_lock(etid);
@@ -647,7 +644,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
    */
   size = nevents*sizeof(et_event *);  /* double use of size */
   
-  if (etNetTcpRead(sockfd, (void *) evs, size) != size) {
+  if (etNetTcpRead(sockfd, (void *) evs, (int)size) != size) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, read error\n");
@@ -703,8 +700,8 @@ int etn_event_get(et_sys_id id, et_att_id att, et_event **ev,
   transfer[3] = 0;
   transfer[4] = 0;
   if (deltatime) {
-    transfer[3] = deltatime->tv_sec;
-    transfer[4] = deltatime->tv_nsec;
+    transfer[3] = (int)deltatime->tv_sec;
+    transfer[4] = (int)deltatime->tv_nsec;
   }
  
   et_tcp_lock(etid);
@@ -733,7 +730,7 @@ int etn_event_get(et_sys_id id, et_att_id att, et_event **ev,
    * The following ifdef avoids compiler warnings.
    */
 #ifdef _LP64
-  p   = (void *) ET_64BIT_P(incoming[1],incoming[2]);
+  p   = ET_64BIT_P(incoming[1],incoming[2]);
 #else
   p   = (void *) incoming[2];
 #endif
@@ -780,8 +777,8 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
   transfer[5] = 0;
   
   if (deltatime) {
-    transfer[4] = deltatime->tv_sec;
-    transfer[5] = deltatime->tv_nsec;
+    transfer[4] = (int)deltatime->tv_sec;
+    transfer[5] = (int)deltatime->tv_nsec;
   }
  
   et_tcp_lock(etid);
@@ -809,7 +806,7 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
   nevents = err;
   size    = nevents*sizeof(et_event *);
   
-  if (etNetTcpRead(sockfd, (void *) evs, size) != size) {
+  if (etNetTcpRead(sockfd, (void *) evs, (int)size) != size) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_get, read error\n");
