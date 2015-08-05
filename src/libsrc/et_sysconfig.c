@@ -20,10 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
 #include "et_private.h"
-#include "et_network.h"
 
 /*****************************************************
  * Routines for setting and getting system configuration
@@ -1292,7 +1290,7 @@ int et_system_getpid(et_sys_id id, pid_t *pid) {
     }
 
     if (etid->locality != ET_LOCAL) {
-        return etr_system_getpid(id, (int *) pid);
+        return etr_system_getpid(id, pid);
     }
 
     *pid = etid->sys->mainpid;
