@@ -368,7 +368,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
     int            i, status, isGrandCentral=0, this_station=-1;
     et_id          *etid = (et_id *) id;
     et_list        *pl;
-    et_station     *ps = etid->grandcentral;
+    et_station     *ps;
     et_system      *sys = etid->sys;
     et_stat_config *sc;
     et_statconfig  p_auto_station;
