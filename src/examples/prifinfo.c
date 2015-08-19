@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 #include "etCommonNetwork.h"
 
 static char *Sock_ntop_host(const struct sockaddr *sa, socklen_t salen);

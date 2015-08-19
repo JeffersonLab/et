@@ -38,8 +38,8 @@ static char     *g_progname = "et_client_simple";
 void analyze(int n_events,   et_event  *pArrayEv[]) {
 
   static int       print_event_info = 0;
-  int              i;
-  int              priority, length;
+  int              i, priority;
+  size_t           length;
   void            *pData = NULL;
 
   if (print_event_info) {
@@ -49,7 +49,7 @@ void analyze(int n_events,   et_event  *pArrayEv[]) {
         if (et_event_getpriority(pArrayEv[i], &priority) == ET_OK) {
           if (et_event_getlength(pArrayEv[i], &length)== ET_OK) {
             printf("        %8X              %2d        %8d\n", 
-                   (unsigned int) pData, priority, length);
+                   (unsigned int) pData, priority, (int)length);
           }
         }
       }

@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <limits.h>
@@ -146,10 +147,10 @@ int main(int argc,char **argv) {
     
       if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
           fprintf(stderr,
-                  "usage: %s  %s\n%s\n%s\n\n",
+                  "usage: %s  %s\n%s\n\n",
                   argv[0],
                   "-f <ET name> -host <ET host> -s <station name> [-h] [-v]",
-                  "                    [-p <ET server port>] [-c <chunk size>] [-q <queue size>]");
+                  "                     [-p <ET server port>] [-c <chunk size>] [-q <queue size>]");
 
           fprintf(stderr, "          -host ET system's host\n");
           fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
@@ -398,4 +399,5 @@ static void *signal_thread (void *arg)
     et_close(id);
     
     printf("et_threadTest 2nd thread: done close\n");
+    return NULL;
 }

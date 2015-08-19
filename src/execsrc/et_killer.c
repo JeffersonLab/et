@@ -26,7 +26,7 @@
 
 
 int main(int argc,char **argv) {  
-    int             c, i_tmp, status, remote, numEvents, errflg=0, verbose=0;
+    int             c, i_tmp, remote=0, numEvents, errflg=0, verbose=0;
     size_t          eventSize;
     unsigned short  serverPort = ET_SERVER_PORT, udpPort = ET_MULTICAST_PORT;
     char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16];
@@ -152,10 +152,10 @@ int main(int argc,char **argv) {
     et_system_getnumevents(id, &numEvents);
     et_system_geteventsize(id, &eventSize);
 
-    printf("Opened ET system with %d number of events, %d bytes each\n", numEvents, eventSize);
+    printf("Opened ET system with %d number of events, %d bytes each\n", numEvents, (int)eventSize);
   
 
-    if ((status = et_kill(id)) != ET_OK) {
+    if (et_kill(id) != ET_OK) {
         printf("%s: error in killing ET system\n", argv[0]);
     }
 

@@ -216,11 +216,12 @@ int main(int argc,char **argv) {
 
     if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
         fprintf(stderr,
-                "usage: %s  %s\n%s\n\n",
+                "usage: %s  %s\n%s\n%s\n%s\n\n",
                 argv[0],
-                "-f <ET name> -host <ET host> [-h] [-v] [-r] [-b] [-c <chunk size>] [-d <delay>]",
-                "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]",
-                "                     [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>] [-nd]");
+                "-f <ET name> -host <ET host> [-h] [-v] [-r] [-b] [-nd]",
+                "                     [-c <chunk size>] [-d <delay>] [-i <interface address>]",
+                "                     [-s <event size>] [-g <group>] [-p <ET server port>]",
+                "                     [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>]");
 
 
         fprintf(stderr, "          -host ET system's host\n");

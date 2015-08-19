@@ -95,7 +95,6 @@ int main(int argc, char **argv) {
 
     /* Use default multicast address */
     memset(mcastAddr, 0, ET_IPADDRSTRLEN);
-    strcpy(mcastAddr, ET_MULTICAST_ADDR);
 
     while ((c = getopt_long_only(argc, argv, "vhdn:s:p:u:m:a:f:g:", long_options, 0)) != EOF) {
 
@@ -220,6 +219,12 @@ int main(int argc, char **argv) {
             default:
                 errflg++;
         }
+    }
+
+    /* Listen to default multicast address if nothing else */
+    if (mcastAddrCount < 1) {
+        strcpy(mcastAddr[0], ET_MULTICAST_ADDR);
+        mcastAddrCount++;
     }
 
     /* Error of some kind */

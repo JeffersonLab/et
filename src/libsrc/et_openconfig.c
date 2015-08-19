@@ -69,7 +69,6 @@ int et_open_config_init(et_openconfig *sconfig) {
     sc->tcpNoDelay       = 1;  /* on */
     sc->timeout.tv_sec   = 0;
     sc->timeout.tv_nsec  = 0;
-    memset(sc->interface, 0, ET_IPADDRSTRLEN);
     strcpy(sc->host, ET_HOST_LOCAL);
     sc->policy           = ET_POLICY_FIRST; /* use first response to broad/multicast */
     sc->mcastaddrs.count = 0;

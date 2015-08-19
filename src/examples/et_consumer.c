@@ -20,9 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/types.h>
+#include <sys/time.h>
 #include <getopt.h>
-#include <unistd.h>
 #include <limits.h>
 #include <time.h>
 
@@ -211,12 +210,13 @@ int main(int argc,char **argv) {
     
       if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
           fprintf(stderr,
-                  "usage: %s  %s\n%s\n%s\n\n",
+                  "usage: %s  %s\n%s\n%s\n%s\n%s\n\n",
                   argv[0],
-                  "-f <ET name> -host <ET host> -s <station name> [-h] [-v] [-nb] [-r] ",
-                  "                    [-p <ET server port>] [-c <chunk size>] [-q <queue size>]",
-                  "                    [-pos <station position>] [-ppos <parallel station position>]",
-                  "                    [-rb <buf size>] [-sb <buf size>] [-nd]");
+                  "-f <ET name> -host <ET host> -s <station name>",
+                  "                    [-h] [-v] [-nb] [-r] [-nd]",
+                  "                    [-p <ET server port>] [-c <chunk size>] [-q <Q size>]",
+                  "                    [-pos <station pos>] [-ppos <parallel station pos>]",
+                  "                    [-rb <buf size>] [-sb <buf size>]");
 
           fprintf(stderr, "          -host ET system's host\n");
           fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
@@ -382,10 +382,10 @@ int main(int argc,char **argv) {
                 
                 printf("data byte order = %s\n", (endian == ET_ENDIAN_BIG ? "BIG" : "LITTLE"));
                 if (swap) {
-                    printf("    data (len = %d) needs swapping, swapped int = %d\n", len, ET_SWAP32(data[0]));
+                    printf("    data (len = %d) needs swapping, swapped int = %d\n", (int)len, ET_SWAP32(data[0]));
                 }
                 else {
-                    printf("    data (len = %d) does NOT need swapping, int = %d\n", len, data[0]);
+                    printf("    data (len = %d) does NOT need swapping, int = %d\n", (int)len, data[0]);
                 }
 
                 et_event_getcontrol(pe[j], con);

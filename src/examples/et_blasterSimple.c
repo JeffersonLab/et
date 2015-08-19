@@ -322,7 +322,7 @@ int main(int argc,char **argv)
             avgByteRate  = 1000.0 * ((double) totalByteCount)  / totalT;
             
             printf("evRate: %3.4g Hz,  %3.4g avg;  byteRate: %3.4g bytes/sec,  %3.4g avg\n",
-                   argv[0], eventRate, avgEventRate, byteRate, avgByteRate);
+                   eventRate, avgEventRate, byteRate, avgByteRate);
             
             eventCount = 0;
             byteCount  = 0;
