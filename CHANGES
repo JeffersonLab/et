@@ -87,3 +87,9 @@ ET-15.1 (created 6/5/2015)
       due to more rigorous argument checking.
     - doxygen doc comments placed in files for all user functions.
     - enable generation of doxygen pages through scons
+
+ET-16.0 (created 7/29/2015)
+    - pass user's LD_LIBRARY_PATH into scons build environment
+    - get rid of vxworks and solaris dependencies in C code and in scons files
+    - condense ET system server UDP listening code into 1 thread.
+    - get rid of MacOS clang compilation errors
