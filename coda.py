@@ -248,9 +248,21 @@ def configureJNI(env):
 
     # first look for a shell variable called JAVA_HOME
     java_base = os.environ.get('JAVA_HOME')
+
+    # NOTE 8/19/2015: Recently, MacOS puts the Oracle java into:
+    # /Library/Java/JavaVirtualMachines/<specific_jdk_dir> where the last dir is something
+    # like jdk1.7.0_80.jdk or jdk1.8.0_60.jdk.
+    # The jni.h file can be found in:
+    # /Library/Java/JavaVirtualMachines/<specific jdk dir>/Contents/Home/include
+    # and jni_md.h (referenced from jni.h) is found in:
+    # /Library/Java/JavaVirtualMachines/<specific jdk dir>/Contents/Home/include/darwin
+    #
+    # To get ET to compile, set JAVA_HOME to be:
+    # /Library/Java/JavaVirtualMachines/<specific jdk dir>/Contents/Home
+
     if not java_base:
         if sys.platform == 'darwin':
-            # Apple's OS X has its own special java base directory
+            # Older Apple's OS X has its own special java base directory
             java_base = '/System/Library/Frameworks/JavaVM.framework'
         else:
             # Search for the java compiler
@@ -270,6 +282,8 @@ def configureJNI(env):
     if sys.platform == 'darwin':
         # Apple does not use Sun's naming convention
         java_headers = [os.path.join(java_base, 'Headers')]
+        java_headers.append(os.path.join(java_base, 'include'))
+        java_headers.append(os.path.join(java_base, 'include/darwin'))
         java_libs = [os.path.join(java_base, 'Libraries')]
     else:
         # linux
