@@ -46,12 +46,12 @@
         <echo message="       clean      - remove class files" />
         <echo message="       cleanall   - remove all generated files" />
         <echo message="       jar        - compile and create et jar file" />
-        <echo message="       install    - create et jar file and install all jars into 'prefix'" />
+        <echo message="       install    - create et jar file, remove other version et jars," />
+        <echo message="                    and install all jars into 'prefix'" />
         <echo message="                    if given on command line by -Dprefix=dir'," />
         <echo message="                    else install into CODA if defined" />
-        <echo message="       uninstall  - remove all jar files previously installed into 'prefix'" />
-        <echo message="                    if given on command line by -Dprefix=dir'," />
-        <echo message="                    else installed into CODA if defined" />
+        <echo message="       uninstall  - remove all current jar files previously installed" />
+        <echo message="                    into 'prefix' or CODA" />
         <echo message="       all        - clean, compile and create et jar file" />
         <echo message="       javadoc    - create javadoc documentation" />
         <echo message="       developdoc - create javadoc documentation for developer" />
