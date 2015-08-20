@@ -109,7 +109,7 @@ debugSuffix = ''
 if debug:
     debugSuffix = '-dbg'
     # Compile with -g and add debugSuffix to all executable names
-    env.Append(CCFLAGS = '-g', PROGSUFFIX = debugSuffix)
+    env.Append(CCFLAGS = ['-g'], PROGSUFFIX = debugSuffix)
 else:
     env.Append(CCFLAGS = ['-O3'])
 
