@@ -11,3 +11,4 @@ src/libsrc/.*
 src/execsrc/.*
 src/examples/.*
 build
+.idea
