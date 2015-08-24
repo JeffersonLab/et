@@ -2,22 +2,16 @@
 Import('env', 'libInstallDir', 'binInstallDir', 'archDir', 'execLibs', 'debugSuffix')
 
 
-
 # List of all C and C++ files.
 allFileList = Glob('*.c', strings=True) + Glob('*.cc', strings=True)
 
-# List of all vxworks files.
-# All vxworks files start by convention with case-independent 'vx'.
-vxFileList = Glob('[vV][xX]*.c', strings=True) + Glob('[vV][xX]*.cc', strings=True)
 
 # List of files containing user-defined event selection routines.
 myUserSelectionFiles = ['et_userfunction.c']
 
 
-
 # Filter out all user-defined selection routines & vxworks files.
-fileList = filter( (lambda a : (a not in vxFileList) and (a not in  myUserSelectionFiles)), allFileList)
-
+fileList = filter( (lambda a : (a not in  myUserSelectionFiles)), allFileList)
 
 
 # For each file, create executable of the same name,
@@ -30,7 +24,6 @@ for fileName in fileList:
     
     if 'install' in COMMAND_LINE_TARGETS:
         env.Alias('install', env.Install(target = binInstallDir + '/examples', source = compiledFile))
-
 
 
 ##################################################################

@@ -36,17 +36,20 @@
 /*---------------------------------------------------------------*/
 /* CIRCULAR BUFFER STUFF */
 
-typedef struct circBuf_t {
+static struct circBuf_t {
     int               hasData;
     int               numRead;
     et_event          **pEvents; /* array of pointers to events */
     pthread_mutex_t   mutex;
     pthread_cond_t    condVar;
     struct circBuf_t  *next;
-} circBuf;
+};
+typedef struct circBuf_t circBuf;
 
-#define CIRC_BUF_SIZE 6
-static circBuf circBuffers[CIRC_BUF_SIZE];
+
+#define CIRC_BUF_SIZE_MAX 6
+static int circBufSize = CIRC_BUF_SIZE_MAX;
+static circBuf circBuffers[CIRC_BUF_SIZE_MAX];
 static circBuf *pReadBuf, *pWriteBuf;
 
 
@@ -54,9 +57,9 @@ static void initLocksAndBuffers(int chunks) {
     int i, status;
       
     /* for each buffer in the circular buffer */
-    for (i=0; i < CIRC_BUF_SIZE; i++) {
+    for (i=0; i < circBufSize; i++) {
         /* make buffers circular */
-        if (i == CIRC_BUF_SIZE-1) {
+        if (i == circBufSize-1) {
             circBuffers[i].next = &circBuffers[0];
         }
         else {
@@ -241,7 +244,7 @@ int main(int argc,char **argv)
     memset(mcastAddr, 0, mcastAddrMax*ET_IPADDRSTRLEN);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vn:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vn:s:p:d:f:c:g:i:q:", long_options, 0)) != EOF) {
       
         if (c == -1)
             break;
@@ -254,6 +257,23 @@ int main(int argc,char **argv)
                     printf("Setting chunk to %d\n", chunk);
                 } else {
                     printf("Invalid argument to -c. Must < 1001 & > 0.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'q':
+                i_tmp = atoi(optarg);
+                if (i_tmp > 0) {
+                    if (i_tmp > CIRC_BUF_SIZE_MAX) {
+                        i_tmp = CIRC_BUF_SIZE_MAX;
+                        printf("Setting circular buf size to max, %d\n", i_tmp);
+                    }
+                    else {
+                        printf("Setting circular buf size to %d\n", i_tmp);
+                    }
+                    circBufSize = i_tmp;
+                } else {
+                    printf("Invalid argument to -q. Must be > 0.\n");
                     exit(-1);
                 }
                 break;
