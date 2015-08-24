@@ -30,6 +30,7 @@
 #include <pthread.h>
 
 #include "et.h"
+#include "et_private.h"
 
 
 /*---------------------------------------------------------------*/
@@ -199,9 +200,13 @@ int main(int argc,char **argv)
     int             i, j, c, i_tmp, status, swappedData, numRead;
     int             startingVal=0, errflg=0, verbose=0;
     int             sendBufSize=0, recvBufSize=0, noDelay=0;
+    int             remote = 0, multicast = 0, broadcast = 0, broadAndMulticast = 0;
     unsigned short  serverPort = ET_SERVER_PORT;
-    char            et_name[ET_FILENAME_LENGTH], host[256], mcastAddr[16], interface[16];
+    char            et_name[ET_FILENAME_LENGTH], host[256], interface[16];
     void            *fakeData;
+
+    int             mcastAddrCount = 0, mcastAddrMax = 10;
+    char            mcastAddr[mcastAddrMax][ET_IPADDRSTRLEN];
 
     et_openconfig   openconfig;
     et_event        **pe;
@@ -233,7 +238,7 @@ int main(int argc,char **argv)
     };
 
     memset(host, 0, 16);
-    memset(mcastAddr, 0, 16);
+    memset(mcastAddr, 0, mcastAddrMax*ET_IPADDRSTRLEN);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
     while ((c = getopt_long_only(argc, argv, "vn:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
@@ -299,6 +304,16 @@ int main(int argc,char **argv)
                 strcpy(interface, optarg);
                 break;
 
+            case 'a':
+                if (strlen(optarg) >= 16) {
+                    fprintf(stderr, "Multicast address is too long\n");
+                    exit(-1);
+                }
+                if (mcastAddrCount >= mcastAddrMax) break;
+                strcpy(mcastAddr[mcastAddrCount++], optarg);
+                multicast = 1;
+                break;
+
             case 0:
                 if (strlen(optarg) >= 255) {
                     fprintf(stderr, "host name is too long\n");
@@ -333,6 +348,14 @@ int main(int argc,char **argv)
                 verbose = ET_DEBUG_INFO;
                 break;
 
+            case 'r':
+                remote = 1;
+                break;
+
+            case 'b':
+                broadcast = 1;
+                break;
+
             case ':':
             case 'h':
             case '?':
@@ -345,24 +368,27 @@ int main(int argc,char **argv)
         fprintf(stderr,
                 "usage: %s  %s\n%s\n%s\n\n",
                 argv[0],
-                "-f <ET name> -host <ET host> [-h] [-v] [-c <chunk size>] [-s <event size>]",
+                "-f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-s <event size>]",
                 "                     [-g <group>] [-p <ET server port>] [-i <interface address>]",
-                "                     [-rb <buf size>] [-sb <buf size>] [-nd]");
+                "                     [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>] [-nd]");
+
 
         fprintf(stderr, "          -host ET system's host\n");
         fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
         fprintf(stderr, "          -h help\n");
         fprintf(stderr, "          -v verbose output\n");
+        fprintf(stderr, "          -r act as remote (TCP) client even if ET system is local\n");
         fprintf(stderr, "          -c number of events in one get/put array\n");
         fprintf(stderr, "          -s event size in bytes\n");
         fprintf(stderr, "          -g group from which to get new events (1,2,...)\n");
         fprintf(stderr, "          -p ET server port\n");
-        fprintf(stderr, "          -i outgoing network interface IP address (dot-decimal)\n");
+        fprintf(stderr, "          -i outgoing network interface address (dot-decimal)\n\n");
+        fprintf(stderr, "          -a multicast address (dot-decimal), may use multiple times\n");
+        fprintf(stderr, "          -b broadcast to find ET\n");
         fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
         fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
         fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
-        fprintf(stderr, "          This blaster works by making a direct connection to the\n");
-        fprintf(stderr, "          ET system's server port and blasting as much data as possible\n");
+        fprintf(stderr, "          This program blasts as much data as possible\n");
         fprintf(stderr, "          over the connecting TCP socket.\n\n");
         exit(2);
     }
@@ -376,28 +402,77 @@ int main(int argc,char **argv)
        
     /* init some stuff */
     initLocksAndBuffers(chunk);
-    
+
     /******************/
     /* open ET system */
     /******************/
     et_open_config_init(&openconfig);
-    et_open_config_setcast(openconfig, ET_DIRECT);
-    et_open_config_sethost(openconfig, host);
-    et_open_config_setserverport(openconfig, serverPort);
-    et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+
+    if (broadcast && multicast) {
+        broadAndMulticast = 1;
+    }
+
+    /* if multicasting to find ET */
+    if (multicast) {
+        /* add multicast addresses to listen to  */
+        for (j = 0; j < mcastAddrCount; j++) {
+            if (strlen(mcastAddr[j]) > 7) {
+                status = et_open_config_addmulticast(openconfig, mcastAddr[j]);
+                if (status != ET_OK) {
+                    printf("%s: bad multicast address argument\n", argv[0]);
+                    exit(1);
+                }
+                printf("%s: adding multicast address %s\n", argv[0], mcastAddr[j]);
+            }
+        }
+    }
+
+    if (broadAndMulticast) {
+        printf("Broad and Multicasting\n");
+        et_open_config_setcast(openconfig, ET_BROADANDMULTICAST);
+        et_open_config_setmultiport(openconfig, serverPort);
+        et_open_config_setport(openconfig, serverPort);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+    else if (multicast) {
+        printf("Multicasting\n");
+        et_open_config_setcast(openconfig, ET_MULTICAST);
+        et_open_config_setmultiport(openconfig, serverPort);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+    else if (broadcast) {
+        printf("Broadcasting\n");
+        et_open_config_setcast(openconfig, ET_BROADCAST);
+        et_open_config_setport(openconfig, serverPort);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+        /* direct connection to ET */
+    else {
+        printf("Direct connection\n");
+        et_open_config_setcast(openconfig, ET_DIRECT);
+        et_open_config_sethost(openconfig, host);
+        et_open_config_setserverport(openconfig, serverPort);
+    }
+
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
     et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
     if (strlen(interface) > 6) {
         et_open_config_setinterface(openconfig, interface);
     }
-    
+
+    if (remote) {
+        printf("SET AS REMOTE\n\n");
+        et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+    }
+
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
         exit(1);
     }
     et_open_config_destroy(openconfig);
- 
+
+
     /* set level of debug output (everything) */
     if (verbose) {
         et_system_setdebug(id, ET_DEBUG_INFO);

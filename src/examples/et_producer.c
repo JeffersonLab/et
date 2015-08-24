@@ -77,7 +77,7 @@ int main(int argc,char **argv) {
             };
 
     memset(host, 0, 16);
-    memset(mcastAddr, 0, 16);
+    memset(mcastAddr, 0, mcastAddrMax*ET_IPADDRSTRLEN);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
     while ((c = getopt_long_only(argc, argv, "vbrn:a:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
@@ -333,11 +333,6 @@ int main(int argc,char **argv) {
     }
 
 
-    /* EXAMPLE: broadcasting to find ET */
-    /*et_open_config_setcast(openconfig, ET_BROADCAST);*/
-    /*et_open_config_addbroadcast(openconfig, "129.57.29.255");*/
-    /*et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);*/
-    
     if (remote) {
         printf("SET AS REMOTE\n\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
