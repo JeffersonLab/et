@@ -83,12 +83,7 @@ int main(int argc,char **argv) {
     printf("%s: et_open problems\n", argv[0]);
     exit(1);
   }
-  
-  et_open_config_setcast(openconfig, ET_DIRECT);
-  et_open_config_sethost(openconfig, "tania");
-  et_open_config_setport(openconfig, 11121);
-  et_open_config_setserverport(openconfig, 11121);
-  
+    
   if (et_open(&id_to, argv[2], openconfig) != ET_OK) {
     printf("%s: et_open problems\n", argv[0]);
     exit(1);
