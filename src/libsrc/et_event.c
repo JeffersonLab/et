@@ -84,11 +84,17 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
 /**
  * This routine is called when a user wants a blank or fresh event from the ET system into which data can be placed.
  *
- * Performance will generally be best with the @ref ET_SLEEP wait mode. It will slow with @ref ET_TIMED,
+ * Performance will generally be best with the @ref ET_SLEEP mode. It will slow with @ref ET_TIMED,
  * and will crawl with @ref ET_ASYNC. All this routine does for a remote client is allocate memory
  * in which to place event data. The error of ET_ERROR_WAKEUP is returned when the ET system dies,
- * or a user calls @ref et_wakeup_all() or @ref et_wakeup_attachment() on the attachment while waiting
- * to read an event.
+ * or a user calls @ref et_wakeup_all(), or @ref et_wakeup_attachment() on the attachment while waiting
+ * to read an event.<p>
+ *
+ * In remote operation it is possible to avoid memory allocation for data in this routine and use an existing
+ * buffer to hold data for this new event. Do this by ANDing the @ref ET_NOALLOC flag with the other mode flag
+ * (ET_SLEEP etc). In this case, the user must also call @ref et_event_setdatabuffer in order to set the
+ * data buffer explicitly for this event. This buffer will NOT be freed when doing an @ref et_event_put or
+ * @ref et_event_dump.
  *
  * @param id   id of the ET system of interest.
  * @param att  the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -308,7 +314,14 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
  * Performance will generally be best with the @ref ET_SLEEP wait mode. It will slow with @ref ET_TIMED,
  * and will crawl with @ref ET_ASYNC. All this routine does for a remote client is allocate memory
  * in which to place event data. The error of ET_ERROR_WAKEUP is returned when the ET system dies,
- * or a user calls @ref et_wakeup_all() or @ref et_wakeup_attachment() on the attachment while waiting to read an event.
+ * or a user calls @ref et_wakeup_all() or @ref et_wakeup_attachment() on the attachment while waiting
+ * to read an event.<p>
+ *
+ * In remote operation it is possible to avoid memory allocation for data in this routine and use existing
+ * buffers to hold data for these new events. Do this by ANDing the @ref ET_NOALLOC flag with the other mode flag
+ * (ET_SLEEP etc). In this case, the user must also call @ref et_event_setdatabuffer in order to set the
+ * data buffer explicitly for each event. These buffers will NOT be freed when doing an @ref et_events_put or
+ * @ref et_events_dump.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -551,7 +564,13 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
  * and will crawl with @ref ET_ASYNC. All this routine does for a remote client is allocate memory
  * in which to place event data. The error of ET_ERROR_WAKEUP is returned when the ET system dies,
  * or a user calls @ref et_wakeup_all() or @ref et_wakeup_attachment() on the attachment,
- * while waiting to read an event.
+ * while waiting to read an event.<p>
+ *
+ * In remote operation it is possible to avoid memory allocation for data in this routine and use an existing
+ * buffer to hold data for this new event. Do this by ANDing the @ref ET_NOALLOC flag with the other mode flag
+ * (ET_SLEEP etc). In this case, the user must also call @ref et_event_setdatabuffer in order to set the
+ * data buffer explicitly for this event. This buffer will NOT be freed when doing an @ref et_event_put or
+ * @ref et_event_dump.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -595,6 +614,12 @@ int et_event_new_group(et_sys_id id, et_att_id att, et_event **pe,
  * in which to place event data. The error of ET_ERROR_WAKEUP is returned when the ET system dies,
  * or a user calls @ref et_wakeup_all() or @ref et_wakeup_attachment() on the attachment,
  * while waiting to read an event.
+ *
+ * In remote operation it is possible to avoid memory allocation for data in this routine and use existing
+ * buffers to hold data for these new events. Do this by ANDing the @ref ET_NOALLOC flag with the other mode flag
+ * (ET_SLEEP etc). In this case, the user must also call @ref et_event_setdatabuffer in order to set the
+ * data buffer explicitly for each event. These buffers will NOT be freed when doing an @ref et_events_put or
+ * @ref et_events_dump.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
