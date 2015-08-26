@@ -24,19 +24,20 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #include "et_private.h"
 #include "et_network.h"
 #include "et_data.h"
 
-/* Info passed to each thread serving a network ET client connection */
+/* This struct contains info passed to each thread serving a network ET client connection. */
 typedef struct et_threadinfo_t {
-  int    connfd;        /* socket connection's fd */
-  int    endian;        /* endian of server */
-  int    endian_client; /* endian of client */
-  int    iov_max;       /* max iov structs for writev */
-  int    bit64;         /* is client 64 bit? (1-y, 0-n) */
-  et_id  *id;           /* for passing info on system running server */
+    int    connfd;        /* socket connection's fd */
+    int    endian;        /* endian of server */
+    int    endian_client; /* endian of client */
+    int    iov_max;       /* max iov structs for writev */
+    int    bit64;         /* is client 64 bit? (1-y, 0-n) */
+    et_id  *id;           /* for passing info on system running server */
 } et_threadinfo;
 
 /* prototypes */
@@ -333,172 +334,175 @@ printf("Listening on port %d\n", config->port);
  **************************************************************/
 void *et_netserver(void *arg)
 {
-  et_netthread    *threadarg = (et_netthread *) arg;
-  et_sys_config   *config = threadarg->config;
-  et_id           *etid   = threadarg->id;
-  int             listenfd=0, endian, iov_max, debug=0;
-  int             err, flags=0, magicInts[3], port=0;
-  struct sockaddr_in cliaddr;
-  socklen_t       addrlen, len;
-  pthread_t       tid;
-  pthread_attr_t  attr;
-  /* pointer to information to be passed to threads */
-  et_threadinfo   *pinfo;
+    et_netthread    *threadarg = (et_netthread *) arg;
+    et_sys_config   *config = threadarg->config;
+    et_id           *etid   = threadarg->id;
+    int             listenfd=0, endian, iov_max, debug=0;
+    int             err, flags=0, magicInts[3], port=0;
+    struct sockaddr_in cliaddr;
+    socklen_t       addrlen, len;
+    pthread_t       tid;
+    pthread_attr_t  attr;
+    /* pointer to information to be passed to threads */
+    et_threadinfo   *pinfo, *last=NULL;
 
-  /* find servers's endian value */
-  if (etNetLocalByteOrder(&endian) != ET_OK) {
-    if (etid->debug >= ET_DEBUG_SEVERE) {
-      et_logmsg("SEVERE", "et_netserver: strange byteorder\n");
+    /* find servers's endian value */
+    if (etNetLocalByteOrder(&endian) != ET_OK) {
+        if (etid->debug >= ET_DEBUG_SEVERE) {
+            et_logmsg("SEVERE", "et_netserver: strange byteorder\n");
+        }
+        exit(1);
     }
-    exit(1);
-  }
 
-  /* find servers's iov_max value */
+    /* find servers's iov_max value */
 #ifndef __APPLE__
-  if ( (iov_max = (int)sysconf(_SC_IOV_MAX)) < 0) {
-    /* set it to POSIX minimum by default (it always bombs on Linux) */
-    iov_max = ET_IOV_MAX;
-  }
+    if ( (iov_max = (int)sysconf(_SC_IOV_MAX)) < 0) {
+        /* set it to POSIX minimum by default (it always bombs on Linux) */
+        iov_max = ET_IOV_MAX;
+    }
 #else
         iov_max = ET_IOV_MAX;
 #endif
-  /* get thread attribute ready */
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    /* get thread attribute ready */
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  /* open a listening socket */
+    /* open a listening socket */
 
-  /* if a server port was explicitly specified, use it otherwise use default */
-  if (config->serverport > 0) {
-      port = config->serverport;
-  }
-  else {
-      port = ET_SERVER_PORT;
-  }
-  
-  err = etNetTcpListen(0, (unsigned short)port, config->tcpSendBufSize,
-                       config->tcpRecvBufSize, config->tcpNoDelay, &listenfd);
-  if (err != ET_OK) {
-    if (etid->debug >= ET_DEBUG_SEVERE) {
-      et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
+    /* if a server port was explicitly specified, use it otherwise use default */
+    if (config->serverport > 0) {
+        port = config->serverport;
     }
-    exit(1);
-  }
-
-  if (debug)
-    printf("TCP server listening on port %d\n", port);
-
-  if (etid->debug >= ET_DEBUG_INFO) {
-    et_logmsg("INFO", "et_netserver: am listening on TCP port %d\n", port);
-  }
-
-  if (listenfd < 0) {
-    if (etid->debug >= ET_DEBUG_SEVERE) {
-      et_logmsg("SEVERE", "et_netserver: all ports busy, cannot start server thread\n");
+    else {
+        port = ET_SERVER_PORT;
     }
-    exit(1);
-  }
 
-  /* save this port # in the shared memory so clients can get to it */
-  etid->sys->port = port;
-
-  /* send signal that thread started */
-  etid->race = -1;
-
-  /* spawn threads to deal with each client */
-  addrlen = sizeof(cliaddr);
-  for ( ; ; ) {
-    len = addrlen;
-
-    /* allocate argument to pass to thread */
-    pinfo = (et_threadinfo *) malloc(sizeof(et_threadinfo));
-    if (pinfo == NULL) {
-      if (etid->debug >= ET_DEBUG_SEVERE) {
-        et_logmsg("SEVERE", "et_netserver: cannot allocate memory\n");
-      }
-      exit(1);
-    }
-    /* set values to pass on to thread */
-    pinfo->endian  = endian;
-    pinfo->iov_max = iov_max;
-    pinfo->id      = etid;
-
-    /* wait for connection to client */
-    pinfo->connfd  = etNetAccept(listenfd, (SA *) &cliaddr, &len);
-    if (pinfo->connfd < 0) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_netserver: error accepting client connection\n");
-      }
-      free(pinfo);
-      continue;
-    }
-    
-    /* Read data from client. Set socket to nonblocking so someone probing
-     * it and not writing at least 3 ints worth of data will return an error
-     * and we can ignore that "client".
-     */
-    flags = fcntl(pinfo->connfd, F_GETFL, 0);
-    if (flags == -1) flags = 0;
-    
-    if ( (fcntl(pinfo->connfd, F_SETFL, flags | O_NONBLOCK)) < 0) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_netserver: error in fcntl 1\n");
-      }
-      close(pinfo->connfd);
-      free(pinfo);
-      continue;
-    }
-    
-    /*printf("et_netserver: try to read magic numbers\n");*/
-    err = etNetTcpRead3iNB(pinfo->connfd, &magicInts[0], &magicInts[1], &magicInts[2]);
-    if (err != 0) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-          et_logmsg("ERROR", "et_netserver: ET server being probed by non-ET client or read failure\n");
-      }
-      close(pinfo->connfd);
-      free(pinfo);
-      continue;
-    }
-    
-    /*printf("et_netserver: read magic numbers: 1 -> %0x, 2 -> %0x, 3 -> %0x\n",
-    magicInts[0],magicInts[1],magicInts[2]); */
-
-    /* check magic numbers received */
-    if (magicInts[0] != ET_MAGIC_INT1 ||
-        magicInts[1] != ET_MAGIC_INT2 ||
-        magicInts[2] != ET_MAGIC_INT3)  {
-
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_netserver: magic numbers do NOT match, close client\n");
-      }
-      close(pinfo->connfd);
-      free(pinfo);
-      continue;
-    }
-    /*printf("et_netserver: passed magic number test\n");*/
-
-    /* make socket blocking again */
-    flags &= ~O_NONBLOCK;
-    fcntl(pinfo->connfd, F_SETFL, flags);
-    if (err == -1) {
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_netserver: error in fcntl 2\n");
-      }
-      close(pinfo->connfd);
-      free(pinfo);
-      continue;
-    }
-    
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("INFO", "et_netserver: magic numbers do match, accept ET client\n");
+    err = etNetTcpListen(0, (unsigned short)port, config->tcpSendBufSize,
+                         config->tcpRecvBufSize, config->tcpNoDelay, &listenfd);
+    if (err != ET_OK) {
+        if (etid->debug >= ET_DEBUG_SEVERE) {
+            et_logmsg("SEVERE", "et_netserver: specified port is busy, cannot start server thread\n");
+        }
+        exit(1);
     }
 
     if (debug)
-      printf("TCP server got a connection so spawn thread\n");
+        printf("TCP server listening on port %d\n", port);
 
-    /* create thread to deal with client */
-    pthread_create(&tid, &attr, et_client_thread, (void *) pinfo);
-  }
+    if (etid->debug >= ET_DEBUG_INFO) {
+        et_logmsg("INFO", "et_netserver: am listening on TCP port %d\n", port);
+    }
+
+    if (listenfd < 0) {
+        if (etid->debug >= ET_DEBUG_SEVERE) {
+            et_logmsg("SEVERE", "et_netserver: all ports busy, cannot start server thread\n");
+        }
+        exit(1);
+    }
+
+    /* save this port # in the shared memory so clients can get to it */
+    etid->sys->port = port;
+
+    /* send signal that thread started */
+    etid->race = -1;
+
+    /* spawn threads to deal with each client */
+    addrlen = sizeof(cliaddr);
+    for ( ; ; ) {
+        len = addrlen;
+
+        /* allocate argument to pass to thread */
+        pinfo = (et_threadinfo *) calloc(1, sizeof(et_threadinfo));
+        if (pinfo == NULL) {
+            if (etid->debug >= ET_DEBUG_SEVERE) {
+                et_logmsg("SEVERE", "et_netserver: cannot allocate memory\n");
+            }
+            exit(1);
+        }
+        /* set values to pass on to thread */
+        pinfo->endian = endian;
+        pinfo->iov_max = iov_max;
+        pinfo->id = etid;
+
+        /* wait for connection to client */
+        pinfo->connfd = etNetAccept(listenfd, (SA *) &cliaddr, &len);
+        if (pinfo->connfd < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_netserver: error accepting client connection\n");
+            }
+            free(pinfo);
+            continue;
+        }
+
+        /* Read data from client. Set socket to nonblocking so someone probing
+         * it and not writing at least 3 ints worth of data will return an error
+         * and we can ignore that "client".
+         */
+        flags = fcntl(pinfo->connfd, F_GETFL, 0);
+        if (flags == -1) flags = 0;
+
+        if ((fcntl(pinfo->connfd, F_SETFL, flags | O_NONBLOCK)) < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_netserver: error in fcntl 1\n");
+            }
+            close(pinfo->connfd);
+            free(pinfo);
+            continue;
+        }
+
+        /*printf("et_netserver: try to read magic numbers\n");*/
+        err = etNetTcpRead3iNB(pinfo->connfd, &magicInts[0], &magicInts[1], &magicInts[2]);
+        if (err != 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_netserver: ET server being probed by non-ET client or read failure\n");
+            }
+            close(pinfo->connfd);
+            free(pinfo);
+            continue;
+        }
+
+        /*printf("et_netserver: read magic numbers: 1 -> %0x, 2 -> %0x, 3 -> %0x\n",
+          magicInts[0],magicInts[1],magicInts[2]); */
+
+        /* check magic numbers received */
+        if (magicInts[0] != ET_MAGIC_INT1 ||
+            magicInts[1] != ET_MAGIC_INT2 ||
+            magicInts[2] != ET_MAGIC_INT3) {
+
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_netserver: magic numbers do NOT match, close client\n");
+            }
+            close(pinfo->connfd);
+            free(pinfo);
+            continue;
+        }
+        /*printf("et_netserver: passed magic number test\n");*/
+
+        /* make socket blocking again */
+        flags &= ~O_NONBLOCK;
+        fcntl(pinfo->connfd, F_SETFL, flags);
+        if (err == -1) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_netserver: error in fcntl 2\n");
+            }
+            close(pinfo->connfd);
+            free(pinfo);
+            continue;
+        }
+
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("INFO", "et_netserver: magic numbers do match, accept ET client\n");
+        }
+
+        if (debug)
+            printf("TCP server got a connection so spawn thread\n");
+
+        /* create thread to deal with client */
+        pthread_create(&tid, &attr, et_client_thread, (void *) pinfo);
+    }
+
+    pthread_exit(NULL);
+
 }
 
 
@@ -600,7 +604,7 @@ static void *et_client_thread(void *arg)
 /************************************************************/
 static void et_command_loop(et_threadinfo *info)
 {
-  int i, connfd, command, err, iov_max, bit64;
+  int i, connfd, command, err, iov_max, bit64, status;
   int *histogram=NULL, *header=NULL, attaches[ET_ATTACHMENTS_MAX];
   size_t nevents_max;
   et_event     **events = NULL;
@@ -681,7 +685,6 @@ static void et_command_loop(et_threadinfo *info)
       goto end;
     }
     command = ntohl((uint32_t)command);
-
     /* Since there are so many commands, break up things up a bit */
     if (command < ET_NET_STAT_GATTS) {
       /* Notice that for the commands ending in "_L", which is the local
