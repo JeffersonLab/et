@@ -244,3 +244,4 @@ Export('env archDir incInstallDir libInstallDir binInstallDir archIncInstallDir 
 env.SConscript('src/libsrc/SConscript',   variant_dir='src/libsrc/'+archDir,   duplicate=0)
 env.SConscript('src/execsrc/SConscript',  variant_dir='src/execsrc/'+archDir,  duplicate=0)
 env.SConscript('src/examples/SConscript', variant_dir='src/examples/'+archDir, duplicate=0)
+env.SConscript('src/test/SConscript',     variant_dir='src/test/'+archDir,     duplicate=0)
