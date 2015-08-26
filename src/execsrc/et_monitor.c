@@ -20,9 +20,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <getopt.h>
 #include <time.h>
 #include <errno.h>
@@ -35,7 +32,6 @@
 static int  display_remotedata(et_sys_id sys_id, double tperiod, uint64_t *prev_out);
 static int  display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_out);
 static int  test_mutex(pthread_mutex_t *mp);
-static void usage();
 
 /******************************************************/
 
