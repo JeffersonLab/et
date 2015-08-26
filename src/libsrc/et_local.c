@@ -612,7 +612,7 @@ int et_wait_for_system(et_sys_id id, struct timespec *timeout, const char *etnam
       }
     }
   }
-  
+
   if (!init) {
     if (etid->debug >= ET_DEBUG_INFO) {
       et_logmsg("INFO", "et_wait_for_system, system is ready\n");
