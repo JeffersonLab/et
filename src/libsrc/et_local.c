@@ -54,7 +54,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 
   /* system id */
   etid = (et_id *) *id;
-  
+
   /* attach to mapped memory */
   err = et_mem_attach(filename, (void **)&pSharedMem, &etInfo);
   if (err != ET_OK) {
@@ -141,7 +141,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   etid->esize    = etid->sys->config.event_size;
   etid->port     = etid->sys->port;
   strcpy(etid->ethost, etid->sys->host);
- 
+
   if (etid->debug >= ET_DEBUG_INFO) {
     et_logmsg("INFO", "etl_open, offset   : val = %d\n", etid->offset);
     et_logmsg("INFO", "etl_open, ET map   : ptr = %p\n", etid->pmap);
@@ -163,7 +163,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   else {
     status = et_wait_for_system(*id, &heartbeat, filename);
   }
-  
+
   if (status != ET_OK) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etl_open: ET system is not active\n");
@@ -171,7 +171,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     munmap(etid->pmap, etid->memsize);
     return status;
   }
-  
+
   /*
    * once ET system is up, find this process a unique indentifier
    * that will also serve as an index into the etid->sys->proc[]
@@ -226,7 +226,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     munmap(etid->pmap, etid->memsize);
     return status;
   }
-  
+
   /*
    * Wait until heartbeat is started before declaring the ET system
    * open. Otherwise the system's heartmonitor may find it's open
@@ -550,7 +550,7 @@ int et_wait_for_system(et_sys_id id, struct timespec *timeout, const char *etnam
   struct timespec sleeptime;
   et_id *etid = (et_id *) id;
   double increment, totalwait = 1.;
-  
+
   /* Before going thru the time of waiting for a heartbeat
    * time period to see if ET is alive, first send a UDP
    * packet to the thread waiting for such. If it's alive,
@@ -561,7 +561,7 @@ int et_wait_for_system(et_sys_id id, struct timespec *timeout, const char *etnam
     etid->alive = 1;
     return ET_OK;
   }
-  
+
   sleeptime.tv_sec  = ET_BEAT_SEC;
   sleeptime.tv_nsec = ET_BEAT_NSEC;
   increment = sleeptime.tv_sec + 1.e-9*(sleeptime.tv_nsec);
@@ -585,7 +585,7 @@ int et_wait_for_system(et_sys_id id, struct timespec *timeout, const char *etnam
     if (!wait_forever) {
       totalwait -= increment;
     }
-    
+
     while (1) {
       newheartbt = etid->sys->heartbeat;
 /* printf("et_wait_for_system: new heartbeat = %d\n", newheartbt); */
