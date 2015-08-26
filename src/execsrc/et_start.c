@@ -21,9 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <signal.h>
-#include <unistd.h>
 #include <getopt.h>
 
 #include "et_private.h"
@@ -70,10 +68,6 @@ int main(int argc, char **argv) {
     sigset_t sigblockset, sigwaitset;
     et_sysconfig config;
     et_sys_id id;
-    /*
-  et_statconfig sconfig;
-  et_stat_id    statid;
-  */
 
     /************************************/
     /* default configuration parameters */
