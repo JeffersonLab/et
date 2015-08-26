@@ -71,7 +71,9 @@ scons -c              remove all generated files
 scons install         make C libraries
                       place libraries in architecture-specific lib directory
                       make binaries
-                      place binaries in architecture-specific bin directory
+                      place execsrc binaries in architecture-specific bin directory
+                      place example binaries in bin/examples directory
+                      place test binaries in bin/test directory
                       place headers in include directory
 
 scons install -c      uninstall libs, headers, and binaries
