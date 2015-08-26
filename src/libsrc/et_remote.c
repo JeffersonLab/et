@@ -39,7 +39,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     et_open_config *config = (et_open_config *) openconfig;
     int sockfd=-1, version, nselects;
     int err=ET_OK, openerror=ET_OK, transfer[8], incoming[9];
-    int port=0;
+    int port=0, debug=ET_DEBUG_ERROR;
     uint32_t  length, bufsize, inetaddr = 0;
     et_id *etid;
     char *buf, *pbuf, *ifBroadcastIP=NULL, *ifRegularIP=NULL, ethost[ET_IPADDRSTRLEN];
@@ -102,30 +102,41 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
         if (port > 0) {
             /* make the network connection */
             if (inetaddr == 0) {
-et_logmsg("INFO","etr_open: try to connect to host %s on port %d through my %s interface\n",ethost,port,ifRegularIP);
+                if (debug >= ET_DEBUG_INFO) {
+                    et_logmsg("INFO", "etr_open: try to connect to host %s on port %d through my %s interface\n",
+                              ethost, port, ifRegularIP);
+                }
+
                 if (etNetTcpConnect(ethost, ifRegularIP, (unsigned short)port,
                                     config->tcpSendBufSize, config->tcpRecvBufSize,
-                                    config->tcpNoDelay,
-                    &sockfd, NULL) == ET_OK) {
-                        et_logmsg("INFO","          success!\n");
-                        break;
+                                    config->tcpNoDelay, &sockfd, NULL) == ET_OK) {
+                    if (debug >= ET_DEBUG_INFO) {
+                        et_logmsg("INFO", "          success!\n");
                     }
+                    break;
+                }
             }
             else {
-et_logmsg("INFO","etr_open: try to connect to address %u (host %s) on port %d through my %s interface\n",
-          inetaddr,ethost,port,ifRegularIP);
+                if (debug >= ET_DEBUG_INFO) {
+                    et_logmsg("INFO",
+                              "etr_open: try to connect to address %u (host %s) on port %d through my %s interface\n",
+                              inetaddr, ethost, port, ifRegularIP);
+                }
                 if (etNetTcpConnect2(inetaddr, ifRegularIP, (unsigned short)port,
                                      config->tcpSendBufSize, config->tcpRecvBufSize,
-                                     config->tcpNoDelay,
-                    &sockfd, NULL) == ET_OK) {
-                        et_logmsg("INFO","          success!\n");
-                        break;
+                                     config->tcpNoDelay, &sockfd, NULL) == ET_OK) {
+                    if (debug >= ET_DEBUG_INFO) {
+                        et_logmsg("INFO", "          success!\n");
                     }
+                    break;
+                }
             }
         }
         else {
             /* else find port# & name of ET server by broad/multicasting */
-et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filename,ethost);
+            if (debug >= ET_DEBUG_INFO) {
+                et_logmsg("INFO", "etr_open: calling et_findserver(file=%s, host=%s)\n", et_filename, ethost);
+            }
             if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config, &response)) == ET_OK) {
 
                 struct timeval timeout = {3,0}; /* 3 second timeout for TCP connection */
@@ -133,33 +144,43 @@ et_logmsg("INFO","etr_open: calling et_findserver(file=%s, host=%s)\n",et_filena
                 codaIpList *dotDecAddr, *first;
                 if (response == NULL) {
                     /* use ethost, port */
-                    et_logmsg("INFO","          success, but response is NULL!\n");
+                    if (debug >= ET_DEBUG_INFO) {
+                        et_logmsg("INFO", "          success, but response is NULL!\n");
+                    }
                     continue;
                 }
          
                 /* First order them so the IP addresses on the
                  * same subnets as this client are tried first. */
                 first = dotDecAddr = et_orderIpAddrs(response, config->netinfo, ifBroadcastIP);
-                
-                et_logmsg("INFO","etr_open: list of ordered IP addresses:\n");
-                while (first != NULL) {
-                    printf("%s\n", first->addr);
-                    first = first->next;
+
+                if (debug >= ET_DEBUG_INFO) {
+                    et_logmsg("INFO", "etr_open: list of ordered IP addresses:\n");
+                    while (first != NULL) {
+                        printf("%s\n", first->addr);
+                        first = first->next;
+                    }
                 }
 
                 /* Try the IP addresses sent by ET system, one-by-one. */
                 while (dotDecAddr != NULL) {
-et_logmsg("INFO","etr_open: try host %s on port %d through my %s interface\n",
-          dotDecAddr->addr,port,ifRegularIP);
+                    if (debug >= ET_DEBUG_INFO) {
+                        et_logmsg("INFO", "etr_open: try host %s on port %d through my %s interface\n",
+                                  dotDecAddr->addr, port, ifRegularIP);
+                    }
                     err = etNetTcpConnectTimeout2(dotDecAddr->addr, ifRegularIP, (unsigned short)port,
                                                   config->tcpSendBufSize, config->tcpRecvBufSize,
                                                   config->tcpNoDelay, &timeout, &sockfd, NULL);
                     if (err == ET_ERROR_TIMEOUT) {
-et_logmsg("INFO","etr_open: Timed out, try next IP address\n");
+                        if (debug >= ET_DEBUG_INFO) {
+                            et_logmsg("INFO", "etr_open: Timed out, try next IP address\n");
+                        }
                     }
             
                     if (!connected && err == ET_OK) {
-et_logmsg("INFO","etr_open: SUCCESS\n");
+                        if (debug >= ET_DEBUG_INFO) {
+                            et_logmsg("INFO", "etr_open: SUCCESS\n");
+                        }
                         connected = 1;
                         break;
                     }
@@ -202,20 +223,20 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     /*printf("etr_open: port %d sockfd = 0x%x\n",port,sockfd);*/
     if ((port == 0) || (sockfd < 0)) {
         if (openerror == ET_ERROR_TOOMANY) {
-            if (etid->debug >= ET_DEBUG_ERROR) {
+            if (debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_open: too many ET systems of that name responded\n");
             }
             return ET_ERROR_TOOMANY;
         }
         else {
-            if (etid->debug >= ET_DEBUG_ERROR) {
+            if (debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "etr_open: cannot find or connect to ET system\n");
             }
         }
         return ET_ERROR_REMOTE;
     }
     else {
-        if (etid->debug >= ET_DEBUG_INFO) {
+        if (debug >= ET_DEBUG_INFO) {
             et_logmsg("INFO", "etr_open: ET system on %s, port# %d\n", ethost, port);
         }
     }
@@ -259,7 +280,7 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     /* put everything in one buffer, extra room in "transfer" */
     bufsize = (uint32_t)sizeof(transfer) + length;
     if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, cannot allocate memory\n");
         }
         err = ET_ERROR_REMOTE;
@@ -272,7 +293,7 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     /* write it to server */
     if (etNetTcpWrite(sockfd, (void *) buf, bufsize) != bufsize) {
         free(buf);
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, write error\n");
         }
         err = ET_ERROR_WRITE;
@@ -282,7 +303,7 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
 
     /* read the return */
     if (etNetTcpRead(sockfd, (void *) &err, sizeof(err)) != sizeof(err)) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, read error 1\n");
         }
         err = ET_ERROR_READ;
@@ -290,14 +311,14 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     }
     err = ntohl((uint32_t)err);
     if (err != ET_OK) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open: found the wrong ET system\n");
         }
         goto error;
     }
 
     if (etNetTcpRead(sockfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, read error 2\n");
         }
         err = ET_ERROR_READ;
@@ -324,7 +345,7 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     etid->bit64 = ntohl((uint32_t)incoming[7]);
 
     if (version != etid->version) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, ET system & user use different versions of ET\n");
         }
         err = ET_ERROR_REMOTE;
@@ -332,7 +353,7 @@ et_logmsg("INFO","etr_open: SUCCESS\n");
     }
 
     if (nselects != etid->nselects) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
+        if (debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "etr_open, ET system & user compiled with different ET_STATION_SELECT_INTS\n");
         }
         err = ET_ERROR_REMOTE;
