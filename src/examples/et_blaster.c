@@ -17,6 +17,12 @@
  *
  *----------------------------------------------------------------------------*/
 
+/**
+ * @file Although the et_producer program can blast data, this program has the advantage
+ * when running on a remote node (from ET system). It has a separate thread to get new
+ * events while simultaneous putting events into the system.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +36,6 @@
 #include <pthread.h>
 
 #include "et.h"
-#include "et_private.h"
 
 
 /*---------------------------------------------------------------*/
@@ -51,7 +56,7 @@ typedef struct circBuf_t circBuf;
 static int circBufSize = CIRC_BUF_SIZE_MAX;
 static circBuf circBuffers[CIRC_BUF_SIZE_MAX];
 static circBuf *pReadBuf, *pWriteBuf;
-
+static int noAllocFlag=0;
 
 static void initLocksAndBuffers(int chunks) {
     int i, status;
@@ -200,16 +205,16 @@ static int chunk=1, group=1, size=32;
 
 int main(int argc,char **argv)
 {
-    int             i, j, c, i_tmp, status, swappedData, numRead;
+    int             i, j, c, i_tmp, status, swappedData, numRead, locality;
     int             startingVal=0, errflg=0, verbose=0;
     int             sendBufSize=0, recvBufSize=0, noDelay=0;
-    int             remote = 0, multicast = 0, broadcast = 0, broadAndMulticast = 0;
+    int             remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
     unsigned short  serverPort = ET_SERVER_PORT;
     char            et_name[ET_FILENAME_LENGTH], host[256], interface[16];
     void            *fakeData;
 
     int             mcastAddrCount = 0, mcastAddrMax = 10;
-    char            mcastAddr[mcastAddrMax][ET_IPADDRSTRLEN];
+    char            mcastAddr[mcastAddrMax][16];
 
     et_openconfig   openconfig;
     et_event        **pe;
@@ -241,10 +246,10 @@ int main(int argc,char **argv)
     };
 
     memset(host, 0, 16);
-    memset(mcastAddr, 0, mcastAddrMax*ET_IPADDRSTRLEN);
+    memset(mcastAddr, 0, mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vn:s:p:d:f:c:g:i:q:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vbhrn:s:p:f:c:g:i:q:a:", long_options, 0)) != EOF) {
       
         if (c == -1)
             break;
@@ -384,32 +389,40 @@ int main(int argc,char **argv)
         }
     }
     
-    if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
+    if (optind < argc || errflg || strlen(et_name) < 1) {
         fprintf(stderr,
-                "usage: %s  %s\n%s\n%s\n\n",
+                "\nusage: %s  %s\n%s\n%s\n%s\n\n",
                 argv[0],
-                "-f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-s <event size>]",
-                "                     [-g <group>] [-p <ET server port>] [-i <interface address>]",
-                "                     [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>] [-nd]");
+                "-f <ET name> [-h] [-v] [-r] [-p] [-nd] [-host <ET host>]",
+                "                      [-c <chunk size>] [-s <event size>] [-g <group>]",
+                "                      [-p <ET server port>] [-i <interface address>]",
+                "                      [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>]");
 
 
-        fprintf(stderr, "          -host ET system's host\n");
-        fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
-        fprintf(stderr, "          -h help\n");
-        fprintf(stderr, "          -v verbose output\n");
-        fprintf(stderr, "          -r act as remote (TCP) client even if ET system is local\n");
-        fprintf(stderr, "          -c number of events in one get/put array\n");
-        fprintf(stderr, "          -s event size in bytes\n");
-        fprintf(stderr, "          -g group from which to get new events (1,2,...)\n");
-        fprintf(stderr, "          -p ET server port\n");
-        fprintf(stderr, "          -i outgoing network interface address (dot-decimal)\n\n");
-        fprintf(stderr, "          -a multicast address (dot-decimal), may use multiple times\n");
-        fprintf(stderr, "          -b broadcast to find ET\n");
-        fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
-        fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
-        fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
+        fprintf(stderr, "          -f    ET system's (memory-mapped file) name\n");
+        fprintf(stderr, "          -host ET system's host if direct connection (default to local)\n");
+        fprintf(stderr, "          -h    help\n");
+        fprintf(stderr, "          -v    verbose output\n\n");
+
+        fprintf(stderr, "          -p    ET server port\n");
+        fprintf(stderr, "          -r    act as remote (TCP) client even if ET system is local\n");
+        fprintf(stderr, "          -c    number of events in one get/put array\n");
+        fprintf(stderr, "          -s    event size in bytes\n");
+        fprintf(stderr, "          -g    group from which to get new events (1,2,...)\n\n");
+
+        fprintf(stderr, "          -i    outgoing network interface address (dot-decimal)\n");
+        fprintf(stderr, "          -a    multicast address (dot-decimal), may use multiple times\n");
+        fprintf(stderr, "          -b    broadcast to find ET\n\n");
+
+        fprintf(stderr, "          -rb   TCP receive buffer size (bytes)\n");
+        fprintf(stderr, "          -sb   TCP send    buffer size (bytes)\n");
+        fprintf(stderr, "          -nd   use TCP_NODELAY option\n\n");
+
         fprintf(stderr, "          This program blasts as much data as possible\n");
-        fprintf(stderr, "          over the connecting TCP socket.\n\n");
+        fprintf(stderr, "          over the ET connection. It makes a direct connection to the\n");
+        fprintf(stderr, "          ET system's server port and host unless at least one multicast address\n");
+        fprintf(stderr, "          is specified or the -b option is used in which case multi/broadcasting\n");
+        fprintf(stderr, "          is used to find the ET system\n\n");
         exit(2);
     }
 
@@ -468,10 +481,13 @@ int main(int argc,char **argv)
     }
         /* direct connection to ET */
     else {
-        printf("Direct connection\n");
         et_open_config_setcast(openconfig, ET_DIRECT);
-        et_open_config_sethost(openconfig, host);
         et_open_config_setserverport(openconfig, serverPort);
+        if (strlen(host) > 0) {
+            et_open_config_sethost(openconfig, host);
+        }
+        et_open_config_gethost(openconfig, host);
+        printf("Direct connection to %s\n", host);
     }
 
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
@@ -481,7 +497,7 @@ int main(int argc,char **argv)
     }
 
     if (remote) {
-        printf("SET AS REMOTE\n\n");
+        printf("Set as remote\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
     }
 
@@ -492,6 +508,20 @@ int main(int argc,char **argv)
     }
     et_open_config_destroy(openconfig);
 
+    /*-------------------------------------------------------*/
+
+    /* Find out if we have a remote connection to the ET system
+     * so we know if we can use external data buffer for events
+     * for blasting - which is quite a bit faster. */
+    et_system_getlocality(id, &locality);
+    if (locality == ET_REMOTE) {
+        noAllocFlag = ET_NOALLOC;
+        printf("ET is remote\n\n");
+    }
+    else {
+        noAllocFlag = 0;
+        printf("ET is local\n\n");
+    }
 
     /* set level of debug output (everything) */
     if (verbose) {
@@ -521,11 +551,13 @@ int main(int argc,char **argv)
     while (1) {
         /* get new events placed in Q by other thread */
         numRead = getDataArrayFromQ(&pe);
-        
+
         /* set data to existing buffer (with ET_NOALLOC), and set data length */
         for (i=0; i < numRead; i++) {
             et_event_setlength(pe[i], size);
-            et_event_setdatabuffer(id, pe[i], fakeData);
+            if (locality == ET_REMOTE) {
+                et_event_setdatabuffer(id, pe[i], fakeData);
+            }
         }
 
         /* put events back into the ET system */
@@ -552,9 +584,17 @@ int main(int argc,char **argv)
         time = time2 - time1;
         
         if (time > 5000) {
-        
+
+            /* reset things if necessary */
+            if ( (totalEventCount >= (LONG_MAX - eventCount)) ||
+                 (totalT >= (LONG_MAX - time)) )  {
+                byteCount = totalByteCount = totalT = totalEventCount = eventCount = 0;
+                time1 = time2;
+                continue;
+            }
+
             eventRate = 1000.0 * ((double) eventCount) / time;
-            byteRate  = 1000.0 * ((double) byteCount)  / time;
+            byteRate  = ((double) byteCount) / time;
             
             totalEventCount += eventCount;
             totalByteCount  += byteCount;
@@ -562,11 +602,14 @@ int main(int argc,char **argv)
             totalT += time;
             
             avgEventRate = 1000.0 * ((double) totalEventCount) / totalT;
-            avgByteRate  = 1000.0 * ((double) totalByteCount)  / totalT;
-            
-            printf("evRate: %3.4g Hz,  %3.4g avg;  byteRate: %3.4g bytes/sec,  %3.4g avg\n",
-                   eventRate, avgEventRate, byteRate, avgByteRate);
-            
+            avgByteRate  = ((double) totalByteCount) / totalT;
+
+            /* Event rates */
+            printf("%s Events:  %3.4g Hz,    %3.4g Avg.\n", argv[0], eventRate, avgEventRate);
+
+            /* Data rates */
+            printf("%s Data:    %3.4g kB/s,  %3.4g Avg.\n\n", argv[0], byteRate, avgByteRate);
+
             eventCount = 0;
             byteCount  = 0;
             
@@ -596,7 +639,7 @@ static void *newEventsThread(void *arg) {
         getEmptyArray(&pe);
       
         /* fill with new events */
-        status = et_events_new_group(id, attach1, pe, ET_SLEEP | ET_NOALLOC,
+        status = et_events_new_group(id, attach1, pe, ET_SLEEP | noAllocFlag,
                                      NULL, size, chunk, group, &numRead);
         if (status != ET_OK) {
             printf("Error reading new events\n");

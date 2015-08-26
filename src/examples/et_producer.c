@@ -30,22 +30,22 @@
 #include <math.h>
 
 #include "et.h"
-#include "et_private.h"
 
 /* prototype */
 static void * signal_thread (void *arg);
 
 int main(int argc,char **argv) {
 
-    int i, j, c, i_tmp, status, swappedData, numRead;
-    int startingVal = 0, errflg = 0, group = 1, chunk = 1, size = 32;
-    int verbose = 0, delay = 0, remote = 0, multicast = 0, broadcast = 0, broadAndMulticast = 0;
-    int sendBufSize = 0, recvBufSize = 0, noDelay = 0;
+    int i, j, c, i_tmp, status, junkData, numRead, locality;
+    int startingVal=0, errflg=0, group=1, chunk=1, size=32, writeData=0, localEndian=1;
+    int verbose=0, delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
+    int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
     unsigned short serverPort = ET_SERVER_PORT;
     char et_name[ET_FILENAME_LENGTH], host[256], interface[16];
+    void *fakeData;
 
     int mcastAddrCount = 0, mcastAddrMax = 10;
-    char mcastAddr[mcastAddrMax][ET_IPADDRSTRLEN];
+    char mcastAddr[mcastAddrMax][16];
 
     et_att_id attach1;
     et_sys_id id;
@@ -64,23 +64,24 @@ int main(int argc,char **argv) {
     double rate = 0.0, avgRate = 0.0;
     int64_t count = 0, totalCount = 0, totalT = 0, time, time1, time2;
 
-    /* control int array for event header */
+    /* control int array for event header if writing junk data */
     int control[] = {17, 8, -1, -1, 0, 0};
 
     /* 4 multiple character command-line options */
     static struct option long_options[] =
-            {{"host", 1, NULL, 1},
-             {"rb",   1, NULL, 2},
-             {"sb",   1, NULL, 3},
-             {"nd",   0, NULL, 4},
-             {0,      0, 0,    0}
+            {{"host",  1, NULL, 1},
+             {"rb",    1, NULL, 2},
+             {"sb",    1, NULL, 3},
+             {"nd",    0, NULL, 4},
+             {"blast", 0, NULL, 5},
+             {0,       0, 0,    0}
             };
 
     memset(host, 0, 16);
-    memset(mcastAddr, 0, mcastAddrMax*ET_IPADDRSTRLEN);
+    memset(mcastAddr, 0, mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vbrn:a:s:p:d:f:c:g:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vbhrn:a:s:p:d:f:c:g:i:w:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -104,6 +105,14 @@ int main(int argc,char **argv) {
                 } else {
                     printf("Invalid argument to -s. Must be a positive integer.\n");
                     exit(-1);
+                }
+                break;
+
+            case 'w':
+                writeData = 1;
+                i_tmp = atoi(optarg);
+                if (i_tmp != 1) {
+                    localEndian = 0;
                 }
                 break;
 
@@ -194,6 +203,11 @@ int main(int argc,char **argv) {
                 noDelay = 1;
                 break;
 
+                /* case blast */
+            case 5:
+                blast = 1;
+                break;
+
             case 'v':
                 verbose = ET_DEBUG_INFO;
                 break;
@@ -214,37 +228,54 @@ int main(int argc,char **argv) {
         }
     }
 
-    if (optind < argc || errflg || strlen(host) < 1 || strlen(et_name) < 1) {
+    if (optind < argc || errflg || strlen(et_name) < 1) {
         fprintf(stderr,
-                "usage: %s  %s\n%s\n%s\n%s\n\n",
-                argv[0],
-                "-f <ET name> -host <ET host> [-h] [-v] [-r] [-b] [-nd]",
-                "                     [-c <chunk size>] [-d <delay>] [-i <interface address>]",
-                "                     [-s <event size>] [-g <group>] [-p <ET server port>]",
-                "                     [-a <mcast addr>] [-rb <buf size>] [-sb <buf size>]");
+                "\nusage: %s  %s\n%s\n%s\n%s\n%s\n%s\n%s\n\n",
+                argv[0], "-f <ET name>",
+                "                     [-h] [-v] [-r] [-b] [-nd] [-blast]",
+                "                     [-host <ET host>] [-w <local endian? 0/1>]",
+                "                     [-s <event size>] [-c <chunk size>] [-g <group>]",
+                "                     [-d <delay>] [-p <ET server port>]",
+                "                     [-i <interface address>] [-a <mcast addr>]",
+                "                     [-rb <buf size>] [-sb <buf size>]");
 
 
-        fprintf(stderr, "          -host ET system's host\n");
-        fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
-        fprintf(stderr, "          -h help\n");
-        fprintf(stderr, "          -v verbose output\n");
-        fprintf(stderr, "          -r act as remote (TCP) client even if ET system is local\n");
-        fprintf(stderr, "          -c number of events in one get/put array\n");
-        fprintf(stderr, "          -d delay in millisec between each round of getting and putting events\n");
-        fprintf(stderr, "          -s event size in bytes\n");
-        fprintf(stderr, "          -g group from which to get new events (1,2,...)\n");
-        fprintf(stderr, "          -p ET server port (TCP for direct, UDP for broad/multicast\n");
-        fprintf(stderr, "          -i outgoing network interface address (dot-decimal)\n\n");
-        fprintf(stderr, "          -a multicast address (dot-decimal), may use multiple times\n");
-        fprintf(stderr, "          -b broadcast to find ET\n");
-        fprintf(stderr, "          -rb TCP receive buffer size (bytes)\n");
-        fprintf(stderr, "          -sb TCP send    buffer size (bytes)\n");
-        fprintf(stderr, "          -nd use TCP_NODELAY option\n\n");
+        fprintf(stderr, "          -f     ET system's (memory-mapped file) name\n");
+        fprintf(stderr, "          -host  ET system's host if direct connection (default to local)\n");
+        fprintf(stderr, "          -h     help\n");
+        fprintf(stderr, "          -v     verbose output\n\n");
 
-        fprintf(stderr, "          This consumer works by making a direct connection to the\n");
-        fprintf(stderr, "          ET system's server port unless at least one multicast address\n");
-        fprintf(stderr, "          is specified in which case multicasting is used to find the ET system\n\n");
+        fprintf(stderr, "          -s     event size in bytes\n");
+        fprintf(stderr, "          -c     number of events in one get/put array\n");
+        fprintf(stderr, "          -g     group from which to get new events (1,2,...)\n");
+        fprintf(stderr, "          -d     delay in millisec between each round of getting and putting events\n\n");
+
+        fprintf(stderr, "          -p     ET server port (TCP for direct, UDP for broad/multicast)\n");
+        fprintf(stderr, "          -r     act as remote (TCP) client even if ET system is local\n");
+        fprintf(stderr, "          -w     write data (1 sequential int per event), 1 local endian, 0 else\n");
+        fprintf(stderr, "          -blast if remote, use external data buf (no mem allocation),\n");
+        fprintf(stderr, "                 do not write data (overrides -w)\n\n");
+
+        fprintf(stderr, "          -i     outgoing network interface address (dot-decimal)\n");
+        fprintf(stderr, "          -a     multicast address (dot-decimal), may use multiple times\n");
+        fprintf(stderr, "          -b     broadcast to find ET\n\n");
+
+        fprintf(stderr, "          -rb    TCP receive buffer size (bytes)\n");
+        fprintf(stderr, "          -sb    TCP send    buffer size (bytes)\n");
+        fprintf(stderr, "          -nd    use TCP_NODELAY option\n\n");
+
+        fprintf(stderr, "          This producer works by making a direct connection to the\n");
+        fprintf(stderr, "          ET system's server port and host unless at least one multicast address\n");
+        fprintf(stderr, "          is specified or the -b option is used in which case multi/broadcasting\n");
+        fprintf(stderr, "          is used to find the ET system\n\n");
         exit(2);
+    }
+
+    /* fake data for blasting */
+    fakeData = (void *) malloc(size);
+    if (fakeData == NULL) {
+        printf("%s: out of memory\n", argv[0]);
+        exit(1);
     }
 
     /* delay is in milliseconds */
@@ -319,12 +350,14 @@ int main(int argc,char **argv) {
     }
     /* direct connection to ET */
     else {
-        printf("Direct connection\n");
         et_open_config_setcast(openconfig, ET_DIRECT);
-        et_open_config_sethost(openconfig, host);
         et_open_config_setserverport(openconfig, serverPort);
+        if (strlen(host) > 0) {
+            et_open_config_sethost(openconfig, host);
+        }
+        et_open_config_gethost(openconfig, host);
+        printf("Direct connection to %s\n", host);
     }
-
 
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
     et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
@@ -332,19 +365,42 @@ int main(int argc,char **argv) {
         et_open_config_setinterface(openconfig, interface);
     }
 
-
     if (remote) {
-        printf("SET AS REMOTE\n\n");
+        printf("Set as remote\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
     }
-    
+
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
         exit(1);
     }
     et_open_config_destroy(openconfig);
- 
+
+    /*-------------------------------------------------------*/
+
+    /* Make things self-consistent by not taking time to write data if blasting.
+     * Blasting flag takes precedence. */
+    if (blast) {
+        writeData = 0;
+    }
+
+    /* Find out if we have a remote connection to the ET system
+     * so we know if we can use external data buffer for events
+     * for blasting - which is quite a bit faster. */
+    et_system_getlocality(id, &locality);
+    if (locality == ET_REMOTE) {
+        if (blast) {
+            noAllocFlag = ET_NOALLOC;
+        }
+        printf("ET is remote\n\n");
+    }
+    else {
+        /* local blasting is just the same as local producing */
+        blast = 0;
+        printf("ET is local\n\n");
+    }
+
     /* set level of debug output (everything) */
     if (verbose) {
         et_system_setdebug(id, ET_DEBUG_INFO);
@@ -368,8 +424,8 @@ int main(int argc,char **argv) {
 
     while (1) {
       
-        status = et_events_new_group(id, attach1, pe, ET_SLEEP, NULL, size, chunk, group, &numRead);
-        /*status = et_events_new(id, attach1, pe, ET_SLEEP, NULL, size, chunk, &count);*/
+        status = et_events_new_group(id, attach1, pe, ET_SLEEP | noAllocFlag,
+                                     NULL, size, chunk, group, &numRead);
 
         if (status == ET_OK) {
             ;
@@ -403,22 +459,33 @@ int main(int argc,char **argv) {
             goto error;
         }
 
-        /* write data, set priority, set control values here */
-        if (1) {
-            /*
+        /* if blasting data (and remote), don't write anything, just use what's in buffer when allocated */
+        if (blast) {
+            for (i=0; i < numRead; i++) {
+                et_event_setlength(pe[i], size);
+                et_event_setdatabuffer(id, pe[i], fakeData);
+            }
+        }
+        /* write data, set control values here */
+        else if (writeData) {
             char *pdata;
             for (i=0; i < numRead; i++) {
-                swappedData = ET_SWAP32(i + startingVal);
+                junkData = i + startingVal;
+                if (!localEndian) {
+                    junkData = ET_SWAP32(junkData);
+                    et_event_setendian(pe[i], ET_ENDIAN_NOTLOCAL);
+                }
                 et_event_getdata(pe[i], (void **) &pdata);
-                memcpy((void *)pdata, (const void *) &swappedData, sizeof(int));
+                memcpy((void *)pdata, (const void *) &junkData, sizeof(int));
 
-                et_event_setendian(pe[i], ET_ENDIAN_NOTLOCAL);
-                et_event_setlength(pe[i], sizeof(int));
+                /* Send all data even though we only wrote one int. */
+                et_event_setlength(pe[i], size);
                 et_event_setcontrol(pe[i], control, sizeof(control)/sizeof(int));
             }
             startingVal += numRead;
-            */
-            for (i=0; i < numRead; i++) {
+        }
+        else {
+            for (i = 0; i < numRead; i++) {
                 et_event_setlength(pe[i], size);
             }
         }
@@ -468,8 +535,20 @@ int main(int argc,char **argv) {
             totalCount += count;
             totalT += time;
             avgRate = 1000.0 * ((double) totalCount) / totalT;
-            printf("%s: %3.4g Hz,  %3.4g Hz Avg.\n", argv[0], rate, avgRate);
+
+            /* Event rates */
+            printf("%s Events:  %3.4g Hz,    %3.4g Avg.\n", argv[0], rate, avgRate);
+
+            /* Data rates */
+            rate    = ((double) count) * size / time;
+            avgRate = ((double) totalCount) * size / totalT;
+            printf("%s Data:    %3.4g kB/s,  %3.4g Avg.\n\n", argv[0], rate, avgRate);
+
+            /* If including msg overhead in data rates, need to do the following
+            avgRate = 1000.0 * (((double) totalCount) * (size + 52) + 20)/ totalT; */
+
             count = 0;
+
 #if defined __APPLE__
             gettimeofday(&t1, NULL);
             time1 = 1000L*t1.tv_sec + t1.tv_usec/1000L;
@@ -490,8 +569,8 @@ int main(int argc,char **argv) {
 
 /************************************************************/
 /*              separate thread to handle signals           */
-static void * signal_thread (void *arg)
-{
+static void * signal_thread (void *arg) {
+
   sigset_t   signal_set;
   int        sig_number;
  
@@ -500,6 +579,6 @@ static void * signal_thread (void *arg)
   
   /* Not necessary to clean up as ET system will do it */
   sigwait(&signal_set, &sig_number);
-  printf("Got a control-C, exiting\n");
+  printf("Got control-C, exiting\n");
   exit(1);
 }
