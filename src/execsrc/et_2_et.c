@@ -20,21 +20,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <time.h>
+
 
 #include "et.h"
 
 #define NUMEVENTS 2000000
-#define CHUNK 100
 
 /* prototype */
 static void * signal_thread (void *arg);
 
 int main(int argc,char **argv) {  
   int             status, swtch, loops=0;
-  int		  ntransferred=0;
+  int		      ntransferred=0;
   pthread_t       tid;
   et_statconfig   sconfig;
   et_openconfig   openconfig;
@@ -76,12 +73,7 @@ int main(int argc,char **argv) {
     printf("%s: et_open problems\n", argv[0]);
     exit(1);
   }
-  
-  et_open_config_setcast(openconfig, ET_DIRECT);
-  et_open_config_sethost(openconfig, "tania");
-  et_open_config_setport(openconfig, 11121);
-  et_open_config_setserverport(openconfig, 11121);
-  
+
   if (et_open(&id_to, argv[2], openconfig) != ET_OK) {
     printf("%s: et_open problems\n", argv[0]);
     exit(1);
@@ -124,12 +116,12 @@ int main(int argc,char **argv) {
       et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
       et_station_config_setselectwords(sconfig, selections);
       if (et_station_config_setfunction(sconfig, "et_carls_function") == ET_ERROR) {
-	printf("%s: cannot set function\n", argv[0]);
-	exit(1);
+          printf("%s: cannot set function\n", argv[0]);
+          exit(1);
       }
       if (et_station_config_setlib(sconfig, "/home/timmer/cvs/coda/source/et/src/libet_user.so") == ET_ERROR) {
-        printf("%s: cannot set library\n", argv[0]);
-	exit(1);
+          printf("%s: cannot set library\n", argv[0]);
+          exit(1);
       }
   }
   else if (swtch==6) {
