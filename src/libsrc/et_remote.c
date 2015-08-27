@@ -42,7 +42,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     int port=0, debug=ET_DEBUG_ERROR;
     uint32_t  length, bufsize, inetaddr = 0;
     et_id *etid;
-    char *buf, *pbuf, *ifBroadcastIP=NULL, *ifRegularIP=NULL, ethost[ET_IPADDRSTRLEN];
+    char *buf, *pbuf, *ifBroadcastIP=NULL, *ifRegularIP=NULL, ethost[ET_MAXHOSTNAMELEN];
     et_response *response=NULL;
 
     double          dstart, dnow, dtimeout;
@@ -74,6 +74,14 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     /* if port# & name of ET server specified */
     if (config->cast == ET_DIRECT) {
         port = config->serverport;
+        /* Special case is when host is specified as ET_HOST_LOCAL (.local)
+         * when the mode is ET_HOST_AS_REMOTE which means a remote/socket connection
+         * is made to the local machine. Handle this case by reassigning the
+         * host to be 127.0.0.1 - the loopback address. Or it could be changed
+         * to "localhost" which usually resolves to the loopback address. */
+        if (strcmp(ethost, ET_HOST_LOCAL) == 0) {
+            strcpy(ethost, "127.0.0.1");
+        }
     }
     
     /*
