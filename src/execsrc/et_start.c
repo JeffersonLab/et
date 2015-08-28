@@ -28,28 +28,33 @@
 
 
 void printHelp(char *program) {
-      fprintf(stderr,
-              "\nusage: %s  %s\n%s\n%s\n%s",
-              program,
-              "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <eventSize>]",
-              "                 [-g <groups>] [-stats <max # of stations>]",
-              "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
-              "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n\n");
-      
-      fprintf(stderr, "          -h     for help\n");
-      fprintf(stderr, "          -v     for verbose output\n");
-      fprintf(stderr, "          -d     deletes an existing file first\n");
-      fprintf(stderr, "          -f.....sets memory-mapped file name\n");
-      fprintf(stderr, "          -n     sets number of events\n");
-      fprintf(stderr, "          -s     sets event size in bytes\n");
-      fprintf(stderr, "          -g     sets number of groups to divide events into\n");
-      fprintf(stderr, "          -p.....sets TCP server port #\n");
-      fprintf(stderr, "          -u     sets UDP (broadcast &/or multicast) port #\n");
-      fprintf(stderr, "          -a     sets multicast address\n");
-      fprintf(stderr, "          -rb    TCP receive buffer size (bytes)\n");
-      fprintf(stderr, "          -sb....TCP send    buffer size (bytes)\n");
-      fprintf(stderr, "          -nd    use TCP_NODELAY option\n");
-      fprintf(stderr, "          -stats max # of stations (default 200)\n\n");
+    fprintf(stderr,
+            "\nusage: %s  %s\n%s\n%s\n%s",
+            program,
+            "[-h] [-v] [-d] [-f <file>] [-n <events>] [-s <eventSize>]",
+            "                 [-g <groups>] [-stats <max # of stations>]",
+            "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
+            "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n\n");
+
+    fprintf(stderr, "          -h     help\n");
+    fprintf(stderr, "          -v     verbose output\n");
+    fprintf(stderr, "          -d     deletes any existing file first\n");
+    fprintf(stderr, "          -f     memory-mapped file name\n\n");
+
+    fprintf(stderr, "          -n     number of events\n");
+    fprintf(stderr, "          -s     event size in bytes\n");
+    fprintf(stderr, "          -g     number of groups to divide events into\n");
+    fprintf(stderr, "          -stats max # of stations (default 200)\n\n");
+
+    fprintf(stderr, "          -p     TCP server port #\n");
+    fprintf(stderr, "          -u     UDP (broadcast &/or multicast) port #\n");
+    fprintf(stderr, "          -a     multicast address\n\n");
+
+    fprintf(stderr, "          -rb    TCP receive buffer size (bytes)\n");
+    fprintf(stderr, "          -sb    TCP send    buffer size (bytes)\n");
+    fprintf(stderr, "          -nd    use TCP_NODELAY option\n\n");
+
+    fprintf(stderr, "          This program starts up an ET system\n\n");
 }
 
 
