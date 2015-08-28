@@ -10,7 +10,7 @@ allFileList = Glob('*.c', strings=True) + Glob('*.cc', strings=True)
 myUserSelectionFiles = ['et_userfunction.c']
 
 
-# Filter out all user-defined selection routines & vxworks files.
+# Filter out all user-defined selection routines files.
 fileList = filter( (lambda a : (a not in  myUserSelectionFiles)), allFileList)
 
 
