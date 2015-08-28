@@ -337,8 +337,7 @@ int et_responds(const char *etname)
  *
  * If we don't know the host name, we can broadcast and/or
  * multicast (UDP) to addresses which the ET system is
- * listening on (each address on a separate thread). In
- * this broad/multicast, we send the name of the ET system
+ * listening on. In this broad/multicast, we send the name of the ET system
  * that we want to find. The system which receives the
  * packet and has the same name, responds with quite a bit of information
  * including its TCP port #, uname, canonical host name, and
