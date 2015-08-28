@@ -40,7 +40,7 @@ int main(int argc,char **argv) {
     int startingVal=0, errflg=0, group=1, chunk=1, size=32, writeData=0, localEndian=1;
     int verbose=0, delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
     int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
-    unsigned short serverPort = ET_SERVER_PORT;
+    unsigned short port=0;
     char et_name[ET_FILENAME_LENGTH], host[256], interface[16];
     void *fakeData;
 
@@ -81,7 +81,7 @@ int main(int argc,char **argv) {
     memset(mcastAddr, 0, mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vbhrn:a:s:p:d:f:c:g:i:w:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vbmhrn:a:s:p:d:f:c:g:i:w:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -127,7 +127,7 @@ int main(int argc,char **argv) {
             case 'p':
                 i_tmp = atoi(optarg);
                 if (i_tmp > 1023 && i_tmp < 65535) {
-                    serverPort = i_tmp;
+                    port = i_tmp;
                 } else {
                     printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
                     exit(-1);
@@ -216,6 +216,10 @@ int main(int argc,char **argv) {
                 remote = 1;
                 break;
 
+            case 'm':
+                multicast = 1;
+                break;
+
             case 'b':
                 broadcast = 1;
                 break;
@@ -228,11 +232,18 @@ int main(int argc,char **argv) {
         }
     }
 
+    if (!multicast && !broadcast) {
+        if (strlen(host) < 1) {
+            fprintf(stderr, "\nNeed to specify the specific host with -host flag\n\n");
+            errflg++;
+        }
+    }
+
     if (optind < argc || errflg || strlen(et_name) < 1) {
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n%s\n%s\n\n",
                 argv[0], "-f <ET name>",
-                "                     [-h] [-v] [-r] [-b] [-nd] [-blast]",
+                "                     [-h] [-v] [-r] [-m] [-b] [-nd] [-blast]",
                 "                     [-host <ET host>] [-w <local endian? 0/1>]",
                 "                     [-s <event size>] [-c <chunk size>] [-g <group>]",
                 "                     [-d <delay>] [-p <ET server port>]",
@@ -250,14 +261,15 @@ int main(int argc,char **argv) {
         fprintf(stderr, "          -g     group from which to get new events (1,2,...)\n");
         fprintf(stderr, "          -d     delay in millisec between each round of getting and putting events\n\n");
 
-        fprintf(stderr, "          -p     ET server port (TCP for direct, UDP for broad/multicast)\n");
+        fprintf(stderr, "          -p     ET port (TCP for direct, UDP for broad/multicast)\n");
         fprintf(stderr, "          -r     act as remote (TCP) client even if ET system is local\n");
         fprintf(stderr, "          -w     write data (1 sequential int per event), 1 local endian, 0 else\n");
         fprintf(stderr, "          -blast if remote, use external data buf (no mem allocation),\n");
         fprintf(stderr, "                 do not write data (overrides -w)\n\n");
 
         fprintf(stderr, "          -i     outgoing network interface address (dot-decimal)\n");
-        fprintf(stderr, "          -a     multicast address (dot-decimal), may use multiple times\n");
+        fprintf(stderr, "          -a     multicast address(es) (dot-decimal), may use multiple times\n");
+        fprintf(stderr, "          -m     multicast to find ET (use default address if -a unused)\n");
         fprintf(stderr, "          -b     broadcast to find ET\n\n");
 
         fprintf(stderr, "          -rb    TCP receive buffer size (bytes)\n");
@@ -266,8 +278,10 @@ int main(int argc,char **argv) {
 
         fprintf(stderr, "          This producer works by making a direct connection to the\n");
         fprintf(stderr, "          ET system's server port and host unless at least one multicast address\n");
-        fprintf(stderr, "          is specified or the -b option is used in which case multi/broadcasting\n");
-        fprintf(stderr, "          is used to find the ET system\n\n");
+        fprintf(stderr, "          is specified with -a, the -m option is used, or the -b option is used\n");
+        fprintf(stderr, "          in which case multi/broadcasting used to find the ET system.\n");
+        fprintf(stderr, "          If multi/broadcasting fails, look locally to find the ET system.\n");
+        fprintf(stderr, "          This program gets new events from the system and puts them back.\n\n");
         exit(2);
     }
 
@@ -316,42 +330,62 @@ int main(int argc,char **argv) {
 
     /* if multicasting to find ET */
     if (multicast) {
-        /* add multicast addresses to listen to  */
-        for (j = 0; j < mcastAddrCount; j++) {
-            if (strlen(mcastAddr[j]) > 7) {
-                status = et_open_config_addmulticast(openconfig, mcastAddr[j]);
-                if (status != ET_OK) {
-                    printf("%s: bad multicast address argument\n", argv[0]);
-                    exit(1);
+        if (mcastAddrCount < 1) {
+            /* Use default mcast address if not given on command line */
+            status = et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
+        }
+        else {
+            /* add multicast addresses to use  */
+            for (j = 0; j < mcastAddrCount; j++) {
+                if (strlen(mcastAddr[j]) > 7) {
+                    status = et_open_config_addmulticast(openconfig, mcastAddr[j]);
+                    if (status != ET_OK) {
+                        printf("%s: bad multicast address argument\n", argv[0]);
+                        exit(1);
+                    }
+                    printf("%s: adding multicast address %s\n", argv[0], mcastAddr[j]);
                 }
-                printf("%s: adding multicast address %s\n", argv[0], mcastAddr[j]);
             }
         }
     }
 
     if (broadAndMulticast) {
         printf("Broad and Multicasting\n");
+        if (port == 0) {
+            et_open_config_setport(openconfig, ET_BROADCAST_PORT);
+            et_open_config_setmultiport(openconfig, ET_MULTICAST_PORT);
+        }
+        else {
+            et_open_config_setport(openconfig, port);
+            et_open_config_setmultiport(openconfig, port);
+        }
         et_open_config_setcast(openconfig, ET_BROADANDMULTICAST);
-        et_open_config_setmultiport(openconfig, serverPort);
-        et_open_config_setport(openconfig, serverPort);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
     else if (multicast) {
         printf("Multicasting\n");
+        if (port == 0) {
+            port = ET_MULTICAST_PORT;
+        }
+        et_open_config_setmultiport(openconfig, port);
         et_open_config_setcast(openconfig, ET_MULTICAST);
-        et_open_config_setmultiport(openconfig, serverPort);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
     else if (broadcast) {
         printf("Broadcasting\n");
+        if (port == 0) {
+            port = ET_BROADCAST_PORT;
+        }
+        et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_BROADCAST);
-        et_open_config_setport(openconfig, serverPort);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
-    /* direct connection to ET */
     else {
+        if (port == 0) {
+            port = ET_SERVER_PORT;
+        }
+        et_open_config_setserverport(openconfig, port);
         et_open_config_setcast(openconfig, ET_DIRECT);
-        et_open_config_setserverport(openconfig, serverPort);
         if (strlen(host) > 0) {
             et_open_config_sethost(openconfig, host);
         }

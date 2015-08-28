@@ -39,64 +39,72 @@ static void usage(char *programName) {
     fprintf(stderr,
             "usage: %s  %s\n%s\n%s\n\n",
             programName,
-            "-f <ET name> [-h] [-r] [-host <ET host>]",
-            "                     [-t <time period (sec)>] [-p <ET server port>]",
-            "                     [-u <mcast port>]");
+            "-f <ET name> [-h] [-r] [-m] [-b] [-host <ET host>]",
+            "                     [-t <time period (sec)>]",
+            "                     [-p <ET port>] [-a <mcast addr>]");
 
-    fprintf(stderr, "          -host ET system's host (direct connection)\n");
-    fprintf(stderr, "          -f ET system's (memory-mapped file) name\n");
-    fprintf(stderr, "          -h help\n");
-    fprintf(stderr, "          -r connect with local host as if remote\n");
-    fprintf(stderr, "          -t time period in seconds between updates\n");
-    fprintf(stderr, "          -p ET server port (direct connection)\n");
-    fprintf(stderr, "          -u ET multicast port\n\n");
+    fprintf(stderr, "          -f    ET system's (memory-mapped file) name\n");
+    fprintf(stderr, "          -host ET system's host if direct connection (default to local)\n");
+    fprintf(stderr, "          -h    help\n");
+    fprintf(stderr, "          -t    time period in seconds between updates\n");
+    fprintf(stderr, "          -r    act as remote (TCP) client even if ET system is local\n\n");
 
+    fprintf(stderr, "          -p    ET port (TCP for direct, UDP for broad/multicast)\n");
+    fprintf(stderr, "          -a    multicast address(es) (dot-decimal), may use multiple times\n");
+    fprintf(stderr, "          -m    multicast to find ET (use default address if -a unused)\n");
+    fprintf(stderr, "          -b    broadcast to find ET\n\n");
+
+    fprintf(stderr, "          This program displays the current status of an ET system\n\n");
 
 }
 
 /******************************************************/
-int main(int argc,char **argv)
-{  
- 	/* booleans */
-	int             setMcastPort=0, setHost=0, doMcast=0;
+int main(int argc,char **argv) {
 
-    int             c, counter, etdead, mode, errflg=0, locality, tmparg;
+ 	/* booleans */
+    int             remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
+    int             c, j, status, counter, etdead, errflg=0, locality, tmparg;
     unsigned int    newheartbt, oldheartbt=0;
-    unsigned short  port = ET_MULTICAST_PORT, serverPort = ET_SERVER_PORT;
+    unsigned short  port=0;
     extern char     *optarg;
     extern int      optind, opterr, optopt;
     uint64_t        prev_out;
-    struct timespec timeout, period;
+    struct timespec period;
     double	  tperiod, hbperiod;
     et_sys_id       sys_id;
     et_id 	  *id;
     et_openconfig   openconfig;
-    char            hostname[ET_MAXHOSTNAMELEN];
-    char            etname[ET_FILENAME_LENGTH];
-    char            *tmp_etname=NULL, *tmp_hostname=NULL;
-  
+    char            host[ET_MAXHOSTNAMELEN];
+    char            et_name[ET_FILENAME_LENGTH];
+    char            *tmp_etname=NULL;
+
+    int             mcastAddrCount = 0, mcastAddrMax = 10;
+    char            mcastAddr[mcastAddrMax][16];
+
     /* defaults */
-    mode = ET_HOST_AS_LOCAL;
     period.tv_sec = 5;
     period.tv_nsec = 0;
     tperiod  = period.tv_sec + (1.e-9)*period.tv_nsec;
     hbperiod = ET_BEAT_SEC   + (1.e-9)*ET_BEAT_NSEC;
 
-    strcpy(hostname, "localhost");
+    strcpy(host, "localhost");
   
     /* 1 multiple character command-line option (host) */
-    static struct option long_options[] = { {"host", 1, NULL, 0}, {0, 0, 0, 0} };
+    static struct option long_options[] =
+            {{"host", 1, NULL, 0},
+             {0, 0, 0, 0}
+            };
 
     /* decode command line options */
-    while ((c = getopt_long_only(argc, argv, "rf:t:p:u:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "rhbmf:t:p:a:", long_options, 0)) != EOF) {
         switch (c) {
             case 'f':
                 if (strlen(optarg) >= ET_FILENAME_LENGTH) {
                     fprintf(stderr, "%s: ET file name is too long\n", argv[0]);
                     exit(-1);
                 }
-                strcpy(etname, optarg);
-                tmp_etname = etname;
+                strcpy(et_name, optarg);
+                tmp_etname = et_name;
                 break;
 
             case 't':
@@ -110,17 +118,6 @@ int main(int argc,char **argv)
                 tperiod = period.tv_sec + (1.e-9)*period.tv_nsec;
                 break;
 
-            case 'u':
-                tmparg = atoi(optarg);
-                if ((tmparg <= 1024) || (tmparg > 65535)) {
-                    fprintf(stderr, "%s: argument for -u <port #> must be integer > 1024 and < 65536\n\n", argv[0]);
-                    errflg++;
-                    break;
-                }
-                port = tmparg;
-				setMcastPort = 1;
-                break;
-
             case 'p':
                 tmparg = atoi(optarg);
                 if ((tmparg <= 1024) || (tmparg > 65535)) {
@@ -128,7 +125,17 @@ int main(int argc,char **argv)
                     errflg++;
                     break;
                 }
-                serverPort = tmparg;
+                port = (unsigned short) tmparg;
+                break;
+
+            case 'a':
+                if (strlen(optarg) >= 16) {
+                    fprintf(stderr, "Multicast address is too long\n");
+                    exit(-1);
+                }
+                if (mcastAddrCount >= mcastAddrMax) break;
+                strcpy(mcastAddr[mcastAddrCount++], optarg);
+                multicast = 1;
                 break;
 
             case 0:
@@ -136,13 +143,19 @@ int main(int argc,char **argv)
                     fprintf(stderr, "host name is too long\n");
                     exit(-1);
                 }
-                strcpy(hostname, optarg);
-                tmp_hostname = hostname;
-				setHost = 1;
+                strcpy(host, optarg);
                 break;
 
             case 'r':
-                mode = ET_HOST_AS_REMOTE;
+                remote = 1;
+                break;
+
+            case 'm':
+                multicast = 1;
+                break;
+
+            case 'b':
+                broadcast = 1;
                 break;
 
             case 'h':
@@ -151,15 +164,19 @@ int main(int argc,char **argv)
                 break;
 
             case '?':
+            default:
                 errflg++;
         }
     }
-  
-    for ( ; optind < argc; optind++) {
-        errflg++;
+
+    if (!multicast && !broadcast) {
+        if (strlen(host) < 1) {
+            fprintf(stderr, "\nNeed to specify the specific host with -host flag\n\n");
+            errflg++;
+        }
     }
-  
-    if (optind < argc || errflg) {
+
+    if (optind < argc || errflg || strlen(et_name) < 1) {
         usage(argv[0]);
         exit(2);
     }
@@ -171,63 +188,108 @@ int main(int argc,char **argv)
         exit(-1);
     }
 
-	/* Try to figure out if we're multicasting or direct connecting.
-	 * If no host is given AND udp port is given, try multicasting.
-	 * Otherwise, assume a direct connection. */
-	if (!setHost && setMcastPort) {
-		doMcast = 1;
- printf("\nUse multicasting to find ET system\n\n");
-	}
-  
-    /* If direct connecting, check the host's name, look only locally by default */
-    if (!doMcast && tmp_hostname == NULL) {
-        strcpy(hostname, ET_HOST_LOCAL);
-    }
-    
-    /* Open the ET system ... */
+    /******************/
+    /* open ET system */
+    /******************/
     et_open_config_init(&openconfig);
-    et_open_config_setmode(openconfig, mode);
 
-	/* by multicasting*/
-	if (doMcast) {
-    	et_open_config_setcast(openconfig, ET_MULTICAST);
-    	et_open_config_setmultiport(openconfig, port);
-    	et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
-    	et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
-	}
-	/* or by a direct connection. */
-	else {
-    	et_open_config_setcast(openconfig, ET_DIRECT);
-    	et_open_config_setserverport(openconfig, serverPort);
-    	et_open_config_sethost(openconfig, hostname);
-	}	
+    if (broadcast && multicast) {
+        broadAndMulticast = 1;
+    }
 
-    timeout.tv_sec  = 5;
-    timeout.tv_nsec = 0;
-    et_open_config_settimeout(openconfig, timeout);
+    /* if multicasting to find ET */
+    if (multicast) {
+        if (mcastAddrCount < 1) {
+            /* Use default mcast address if not given on command line */
+            status = et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
+        }
+        else {
+            /* add multicast addresses to use  */
+            for (j = 0; j < mcastAddrCount; j++) {
+                if (strlen(mcastAddr[j]) > 7) {
+                    status = et_open_config_addmulticast(openconfig, mcastAddr[j]);
+                    if (status != ET_OK) {
+                        printf("%s: bad multicast address argument\n", argv[0]);
+                        exit(1);
+                    }
+                    printf("%s: adding multicast address %s\n", argv[0], mcastAddr[j]);
+                }
+            }
+        }
+    }
+
+    if (broadAndMulticast) {
+        printf("Broad and Multicasting\n");
+        if (port == 0) {
+            et_open_config_setport(openconfig, ET_BROADCAST_PORT);
+            et_open_config_setmultiport(openconfig, ET_MULTICAST_PORT);
+        }
+        else {
+            et_open_config_setport(openconfig, port);
+            et_open_config_setmultiport(openconfig, port);
+        }
+        et_open_config_setcast(openconfig, ET_BROADANDMULTICAST);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+    else if (multicast) {
+        printf("Multicasting\n");
+        if (port == 0) {
+            port = ET_MULTICAST_PORT;
+        }
+        et_open_config_setmultiport(openconfig, port);
+        et_open_config_setcast(openconfig, ET_MULTICAST);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+    else if (broadcast) {
+        printf("Broadcasting\n");
+        if (port == 0) {
+            port = ET_BROADCAST_PORT;
+        }
+        et_open_config_setport(openconfig, port);
+        et_open_config_setcast(openconfig, ET_BROADCAST);
+        et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+    }
+    else {
+        if (port == 0) {
+            port = ET_SERVER_PORT;
+        }
+        et_open_config_setserverport(openconfig, port);
+        et_open_config_setcast(openconfig, ET_DIRECT);
+        if (strlen(host) > 0) {
+            et_open_config_sethost(openconfig, host);
+        }
+        et_open_config_gethost(openconfig, host);
+        printf("Direct connection to %s\n", host);
+    }
+
+    if (remote) {
+        printf("Set as remote\n");
+        et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
+    }
+
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
-  
+
     /* before we open things, find out if we're local or not */
-    locality = et_findlocality(etname, openconfig);
+    locality = et_findlocality(et_name, openconfig);
 /*printf("LOCALITY = %d\n", locality);*/
     /* if we're local, do an et_look not an et_open */
-    if (locality == ET_ERROR) {
-        printf("%s: cannot find ET system\n", argv[0]);
-        exit(1);
-    }
-    else if (locality != ET_REMOTE) {
-        if (et_look(&sys_id, etname) != ET_OK) {
+    if (locality != ET_REMOTE) {
+        if (et_look(&sys_id, et_name) != ET_OK) {
             printf("%s: et_attach problems\n", argv[0]);
             exit(1);
         }
     }
     else {
-        if (et_open(&sys_id, etname, openconfig) != ET_OK) {
+        if (et_open(&sys_id, et_name, openconfig) != ET_OK) {
             printf("%s: et_attach problems\n", argv[0]);
             exit(1);
         }
     }
+
     et_open_config_destroy(openconfig);
+
+    /*-------------------------------------------------------*/
+
     id = (et_id *) sys_id;
     
     /* initializations */
