@@ -30,8 +30,7 @@
 static void * signal_thread (void *arg);
 
 int main(int argc,char **argv) {  
-  int             status, swtch, loops=0;
-  int		      ntransferred=0;
+  int             status, swtch, ntransferred=0;
   pthread_t       tid;
   et_statconfig   sconfig;
   et_openconfig   openconfig;
@@ -41,7 +40,6 @@ int main(int argc,char **argv) {
   et_att_id       att_from, att_to;
   et_stat_id      stat_from;
   et_sys_id       id_from, id_to;
-  int             selections[] = {17,15,-1,-1}; /* 17,15 are arbitrary */
 
  
   if (argc != 5) {
@@ -66,9 +64,9 @@ int main(int argc,char **argv) {
   /* spawn signal handling thread */
   pthread_create(&tid, NULL, signal_thread, (void *)NULL);
   
-  /* open 2 ET systems w/ multicasting on default address & port */
+  /* open 2 ET systems w/ broadcasting & multicasting on default address & port */
   et_open_config_init(&openconfig);
-  et_open_config_setcast(openconfig, ET_MULTICAST);
+  et_open_config_setcast(openconfig, ET_BROADANDMULTICAST);
   et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
   et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
   if (et_open(&id_from, argv[1], openconfig) != ET_OK) {
