@@ -45,7 +45,7 @@ int main(int argc,char **argv) {
 
  
   if (argc != 5) {
-    printf("Usage: %s <from etname> <to etname> <station_name> <mode>\n", argv[0]);
+    printf("Usage: %s <from etname> <to etname> <station_name> <mode (1,2)>\n", argv[0]);
     exit(1);
   }
   
@@ -66,9 +66,11 @@ int main(int argc,char **argv) {
   /* spawn signal handling thread */
   pthread_create(&tid, NULL, signal_thread, (void *)NULL);
   
-  /* open 2 ET systems */
+  /* open 2 ET systems w/ multicasting on default address & port */
   et_open_config_init(&openconfig);
+  et_open_config_setcast(openconfig, ET_MULTICAST);
   et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
+  et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
   if (et_open(&id_from, argv[1], openconfig) != ET_OK) {
     printf("%s: et_open problems\n", argv[0]);
     exit(1);
@@ -88,51 +90,17 @@ int main(int argc,char **argv) {
   et_station_config_setprescale(sconfig, 1);
   et_station_config_setcue(sconfig, 150);
  
-  if (swtch==1) {
-      /* DD system "all" mode */
-      et_station_config_setselect(sconfig, ET_STATION_SELECT_ALL);
-      et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
+  if (swtch == 2) {
+    /* non-blocking station, no filter */
+    et_station_config_setselect(sconfig, ET_STATION_SELECT_ALL);
+    et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
   }
-  else if (swtch==2) {
-      /* DD system "on req" mode */
-      et_station_config_setselect(sconfig, ET_STATION_SELECT_ALL);
-      et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
+  else {
+    /* blocking station, no filter */
+    et_station_config_setselect(sconfig, ET_STATION_SELECT_ALL);
+    et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
   }
-  else if (swtch==3) {
-      /* DD system "condition" mode */
-      et_station_config_setselect(sconfig, ET_STATION_SELECT_MATCH);
-      et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
-      et_station_config_setselectwords(sconfig, selections);
-  }
-  else if (swtch==4) {
-      /* new non-blocking "condition" mode */
-      et_station_config_setselect(sconfig, ET_STATION_SELECT_MATCH);
-      et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
-      et_station_config_setselectwords(sconfig, selections);
-  }
-  else if (swtch==5) {
-      /* user's condition, blocking  mode */
-      et_station_config_setselect(sconfig, ET_STATION_SELECT_USER);
-      et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
-      et_station_config_setselectwords(sconfig, selections);
-      if (et_station_config_setfunction(sconfig, "et_carls_function") == ET_ERROR) {
-          printf("%s: cannot set function\n", argv[0]);
-          exit(1);
-      }
-      if (et_station_config_setlib(sconfig, "/home/timmer/cvs/coda/source/et/src/libet_user.so") == ET_ERROR) {
-          printf("%s: cannot set library\n", argv[0]);
-          exit(1);
-      }
-  }
-  else if (swtch==6) {
-      /* user's condition, nonblocking mode */
-      et_station_config_setselect(sconfig, ET_STATION_SELECT_USER);
-      et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
-      et_station_config_setselectwords(sconfig, selections);
-      et_station_config_setfunction(sconfig, "et_carls_function");
-      et_station_config_setlib(sconfig, "/home/timmer/cvs/coda/source/et/src/libet_user.so");
-  }
-  
+
   /* set debug level */
   et_system_setdebug(id_from, ET_DEBUG_INFO);
   et_system_setdebug(id_to,   ET_DEBUG_INFO);
@@ -160,10 +128,8 @@ int main(int argc,char **argv) {
   }
 
   et_bridge_config_init(&bconfig);
-  /* automatically swap data with provided function */
-  /* et_bridge_config_setfunc(bconfig, et_bridge_CODAswap); */
-  
-  while ((loops++ < 1) && (status == ET_OK)) {
+  status = ET_OK;
+  while (status == ET_OK) {
     status = et_events_bridge(id_from, id_to, att_from, att_to,
 			      bconfig, NUMEVENTS, &ntransferred);
     printf("status from et_bridge = %d, ntransferred = %d\n", status, ntransferred);
