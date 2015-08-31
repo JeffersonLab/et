@@ -36,21 +36,25 @@ public class StartEt {
                              "                    [-m <UDP multicast port>] [-a <multicast address>]\n" +
                              "                    [-rb <buf size>] [-sb <buf size>] [-nd]\n\n" +
 
-        "          -h for help\n" +
-        "          -v for verbose output\n" +
-        "          -d deletes an existing file first\n" +
-        "          -f sets memory-mapped file name\n" +
-        "          -n sets number of events\n" +
-        "          -s sets event size in bytes\n" +
-        "          -g sets number of groups to divide events into\n" +
-        "          -p sets TCP server port #\n" +
-        "          -u sets UDP broadcast port #\n" +
-        "          -m sets UDP multicast port #\n" +
-        "          -a sets multicast address\n" +
-        "          -rb TCP receive buffer size (bytes)\n" +
-        "          -sb TCP send    buffer size (bytes)\n" +
-        "          -nd use TCP_NODELAY option\n");
+        "          -h   help\n" +
+        "          -v   verbose output\n" +
+        "          -d   deletes an existing file first\n" +
+        "          -f   memory-mapped file name\n\n" +
 
+        "          -n   number of events\n" +
+        "          -s   event size in bytes\n" +
+        "          -g   number of groups to divide events into\n\n" +
+
+        "          -p   TCP server port #\n" +
+        "          -u   UDP broadcast port #\n" +
+        "          -m   UDP multicast port #\n" +
+        "          -a   multicast address\n\n" +
+
+        "          -rb  TCP receive buffer size (bytes)\n" +
+        "          -sb  TCP send    buffer size (bytes)\n" +
+        "          -nd  use TCP_NODELAY option\n\n" +
+
+        "          This program starts up an ET system");
     }
 
 
