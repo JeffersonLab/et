@@ -362,9 +362,9 @@ public final class EtConstants {
     /** Java ET systems are 32 bit since arrays can only be of size Integer.MAX_VALUE. */
     public static final int    bit64               = 0;
     /** Major ET version number. */
-    public static final int    version             = 15;
+    public static final int    version             = 16;
     /** Minor ET version number. */
-    public static final int    minorVersion        = 1;
+    public static final int    minorVersion        = 0;
     /** Maximum number of attachments to an ET system. */
     public static final int    attachmentsMax      = 110;
     //static final int    ipAddrStrLen        = 16;
