@@ -311,7 +311,8 @@ public class EtSystemOpen {
         int     timeOuts[] = {100, 1000, 2000, 4000};
         int     waitTime, socketTimeOut = 8000; // socketTimeOut > sum of timeOuts
         String  specifiedHost = null;
-        HashSet<String> knownHostIpAddrs = new HashSet<String>();
+    //    HashSet<String> knownHostIpAddrs = new HashSet<String>();
+        Collection<String> knownHostIpAddrs = null;
 
         if (totalWait >= 80) {
             waitTime = (totalWait - 10)/7;
@@ -409,10 +410,11 @@ public class EtSystemOpen {
             }
 
             // get set of all host's IP addresses (dot-decimal)
-            InetAddress[] haddrs = InetAddress.getAllByName(specifiedHost);  // UnknownHostException
-            for (InetAddress ia : haddrs) {
-                knownHostIpAddrs.add(ia.getHostAddress());
-            }
+//            InetAddress[] haddrs = InetAddress.getAllByName(specifiedHost);  // UnknownHostException
+//            for (InetAddress ia : haddrs) {
+//                knownHostIpAddrs.add(ia.getHostAddress());
+//            }
+            knownHostIpAddrs = EtUtils.getAllIpAddresses();
 
             sendList.add(new send(specifiedHost, socket, config.getUdpPort()));
 
@@ -697,10 +699,11 @@ public class EtSystemOpen {
      * @throws java.net.UnknownHostException
      *     if the replied host address(es) is(are) unknown
      */
-    private boolean replyMatch(DatagramPacket packet, HashSet<String> knownHostIpAddrs)
+    private boolean replyMatch(DatagramPacket packet, Collection<String> knownHostIpAddrs)
             throws IOException, UnknownHostException {
 
         byte buf[];
+        boolean localDebug = true;
         ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData());
         DataInputStream dis = new DataInputStream(bais);
         // In case of multiple addresses from a responding ET system, a list of addresses. */
@@ -716,10 +719,10 @@ public class EtSystemOpen {
         // (1)  ET version #
         // (2)  port of tcp server thread (not udp config->port)
         // (3)  Constants.broadcast .multicast or broadAndMulticast (int)
-        // (4)  length of next string
+        // (4)  length of next string (not used now, always 0)
         // (5)    broadcast address (dotted-dec) if broadcast received or
         //        multicast address (dotted-dec) if multicast received
-        //        (see int #3)
+        //        (see int #3) (not used now)
         // (6)  length of next string
         // (7)    hostname given by "uname" (used as a general
         //        identifier of this host no matter which interface is used)
@@ -753,24 +756,24 @@ public class EtSystemOpen {
         if (magic1 != EtConstants.magicNumbers[0] ||
             magic2 != EtConstants.magicNumbers[1] ||
             magic3 != EtConstants.magicNumbers[2])  {
-//System.out.println("replyMatch:  Magic numbers did NOT match");
+            if (localDebug) System.out.println("replyMatch:  Magic numbers did NOT match");
             return noMatch;
         }
 
         // (1) ET version #
         int version = dis.readInt();         //IOEx
         if (version != EtConstants.version) {
-//System.out.println("replyMatch:  version did NOT match");
+            if (localDebug) System.out.println("replyMatch:  version did NOT match");
             return noMatch;
         }
-//System.out.println("replyMatch:  version = " + version);
+        if (localDebug) System.out.println("replyMatch:  version = " + version);
 
         // (2) server port #
         int port = dis.readInt();
         if ((port < 1) || (port > 65536)) {
             return noMatch;
         }
-//System.out.println("replyMatch:  server port = " + port);
+        if (localDebug) System.out.println("replyMatch:  server port = " + port);
 
         // (3) response to what type of cast?
         int cast = dis.readInt();
@@ -780,37 +783,32 @@ public class EtSystemOpen {
             return noMatch;
         }
 
-//        if (cast == EtConstants.broadcast) {
-//            System.out.println("replyMatch:  broadcasting");
-//        }
-//        else if (cast != EtConstants.multicast) {
-//            System.out.println("replyMatch:  multicasting");
-//        }
-//        else if (cast != EtConstants.broadAndMulticast) {
-//            System.out.println("replyMatch:  broad & multi casting");
-//        }
-//        else {
-//            System.out.println("replyMatch:  don't know if broad or multi casting");
-//        }
-
-        // (4) read length of IP address (dotted-decimal) of responding address
-        //     or 0.0.0.0 if java
-        int length = dis.readInt();
-        if ((length < 1) || (length > EtConstants.ipAddrStrLen)) {
-            return noMatch;
+        if (localDebug) {
+            if (cast == EtConstants.broadcast) {
+                System.out.println("replyMatch:  broadcasting");
+            }
+            else if (cast == EtConstants.multicast) {
+                System.out.println("replyMatch:  multicasting");
+            }
+            else {
+                System.out.println("replyMatch:  broad & multicasting");
+            }
         }
 
+        // (4) not used anymore, always 0
+        dis.skipBytes(4);
+
         // (5) read IP address
-        buf = new byte[length];
-        dis.readFully(buf, 0, length);
-        String repliedIpAddress = null;
-        try {repliedIpAddress = new String(buf, 0, length - 1, "ASCII");}
-        catch (UnsupportedEncodingException e) {/*never happens*/}
-//System.out.println("replyMatch:  IP address = " + repliedIpAddress);
+//        buf = new byte[length];
+//        dis.readFully(buf, 0, length);
+//        String repliedIpAddress = null;
+//        try {repliedIpAddress = new String(buf, 0, length - 1, "ASCII");}
+//        catch (UnsupportedEncodingException e) {/*never happens*/}
+//        if (debug) System.out.println("replyMatch:  IP address = " + repliedIpAddress);
 
         // (6) Read length of "uname" or InetAddress.getLocalHost().getHostName() if java,
         //     used as identifier of this host no matter which interface used.
-        length = dis.readInt();
+        int length = dis.readInt();
         if ((length < 1) || (length > EtConstants.maxHostNameLen)) {
             return noMatch;
         }
@@ -821,8 +819,8 @@ public class EtSystemOpen {
         String repliedUname = null;
         try {repliedUname = new String(buf, 0, length - 1, "ASCII");}
         catch (UnsupportedEncodingException e) {}
-//System.out.println("replyMatch:  uname len = " + length);
-//System.out.println("replyMatch:  uname = " + repliedUname);
+        if (localDebug) System.out.println("replyMatch:  uname len = " + length +
+                                              ", uname = " + repliedUname);
 
         // (8) Read length of canonical name
         length = dis.readInt();
@@ -836,15 +834,15 @@ public class EtSystemOpen {
         String canonicalName = null;
         try {canonicalName = new String(buf, 0, length - 1, "ASCII");}
         catch (UnsupportedEncodingException e) {}
-//System.out.println("replyMatch:  canonical name len = " + length);
-//System.out.println("replyMatch:  canonical name = " + canonicalName);
+        if (localDebug) System.out.println("replyMatch:  canonical name len = " + length +
+                                              ", canonical name = " + canonicalName);
 
         // (10) # of following IP addresses
         int numAddrs = dis.readInt();
         if (numAddrs < 0) {
             return noMatch;
         }
-//System.out.println("replyMatch:  # of addresses to come = " + numAddrs);
+        if (localDebug) System.out.println("replyMatch:  # of addresses to come = " + numAddrs);
 
         int addr;
         String repliedAddress = null;
@@ -852,18 +850,18 @@ public class EtSystemOpen {
         for (int i=0; i<numAddrs; i++) {
             // (11) 32 bit network byte ordered address - not currently used
             addr = dis.readInt();
-//System.out.println("replyMatch:  addr #" + i + ": numeric addr = " + addr);
+            if (localDebug) System.out.println("replyMatch:  addr #" + i + ": numeric addr = " + addr);
 
             // (12) read length of string address of responding host
             length = dis.readInt();
-//System.out.println("replyMatch:  addr #" + i + ": string len = " + length);
+            if (localDebug) System.out.println("replyMatch:  addr #" + i + ": string len = " + length);
 
             // (13) read host address (minus ending null)
             buf = new byte[length];
             dis.readFully(buf, 0, length);
             try {repliedAddress = new String(buf, 0, length - 1, "ASCII");}
             catch (UnsupportedEncodingException e) {}
-//System.out.println("replyMatch:  addr #" + i + ": string addr = " + repliedAddress);
+            if (localDebug) System.out.println("replyMatch:  addr #" + i + ": string addr = " + repliedAddress);
 
             // store things
             addresses.add(repliedAddress);
@@ -871,13 +869,13 @@ public class EtSystemOpen {
 
         // (14) # of following broadcast addresses
         int numBrAddrs = dis.readInt();
-//System.out.println("replyMatch:  # of broadcast addresses to come = " + numAddrs);
+        if (localDebug) System.out.println("replyMatch:  # of broadcast addresses to come = " + numAddrs);
         // Only do the following parsing if 10 = 14:
         if (numBrAddrs == numAddrs) {
             for (int i = 0; i < numAddrs; i++) {
                 // (15) read length of string address
                 length = dis.readInt();
-//System.out.println("replyMatch:  addr #" + i + ": string len = " + length);
+                if (localDebug) System.out.println("replyMatch:  addr #" + i + ": string len = " + length);
 
                 // (16) read broadcast address (minus ending null)
                 buf = new byte[length];
@@ -887,16 +885,15 @@ public class EtSystemOpen {
                 }
                 catch (UnsupportedEncodingException e) {
                 }
-System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAddress);
+                if (localDebug) System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAddress);
 
                 // store things
                 broadAddresses.add(repliedAddress);
             }
         }
 
-        if (debug >= EtConstants.debugInfo) {
+        if (localDebug) {
             System.out.println("replyMatch: port = " + port +
-                    ", replied IP addr = " + repliedIpAddress +
                     ", uname = " + repliedUname);
             for (int i=0; i<numAddrs; i++) {
                 System.out.println("          :    addr " + (i + 1) + " = " + addresses.get(i));
@@ -910,7 +907,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
 
         // if we're looking for a host anywhere
         if (config.getHost().equals(EtConstants.hostAnywhere)) {
-            if (debug >= EtConstants.debugInfo) {
+            if (localDebug) {
                 System.out.println("replyMatch: ET is anywhere, addresses = ");
                 for (String address : addresses) {
                     System.out.println("            " + address);
@@ -927,6 +924,10 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
             // So we try them one at a time until a we get a valid connection.
             responders.put(lists, port);
 
+            // We still have to figure out if it's local or not
+            // so we can use JNI if local.
+            etOnLocalHost = isHostLocal(addresses.get(0));
+
             // store info here in case only 1 response
             broadcastAddresses = broadAddresses;
             hostAddresses = addresses;
@@ -941,7 +942,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
                 for (String localIP : localHostIpAddrs) {
                     // if ET system's address matches a local one, it's not remote
                     if (localIP.equals(address)) {
-                        if (debug >= EtConstants.debugInfo) {
+                        if (localDebug) {
                             System.out.println("replyMatch: ET is local but looking for remote, " + address);
                         }
 
@@ -950,7 +951,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
                 }
             }
 
-            if (debug >= EtConstants.debugInfo) {
+            if (localDebug) {
                 System.out.println("replyMatch: ET is remote, addresses = ");
                 for (String address : addresses) {
                     System.out.println("            " + address);
@@ -978,7 +979,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
             for (String address : addresses) {
                 for (String localIP : localHostIpAddrs) {
                     if (localIP.equals(address)) {
-                        if (debug >= EtConstants.debugInfo) {
+                        if (localDebug) {
                             System.out.println("replyMatch: ET is local, " + address);
                         }
 
@@ -993,14 +994,14 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
                 }
             }
 
-            if (debug >= EtConstants.debugInfo) {
+            if (localDebug) {
                 System.out.println("replyMatch: no local match");
             }
         }
 
         // else a specific host name has been specified
         else {
-            if (debug >= EtConstants.debugInfo) {
+            if (localDebug) {
                 System.out.println("replyMatch: <name>, addresses = ");
                 for (String address : addresses) {
                     System.out.println("            " + address);
@@ -1011,7 +1012,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
                 for (String hostIP : knownHostIpAddrs) {
 //System.out.println("replyMatch: compare " + address + " to " + hostIP);
                     if (hostIP.equals(address)) {
-                        if (debug >= EtConstants.debugInfo) {
+                        if (localDebug) {
                             System.out.println("replyMatch: <name> matched, " + address);
                         }
 
@@ -1079,7 +1080,8 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
         // check to see if connecting to same version ET software
         if (version != EtConstants.version) {
             disconnect();
-            throw new EtException("may not open wrong version ET system");
+            throw new EtException("may not open wrong version ET system (" + version +
+                                          "), since this is version " + EtConstants.version);
         }
         // double check to see if # of select ints are the same
         if (stationSelectInts != EtConstants.stationSelectInts) {
@@ -1242,7 +1244,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
                     t2 = System.currentTimeMillis();
                     continue;
                 }
-
+                System.out.println("FOUND SERVER: on-local-host = " + etOnLocalHost);
                 // If host is local, use JNI if possible
                 if (etOnLocalHost) {
                     useJniLibrary = true;
@@ -1398,62 +1400,66 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
                 ByteBuffer buffer = fc.map(FileChannel.MapMode.READ_WRITE, 0,
                                            EtConstants.initialSharedMemBytes);
 
+                if (debug >= EtConstants.debugInfo) {
+                    System.out.println("Use a JNI local connection:");
+                }
+
                 int byteOrder = buffer.getInt();
                 if (byteOrder != 0x04030201) {
                     buffer.order(ByteOrder.LITTLE_ENDIAN);
                 }
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("byteOrder = " + Integer.toHexString(byteOrder));
+                    System.out.println("    byteOrder = " + Integer.toHexString(byteOrder));
                 }
 
                 int next = buffer.getInt();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("systemType = " + next);
+                    System.out.println("    systemType = " + next);
                 }
 
                 next = buffer.getInt();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("major version = " + next);
+                    System.out.println("    major version = " + next);
                 }
 
                 next = buffer.getInt();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("minor version = " + next);
+                    System.out.println("    minor version = " + next);
                 }
 
                 next = buffer.getInt();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("num select ints = " + next);
+                    System.out.println("    num select ints = " + next);
                 }
 
                 next = buffer.getInt();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("head byte size = " + next);
+                    System.out.println("    head byte size = " + next);
                 }
 
                 long nextLong = buffer.getLong();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("event byte size = " + nextLong);
+                    System.out.println("    event byte size = " + nextLong);
                 }
 
                 nextLong = buffer.getLong();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("header position = " + nextLong);
+                    System.out.println("    header position = " + nextLong);
                 }
 
                 long dataPosition = nextLong = buffer.getLong();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("data position = " + nextLong);
+                    System.out.println("    data position = " + nextLong);
                 }
 
                 long totalFileSize = nextLong = buffer.getLong();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("total file size = " + nextLong + ", but is really " + fc.size());
+                    System.out.println("    total file size = " + nextLong + ", but is really " + fc.size());
                 }
 
                 long usedFileSize = nextLong = buffer.getLong();
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("used file size = " + nextLong);
+                    System.out.println("    used file size = " + nextLong);
                 }
 
                 // Closing the file channel does NOT affect the buffer
