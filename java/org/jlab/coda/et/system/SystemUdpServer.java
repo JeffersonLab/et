@@ -204,10 +204,10 @@ class ListeningThread extends Thread {
         // (1)  ET version #
         // (2)  port of tcp server thread (not udp config->port)
         // (3)  Constants.broadcast .multicast or broadAndMulticast (int)
-        // (4)  length of next string
+        // (4)  length of next string (not used now)
         // (5)    broadcast address (dotted-dec) if broadcast received or
         //        multicast address (dotted-dec) if multicast received
-        //        (see int #3)
+        //        (see int #3)    (not used now)
         // (6)  length of next string
         // (7)    hostname given by "uname" (used as a general
         //        identifier of this host no matter which interface is used)
@@ -268,10 +268,11 @@ class ListeningThread extends Thread {
             dos.writeInt(config.getServerPort());
             dos.writeInt(cast);
 
-            // (4) & (5)  incomingAddress = 0.0.0.0 since this is Java
-            dos.writeInt(incomingAddress.length() + 1);
-            dos.write(incomingAddress.getBytes("ASCII"));
-            dos.writeByte(0);
+            // (4) & (5)  not used now, just send 0
+            dos.writeInt(0);
+//            dos.writeInt(incomingAddress.length() + 1);
+//            dos.write(incomingAddress.getBytes("ASCII"));
+//            dos.writeByte(0);
 
             // (6) & (7) Local host name (equivalent to uname?)
             dos.writeInt(hostName.length() + 1);
