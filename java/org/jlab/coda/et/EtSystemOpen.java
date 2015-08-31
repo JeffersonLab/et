@@ -112,7 +112,7 @@ public class EtSystemOpen {
      */
     public EtSystemOpen(EtSystemOpenConfig config) {
         this.config = new EtSystemOpenConfig(config);
-        debug = EtConstants.debugInfo;
+        debug = EtConstants.debugError;
         responders = new LinkedHashMap<ArrayList<String>[], Integer>(20);
         hostAddresses = new ArrayList<String>();
         broadcastAddresses = new ArrayList<String>();
@@ -311,7 +311,6 @@ public class EtSystemOpen {
         int     timeOuts[] = {100, 1000, 2000, 4000};
         int     waitTime, socketTimeOut = 8000; // socketTimeOut > sum of timeOuts
         String  specifiedHost = null;
-    //    HashSet<String> knownHostIpAddrs = new HashSet<String>();
         Collection<String> knownHostIpAddrs = null;
 
         if (totalWait >= 80) {
@@ -703,7 +702,7 @@ public class EtSystemOpen {
             throws IOException, UnknownHostException {
 
         byte buf[];
-        boolean localDebug = true;
+        boolean localDebug = false;
         ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData());
         DataInputStream dis = new DataInputStream(bais);
         // In case of multiple addresses from a responding ET system, a list of addresses. */
@@ -1244,7 +1243,7 @@ public class EtSystemOpen {
                     t2 = System.currentTimeMillis();
                     continue;
                 }
-                System.out.println("FOUND SERVER: on-local-host = " + etOnLocalHost);
+
                 // If host is local, use JNI if possible
                 if (etOnLocalHost) {
                     useJniLibrary = true;
@@ -1270,8 +1269,10 @@ public class EtSystemOpen {
             else {
                 // Put IP addresses in list with those on preferred local subnets first,
                 // other local subnets next, and all others last
-System.out.println("connect(): order ET's IP addresses with preferred = "
-                           + config.getNetworkInterface());
+                if (debug >= EtConstants.debugInfo) {
+                    System.out.println("connect(): order ET's IP addresses with preferred = "
+                                               + config.getNetworkInterface());
+                }
                 addrList = EtUtils.orderIPAddresses(hostAddresses, broadcastAddresses,
                                                     config.getNetworkInterface());
             }
@@ -1313,7 +1314,9 @@ System.out.println("connect(): order ET's IP addresses with preferred = "
                         if (outgoingIp != null) {
                             try {
                                 sock.bind(new InetSocketAddress(outgoingIp, 0));
-System.out.println("connect(): bound outgoing data to " + outgoingIp);
+                                if (debug >= EtConstants.debugInfo) {
+                                    System.out.println("connect(): bound outgoing data to " + outgoingIp);
+                                }
                             }
                             catch (IOException e) {
                                 // If we cannot bind to this IP address, forget about it
@@ -1323,7 +1326,10 @@ System.out.println("connect(): tried but FAILED to bind outgoing data to " + out
                     }
 
                     // Make actual TCP connection with 3 second timeout
-System.out.println("connect(): try connect to host " + connectionHost + " on port " + tcpPort);
+                    if (debug >= EtConstants.debugInfo) {
+                        System.out.println("connect(): try connect to host " + connectionHost + " on port " + tcpPort);
+                    }
+
                     try {
                         sock.connect(new InetSocketAddress(connectionHost, tcpPort), 3000); // IOEx, SocketTimeoutEx
                     }
@@ -1332,7 +1338,9 @@ System.out.println("connect(): timed out, try again");
                         continue;
                     }
 
-System.out.println("connect(): SUCCESS creating socket");
+                    if (debug >= EtConstants.debugInfo) {
+                        System.out.println("connect(): SUCCESS creating socket");
+                    }
                     break;
                 }
                 catch (SocketException ex) {
