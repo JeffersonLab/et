@@ -239,6 +239,10 @@ public class EtSystem {
             throw new EtException("bad debug argument");
         }
         debug = val;
+        try {
+            sys.setDebug(debug);
+        }
+        catch (EtException e) { /* never happen */ }
     }
 
     /**
