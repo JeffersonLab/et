@@ -290,6 +290,55 @@ public class EtUtils {
         b[off]   = b2;
     }
 
+
+    /**
+     * Get all local IP addresses in a list in dotted-decimal form.
+     * The first IP address in the list is the one associated with
+     * the canonical host name.
+     * @return list of all local IP addresses in dotted-decimal form.
+     */
+    public static Collection<String> getAllIpAddresses() {
+        // Set of our IP addresses in order
+        LinkedHashSet<String> set = new LinkedHashSet<String>();
+
+        try {
+            // Start with IP addr associated with canonical host name (if any)
+            String canonicalIP = InetAddress.getByName(InetAddress.getLocalHost().
+                                                getCanonicalHostName()).getHostAddress();
+
+            if (canonicalIP != null) {
+//System.out.println("getAllIpAddresses: add canonical IP = " + canonicalIP);
+                set.add(canonicalIP);
+            }
+        }
+        catch (UnknownHostException e) {}
+
+        try {
+            Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+            while (enumer.hasMoreElements()) {
+                NetworkInterface ni = enumer.nextElement();
+                if (ni.isUp() && !ni.isLoopback()) {
+                    List<InterfaceAddress> inAddrs = ni.getInterfaceAddresses();
+                    for (InterfaceAddress ifAddr : inAddrs) {
+                        InetAddress addr = ifAddr.getAddress();
+
+                        // skip IPv6 addresses (IPv4 addr has 4 bytes)
+                        if (addr.getAddress().length != 4) continue;
+
+                        set.add(addr.getHostAddress());
+//System.out.println("getAllIpAddresses: add ip address = " + addr.getHostAddress());
+                    }
+                }
+            }
+        }
+        catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        return set;
+    }
+
+
     /**
      * Get all local IP broadcast addresses in a list in dotted-decimal form.
      * This only makes sense for IPv4.
