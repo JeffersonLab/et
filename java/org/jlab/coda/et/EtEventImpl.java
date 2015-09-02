@@ -655,8 +655,8 @@ public class EtEventImpl implements EtEvent {
     /**
      * Sets the event's data buffer (must be backed by data array).
      * This is used when reading data from shared memory and
-     * also if remote user gets new events with the no-allocate flag
-     * set. In the latter case, the user must set the data buffer
+     * also if remote user gets new events with the no-buffer arg true.
+     * In the latter case, the user must set the data buffer
      * explicitly or an exception will result when trying to put the
      * event back. In any case, using this method should only be done
      * by the expert user.
