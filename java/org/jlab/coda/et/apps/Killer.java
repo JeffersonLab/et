@@ -16,6 +16,10 @@ package org.jlab.coda.et.apps;
 
 import org.jlab.coda.et.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashSet;
+
 
 /**
  * This class is an example of a client that kills an ET system.
@@ -24,37 +28,46 @@ import org.jlab.coda.et.*;
  */
 public class Killer {
 
-    public Killer() {
-    }
+    public Killer() {}
 
 
     private static void usage() {
-        System.out.println("\nUsage: java Killer -f <ET name> -host <ET host> [-h] [-v] [-r] [-p <ET server port>]\n\n" +
-                "       -host  ET system's host\n" +
+        System.out.println("\nUsage: java Killer -f <et name>\n" +
+                "                      [-h] [-v] [-r] [-m] [-b] [-host <ET host>]\n" +
+                "                      [-p <ET port>] [-a <mcast addr>]\n\n" +
+
                 "       -f     ET system's (memory-mapped file) name\n" +
+                "       -host  ET system's host if direct connection (default to local)\n" +
                 "       -h     help\n" +
-                "       -v     verbose output\n" +
+                "       -v     verbose output\n\n" +
+
+                "       -a     multicast address(es) (dot-decimal), may use multiple times\n" +
+                "       -m     multicast to find ET (use default address if -a unused)\n" +
+                "       -b     broadcast to find ET\n\n" +
+
                 "       -r     act as remote (TCP) client even if ET system is local\n" +
-                "       -p     ET server port\n" +
-                "       -i     outgoing network interface IP address (dot-decimal)\n\n" +
-                "        This consumer works by making a direct connection to the\n" +
-                "        ET system's server port.\n");
+                "       -p     port (TCP for direct, UDP for broad/multicast)\n\n" +
+
+                "        This producer works by making a direct connection to the\n" +
+                "        ET system's server port and host unless at least one multicast address\n" +
+                "        is specified with -a, the -m option is used, or the -b option is used\n" +
+                "        in which case multi/broadcasting used to find the ET system.\n" +
+                "        If multi/broadcasting fails, look locally to find the ET system.\n" +
+                "        The system is then killed.\n\n");
     }
 
 
     public static void main(String[] args) {
 
-        String etName = null, host = null, netInterface = null;
-        int port = EtConstants.serverPort;
-        boolean verbose = false;
-        boolean remote  = false;
+        int port = 0;
+        boolean verbose=false, remote=false;
+        boolean broadcast=false, multicast=false, broadAndMulticast=false;
+        HashSet<String> multicastAddrs = new HashSet<String>();
+        String etName = null, host = null;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equalsIgnoreCase("-f")) {
                 etName = args[++i];
-            }
-            else if (args[i].equalsIgnoreCase("-i")) {
-                netInterface = args[++i];
             }
             else if (args[i].equalsIgnoreCase("-host")) {
                 host = args[++i];
@@ -80,39 +93,110 @@ public class Killer {
             else if (args[i].equalsIgnoreCase("-r")) {
                 remote = true;
             }
+            else if (args[i].equalsIgnoreCase("-m")) {
+                multicast = true;
+            }
+            else if (args[i].equalsIgnoreCase("-b")) {
+                broadcast = true;
+            }
+            else if (args[i].equalsIgnoreCase("-a")) {
+                try {
+                    String addr = args[++i];
+                    if (InetAddress.getByName(addr).isMulticastAddress()) {
+                        multicastAddrs.add(addr);
+                        multicast = true;
+                    }
+                    else {
+                        System.out.println("\nignoring improper multicast address\n");
+                    }
+                }
+                catch (UnknownHostException e) {}
+            }
             else {
                 usage();
                 return;
             }
         }
 
-        if (host == null || etName == null) {
+        if (etName == null) {
             usage();
             return;
         }
 
         try {
-            // Make a direct connection to ET system's tcp server
-            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
-            config.setConnectRemotely(remote);
+            EtSystemOpenConfig config = new EtSystemOpenConfig();
 
-            // EXAMPLE: Broadcast to find ET system
-            //EtSystemOpenConfig config = new EtSystemOpenConfig();
-            //config.setHost(host);
-            //config.setEtName(etName);
-            //config.addBroadcastAddr("129.57.29.255"); // this call is not necessary
+            if (broadcast && multicast) {
+                broadAndMulticast = true;
+            }
 
-            // EXAMPLE: Multicast to find ET system
-            //ArrayList<String> mAddrs = new ArrayList<String>();
-            //mAddrs.add(EtConstants.multicastAddr);
-            //EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host,
-            //                                mAddrs, EtConstants.multicastPort, 32);
+            // if multicasting to find ET
+            if (multicast) {
+                if (multicastAddrs.size() < 1) {
+                    // Use default mcast address if not given on command line
+                    config.addMulticastAddr(EtConstants.multicastAddr);
+                }
+                else {
+                    // Add multicast addresses to use
+                    for (String mcastAddr : multicastAddrs) {
+                        config.addMulticastAddr(mcastAddr);
+                    }
+                }
+            }
 
-            if (netInterface != null) config.setNetworkInterface(netInterface);
+            if (broadAndMulticast) {
+                System.out.println("Broad and Multicasting");
+                if (port == 0) {
+                    port = EtConstants.udpPort;
+                }
+                config.setUdpPort(port);
+                config.setNetworkContactMethod(EtConstants.broadAndMulticast);
+                config.setHost(EtConstants.hostAnywhere);
+            }
+            else if (multicast) {
+                System.out.println("Multicasting");
+                if (port == 0) {
+                    port = EtConstants.udpPort;
+                }
+                config.setUdpPort(port);
+                config.setNetworkContactMethod(EtConstants.multicast);
+                config.setHost(EtConstants.hostAnywhere);
+            }
+            else if (broadcast) {
+                System.out.println("Broadcasting");
+                if (port == 0) {
+                    port = EtConstants.udpPort;
+                }
+                config.setUdpPort(port);
+                config.setNetworkContactMethod(EtConstants.broadcast);
+                config.setHost(EtConstants.hostAnywhere);
+            }
+            else {
+                if (port == 0) {
+                    port = EtConstants.serverPort;
+                }
+                config.setTcpPort(port);
+                config.setNetworkContactMethod(EtConstants.direct);
+                if (host == null) {
+                    host = EtConstants.hostLocal;
+                }
+                config.setHost(host);
+                System.out.println("Direct connection to " + host);
+            }
+
+            config.setWaitTime(0);
+            config.setEtName(etName);
+
+            if (remote) {
+                System.out.println("Set as remote");
+                config.setConnectRemotely(remote);
+            }
 
             // create ET system object with verbose debugging output
             EtSystem sys = new EtSystem(config);
-            if (verbose) sys.setDebug(EtConstants.debugInfo);
+            if (verbose) {
+                sys.setDebug(EtConstants.debugInfo);
+            }
             sys.open();
 
             sys.kill();
