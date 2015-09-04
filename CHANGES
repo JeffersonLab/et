@@ -91,7 +91,7 @@ ET-15.1 (created 6/5/2015)
 ET-16.0 (created 7/29/2015)
     - pass user's LD_LIBRARY_PATH into scons build environment
     - get rid of vxworks and solaris dependencies in C code and in scons files
-    - condense ET system server UDP listening code into 1 thread.
+    - condense C ET system server UDP listening code into 1 thread.
     - get rid of MacOS clang compilation errors
 
     8/31/2015
