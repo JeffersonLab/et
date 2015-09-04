@@ -38,7 +38,7 @@ int main(int argc,char **argv) {
 
     int i, j, c, i_tmp, status, junkData, numRead, locality;
     int startingVal=0, errflg=0, group=1, chunk=1, size=32, writeData=0, localEndian=1;
-    int verbose=0, delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
+    int delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
     int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
     int debugLevel = ET_DEBUG_ERROR;
     unsigned short port=0;
@@ -210,7 +210,6 @@ int main(int argc,char **argv) {
                 break;
 
             case 'v':
-                verbose = 1;
                 debugLevel = ET_DEBUG_INFO;
                 break;
 
@@ -411,7 +410,6 @@ int main(int argc,char **argv) {
     et_open_config_setpolicy(openconfig, ET_POLICY_ERROR);
 
     /* debug level */
-    printf("debug = %d\n", debugLevel);
     et_open_config_setdebugdefault(openconfig, debugLevel);
 
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
@@ -446,10 +444,8 @@ int main(int argc,char **argv) {
     }
 
     /* set level of debug output (everything) */
-    if (verbose) {
-        et_system_setdebug(id, debugLevel);
-    }
-  
+    et_system_setdebug(id, debugLevel);
+
     /* attach to grandcentral station */
     if (et_station_attach(id, ET_GRANDCENTRAL, &attach1) < 0) {
         printf("%s: error in et_station_attach\n", argv[0]);
