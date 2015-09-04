@@ -264,7 +264,8 @@ codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
  * @param allETinfo returns a pointer to single structure with all of the ET system's
  *                  response information;
  *                  may be null if all relevant info given in ethost, port, and inetaddr args
- * 
+ * @param debug    debug level
+ *
  * @return ET_OK            if successful
  * @return ET_ERROR         failure in select statement
  * @return ET_ERROR_BADARG  NULL arg for ethost, port, or inetaddr
@@ -278,14 +279,15 @@ codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
  * @return ET_ERROR_TIMEOUT if no responses received in allotted time
  */
 int et_findserver(const char *etname, char *ethost, int *port,
-                  uint32_t *inetaddr, et_open_config *config, et_response **allETinfo)
+                  uint32_t *inetaddr, et_open_config *config,
+                  et_response **allETinfo, int debug)
 {
     struct timeval waittime;
     /* wait 0.1 seconds before calling select the first time */
     waittime.tv_sec  = 0;
     waittime.tv_usec = 100000;
   
-    return et_findserver2(etname, ethost, port, inetaddr, allETinfo, config, 2, &waittime);
+    return et_findserver2(etname, ethost, port, inetaddr, allETinfo, config, 2, &waittime, debug);
 }
 
 
@@ -314,7 +316,7 @@ int et_responds(const char *etname)
     strcpy(config->host, ET_HOST_LOCAL);
   
     /* send only 1 broadcast with a default maximum .01 sec wait */
-    if (et_findserver2(etname, ethost, &port, &inetaddr, NULL, config, 1, NULL) == ET_OK) {
+    if (et_findserver2(etname, ethost, &port, &inetaddr, NULL, config, 1, NULL, ET_DEBUG_NONE) == ET_OK) {
         /* got a response */
         return 1;
     }
@@ -370,6 +372,7 @@ int et_responds(const char *etname)
  * @param config    configuration passed to et_open
  * @param trys      max # of times to broadcast UDP packet
  * @param waittime  wait time for response to broad/multicast
+ * @param debug     debug level
  *
  * @return ET_OK            if successful
  * @return ET_ERROR         failure in select statement
@@ -384,11 +387,12 @@ int et_responds(const char *etname)
  * @return ET_ERROR_TIMEOUT if no responses received in allotted time
  */
 int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetaddr,
-                   et_response **allETinfo, et_open_config *config, int trys, struct timeval *waittime)
+                   et_response **allETinfo, et_open_config *config,
+                   int trys, struct timeval *waittime, int debug)
 {
     int          i, j, k, l, m, n, err, addrCount, addrCount2;
     int          gotMatch=0, subnetCount=0, ipAddrCount=0;
-    int          len_net, lastdelay, maxtrys=6, serverport=0, debug=0;
+    int          len_net, lastdelay, maxtrys=6, serverport=0;
     const int    on=1, timeincr[]={0,1,2,3,4,5};
     uint32_t     version, length, addr, magicInts[3], castType;
     codaIpList   *baddr;
@@ -420,7 +424,9 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
    
     /* check args */
     if ((ethost == NULL) || (port == NULL) || (inetaddr == NULL)) {
-        fprintf(stderr, "et_findserver: invalid (null) arguments\n");
+        if (debug >= ET_DEBUG_ERROR) {
+            fprintf(stderr, "et_findserver: null argument(s)\n");
+        }
         return ET_ERROR_BADARG;
     }
   
@@ -435,7 +441,9 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
     send = (struct senddata *) calloc((size_t) (subnetCount + config->mcastaddrs.count),
                                       sizeof(struct senddata));
     if (send == NULL) {
-        fprintf(stderr, "et_findserver: cannot allocate memory\n");
+        if (debug >= ET_DEBUG_ERROR) {
+            fprintf(stderr, "et_findserver: cannot allocate memory\n");
+        }
         return ET_ERROR_NOMEM;
     } 
   
@@ -455,14 +463,18 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
             (strcmp(config->host, "localhost")   == 0))  {
 
             if ((etNetGetIpAddrs(&ipAddrs, &ipAddrCount, NULL) != ET_OK) || ipAddrCount < 1) {
-                fprintf(stderr, "et_findserver: cannot find local IP addresses\n");
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: cannot find local IP addresses\n");
+                }
                 return ET_ERROR_NETWORK;
             }
         }
         /* else if we know its name, find dot-decimal IP addrs */
         else {
             if ((etNetGetIpAddrs(&ipAddrs, &ipAddrCount, config->host) != ET_OK) || ipAddrCount < 1) {
-                fprintf(stderr, "et_findserver: cannot find IP addresses for %s\n", config->host);
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: cannot find IP addresses for %s\n", config->host);
+                }
                 return ET_ERROR_NETWORK;
             }
         }
@@ -480,7 +492,9 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
         while (baddr != NULL) {
             /* put address into net-ordered binary form */
             if (inet_aton(baddr->addr, &castaddr) == INET_ATON_ERR) {
-                fprintf(stderr, "et_findserver: inet_aton error net_addr = %s\n",  baddr->addr);
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: inet_aton error net_addr = %s\n", baddr->addr);
+                }
                 for (j=0; j<numsockets; j++) {
                     close(send[j].sockfd);
                 }
@@ -489,7 +503,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 return ET_ERROR_NETWORK;
             }
 
-            if (debug) {
+            if (debug >= ET_DEBUG_INFO) {
                 printf("et_findserver: send broadcast packet to %s on port %d\n", baddr->addr, config->udpport);
             }
             
@@ -502,7 +516,10 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
             /* create socket */
             sockfd = socket(AF_INET, SOCK_DGRAM, 0);
             if (sockfd < 0) {
-                fprintf(stderr, "et_findserver: socket error\n");
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: socket error\n");
+                }
+
                 for (j=0; j<numsockets; j++) {
                     close(send[j].sockfd);
                 }
@@ -514,7 +531,10 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
             /* make this a broadcast socket */
             err = setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, (void *) &on, sizeof(on));
             if (err < 0) {
-                fprintf(stderr, "et_findserver: setsockopt SO_BROADCAST error\n");
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: setsockopt SO_BROADCAST error\n");
+                }
+
                 close(sockfd);
                 for (j=0; j<numsockets; j++) {
                     close(send[j].sockfd);
@@ -544,7 +564,10 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
         for (i=0; i < config->mcastaddrs.count; i++) {
             /* put address into net-ordered binary form */
             if (inet_aton(config->mcastaddrs.addr[i], &castaddr) == INET_ATON_ERR) {
-                fprintf(stderr, "et_findserver: inet_aton error\n");
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: inet_aton error\n");
+                }
+
                 for (j=0; j<numsockets; j++) {
                     close(send[j].sockfd);
                 }
@@ -553,7 +576,7 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
                 return ET_ERROR_NETWORK;
             }
 
-            if (debug) {
+            if (debug >= ET_DEBUG_INFO) {
                 printf("et_findserver: send multicast packet to %s on port %d\n",
                        config->mcastaddrs.addr[i], config->multiport);
             }
@@ -567,7 +590,10 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
             /* create socket */
             sockfd = socket(AF_INET, SOCK_DGRAM, 0);
             if (sockfd < 0) {
-                fprintf(stderr, "et_findserver: socket error\n");
+                if (debug >= ET_DEBUG_ERROR) {
+                    fprintf(stderr, "et_findserver: socket error\n");
+                }
+
                 for (j=0; j<numsockets; j++) {
                     close(send[j].sockfd);
                 }
@@ -584,7 +610,10 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
           
                 err = setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_TTL, (void *) &ttl, sizeof(ttl));
                 if (err < 0){
-                    fprintf(stderr, "et_findserver: setsockopt IP_MULTICAST_TTL error\n");
+                    if (debug >= ET_DEBUG_ERROR) {
+                        fprintf(stderr, "et_findserver: setsockopt IP_MULTICAST_TTL error\n");
+                    }
+
                     close(sockfd);
                     for (j=0; j<numsockets; j++) {
                         close(send[j].sockfd);
@@ -685,7 +714,10 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
         
         /* if select error ... */
         if (err == -1) {
-            fprintf(stderr, "et_findserver: select error\n");
+            if (debug >= ET_DEBUG_ERROR) {
+                fprintf(stderr, "et_findserver: select error\n");
+            }
+
             for (j=0; j<numsockets; j++) {
                 close(send[j].sockfd);
             }
@@ -715,7 +747,10 @@ anotherpacket:
 
                 /* if error ... */
                 if (n < 0) {
-                    fprintf(stderr, "et_findserver: recvfrom error, %s\n", strerror(errno));
+                    if (debug >= ET_DEBUG_ERROR) {
+                        fprintf(stderr, "et_findserver: recvfrom error, %s\n", strerror(errno));
+                    }
+
                     for (k=0; k<numsockets; k++) {
                         close(send[k].sockfd);
                     }
@@ -729,7 +764,10 @@ anotherpacket:
                 /* allocate space for single response */
                 answer = (et_response *) calloc(1, sizeof(et_response));
                 if (answer == NULL) {
-                    fprintf(stderr, "et_findserver: out of memory\n");
+                    if (debug >= ET_DEBUG_ERROR) {
+                        fprintf(stderr, "et_findserver: out of memory\n");
+                    }
+
                     for (k=0; k<numsockets; k++) {
                         close(send[k].sockfd);
                     }
@@ -883,6 +921,10 @@ anotherpacket:
                     answer->addrs = (uint32_t *)calloc((size_t)addrCount, sizeof(uint32_t));
                     answer->ipaddrs =  (char **)calloc((size_t)addrCount, sizeof(char *));
                     if (answer->addrs == NULL || answer->ipaddrs == NULL) {
+                        if (debug >= ET_DEBUG_ERROR) {
+                            fprintf(stderr, "et_findserver: out of memory\n");
+                        }
+
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
                         }
@@ -915,6 +957,10 @@ anotherpacket:
 
                         answer->ipaddrs[k] = strdup(pbuf); /* ending NULL is sent so we're OK */
                         if (answer->ipaddrs[k] == NULL) {
+                            if (debug >= ET_DEBUG_ERROR) {
+                                fprintf(stderr, "et_findserver: out of memory\n");
+                            }
+
                             for (l=0; l<numsockets; l++) {
                                 close(send[l].sockfd);
                             }
@@ -943,6 +989,10 @@ anotherpacket:
                         /* allocate mem - arrays of char *'s */
                         answer->bcastaddrs =  (char **)calloc((size_t)addrCount, sizeof(char *));
                         if (answer->bcastaddrs == NULL) {
+                            if (debug >= ET_DEBUG_ERROR) {
+                                fprintf(stderr, "et_findserver: out of memory\n");
+                            }
+
                             for (k=0; k<numsockets; k++) {
                                 close(send[k].sockfd);
                             }
@@ -973,6 +1023,10 @@ anotherpacket:
                             
                             answer->bcastaddrs[k] = strdup(pbuf); /* ending NULL is sent so we're OK */
                             if (answer->bcastaddrs[k] == NULL) {
+                                if (debug >= ET_DEBUG_ERROR) {
+                                    fprintf(stderr, "et_findserver: out of memory\n");
+                                }
+
                                 for (l=0; l<numsockets; l++) {
                                     close(send[l].sockfd);
                                 }
@@ -992,8 +1046,8 @@ anotherpacket:
                             pbuf += length;
                         }
                     }
-                    
-                    if (debug) {
+
+                    if (debug >= ET_DEBUG_INFO) {
                         printf("et_findserver: RESPONSE from %s w/ bcast %s at %d and uname = %s\n",
                                answer->ipaddrs[0], answer->bcastaddrs[0], answer->port, answer->uname);
                     }
@@ -1010,8 +1064,11 @@ anotherpacket:
                 }
           
             } /* for each socket (j) */
-        
-        
+
+            if (debug >= ET_DEBUG_INFO) {
+                printf("et_findserver: %d responses to broad/multicast\n", numresponses);
+            }
+
             /* If host is local or we know its name. There may be many responses.
              * Look only at the response that matches the host's address.
              */
@@ -1026,7 +1083,9 @@ anotherpacket:
                      */
                     for (n=0; n < answer->addrCount; n++) {
                         for (m=0; m<ipAddrCount; m++) {
-if (debug) printf("et_findserver: comparing %s to incoming %s\n", ipAddrs[m], answer->ipaddrs[n]);
+                            if (debug >= ET_DEBUG_INFO) {
+                                printf("et_findserver: comparing %s to incoming %s\n", ipAddrs[m], answer->ipaddrs[n]);
+                            }
                             if (strcmp(ipAddrs[m], answer->ipaddrs[n]) == 0)  {
                                 gotMatch = 1;
                                 break;
@@ -1036,7 +1095,9 @@ if (debug) printf("et_findserver: comparing %s to incoming %s\n", ipAddrs[m], an
                     }
             
                     if (gotMatch) {
-if (debug) printf("et_findserver: got a match to local or specific: %s\n", answer->ipaddrs[n]);
+                        if (debug >= ET_DEBUG_INFO) {
+                            printf("et_findserver: got a match to local or specific: %s\n", answer->ipaddrs[n]);
+                        }
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
                         }
@@ -1063,22 +1124,63 @@ if (debug) printf("et_findserver: got a match to local or specific: %s\n", answe
             else if (strcmp(config->host, ET_HOST_ANYWHERE) == 0) {
                 /* if our policy is to return an error for more than 1 response ... */
                 if ((config->policy == ET_POLICY_ERROR) && (numresponses > 1)) {
-                    /* print error message and return */
-if (debug) printf("et_findserver: %d responses to broad/multicast -\n", numresponses);
-                    j = 1;
-                    answer = answer_first;
+                    /* Before returning an error, check to see if all of these
+                       responses are from the same host by comparing uname values.
+                       If so, take the first one. */
+                    char *firstUname = answer_first->uname;
+                    answer = answer_first->next;
+                    j = 0;
+
+                    if (debug >= ET_DEBUG_INFO) {
+                        fprintf(stderr, "  response anywhere %d from %s at %d\n",
+                                j++, answer_first->ipaddrs[0], answer_first->port);
+                    }
+
                     while (answer != NULL) {
-                        fprintf(stderr, "  RESPONSE %d from %s at %d\n",
-                                j++, answer->ipaddrs[0], answer->port);
+                        int same=0;
+
+                        if (debug >= ET_DEBUG_INFO) {
+                            fprintf(stderr, "  response anywhere %d from %s at %d\n",
+                                    j++, answer->ipaddrs[0], answer->port);
+                        }
+
+                        if (strcmp(firstUname, answer->uname) == 0)  {
+                            if (debug >= ET_DEBUG_INFO) {
+                                printf("    filter out identical host for error policy\n");
+                            }
+                            same = 1;
+                        }
+
+                        if (!same) {
+                            for (k=0; k<numsockets; k++) {
+                                close(send[k].sockfd);
+                            }
+                            free(send);
+                            freeIpAddrs(ipAddrs, ipAddrCount);
+                            et_freeAnswers(answer_first);
+                            return ET_ERROR_TOOMANY;
+                        }
+
                         answer = answer->next;
                     }
+
+                    /* If we've reached this point, all responses are from the same host, pick first */
                     for (k=0; k<numsockets; k++) {
                         close(send[k].sockfd);
                     }
                     free(send);
                     freeIpAddrs(ipAddrs, ipAddrCount);
+
+                    answer = answer_first;
+                    strcpy(ethost, answer->ipaddrs[0]);
+                    *port = answer->port;
+                    *inetaddr = answer->addrs[0];
+                    if (allETinfo != NULL) {
+                        answer_first = removeResponseFromList(answer_first, answer);
+                        *allETinfo = answer;
+                    }
                     et_freeAnswers(answer_first);
-                    return ET_ERROR_TOOMANY;
+                    return ET_OK;
                 }
 
                 /* analyze the answers/responses */
@@ -1091,7 +1193,10 @@ if (debug) printf("et_findserver: %d responses to broad/multicast -\n", numrespo
                      */
                     if ((config->policy == ET_POLICY_FIRST) ||
                         (config->policy == ET_POLICY_ERROR))  {
-if (debug) printf("et_findserver: got a match to .anywhere (%s), first or error policy\n", answer->ipaddrs[0]);
+                        if (debug >= ET_DEBUG_INFO) {
+                            printf("et_findserver: got a match to .anywhere (%s), first or error policy\n",
+                                   answer->ipaddrs[0]);
+                        }
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
                         }
@@ -1112,7 +1217,9 @@ if (debug) printf("et_findserver: got a match to .anywhere (%s), first or error 
                     /* else if our policy is to take the first local response ... */
                     else if (config->policy == ET_POLICY_LOCAL) {
                         if (strcmp(localuname, answer->uname) == 0) {
-if (debug) printf("et_findserver: got a uname match to .anywhere, local policy\n");
+                            if (debug >= ET_DEBUG_INFO) {
+                                printf("et_findserver: got a uname match to .anywhere, local policy\n");
+                            }
                             for (k=0; k<numsockets; k++) {
                                 close(send[k].sockfd);
                             }
@@ -1133,7 +1240,9 @@ if (debug) printf("et_findserver: got a uname match to .anywhere, local policy\n
                          * a local one, pick the first one we received.
                          */
                         if (++j == numresponses-1) {
-if (debug) printf("et_findserver: got a match to .anywhere, nothing local available\n");
+                            if (debug >= ET_DEBUG_INFO) {
+                                printf("et_findserver: got a match to .anywhere, nothing local available\n");
+                            }
                             answer = answer_first;
                             for (k=0; k<numsockets; k++) {
                                 close(send[k].sockfd);
@@ -1177,7 +1286,10 @@ if (debug) printf("et_findserver: got a match to .anywhere, nothing local availa
                      */
                     if ((config->policy == ET_POLICY_FIRST) ||
                         (config->policy == ET_POLICY_LOCAL))  {
-if (debug) printf("et_findserver: got a match to .remote, first or local policy\n");
+                        if (debug >= ET_DEBUG_INFO) {
+                            printf("et_findserver: got a match to .remote, first or local policy\n");
+                        }
+
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
                         }
@@ -1202,7 +1314,10 @@ if (debug) printf("et_findserver: got a match to .remote, first or local policy\
           
                 if (config->policy == ET_POLICY_ERROR) {
                     if (remoteresponses == 1) {
-if (debug) printf("et_findserver: got a match to .remote, error policy\n");
+                        if (debug >= ET_DEBUG_INFO) {
+                            printf("et_findserver: got a match to .remote, error policy\n");
+                        }
+
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
                         }
@@ -1219,27 +1334,64 @@ if (debug) printf("et_findserver: got a match to .remote, error policy\n");
                         return ET_OK;
                     }
                     else if (remoteresponses > 1) {
-                        /* too many proper responses, return error */
-                        fprintf(stderr, "et_findserver: %d responses to broad/multicast -\n",
-                                numresponses);
+                        /* Before returning an error, check to see if all of these
+                           responses are from the same host by comparing uname values.
+                           If so, take the first one. */
+                        char *firstUname = answer_first->uname;
+                        answer = answer_first->next;
                         j = 0;
-                        answer = answer_first;
+
+                        if (debug >= ET_DEBUG_INFO) {
+                            fprintf(stderr, "  response remote %d from %s at %d\n",
+                                    j++, answer_first->ipaddrs[0], answer_first->port);
+                        }
+
+
                         while (answer != NULL) {
-                            if (strcmp(localuname, answer->uname) == 0) {
-                                answer = answer->next;
-                                continue;
+                            int same=0;
+
+                            if (debug >= ET_DEBUG_INFO) {
+                                fprintf(stderr, "  response remote %d from %s at %d\n",
+                                        j++, answer->ipaddrs[0], answer->port);
                             }
-                            fprintf(stderr, "  RESPONSE %d from %s at %d\n",
-                                    j++, answer->ipaddrs[0], answer->port);
+
+                            if (strcmp(firstUname, answer->uname) == 0)  {
+                                if (debug >= ET_DEBUG_INFO) {
+                                    printf("    filter out (remote) identical host for error policy\n");
+                                }
+                                same = 1;
+                            }
+
+                            if (!same) {
+                                for (k=0; k<numsockets; k++) {
+                                    close(send[k].sockfd);
+                                }
+                                free(send);
+                                freeIpAddrs(ipAddrs, ipAddrCount);
+                                et_freeAnswers(answer_first);
+                                return ET_ERROR_TOOMANY;
+                            }
+
                             answer = answer->next;
                         }
+
+                        /* If we've reached this point, all responses are from the same host, pick first */
                         for (k=0; k<numsockets; k++) {
                             close(send[k].sockfd);
                         }
                         free(send);
                         freeIpAddrs(ipAddrs, ipAddrCount);
+
+                        answer = answer_first;
+                        strcpy(ethost, answer->ipaddrs[0]);
+                        *port = answer->port;
+                        *inetaddr = answer->addrs[0];
+                        if (allETinfo != NULL) {
+                            answer_first = removeResponseFromList(answer_first, answer);
+                            *allETinfo = answer;
+                        }
                         et_freeAnswers(answer_first);
-                        return ET_ERROR_TOOMANY;
+                        return ET_OK;
                     }
                 }
             } /* else if host is remote */
@@ -1257,4 +1409,5 @@ if (debug) printf("et_findserver: no valid response received\n");
   
     return ET_ERROR_TIMEOUT;
 }
+
 
