@@ -32,8 +32,8 @@ public class StartEt {
     private static void usage() {
 
         System.out.println("\nUsage: java StartEt [-h] [-v] [-d] [-f <file>] [-n <events>] [-s <eventSize>]\n" +
-                             "                    [-g <groups>] [-p <TCP server port>] [-u <UDP port>]\n" +
-                             "                    [-m <UDP multicast port>] [-a <multicast address>]\n" +
+                             "                    [-g <groups>] [-a <multicast address>]\n" +
+                             "                    [-p <TCP server port>] [-u <UDP port>]\n" +
                              "                    [-rb <buf size>] [-sb <buf size>] [-nd]\n\n" +
 
         "          -h   help\n" +
@@ -47,7 +47,6 @@ public class StartEt {
 
         "          -p   TCP server port #\n" +
         "          -u   UDP broadcast port #\n" +
-        "          -m   UDP multicast port #\n" +
         "          -a   multicast address\n\n" +
 
         "          -rb  TCP receive buffer size (bytes)\n" +
