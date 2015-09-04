@@ -862,7 +862,7 @@ public class Monitor extends JFrame {
         JLabel l3 = new JLabel("TTL Value: ", JLabel.RIGHT);
 
         // text input for udp/broadcast port number
-        udpPort = new WholeNumberField(EtConstants.broadcastPort, 8, 1024, 65535);
+        udpPort = new WholeNumberField(EtConstants.udpPort, 8, 1024, 65535);
         udpPort.setForeground(entryColor);
         // make sure there's a valid value entered
         udpPort.addActionListener(new ActionListener() {
@@ -888,7 +888,7 @@ public class Monitor extends JFrame {
         );
 
         // text input for udp multicast port number
-        mcastPort = new WholeNumberField(EtConstants.multicastPort, 8, 1024, 65535);
+        mcastPort = new WholeNumberField(EtConstants.udpPort, 8, 1024, 65535);
         mcastPort.setForeground(entryColor);
         // make sure there's a valid value entered
         mcastPort.addActionListener(new ActionListener() {
@@ -1209,7 +1209,7 @@ public class Monitor extends JFrame {
                     config = new EtSystemOpenConfig(etSystem, host,
                                    bAddresses, null, false, EtConstants.broadcast,
                                    EtConstants.serverPort, udpPort.getValue(),
-                                   EtConstants.multicastPort, EtConstants.multicastTTL,
+                                   EtConstants.multicastTTL,
                                    EtConstants.policyFirst);
                 }
             }
@@ -1221,7 +1221,6 @@ public class Monitor extends JFrame {
                 config = new EtSystemOpenConfig(etSystem, host,
                                                 mAddresses,
                                                 udpPort.getValue(),
-                                                mcastPort.getValue(),
                                                 ttl.getValue());
             }
             else if (howToConnect.equals("broad & multicasting")) {
@@ -1229,7 +1228,7 @@ public class Monitor extends JFrame {
                                                 bAddresses,  mAddresses, false,
                                                 EtConstants.broadAndMulticast,
                                                 tcpPort.getValue(), udpPort.getValue(),
-                                                mcastPort.getValue(), ttl.getValue(),
+                                                ttl.getValue(),
                                                 EtConstants.policyError);
             }
             else if (howToConnect.equals("direct connection")) {
@@ -1442,7 +1441,7 @@ public class Monitor extends JFrame {
                             mAddress.clearAddresses();
                             mAddress.addAddresses(config.getMulticastAddrs());
                             // multicast port
-                            mcastPort.setValue(config.getMulticastPort());
+                            mcastPort.setValue(config.getUdpPort());
                             // broadcast port
                             udpPort.setValue(config.getUdpPort());
                             // ttl value
@@ -1457,7 +1456,7 @@ public class Monitor extends JFrame {
                             mAddress.clearAddresses();
                             mAddress.addAddresses(config.getMulticastAddrs());
                             // multicast port
-                            mcastPort.setValue(config.getMulticastPort());
+                            mcastPort.setValue(config.getUdpPort());
                             // broadcast port
                             udpPort.setValue(config.getUdpPort());
                             // ttl value
