@@ -54,7 +54,8 @@ void printHelp(char *program) {
     fprintf(stderr, "          -sb    TCP send    buffer size (bytes)\n");
     fprintf(stderr, "          -nd    use TCP_NODELAY option\n\n");
 
-    fprintf(stderr, "          This program starts up an ET system\n\n");
+    fprintf(stderr, "          This program starts up an ET system.\n");
+    fprintf(stderr, "          Listens on 239.200.0.0 by default.\n\n");
 }
 
 
