@@ -39,7 +39,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
     et_open_config *config = (et_open_config *) openconfig;
     int sockfd=-1, version, nselects;
     int err=ET_OK, openerror=ET_OK, transfer[8], incoming[9];
-    int port=0, debug=ET_DEBUG_ERROR;
+    int port=0, debug;
     uint32_t  length, bufsize, inetaddr = 0;
     et_id *etid;
     char *buf, *pbuf, *ifBroadcastIP=NULL, *ifRegularIP=NULL, ethost[ET_MAXHOSTNAMELEN];
@@ -51,6 +51,8 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
     /* system id */
     etid = (et_id *) *id;
+
+    debug = config->debug_default;
 
     strcpy(ethost, config->host);
 
@@ -145,7 +147,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
             if (debug >= ET_DEBUG_INFO) {
                 et_logmsg("INFO", "etr_open: calling et_findserver(file=%s, host=%s)\n", et_filename, ethost);
             }
-            if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config, &response)) == ET_OK) {
+            if ( (openerror = et_findserver(et_filename, ethost, &port, &inetaddr, config, &response, debug)) == ET_OK) {
 
                 struct timeval timeout = {3,0}; /* 3 second timeout for TCP connection */
                 int connected = 0;
@@ -207,6 +209,11 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
 
         /* if user does NOT want to wait ... */
         if (config->wait == ET_OPEN_NOWAIT) {
+            break;
+        }
+
+        /* if error not due to ET system not being there */
+        if (openerror != ET_ERROR_TIMEOUT) {
             break;
         }
 
