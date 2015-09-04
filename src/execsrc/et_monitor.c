@@ -39,9 +39,9 @@ static void usage(char *programName) {
     fprintf(stderr,
             "usage: %s  %s\n%s\n%s\n\n",
             programName,
-            "-f <ET name> [-h] [-r] [-m] [-b] [-host <ET host>]",
-            "                     [-t <time period (sec)>]",
-            "                     [-p <ET port>] [-a <mcast addr>]");
+            "-f <ET name> [-h] [-r] [-m] [-b]",
+            "                      [-host <ET host>] [-t <time (sec)>]",
+            "                      [-p <ET port>] [-a <mcast addr>]");
 
     fprintf(stderr, "          -f    ET system's (memory-mapped file) name\n");
     fprintf(stderr, "          -host ET system's host if direct connection (default to local)\n");
@@ -361,10 +361,9 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
   if (id->bit64) { printf("(bits 64)\n"); }
   else { printf("(bits 32)\n"); }
   
-  printf("              (tcp port %d) (udp port %d) (multicast port %d)\n",
+  printf("              (tcp port %d) (udp port %d)\n",
 	  data.sysdata->tcp_port,
-	  data.sysdata->udp_port,
-	  data.sysdata->multi_port);
+	  data.sysdata->udp_port);
   printf("              (pid %d)", data.sysdata->mainpid);
 	      
   if (id->lang == ET_LANG_JAVA) {
@@ -670,8 +669,8 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
   if (id->bit64) { printf("(bits 64)\n"); }
   else { printf("(bits 32)\n"); }
   
-  printf("              (tcp port %d) (udp port %d) (multicast port %d)\n",
-	  sys->config.serverport, sys->config.port, sys->config.port);
+  printf("              (tcp port %d) (udp port %d)\n",
+	  sys->config.serverport, sys->config.port);
   printf("              (pid %d)", (int) sys->mainpid);
 
 

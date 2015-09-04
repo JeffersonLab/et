@@ -62,7 +62,7 @@ typedef struct et_sysdata_t {
 
   int tcp_port;         /* port of ET server */
   int udp_port;         /* port for udp direct/broadcast to find server */
-  int multi_port;       /* port for udp multicast to find server */
+  int multi_port;       /* port for udp multicast to find server (not used, same as udp_port) */
 
   codaDotDecIpAddrs ifaddrs;    /* list of interface addresses (dotted-dec) */
   codaDotDecIpAddrs mcastaddrs; /* list of multicast addresses (dotted-dec) */

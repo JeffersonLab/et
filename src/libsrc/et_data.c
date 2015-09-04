@@ -637,7 +637,7 @@ static char *et_data_getsys(et_sysdata *sysdata, char *buffer)
 
   sysdata->tcp_port         = ntohl(ints[22]);
   sysdata->udp_port         = ntohl(ints[23]);
-  sysdata->multi_port       = ntohl(ints[24]);
+  sysdata->multi_port       = ntohl(ints[24]); /* not used */
 
   /* #s of strings coming up */
   sysdata->ifaddrs.count    = ifcount = ntohl(ints[25]);
