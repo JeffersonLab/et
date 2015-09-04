@@ -103,7 +103,7 @@ public class Consumer {
                         multicast = true;
                     }
                     else {
-                        System.out.println(" but not proper form");
+                        System.out.println("\nignoring improper multicast address\n");
                     }
                 }
                 catch (UnknownHostException e) {}
@@ -260,7 +260,6 @@ System.out.println("Flow mode is parallel");
         }
 
         try {
-            //EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
             EtSystemOpenConfig config = new EtSystemOpenConfig();
 
             if (broadcast && multicast) {

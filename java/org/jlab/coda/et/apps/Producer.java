@@ -87,7 +87,7 @@ public class Producer {
         boolean bigEndian=true, writeData=false;
         boolean broadcast=false, multicast=false, broadAndMulticast=false;
         HashSet<String> multicastAddrs = new HashSet<String>();
-        String outgoingInterface=null, etName=null, host=null, statName=null;
+        String outgoingInterface=null, etName=null, host=null;
 
 
         for (int i = 0; i < args.length; i++) {
@@ -103,10 +103,9 @@ public class Producer {
                     if (InetAddress.getByName(addr).isMulticastAddress()) {
                         multicastAddrs.add(addr);
                         multicast = true;
-                        System.out.println("br = " + broadcast + ", mma = " + multicast);
                     }
                     else {
-                        System.out.println(" but not proper form");
+                        System.out.println("\nignoring improper multicast address\n");
                     }
                 }
                 catch (UnknownHostException e) {}
@@ -125,11 +124,9 @@ public class Producer {
             }
             else if (args[i].equalsIgnoreCase("-m")) {
                 multicast = true;
-                System.out.println("br = " + broadcast + ", mm = " + multicast);
             }
             else if (args[i].equalsIgnoreCase("-b")) {
                 broadcast = true;
-                System.out.println("bbr = " + broadcast + ", m = " + multicast);
             }
             else if (args[i].equalsIgnoreCase("-blast")) {
                 blast = true;
@@ -265,7 +262,7 @@ public class Producer {
 
         try {
             EtSystemOpenConfig config = new EtSystemOpenConfig();
-            System.out.println("br = " + broadcast + ", m = " + multicast);
+
             if (broadcast && multicast) {
                 broadAndMulticast = true;
             }
