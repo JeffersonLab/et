@@ -66,7 +66,7 @@ extern int   et_CODAswap(int *src, int *dest, int nints, int same_endian);
 extern int   et_findserver2(const char *etname, char *ethost, int *port,
                             uint32_t *inetaddr, et_response **allETinfo,
                             et_open_config *config, int trys,
-			                struct timeval *waittime);
+			                struct timeval *waittime, int debug);
                             
 extern void  et_freeAnswers(et_response *answer);
 
