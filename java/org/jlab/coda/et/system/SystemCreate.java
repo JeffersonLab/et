@@ -113,9 +113,8 @@ public class SystemCreate {
      *      max number of stations    = {@link org.jlab.coda.et.EtConstants#defaultStationsMax},
      *      max number of attachments = {@link org.jlab.coda.et.EtConstants#defaultAttsMax},
      *      debug level               = {@link org.jlab.coda.et.EtConstants#debugError},
-     *      udp port                  = {@link org.jlab.coda.et.EtConstants#broadcastPort},
+     *      udp port                  = {@link org.jlab.coda.et.EtConstants#udpPort},
      *      server (tcp) port         = {@link org.jlab.coda.et.EtConstants#serverPort}, and
-     *      multicasting port         = {@link org.jlab.coda.et.EtConstants#multicastPort}
      *
      * @param name ET system file name
      * @throws EtException
@@ -1709,7 +1708,7 @@ public class SystemCreate {
         // udp port
         EtUtils.intToBytes(config.getUdpPort(), info, off+=4);
         // multicast port
-        EtUtils.intToBytes(config.getMulticastPort(), info, off+=4);
+        EtUtils.intToBytes(config.getUdpPort(), info, off+=4);
 
         // # of interfaces and multicast addresses
         EtUtils.intToBytes(ipAddresses.length, info, off+=4);
