@@ -52,7 +52,9 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   
   /* system id */
   etid = (et_id *) *id;
-    
+
+  etid->debug = config->debug_default;
+
   /* attach to mapped memory */
   err = et_mem_attach(filename, (void **)&pSharedMem, &etInfo);
   if (err != ET_OK) {
