@@ -66,36 +66,24 @@ class SystemUdpServer extends Thread {
             port = EtConstants.serverPort;
         }
 
-        // If we're broadcasting, then we use 1 thread with 1 socket,
-        // bound to the wildcard address, to listen to broadcasts from all local
-        // subnets.
-        //
-        // If we're multicasting and the specified multicast port is the same as the
-        // broadcast port, then we use 1 thread to listen to multicasts and broadcasts
-        // on one socket.
-        //
-        // If we're multicasting with a different port than the broadcasting/direct
-        // port, then multicasting is treated separately from everything else and has
-        // its own socket and thread.
+        // Use 1 thread to listen to multicasts and broadcasts on one socket.
 
         if (config.getMulticastAddrs().size() > 0) {
             try {
-System.out.println("setting up for multicast on port " + config.getMulticastPort());
-                MulticastSocket sock = new MulticastSocket(config.getMulticastPort());
+System.out.println("setting up for multicast on port " + config.getUdpPort());
+                MulticastSocket sock = new MulticastSocket(config.getUdpPort());
                 sock.setReceiveBufferSize(1024);
                 sock.setSendBufferSize(1024);
                 ListeningThread lis = new ListeningThread(sys, sock, tGroup);
                 lis.start();
             }
             catch (IOException e) {
-                System.out.println("cannot listen on port " + config.getMulticastPort() + " for multicasting");
+                System.out.println("cannot listen on port " + config.getUdpPort() + " for multicasting");
                 e.printStackTrace();
             }
 
-            if (config.getMulticastPort() == config.getUdpPort()) {
-                // only need to listen on the multicast socket, so we're done
-                return;
-            }
+            // only need to listen on the multicast socket, so we're done
+            return;
         }
 
         try {
@@ -139,10 +127,6 @@ class ListeningThread extends Thread {
 
     /** Is this thread responding to a multicast or broadcast or perhaps either. */
     private int cast;
-
-    /** Don't know which address the broad/multicast was sent to since we're using
-     * "INADDR_ANY" so just return this. */
-    private String incomingAddress = "0.0.0.0";
 
     /** Used to name thread. */
     static private int counter = 0;
@@ -247,7 +231,7 @@ class ListeningThread extends Thread {
             String hostName = addr.getHostName();
 
             // the send buffer needs to be of byte size ...
-            int bufferSize = 11*4 + incomingAddress.length() + hostName.length() + canon.length() + 3;
+            int bufferSize = 11*4 + hostName.length() + canon.length() + 3;
             for (InetAddress netAddress : sys.getNetAddresses()) {
                 bufferSize += 8 + netAddress.getHostAddress().length() + 1;
             }
@@ -270,9 +254,6 @@ class ListeningThread extends Thread {
 
             // (4) & (5)  not used now, just send 0
             dos.writeInt(0);
-//            dos.writeInt(incomingAddress.length() + 1);
-//            dos.write(incomingAddress.getBytes("ASCII"));
-//            dos.writeByte(0);
 
             // (6) & (7) Local host name (equivalent to uname?)
             dos.writeInt(hostName.length() + 1);
