@@ -67,17 +67,13 @@ public class SystemConfig {
      */
     private boolean noDelay;
 
-    /** UDP port number for thread responding to users' broadcasts looking for the
+    /** UDP port number for thread responding to users' broad/multicasts looking for the
      *  ET system. */
     private int udpPort;
 
     /** TCP port number for the thread establishing connections with users,
      *  otherwise referred to as the ET server thread. */
     private int serverPort;
-
-    /** UDP port number for thread responding to users' multicasts looking for the
-     *  ET system. */
-    private int multicastPort;
 
     /** Set of all multicast addresses to listen on (in String form). */
     private HashSet<InetAddress> multicastAddrs;
@@ -91,9 +87,8 @@ public class SystemConfig {
      *      max number of stations    = {@link org.jlab.coda.et.EtConstants#defaultStationsMax},
      *      max number of attachments = {@link org.jlab.coda.et.EtConstants#defaultAttsMax},
      *      debug level               = {@link org.jlab.coda.et.EtConstants#debugError},
-     *      udp port                  = {@link org.jlab.coda.et.EtConstants#broadcastPort},
+     *      udp port                  = {@link org.jlab.coda.et.EtConstants#udpPort},
      *      server (tcp) port         = {@link org.jlab.coda.et.EtConstants#serverPort}, and
-     *      multicasting port         = {@link org.jlab.coda.et.EtConstants#multicastPort}.
      */
     public SystemConfig () {
         numEvents       = EtConstants.defaultNumEvents;
@@ -101,9 +96,8 @@ public class SystemConfig {
         stationsMax     = EtConstants.defaultStationsMax;
         attachmentsMax  = EtConstants.defaultAttsMax;
         debug           = EtConstants.debugError;
-        udpPort         = EtConstants.broadcastPort;
+        udpPort         = EtConstants.udpPort;
         serverPort      = EtConstants.serverPort;
-        multicastPort   = EtConstants.multicastPort;
         multicastAddrs  = new HashSet<InetAddress>(10);
         // by default there is one group with all events in it
         groups          = new int[1];
@@ -122,7 +116,6 @@ public class SystemConfig {
         tcpSendBufSize  = config.tcpSendBufSize;
         noDelay         = config.noDelay;
         serverPort      = config.serverPort;
-        multicastPort   = config.multicastPort;
         multicastAddrs  = new HashSet<InetAddress>(config.multicastAddrs);
         groups          = config.groups.clone();
     }
@@ -180,10 +173,6 @@ public class SystemConfig {
     /** Get the tcp server port number.
      *  @return tcp server port number */
     public int getServerPort() {return serverPort;}
-
-    /** Get the multicast port number.
-     *  @return multicast port number */
-    public int getMulticastPort() {return multicastPort;}
 
     /** Get the set of multicast addresses.
      *  @return set of multicast addresses */
@@ -408,23 +397,6 @@ public class SystemConfig {
             throw new EtException("port number must be greater than 1023");
         }
         serverPort = port;
-    }
-
-
-    /**
-     * Sets the multicast port number.
-     * @param port multicast port number
-     * @throws EtException
-     *     if the argument is less than 1024
-     */
-    public void setMulticastPort(int port) throws EtException {
-        if (port < 1024) {
-            throw new EtException("port number must be greater than 1023");
-        }
-//    else if (port == udpPort) {
-//      throw new EtException("multicast port must be different than udp port");
-//    }
-        multicastPort = port;
     }
 
 
