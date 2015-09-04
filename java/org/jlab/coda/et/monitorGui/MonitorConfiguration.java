@@ -225,7 +225,7 @@ public class MonitorConfiguration extends DefaultHandler {
                     }
 
                     config = new EtSystemOpenConfig(etSystem, host, addrs,
-                                                  0, multicastPort, ttl);
+                                                    multicastPort, ttl);
                 }
                 else if (findMethod.equals("broadAndMulticasting")) {
                     ttl = Integer.parseInt(dataStorage.get("ttl"));
@@ -243,7 +243,7 @@ public class MonitorConfiguration extends DefaultHandler {
                     }
                     config = new EtSystemOpenConfig(etSystem, host, bAddrs, mAddrs, true,
                                                     EtConstants.broadAndMulticast, 0,
-                                                    broadcastPort, multicastPort, ttl,
+                                                    broadcastPort, ttl,
                                                     EtConstants.policyError);
                 }
                 else if (findMethod.equals("direct")) {
@@ -431,7 +431,7 @@ public class MonitorConfiguration extends DefaultHandler {
                         text.append(maddr);
                     }
                     text.append("\n      </multicastAddressList>\n      <multicastPort>");
-                    text.append(config.getMulticastPort());
+                    text.append(config.getUdpPort());
                     text.append("</multicastPort>\n      <ttl>");
                     text.append(config.getTTL());
                     text.append("</ttl>\n    </multicasting>\n");
@@ -469,7 +469,7 @@ public class MonitorConfiguration extends DefaultHandler {
                         text.append(maddr);
                     }
                     text.append("\n      </multicastAddressList>\n      <multicastPort>");
-                    text.append(config.getMulticastPort());
+                    text.append(config.getUdpPort());
                     text.append("</multicastPort>\n      <ttl>");
                     text.append(config.getTTL());
                     text.append("</ttl>\n    </broadAndMulticasting>\n");
