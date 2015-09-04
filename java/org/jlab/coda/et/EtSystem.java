@@ -215,6 +215,14 @@ public class EtSystem {
     }
 
     /**
+     * Gets whether the jni library is being used for local access to ET file.
+     * @return whether the jni library is being used for local access to ET file.
+     */
+    public boolean usingJniLibrary() {
+        return sys.usingJniLibrary();
+    }
+
+    /**
      * Gets the debug output level.
      * @return debug output level
      */
