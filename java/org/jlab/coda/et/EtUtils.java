@@ -292,6 +292,94 @@ public class EtUtils {
 
 
     /**
+     * Is the given list of IP addresses identical to those of the local host?
+     *
+     * @param addrs list of String (dot decimal) addresses to test
+     * @return <code>true</code> if host is local, else <code>false</code>
+     * @throws UnknownHostException if host cannot be resolved
+     */
+    public static boolean isHostLocal(ArrayList<String> addrs) throws UnknownHostException {
+        if (addrs == null || addrs.size() < 1) return false;
+
+        Collection<String> localHostIpAddrs = getAllIpAddresses();
+
+        // Compare to see if 1 address matches.
+        // If so, host is the local machine.
+        for (String localIP : localHostIpAddrs) {
+            // Don't compare loopbacks!
+            if (localIP.equals("127.0.0.1")) continue;
+
+            for (String ip : addrs) {
+                if (localIP.equals(ip)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+    /**
+      * Determine whether a given host name refers to the local host.
+      * @param hostName host name that is checked to see if its local or not
+      */
+     public static final boolean isHostLocal(String hostName) {
+        if (hostName == null || hostName.length() < 1) return false;
+        if (hostName.equals("127.0.0.1")) return true;
+
+        try {
+            // Get all hostName's IP addresses
+            InetAddress[] hostAddrs = InetAddress.getAllByName(hostName);
+            ArrayList<String> hostAddrList = new ArrayList<String>();
+            for (InetAddress addr : hostAddrs) {
+                hostAddrList.add(addr.getHostAddress());
+            }
+
+            return isHostLocal(hostAddrList);
+        }
+        catch (UnknownHostException e) {}
+
+        return false;
+     }
+
+
+    /**
+     * Determine whether two given host names refers to the same host.
+     * @param hostName1 host name that is checked to see if it is the same as the other arg or not.
+     * @param hostName2 host name that is checked to see if it is the same as the other arg or not.
+     */
+     public static final boolean isHostSame(String hostName1, String hostName2) {
+        // Arg check
+        if (hostName1 == null || hostName1.length() < 1) return false;
+        if (hostName2 == null || hostName2.length() < 1) return false;
+
+        try {
+            // Compare all know IP addresses against each other
+
+            // Get all hostName1's IP addresses
+            InetAddress[] hostAddrs1  = InetAddress.getAllByName(hostName1);
+
+            // Get all hostName2's IP addresses
+            InetAddress[] hostAddrs2  = InetAddress.getAllByName(hostName2);
+
+            // See if any 2 addresses are identical
+            for (InetAddress lAddr : hostAddrs1) {
+                // Don't compare loopbacks!
+                if (lAddr.getHostAddress().equals("127.0.0.1")) continue;
+
+                for (InetAddress hAddr : hostAddrs2) {
+                    if (lAddr.equals(hAddr)) return true;
+                }
+            }
+        }
+        catch (UnknownHostException e) {}
+
+        return false;
+     }
+
+
+    /**
      * Get all local IP addresses in a list in dotted-decimal form.
      * The first IP address in the list is the one associated with
      * the canonical host name.
