@@ -39,6 +39,7 @@ int main(int argc,char **argv) {
     int             multicast=0, broadcast=0, broadAndMulticast=0;
     int		        con[ET_STATION_SELECT_INTS];
     int             sendBufSize=0, recvBufSize=0, noDelay=0;
+    int             debugLevel = ET_DEBUG_ERROR;
     unsigned short  port=0;
     char            stationName[ET_STATNAME_LENGTH], et_name[ET_FILENAME_LENGTH], host[256], interface[16];
 
@@ -228,7 +229,8 @@ int main(int argc,char **argv) {
                 break;
 
             case 'v':
-                verbose = ET_DEBUG_INFO;
+                verbose = 1;
+                debugLevel = ET_DEBUG_INFO;
                 break;
 
             case 'r':
@@ -419,6 +421,9 @@ int main(int argc,char **argv) {
     /* If responses from different ET systems, return error. */
     et_open_config_setpolicy(openconfig, ET_POLICY_ERROR);
 
+    /* debug level */
+    et_open_config_setdebugdefault(openconfig, debugLevel);
+
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
@@ -437,9 +442,8 @@ int main(int argc,char **argv) {
         printf("ET is local\n\n");
     }
 
-    if (verbose) {
-        et_system_setdebug(id, ET_DEBUG_INFO);
-    }
+    /* set level of debug output (everything) */
+    et_system_setdebug(id, debugLevel);
 
     /* define station to create */
     et_station_config_init(&sconfig);
