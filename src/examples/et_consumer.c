@@ -262,7 +262,7 @@ int main(int argc,char **argv) {
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n%s\n%s\n\n",
                 argv[0], "-f <ET name> -s <station name>",
-                "                     [-h] [-v] [-nb] [-r] [-m] [-b] [-nd] [-read]",
+                "                     [-h] [-v] [-nb] [-r] [-m] [-b] [-nd] [-read] [-dump]",
                 "                     [-host <ET host>] [-p <ET port>]",
                 "                     [-c <chunk size>] [-q <Q size>]",
                 "                     [-pos <station pos>] [-ppos <parallel station pos>]",
@@ -276,12 +276,13 @@ int main(int argc,char **argv) {
 
         fprintf(stderr, "          -v    verbose output (also prints data if reading with -read)\n");
         fprintf(stderr, "          -read read data (1 int for each event)\n");
+        fprintf(stderr, "          -dump dump events back into ET (go directly to GC) instead of put\n");
         fprintf(stderr, "          -c    number of events in one get/put array\n");
         fprintf(stderr, "          -r    act as remote (TCP) client even if ET system is local\n");
         fprintf(stderr, "          -p    port, TCP if direct, else UDP\n\n");
 
         fprintf(stderr, "          -nb   make station non-blocking\n");
-        fprintf(stderr, "          -q    queue size if creating nonblocking station\n");
+        fprintf(stderr, "          -q    queue size if creating non-blocking station\n");
         fprintf(stderr, "          -pos  position of station (1,2,...)\n");
         fprintf(stderr, "          -ppos position of within a group of parallel stations (-1=end, -2=head)\n\n");
 
@@ -414,6 +415,9 @@ int main(int argc,char **argv) {
         printf("Set as remote\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
     }
+
+    /* If responses from different ET systems, return error. */
+    et_open_config_setpolicy(openconfig, ET_POLICY_ERROR);
 
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
