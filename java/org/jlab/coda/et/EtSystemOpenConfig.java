@@ -63,15 +63,11 @@ public class EtSystemOpenConfig {
      */
     private int networkContactMethod;
 
-    /** UDP port number for broadcasting or sending udp packets to known hosts. */
+    /** UDP port number for broad/multicasting or sending udp packets to known hosts. */
     private int udpPort;
 
     /** TCP server port number of the ET system. */
     private int tcpPort;
-
-    /** Port number to multicast to. In Java, a multicast socket cannot have same
-     *  port number as another datagram socket. */
-    private int multicastPort;
 
     /** Time-to-live value for multicasting. */
     private int ttl;
@@ -111,11 +107,10 @@ public class EtSystemOpenConfig {
         broadcasting = true;
         connectRemotely = false;
         networkContactMethod = EtConstants.broadcast;
-        multicastPort = EtConstants.multicastPort;
-        udpPort = EtConstants.broadcastPort;
+        udpPort = EtConstants.udpPort;
         tcpPort = EtConstants.serverPort;
         ttl = 32;
-        responsePolicy = EtConstants.policyError;
+        responsePolicy = EtConstants.policyFirst;
         multicastAddrs = new HashSet<String>(10);
         broadcastAddrs = new HashSet<String>(EtUtils.getAllBroadcastAddresses());
     }
@@ -144,9 +139,7 @@ public class EtSystemOpenConfig {
      * @param tPort  TCP server port number of the ET system. If = 0, set to default which is
      *               EtConstants.serverPort = 11111.
      * @param uPort  UDP port number for broadcasting or sending udp packets to known hosts.
-     *               If = 0, set to default which is EtConstants.broadcastPort = 11111.
-     * @param mPort  Port number to multicast to. If = 0, set to default which is
-     *               EtConstants.multicastPort = 11112.
+     *               If = 0, set to default which is EtConstants.udpPort = 11111.
      * @param ttlNum Time-to_live value for multicasting. If = 0, set to default which is 32.
      * @param policy policy on what to do about multiple responding ET systems to
      *               a broadcast or multicast: {@link EtConstants#policyFirst},
@@ -165,7 +158,7 @@ public class EtSystemOpenConfig {
                              Collection<String> bAddrs, Collection<String> mAddrs,
                              boolean remoteOnly,
                              int method, int tPort, int uPort,
-                             int mPort, int ttlNum, int policy)
+                             int ttlNum, int policy)
             throws EtException {
 
         name = etName;
@@ -229,7 +222,7 @@ public class EtSystemOpenConfig {
 
         if ((uPort < 1024) || (uPort > 65535)) {
             if (uPort == 0) {
-                uPort = EtConstants.broadcastPort;
+                uPort = EtConstants.udpPort;
             }
             else {
                 throw new EtException("Bad UDP port value");
@@ -246,16 +239,6 @@ public class EtSystemOpenConfig {
             }
         }
         tcpPort = tPort;
-
-        if ((mPort < 1024) || (mPort > 65535)) {
-            if (mPort == 0) {
-                mPort = EtConstants.multicastPort;
-            }
-            else {
-                throw new EtException("Bad multicast port value");
-            }
-        }
-        multicastPort = mPort;
 
 
         if ((ttlNum < 0) || (ttlNum > 254)) {
@@ -300,7 +283,7 @@ public class EtSystemOpenConfig {
     public EtSystemOpenConfig(String etName, String hostName)
             throws EtException {
         this (etName, hostName, null, null, false, EtConstants.broadcast,
-              EtConstants.serverPort, EtConstants.broadcastPort, EtConstants.multicastPort,
+              EtConstants.serverPort, EtConstants.udpPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
@@ -310,7 +293,7 @@ public class EtSystemOpenConfig {
      *
      * @param etName ET system name
      * @param uPort  UDP port number to broadcasting to.
-     *               If = 0, set to default which is EtConstants.broadcastPort = 11111.
+     *               If = 0, set to default which is EtConstants.udpPort = 11111.
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
@@ -324,7 +307,7 @@ public class EtSystemOpenConfig {
     public EtSystemOpenConfig(String etName, int uPort, String hostName)
             throws EtException {
         this (etName, hostName, null, null, false, EtConstants.broadcast,
-              EtConstants.serverPort, uPort, EtConstants.multicastPort,
+              EtConstants.serverPort, uPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
@@ -334,7 +317,7 @@ public class EtSystemOpenConfig {
      *
      * @param etName ET system name
      * @param uPort  UDP port number to broadcasting to.
-     *               If = 0, set to default which is EtConstants.broadcastPort = 11111.
+     *               If = 0, set to default which is EtConstants.udpPort = 11111.
      * @param hostName may open an ET system on the given host which could be the:
      *                 1) actual ET system's host name,
      *                 2) dotted decimal address of ET system's host, or
@@ -351,7 +334,7 @@ public class EtSystemOpenConfig {
                               Collection<String> bAddrs)
             throws EtException {
         this (etName, hostName, bAddrs, null, false, EtConstants.broadcast,
-              EtConstants.serverPort, uPort, EtConstants.multicastPort,
+              EtConstants.serverPort, uPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
@@ -369,7 +352,7 @@ public class EtSystemOpenConfig {
      *               find ET system. If = null, set to default which is a list containing only
      *               EtConstants.multicastAddr = 239.200.0.0.
      * @param mPort  Port number to multicast to. If = 0, set to default which is
-     *               EtConstants.multicastPort = 11112.
+     *               EtConstants.udpPort = 11111.
      * @param ttlNum Time-to_live value for multicasting. If = 0, set to default which is 32.
      *
      * @throws EtException
@@ -381,43 +364,12 @@ public class EtSystemOpenConfig {
                              Collection<String> mAddrs, int mPort, int ttlNum)
             throws EtException {
         this (etName, hostName, null, mAddrs, false, EtConstants.multicast,
-              EtConstants.serverPort, EtConstants.broadcastPort, mPort,
+              EtConstants.serverPort, mPort,
               ttlNum, EtConstants.policyFirst);
     }
 
 
-    /**
-     * Constructor for multicasting. First responder is chosen.
-     *
-     * @param etName ET system name
-     * @param hostName may open an ET system on the given host which could be the:
-     *                 1) actual ET system's host name,
-     *                 2) dotted decimal address of ET system's host, or
-     *                 3) general location of ET system such as {@link EtConstants#hostAnywhere},
-     *                   {@link EtConstants#hostLocal}, or {@link EtConstants#hostRemote}
-     * @param mAddrs collection of multicast addresses (as Strings) to multicast to in order to
-     *               find ET system. If = null, set to default which is a list containing only
-     *               EtConstants.multicastAddr = 239.200.0.0.
-     * @param uPort  UDP port number for broadcasting or sending udp packets to known hosts.
-     *               If = 0, set to default which is EtConstants.broadcastPort = 11111.
-     * @param mPort  Port number to multicast to. If = 0, set to default which is
-     *               EtConstants.multicastPort = 11112.
-     * @param ttlNum Time-to_live value for multicasting. If = 0, set to default which is 32.
-     *
-     * @throws EtException
-     *     if no multicast addresses were specified;
-     *     if port numbers are < 1024 or > 65535, or ttl is < 0 or > 254
-     */
-    public EtSystemOpenConfig(String etName, String hostName,
-                              Collection<String> mAddrs, int uPort, int mPort, int ttlNum)
-            throws EtException {
-        this (etName, hostName, null, mAddrs, false, EtConstants.multicast,
-              EtConstants.serverPort, uPort, mPort,
-              ttlNum, EtConstants.policyFirst);
-    }
-
-
-    /**
+  /**
      * Constructor for connecting directly to tcp server. First responder is
      * chosen.
      *
@@ -433,7 +385,7 @@ public class EtSystemOpenConfig {
     public EtSystemOpenConfig(String etName, String hostName, int tPort)
             throws EtException {
         this (etName, hostName, null, null, false, EtConstants.direct,
-              tPort, EtConstants.broadcastPort, EtConstants.multicastPort,
+              tPort, EtConstants.udpPort,
               EtConstants.multicastTTL, EtConstants.policyFirst);
     }
 
@@ -451,7 +403,6 @@ public class EtSystemOpenConfig {
         connectRemotely      = config.connectRemotely;
         udpPort              = config.udpPort;
         tcpPort              = config.tcpPort;
-        multicastPort        = config.multicastPort;
         ttl                  = config.ttl;
         responsePolicy       = config.responsePolicy;
         waitTime             = config.waitTime;
@@ -473,7 +424,6 @@ public class EtSystemOpenConfig {
         builder.append("\n   version = ");  builder.append(EtConstants.version);
         builder.append("\n  tcp port = ");  builder.append(tcpPort);
         builder.append("\n  udp port = ");  builder.append(udpPort);
-        builder.append("\nmcast port = ");  builder.append(multicastPort);
         builder.append("\ntcp  nodelay = ");  builder.append(noDelay);
         builder.append("\ntcp recv buf = ");  builder.append(tcpRecvBufSize);
         builder.append("\ntcp send buf = ");  builder.append(tcpSendBufSize);
@@ -592,17 +542,13 @@ public class EtSystemOpenConfig {
      *  @return policy on what to do about multiple responding ET systems to a broadcast or multicast */
     public int getResponsePolicy() {return responsePolicy;}
 
-    /** Gets UDP port number for broadcasting or sending udp packets to known hosts.
-     *  @return UDP port number for broadcast or sending udp packets to known hosts */
+    /** Gets UDP port number for broad/multicasting or sending udp packets to known hosts.
+     *  @return UDP port number for broad/multicast or sending udp packets to known hosts */
     public int getUdpPort() {return udpPort;}
 
     /** Gets TCP server port number of the ET system.
      *  @return TCP server port number of the ET system */
     public int getTcpPort() {return tcpPort;}
-
-    /** Gets port number to multicast to.
-     *  @return port number to multicast to */
-    public int getMulticastPort() {return multicastPort;}
 
     /** Gets time-to-live value for multicasting.
      *  @return time-to-live value for multicasting */
@@ -822,16 +768,16 @@ public class EtSystemOpenConfig {
 
 
     /**
-     *  Sets the UDP port number for broadcasting and sending udp packets to known hosts.
+     *  Sets the UDP port number for broad/multicasting and sending udp packets to known hosts.
      *
-     *  @param port UDP port number for broadcasting and sending udp packets to known hosts;
-     *              set to 0 for default = {@link EtConstants#broadcastPort}.
+     *  @param port UDP port number for broad/multicasting and sending udp packets to known hosts;
+     *              set to 0 for default = {@link EtConstants#udpPort}.
 
      *  @throws EtException if the port number is < 1024 or > 65535
      */
     public void setUdpPort(int port) throws EtException {
         if (port == 0) {
-            udpPort = EtConstants.broadcastPort;
+            udpPort = EtConstants.udpPort;
             return;
         }
         if ((port < 1024) || (port > 65535)) {
@@ -858,25 +804,6 @@ public class EtSystemOpenConfig {
             throw new EtException("bad TCP port value");
         }
         tcpPort = port;
-    }
-
-
-    /**
-     *  Sets the port number to multicast to.
-     *
-     *  @param port port number to multicast to;
-     *              set to 0 for default = {@link EtConstants#multicastPort}.
-     *  @throws EtException if the port number is < 1024 or > 65535
-     */
-    public void setMulticastPort(int port) throws EtException {
-        if (port == 0) {
-            multicastPort = EtConstants.multicastPort;
-            return;
-        }
-        else if ((port < 1024) || (port > 65535)) {
-            throw new EtException("bad multicast port value");
-        }
-        multicastPort = port;
     }
 
 
