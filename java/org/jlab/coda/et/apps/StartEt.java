@@ -57,7 +57,7 @@ public class StartEt {
         "          -nd  use TCP_NODELAY option\n\n" +
 
         "          This program starts up an ET system.\n" +
-        "          Listens on 239.200.0.0 by default.");
+        "          Listens on 239.200.0.0 by default.\n");
     }
 
 
