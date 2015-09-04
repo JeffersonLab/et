@@ -56,12 +56,8 @@ public final class EtConstants {
     /** Discover an ET system by broadcasting and multicasting.
      *  @see EtSystemOpenConfig#setNetworkContactMethod(int)  */
     public static final int    broadAndMulticast   = 3;
-    /** A default port on which to broadcast when finding an ET system. */
-    public static final int    broadcastPort       = 11111;
-    /** A default port on which to multicast when finding an ET system.
-     *  @see EtSystemOpenConfig#addMulticastAddr(String)
-     *  @see EtSystemOpenConfig#setMulticastAddrs(java.util.Collection)  */
-    public static final int    multicastPort       = 11112;
+    /** A default port on which to broad/multicast when finding an ET system. */
+    public static final int    udpPort             = 11111;
     /** A default port on which ET system TCP server makes connections with users.
      *  @see EtSystemOpenConfig#setTcpPort(int)  */
     public static final int    serverPort          = 11111;
