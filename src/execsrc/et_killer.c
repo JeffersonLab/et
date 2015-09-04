@@ -121,9 +121,10 @@ int main(int argc,char **argv) {
     }
 
     if (optind < argc || errflg || strlen(et_name) < 1) {
-        fprintf(stderr, "usage: %s  %s\n%s\n\n", argv[0],
-                "-f <ET name>   [-h] [-v] [-r] [-m] [-b] [-host <ET host>]",
-                "                                 [-p <ET port>] [-a <mcast addr>]");
+        fprintf(stderr, "usage: %s  %s\n%s\n%s\n\n", argv[0],
+                "-f <ET name>  ",
+                "                     [-h] [-v] [-r] [-m] [-b] [-host <ET host>]",
+                "                     [-p <ET port>] [-a <mcast addr>]");
 
         fprintf(stderr, "          -f    ET system's (memory-mapped file) name\n");
         fprintf(stderr, "          -host ET system's host if direct connection (default to local)\n");
@@ -133,14 +134,16 @@ int main(int argc,char **argv) {
         fprintf(stderr, "          -a    multicast address(es) (dot-decimal), may use multiple times\n");
         fprintf(stderr, "          -m    multicast to find ET (use default address if -a unused)\n");
         fprintf(stderr, "          -b    broadcast to find ET\n\n");
-        fprintf(stderr, "          -r    as remote(network) client\n");
-        fprintf(stderr, "          -p    port, TCP if direct, else UDP\n\n");
+
+        fprintf(stderr, "          -r    act as remote (TCP) client even if ET system is local\n");
+        fprintf(stderr, "          -p    port (TCP for direct, UDP for broad/multicast)\n\n");
 
         fprintf(stderr, "          This program works by making a direct connection to the\n");
         fprintf(stderr, "          ET system's server port and host unless at least one multicast address\n");
-        fprintf(stderr, "          is specified or the -b option is used in which case multi/broadcasting\n");
-        fprintf(stderr, "          is used to find the ET system. If multi/broadcasting fails, look locally\n");
-        fprintf(stderr, "          to find the ET system. The system is then killed.\n\n");
+        fprintf(stderr, "          is specified with -a, the -m option is used, or the -b option is used\n");
+        fprintf(stderr, "          in which case multi/broadcasting used to find the ET system.\n");
+        fprintf(stderr, "          If multi/broadcasting fails, look locally to find the ET system.\n");
+        fprintf(stderr, "          The system is then killed.\n\n");
         exit(2);
     }
 
