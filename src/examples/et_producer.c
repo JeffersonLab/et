@@ -40,6 +40,7 @@ int main(int argc,char **argv) {
     int startingVal=0, errflg=0, group=1, chunk=1, size=32, writeData=0, localEndian=1;
     int verbose=0, delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
     int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
+    int debugLevel = ET_DEBUG_ERROR;
     unsigned short port=0;
     char et_name[ET_FILENAME_LENGTH], host[256], interface[16];
     void *fakeData;
@@ -209,7 +210,8 @@ int main(int argc,char **argv) {
                 break;
 
             case 'v':
-                verbose = ET_DEBUG_INFO;
+                verbose = 1;
+                debugLevel = ET_DEBUG_INFO;
                 break;
 
             case 'r':
@@ -246,7 +248,7 @@ int main(int argc,char **argv) {
                 "                     [-h] [-v] [-r] [-m] [-b] [-nd] [-blast]",
                 "                     [-host <ET host>] [-w <local endian? 0/1>]",
                 "                     [-s <event size>] [-c <chunk size>] [-g <group>]",
-                "                     [-d <delay>] [-p <ET server port>]",
+                "                     [-d <delay>] [-p <ET port>]",
                 "                     [-i <interface address>] [-a <mcast addr>]",
                 "                     [-rb <buf size>] [-sb <buf size>]");
 
@@ -392,6 +394,7 @@ int main(int argc,char **argv) {
         et_open_config_gethost(openconfig, host);
         printf("Direct connection to %s\n", host);
     }
+     et_open_config_sethost(openconfig, ET_HOST_REMOTE);
 
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
     et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
@@ -403,6 +406,13 @@ int main(int argc,char **argv) {
         printf("Set as remote\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
     }
+
+    /* If responses from different ET systems, return error. */
+    et_open_config_setpolicy(openconfig, ET_POLICY_ERROR);
+
+    /* debug level */
+    printf("debug = %d\n", debugLevel);
+    et_open_config_setdebugdefault(openconfig, debugLevel);
 
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
     if (et_open(&id, et_name, openconfig) != ET_OK) {
@@ -437,7 +447,7 @@ int main(int argc,char **argv) {
 
     /* set level of debug output (everything) */
     if (verbose) {
-        et_system_setdebug(id, ET_DEBUG_INFO);
+        et_system_setdebug(id, debugLevel);
     }
   
     /* attach to grandcentral station */
