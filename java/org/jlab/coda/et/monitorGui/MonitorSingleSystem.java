@@ -346,8 +346,6 @@ public class MonitorSingleSystem {
         str.append(data.sysData.getTcpPort());
         str.append(", udp = ");
         str.append(data.sysData.getUdpPort());
-        str.append(", mcast = ");
-        str.append(data.sysData.getMulticastPort());
         systemStaticNode.add(new DefaultMutableTreeNode(str.toString()));
 
         str.delete(0, end);
