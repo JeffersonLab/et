@@ -16,6 +16,9 @@ package org.jlab.coda.et.apps;
 
 import java.io.File;
 import java.lang.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashSet;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.system.*;
@@ -53,7 +56,8 @@ public class StartEt {
         "          -sb  TCP send    buffer size (bytes)\n" +
         "          -nd  use TCP_NODELAY option\n\n" +
 
-        "          This program starts up an ET system");
+        "          This program starts up an ET system.\n" +
+        "          Listens on 239.200.0.0 by default.");
     }
 
 
@@ -70,7 +74,7 @@ public class StartEt {
         boolean noDelay = false;
         boolean deleteFile = false;
         String file = null;
-        String mcastAddr = null;
+        HashSet<String> multicastAddrs = new HashSet<String>();
 
         // loop over all args
         for (int i = 0; i < args.length; i++) {
@@ -116,12 +120,20 @@ public class StartEt {
                 numGroups = Integer.parseInt(args[i + 1]);
                 i++;
             }
-            else if (args[i].equalsIgnoreCase("-a")) {
-                mcastAddr = args[i + 1];
-                i++;
-            }
             else if (args[i].equalsIgnoreCase("-d")) {
                 deleteFile = true;
+            }
+            else if (args[i].equalsIgnoreCase("-a")) {
+                try {
+                    String addr = args[++i];
+                    if (InetAddress.getByName(addr).isMulticastAddress()) {
+                        multicastAddrs.add(addr);
+                    }
+                    else {
+                        System.out.println("\nignoring improper multicast address\n");
+                    }
+                }
+                catch (UnknownHostException e) {}
             }
             else {
                 usage();
@@ -154,13 +166,21 @@ public class StartEt {
 
         try {
             System.out.println("STARTING ET SYSTEM");
+
             // ET system configuration object
             SystemConfig config = new SystemConfig();
 
-            // listen for multicasts at this address
-            if (mcastAddr != null) {
-                config.addMulticastAddr(mcastAddr);
+            // multicast addresses to listen on
+            if (multicastAddrs.size() < 1) {
+                // listen on default multicast address if nothing else
+                config.addMulticastAddr(EtConstants.multicastAddr);
             }
+            else {
+                for (String maddr : multicastAddrs) {
+                    config.addMulticastAddr(maddr);
+                }
+            }
+
             // set tcp server port
             config.setServerPort(serverPort);
             // set port for listening for udp packets
