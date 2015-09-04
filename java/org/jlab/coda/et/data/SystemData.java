@@ -285,15 +285,10 @@ public class SystemData {
      *  @see org.jlab.coda.et.system.SystemConfig#serverPort */
     public int getTcpPort() {return tcpPort;}
 
-    /** Get the port number of the ET UDP broadcast listening thread.
-     *  @return port number of the ET UDP broadcase listening thread
+    /** Get the port number of the ET UDP broad/multicast listening thread.
+     *  @return port number of the ET UDP broad/multicast listening thread
      *  @see org.jlab.coda.et.system.SystemConfig#udpPort */
     public int getUdpPort() {return udpPort;}
-
-    /** Get the port number of the ET UDP multicast listening thread.
-     *  @return port number of the ET UDP multicast listening thread
-     *  @see org.jlab.coda.et.system.SystemConfig#multicastPort */
-    public int getMulticastPort() {return multicastPort;}
 
     /** Get the number of network interfaces on the host computer.
      *  @return number of network interfaces on the host computer */
