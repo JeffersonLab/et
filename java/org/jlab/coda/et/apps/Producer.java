@@ -16,8 +16,11 @@ package org.jlab.coda.et.apps;
 
 
 import java.lang.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.HashSet;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
@@ -34,46 +37,114 @@ public class Producer {
 
 
     private static void usage() {
-        System.out.println("\nUsage: java Producer -f <ET name> -host <ET host> [-h] [-v] [-r] [-c <chunk size>] [-d <delay>]\n" +
-                "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]\n\n" +
-                "       -host  ET system's host\n" +
+        System.out.println("\nUsage: java Producer -f <et name>\n" +
+                "                      [-h] [-v] [-r] [-m] [-b] [-nd] [-blast]\n" +
+                "                      [-host <ET host>] [-w <big endian? 0/1>]\n" +
+                "                      [-s <event size>] [-c <chunk size>] [-g <group>]\n" +
+                "                      [-d <delay>] [-p <ET port>]\n" +
+                "                      [-i <interface address>] [-a <mcast addr>]\n" +
+                "                      [-rb <buf size>] [-sb <buf size>]\n\n" +
+
                 "       -f     ET system's (memory-mapped file) name\n" +
+                "       -host  ET system's host if direct connection (default to local)\n" +
                 "       -h     help\n" +
-                "       -v     verbose output\n" +
-                "       -r     act as remote (TCP) client even if ET system is local\n" +
-                "       -c     number of events in one get/put array\n" +
-                "       -d     delay in millisec between each round of getting and putting events\n" +
+                "       -v     verbose output\n\n" +
+
                 "       -s     event size in bytes\n" +
+                "       -c     number of events in one get/put array\n" +
                 "       -g     group from which to get new events (1,2,...)\n" +
-                "       -p     ET server port\n" +
-                "       -i     preferred subnet/interface (dot-decimal)\n\n" +
-                "        This consumer works by making a direct connection to the\n" +
-                "        ET system's server port.\n");
+                "       -d     delay in millisec between each round of getting and putting events\n\n" +
+
+                "       -p     ET port (TCP for direct, UDP for broad/multicast)\n" +
+                "       -r     act as remote (TCP) client even if ET system is local\n" +
+                "       -w     write data (1 sequential int per event), 1 = Java (big) endian, 0 else\n" +
+                "       -blast if remote, use external data buf (no mem allocation),\n" +
+                "              do not write data (overrides -w)\n\n" +
+
+                "       -i     outgoing network interface address (dot-decimal)\n" +
+                "       -a     multicast address(es) (dot-decimal), may use multiple times\n" +
+                "       -m     multicast to find ET (use default address if -a unused)\n" +
+                "       -b     broadcast to find ET\n\n" +
+
+                "       -rb    TCP receive buffer size (bytes)\n" +
+                "       -sb    TCP send    buffer size (bytes)\n" +
+                "       -nd    use TCP_NODELAY option\n\n" +
+
+                "        This producer works by making a direct connection to the\n" +
+                "        ET system's server port and host unless at least one multicast address\n" +
+                "        is specified with -a, the -m option is used, or the -b option is used\n" +
+                "        in which case multi/broadcasting used to find the ET system.\n" +
+                "        If multi/broadcasting fails, look locally to find the ET system.\n" +
+                "        This program gets new events from the system and puts them back.\n\n");
     }
 
 
     public static void main(String[] args) {
 
-        String etName = null, host = null, netInterface = null;
-        int port = EtConstants.serverPort;
-        int group = 1;
-        int delay = 0;
-        int size  = 32;
-        int chunk = 1;
-        boolean verbose = false;
-        boolean remote  = false;
+        int group=1, delay=0, size=32, port=0;
+        int chunk=1, recvBufSize=0, sendBufSize=0;
+        boolean noDelay=false, verbose=false, remote=false, blast=false;
+        boolean bigEndian=true, writeData=false;
+        boolean broadcast=false, multicast=false, broadAndMulticast=false;
+        HashSet<String> multicastAddrs = new HashSet<String>();
+        String outgoingInterface=null, etName=null, host=null, statName=null;
+
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equalsIgnoreCase("-f")) {
                 etName = args[++i];
             }
-            else if (args[i].equalsIgnoreCase("-i")) {
-                netInterface = args[++i];
-//                byte[] b = EtUtils.isDottedDecimal(netInterface);
-//                if (b == null) netInterface = null;
-            }
             else if (args[i].equalsIgnoreCase("-host")) {
                 host = args[++i];
+            }
+            else if (args[i].equalsIgnoreCase("-a")) {
+                try {
+                    String addr = args[++i];
+                    if (InetAddress.getByName(addr).isMulticastAddress()) {
+                        multicastAddrs.add(addr);
+                        multicast = true;
+                        System.out.println("br = " + broadcast + ", mma = " + multicast);
+                    }
+                    else {
+                        System.out.println(" but not proper form");
+                    }
+                }
+                catch (UnknownHostException e) {}
+            }
+            else if (args[i].equalsIgnoreCase("-i")) {
+                outgoingInterface = args[++i];
+            }
+            else if (args[i].equalsIgnoreCase("-nd")) {
+                noDelay = true;
+            }
+            else if (args[i].equalsIgnoreCase("-v")) {
+                verbose = true;
+            }
+            else if (args[i].equalsIgnoreCase("-r")) {
+                remote = true;
+            }
+            else if (args[i].equalsIgnoreCase("-m")) {
+                multicast = true;
+                System.out.println("br = " + broadcast + ", mm = " + multicast);
+            }
+            else if (args[i].equalsIgnoreCase("-b")) {
+                broadcast = true;
+                System.out.println("bbr = " + broadcast + ", m = " + multicast);
+            }
+            else if (args[i].equalsIgnoreCase("-blast")) {
+                blast = true;
+            }
+            else if (args[i].equalsIgnoreCase("-w")) {
+                try {
+                    int isBigEndian = Integer.parseInt(args[++i]);
+                    bigEndian = isBigEndian != 0;
+                    writeData = true;
+                }
+                catch (NumberFormatException ex) {
+                    System.out.println("Did not specify a proper endian value (1=big, else 0).");
+                    usage();
+                    return;
+                }
             }
             else if (args[i].equalsIgnoreCase("-p")) {
                 try {
@@ -101,6 +172,36 @@ public class Producer {
                 }
                 catch (NumberFormatException ex) {
                     System.out.println("Did not specify a proper chunk size.");
+                    usage();
+                    return;
+                }
+            }
+            else if (args[i].equalsIgnoreCase("-rb")) {
+                try {
+                    recvBufSize = Integer.parseInt(args[++i]);
+                    if (recvBufSize < 0) {
+                        System.out.println("Receive buf size must be 0 or greater.");
+                        usage();
+                        return;
+                    }
+                }
+                catch (NumberFormatException ex) {
+                    System.out.println("Did not specify a proper receive buffer size.");
+                    usage();
+                    return;
+                }
+            }
+            else if (args[i].equalsIgnoreCase("-sb")) {
+                try {
+                    sendBufSize = Integer.parseInt(args[++i]);
+                    if (sendBufSize < 0) {
+                        System.out.println("Send buf size must be 0 or greater.");
+                        usage();
+                        return;
+                    }
+                }
+                catch (NumberFormatException ex) {
+                    System.out.println("Did not specify a proper send buffer size.");
                     usage();
                     return;
                 }
@@ -150,46 +251,118 @@ public class Producer {
                     return;
                 }
             }
-            else if (args[i].equalsIgnoreCase("-v")) {
-                verbose = true;
-            }
-            else if (args[i].equalsIgnoreCase("-r")) {
-                remote = true;
-            }
             else {
                 usage();
                 return;
             }
         }
 
-        if (host == null || etName == null) {
+        if (etName == null) {
             usage();
             return;
         }
 
+
         try {
-            // Make a direct connection to ET system's tcp server
-//            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
-//            config.setConnectRemotely(remote);
+            EtSystemOpenConfig config = new EtSystemOpenConfig();
+            System.out.println("br = " + broadcast + ", m = " + multicast);
+            if (broadcast && multicast) {
+                broadAndMulticast = true;
+            }
 
-            // EXAMPLE: Broadcast to find ET system
-//            EtSystemOpenConfig config = new EtSystemOpenConfig();
-//            config.setHost(host);
-//            config.setEtName(etName);
-//            config.addBroadcastAddr("129.57.29.255"); // this call is not necessary
+            // if multicasting to find ET
+            if (multicast) {
+                if (multicastAddrs.size() < 1) {
+                    // Use default mcast address if not given on command line
+                    config.addMulticastAddr(EtConstants.multicastAddr);
+                }
+                else {
+                    // Add multicast addresses to use
+                    for (String mcastAddr : multicastAddrs) {
+                        config.addMulticastAddr(mcastAddr);
+                    }
+                }
+            }
 
-//            EXAMPLE: Multicast to find ET system
-            ArrayList<String> mAddrs = new ArrayList<String>();
-            mAddrs.add(EtConstants.multicastAddr);
-            EtSystemOpenConfig config = new EtSystemOpenConfig(etName, EtConstants.hostAnywhere,
-                                                               mAddrs, port, 32);
+            if (broadAndMulticast) {
+                System.out.println("Broad and Multicasting");
+                if (port == 0) {
+                    port = EtConstants.udpPort;
+                }
+                config.setUdpPort(port);
+                config.setNetworkContactMethod(EtConstants.broadAndMulticast);
+                config.setHost(EtConstants.hostAnywhere);
+            }
+            else if (multicast) {
+                System.out.println("Multicasting");
+                if (port == 0) {
+                    port = EtConstants.udpPort;
+                }
+                config.setUdpPort(port);
+                config.setNetworkContactMethod(EtConstants.multicast);
+                config.setHost(EtConstants.hostAnywhere);
+            }
+            else if (broadcast) {
+                System.out.println("Broadcasting");
+                if (port == 0) {
+                    port = EtConstants.udpPort;
+                }
+                config.setUdpPort(port);
+                config.setNetworkContactMethod(EtConstants.broadcast);
+                config.setHost(EtConstants.hostAnywhere);
+            }
+            else {
+                if (port == 0) {
+                    port = EtConstants.serverPort;
+                }
+                config.setTcpPort(port);
+                config.setNetworkContactMethod(EtConstants.direct);
+                if (host == null) {
+                    host = EtConstants.hostLocal;
+                }
+                config.setHost(host);
+                System.out.println("Direct connection to " + host);
+            }
 
-            if (netInterface != null) config.setNetworkInterface(netInterface);
+            // Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY
+            config.setNoDelay(noDelay);
+            config.setTcpRecvBufSize(recvBufSize);
+            config.setTcpSendBufSize(sendBufSize);
+            config.setNetworkInterface(outgoingInterface);
+            config.setWaitTime(0);
+            config.setEtName(etName);
+            config.setResponsePolicy(EtConstants.policyError);
+
+            if (remote) {
+                System.out.println("Set as remote");
+                config.setConnectRemotely(remote);
+            }
 
             // create ET system object with verbose debugging output
             EtSystem sys = new EtSystem(config);
-            if (verbose) sys.setDebug(EtConstants.debugInfo);
+            if (verbose) {
+                sys.setDebug(EtConstants.debugInfo);
+            }
             sys.open();
+
+            // Make things self-consistent by not taking time to write data if blasting.
+            // Blasting flag takes precedence.
+            if (blast) {
+                writeData = false;
+            }
+
+            // Find out if we have a remote connection to the ET system
+            // so we know if we can use external data buffer for events
+            // for blasting - which is quite a bit faster.
+            if (sys.usingJniLibrary()) {
+                // Local blasting is just the same as local producing
+                blast = false;
+                System.out.println("ET is local\n");
+            }
+            else {
+                System.out.println("ET is remote\n");
+            }
+
 
             // get GRAND_CENTRAL station object
             EtStation gc = sys.stationNameToObject("GRAND_CENTRAL");
@@ -197,12 +370,12 @@ public class Producer {
             // attach to GRAND_CENTRAL
             EtAttachment att = sys.attach(gc);
 
-            // array of events
-            EtEvent[] mevs;
-
-            int    count = 0, skip = 5, startingVal = 0;
-            long   t1, t2, time, totalT = 0, totalCount = 0;
-            double rate, avgRate;
+            EtEvent[]   mevs;
+            EtEventImpl realEvent;
+            int         startingVal = 0;
+            long        t1, t2, time, totalT=0L, totalCount=0L, count=0L;
+            double      rate, avgRate;
+            ByteBuffer  fakeDataBuf = ByteBuffer.allocate(size);
 
             // create control array of correct size
             int[] con = new int[EtConstants.stationSelectInts];
@@ -214,52 +387,54 @@ public class Producer {
             t1 = System.currentTimeMillis();
 
             while (true) {
-                // get array of new events
-                mevs = sys.newEvents(att, Mode.SLEEP, false, 0, chunk, size, group);
+                // Get array of new events (don't allocate local mem if blasting)
+                mevs = sys.newEvents(att, Mode.SLEEP, blast, 0, chunk, size, group);
+                count += mevs.length;
 
-                if (delay > 0) Thread.sleep(delay);
+                // If blasting data (and remote), don't write anything,
+                // just use what's in fixed (fake) buffer.
+                if (blast) {
+                    for (EtEvent ev : mevs) {
+                        realEvent = (EtEventImpl) ev;
+                        realEvent.setDataBuffer(fakeDataBuf);
 
-                // example of how to manipulate events
-                if (true) {
+                        // set data length
+                        ev.setLength(size);
+                    }
+                }
+                // Write data, set control values here
+                else if (writeData) {
                     for (int j = 0; j < mevs.length; j++) {
-                        // put integer (j + startingVal) into data buffer
-                        //int swappedData = Integer.reverseBytes(j + startingVal);
-                        //mevs[j].getDataBuffer().putInt(swappedData);
-                        mevs[j].getDataBuffer().putInt(j);
+                        // Put integer (j + startingVal) into data buffer
+                        if (bigEndian) {
+                            mevs[j].getDataBuffer().putInt(j + startingVal);
+                            mevs[j].setByteOrder(ByteOrder.BIG_ENDIAN);
+                        }
+                        else {
+                            mevs[j].getDataBuffer().putInt(Integer.reverseBytes(j + startingVal));
+                            mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
+                        }
 
-//                        ByteBuffer buf = mevs[j].getDataBuffer();
-//                        //buf.clear();
-//System.out.println("data buf cap = " + buf.capacity() +
-//                           ", limit = " + buf.limit() +
-//                           ",pos = " + buf.position());
-//                        int k=0;
-//                        try {
-//                            for (; k<size; k++) {
-//                                buf.put((byte)k);
-//                            }
-//                        }
-//                        catch (Exception e) {
-//                            System.out.println("System event size = " + sys.getEventSize());
-//                            System.out.println("Event buf size = " + mevs[j].getMemSize());
-//System.out.println("ev size = " + mevs[j].getLength()  + ", k = " + k);
-//                        }
+                        // Set data length to be full buf size even though we only wrote 1 int
+                        mevs[j].setLength(size);
 
-                        // big endian by default
-                       // mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
-
-                        // set data length to be 4 bytes (1 integer)
-                        //mevs[j].setLength(4);
-                        mevs[j].setLength(8);
-
-                        // set event's control array
-                        //mevs[j].setControl(con);
+                        // Set event's control array
+                        mevs[j].setControl(con);
                     }
                     startingVal += mevs.length;
                 }
+                else {
+                    for (EtEvent ev : mevs) {
+                        ev.setLength(size);
+                    }
+                }
 
-                // put events back into ET system
+                if (delay > 0) Thread.sleep(delay);
+
+
+                // Put events back into ET system
                 sys.putEvents(att, mevs);
-                count += mevs.length;
+
 
                 // calculate the event rate
                 t2 = System.currentTimeMillis();
@@ -269,23 +444,26 @@ public class Producer {
                     // reset things if necessary
                     if ( (totalCount >= (Long.MAX_VALUE - count)) ||
                          (totalT >= (Long.MAX_VALUE - time)) )  {
-                        totalT = totalCount = count = 0;
-                        t1 = System.currentTimeMillis();
+                        totalT = totalCount = count = 0L;
+                        t1 = t2;
                         continue;
                     }
-                    rate = 1000.0 * ((double) count) / time;
 
-                    if (skip-- < 1) {
-                        totalCount += count;
-                        totalT += time;
-                        avgRate = 1000.0 * ((double) totalCount) / totalT;
-                        System.out.println("rate = " + String.format("%.3g", rate) +
-                                        " Hz,  avg = " + String.format("%.3g", avgRate));
-                    }
-                    else {
-                        System.out.println("rate = " + String.format("%.3g", rate));
-                    }
-                    count = 0;
+                    rate = 1000.0 * ((double) count) / time;
+                    totalCount += count;
+                    totalT += time;
+                    avgRate = 1000.0 * ((double) totalCount) / totalT;
+                    // Event rates
+                    System.out.println("Events = " + String.format("%.3g", rate) +
+                                       " Hz,    avg = " + String.format("%.3g", avgRate));
+
+                    // Data rates
+                    rate    = ((double) count) * size / time;
+                    avgRate = ((double) totalCount) * size / totalT;
+                    System.out.println("  Data = " + String.format("%.3g", rate) +
+                                               " kB/s,  avg = " + String.format("%.3g", avgRate) + "\n");
+
+                    count = 0L;
                     t1 = System.currentTimeMillis();
                 }
             }

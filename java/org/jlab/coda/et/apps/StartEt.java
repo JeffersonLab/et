@@ -64,8 +64,7 @@ public class StartEt {
     public static void main(String[] args) {
         int numEvents = 3000, size = 128;
         int serverPort = EtConstants.serverPort;
-        int udpPort = EtConstants.broadcastPort;
-        int multicastPort = EtConstants.multicastPort;
+        int udpPort = EtConstants.udpPort;
         int recvBufSize = 0, sendBufSize = 0;
         int numGroups = 1;
         boolean debug = false;
@@ -94,10 +93,6 @@ public class StartEt {
             }
             else if (args[i].equalsIgnoreCase("-u")) {
                 udpPort = Integer.parseInt(args[i + 1]);
-                i++;
-            }
-            else if (args[i].equalsIgnoreCase("-m")) {
-                multicastPort = Integer.parseInt(args[i + 1]);
                 i++;
             }
             else if (args[i].equalsIgnoreCase("-s")) {
@@ -171,9 +166,6 @@ public class StartEt {
             config.setServerPort(serverPort);
             // set port for listening for udp packets
             config.setUdpPort(udpPort);
-            // set port for listening for multicast udp packets
-            // (on Java this must be different than the udp port)
-            config.setMulticastPort(multicastPort);
             // set total number of events
             config.setNumEvents(numEvents);
             // set size of events in bytes

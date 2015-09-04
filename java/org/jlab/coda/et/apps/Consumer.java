@@ -80,7 +80,6 @@ public class Consumer {
 
     public static void main(String[] args) {
 
-        //int port = EtConstants.serverPort;
         int port=0, flowMode = EtConstants.stationSerial;
         int position=1, pposition=0, qSize=0, chunk=1, recvBufSize=0, sendBufSize=0;
         boolean dump=false, readData=false, noDelay=false;
@@ -285,29 +284,25 @@ System.out.println("Flow mode is parallel");
             if (broadAndMulticast) {
                 System.out.println("Broad and Multicasting");
                 if (port == 0) {
-                    config.setUdpPort(EtConstants.broadcastPort);
-                    config.setMulticastPort(EtConstants.multicastPort);
+                    port = EtConstants.udpPort;
                 }
-                else {
-                    config.setUdpPort(port);
-                    config.setMulticastPort(port);
-                }
+                config.setUdpPort(port);
                 config.setNetworkContactMethod(EtConstants.broadAndMulticast);
                 config.setHost(EtConstants.hostAnywhere);
             }
             else if (multicast) {
                 System.out.println("Multicasting");
                 if (port == 0) {
-                    port = EtConstants.multicastPort;
+                    port = EtConstants.udpPort;
                 }
-                config.setMulticastPort(port);
+                config.setUdpPort(port);
                 config.setNetworkContactMethod(EtConstants.multicast);
                 config.setHost(EtConstants.hostAnywhere);
             }
             else if (broadcast) {
                 System.out.println("Broadcasting");
                 if (port == 0) {
-                    port = EtConstants.broadcastPort;
+                    port = EtConstants.udpPort;
                 }
                 config.setUdpPort(port);
                 config.setNetworkContactMethod(EtConstants.broadcast);
