@@ -57,7 +57,7 @@ public class EtMonitor {
   public static void main(String[] args) {
       String etName = null, host = null;
       int port  = EtConstants.serverPort;
-      int mPort = EtConstants.multicastPort;
+      int mPort = EtConstants.udpPort;
       boolean setHost = false, setMcastPort = false, doMcast = false;
 
       try {
