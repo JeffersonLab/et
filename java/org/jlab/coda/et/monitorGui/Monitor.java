@@ -47,12 +47,10 @@ public class Monitor extends JFrame {
     private final JMenu disconnectMenu, loadConnectionParametersMenu;
     private AddressJList bAddress;
     private AddressJList mAddress;
-//    private JComboBox<String> bAddress;
-//    private JComboBox<String> mAddress;
     private JComboBox<String> etName;
     private JComboBox<String> hostname;
     private JComboBox<String> cast;
-    private WholeNumberField ttl, udpPort, mcastPort, tcpPort, period;
+    private WholeNumberField ttl, udpPort, tcpPort, period;
     private JButton connect;
     private JCheckBox allBroadcastAddrsBox;
 
@@ -887,32 +885,6 @@ public class Monitor extends JFrame {
         }
         );
 
-        // text input for udp multicast port number
-        mcastPort = new WholeNumberField(EtConstants.udpPort, 8, 1024, 65535);
-        mcastPort.setForeground(entryColor);
-        // make sure there's a valid value entered
-        mcastPort.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                WholeNumberField source = (WholeNumberField) e.getSource();
-                source.correctValue();
-            }
-        }
-        );
-        mcastPort.addFocusListener(new FocusAdapter() {
-            public void focusLost(FocusEvent e) {
-                WholeNumberField source = (WholeNumberField) e.getSource();
-                source.correctValue();
-            }
-        }
-        );
-        mcastPort.addMouseListener(new MouseAdapter() {
-            public void mouseExited(MouseEvent e) {
-                WholeNumberField source = (WholeNumberField) e.getSource();
-                source.correctValue();
-            }
-        }
-        );
-
         // text input for tcp server port number
         tcpPort = new WholeNumberField(EtConstants.serverPort, 8, 1024, 65535);
         tcpPort.setForeground(entryColor);
@@ -975,8 +947,8 @@ public class Monitor extends JFrame {
         portsRight.setBorder(new EmptyBorder(edge2, edge2, 0, edge2));
 
         // add widgets to parent panels
-        portsRight.add(l2);
-        portsRight.add(mcastPort);
+        portsRight.add(new JLabel(""));
+        portsRight.add(new JLabel(""));
         portsRight.add(l3);
         portsRight.add(ttl);
 
@@ -1440,8 +1412,8 @@ public class Monitor extends JFrame {
                             // set multicast addresses
                             mAddress.clearAddresses();
                             mAddress.addAddresses(config.getMulticastAddrs());
-                            // multicast port
-                            mcastPort.setValue(config.getUdpPort());
+//                            // multicast port
+//                            mcastPort.setValue(config.getUdpPort());
                             // broadcast port
                             udpPort.setValue(config.getUdpPort());
                             // ttl value
@@ -1455,8 +1427,8 @@ public class Monitor extends JFrame {
                             // set multicast addresses
                             mAddress.clearAddresses();
                             mAddress.addAddresses(config.getMulticastAddrs());
-                            // multicast port
-                            mcastPort.setValue(config.getUdpPort());
+//                            // multicast port
+//                            mcastPort.setValue(config.getUdpPort());
                             // broadcast port
                             udpPort.setValue(config.getUdpPort());
                             // ttl value
