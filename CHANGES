@@ -99,11 +99,13 @@ ET-16.0 (created 7/29/2015)
     - fix bug setting java client debug level
     - fix bug which made java client act as remote even when local
 
-    9/4/2015
+    9/8/2015
     - make java consumer, producer, and ET system take same cmd line args as C counterparts
     - make Java ET system's broadcast port and multicast port the same.
       This change will break code that relies on setting the multicast port explicitly.
     - fix bug in Java throwing exception when 1 ET system gives more than one response to
       broad/multicast and policy is error on multiple responses.
+    - fix bug in Java EtSystemOpenConfig constructor when using a TTL value of 0 to
+      signify the default (32).
 
 
