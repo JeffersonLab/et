@@ -241,7 +241,7 @@ public class EtSystemOpenConfig {
         tcpPort = tPort;
 
 
-        if ((ttlNum < 0) || (ttlNum > 254)) {
+        if ((ttlNum < 1) || (ttlNum > 254)) {
             if (ttlNum == 0) {
                 ttlNum = EtConstants.multicastTTL;
             }
