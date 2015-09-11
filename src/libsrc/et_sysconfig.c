@@ -74,7 +74,7 @@ int et_system_config_init(et_sysconfig* sconfig) {
     sc->nstations        = ET_SYSTEM_NSTATS;
     sc->nprocesses       = ET_PROCESSES_MAX;
     sc->nattachments     = ET_ATTACHMENTS_MAX;
-    sc->port             = ET_BROADCAST_PORT;
+    sc->port             = ET_UDP_PORT;
     sc->serverport       = ET_SERVER_PORT;
     sc->tcpSendBufSize   = 0;  /* use operating system default */
     sc->tcpRecvBufSize   = 0;  /* use operating system default */
