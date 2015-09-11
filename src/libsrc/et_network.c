@@ -578,14 +578,14 @@ int et_findserver2(const char *etname, char *ethost, int *port, uint32_t *inetad
 
             if (debug >= ET_DEBUG_INFO) {
                 printf("et_findserver: send multicast packet to %s on port %d\n",
-                       config->mcastaddrs.addr[i], config->multiport);
+                       config->mcastaddrs.addr[i], config->udpport);
             }
             
             /* server's location */
             bzero((void *)&servaddr, sizeof(servaddr));
             servaddr.sin_family = AF_INET;
             servaddr.sin_addr   = castaddr;
-            servaddr.sin_port   = htons((unsigned short)config->multiport);
+            servaddr.sin_port   = htons((unsigned short)config->udpport);
 
             /* create socket */
             sockfd = socket(AF_INET, SOCK_DGRAM, 0);
