@@ -61,8 +61,7 @@ int et_open_config_init(et_openconfig *sconfig) {
     sc->ttl              = ET_MULTICAST_TTL;
     sc->mode             = ET_HOST_AS_LOCAL;
     sc->debug_default    = ET_DEBUG_ERROR;
-    sc->udpport          = ET_BROADCAST_PORT;
-    sc->multiport        = ET_MULTICAST_PORT;
+    sc->udpport          = ET_UDP_PORT;
     sc->serverport       = ET_SERVER_PORT;
     sc->tcpSendBufSize   = 0;  /* use operating system default */
     sc->tcpRecvBufSize   = 0;  /* use operating system default */
@@ -399,7 +398,7 @@ int et_open_config_getdebugdefault(et_openconfig sconfig, int *val) {
 }
 
 /**
- * This routine sets the port number for the UDP broadcasting used to discover the ET system.
+ * This routine sets the port number for the UDP broad/multicasting used to discover the ET system.
  *
  * The default is @ref ET_BROADCAST_PORT, but may be set to any number > 1023 and < 65536.
  *
@@ -427,7 +426,7 @@ int et_open_config_setport(et_openconfig sconfig, int val) {
 }
 
 /**
- * This routine gets the port number for the UDP broadcasting used to discover the ET system.
+ * This routine gets the port number for the UDP broad/multicasting used to discover the ET system.
  *
  * @param sconfig   open configuration.
  * @param val       int pointer which gets filled with the UDP port number.
@@ -444,56 +443,6 @@ int et_open_config_getport(et_openconfig sconfig, int *val) {
     }
 
     *val = sc->udpport;
-    return ET_OK;
-}
-
-/**
- * This routine sets the port number for the UDP multicasting used to discover the ET system.
- *
- * The multicasting port only needs to be different from the broadcast port on Java-based ET systems.
- * The default is @ref ET_MULTICAST_PORT, but may be set to any number > 1023 and < 65536.
- *
- * @param sconfig   open configuration.
- * @param val       UDP port number.
- *
- * @returns @ref ET_OK      if successful.
- * @returns @ref ET_ERROR   if sconfig is NULL or not initialized;
- *                          if val is < 1024 and > 65535.
- */
-int et_open_config_setmultiport(et_openconfig sconfig, int val) {
-
-    et_open_config *sc = (et_open_config *) sconfig;
-
-    if (sc == NULL || sc->init != ET_STRUCT_OK) {
-        return ET_ERROR;
-    }
-
-    if (val < 1024 || val > 65535) {
-        return ET_ERROR;
-    }
-
-    sc->multiport = val;
-    return ET_OK;
-}
-
-/**
- * This routine gets the port number for the UDP multicasting used to discover the ET system.
- *
- * @param sconfig   open configuration.
- * @param val       int pointer which gets filled with the UDP port number.
- *
- * @returns @ref ET_OK      if successful.
- * @returns @ref ET_ERROR   if either arg is NULL or sconfig not initialized.
- */
-int et_open_config_getmultiport(et_openconfig sconfig, int *val) {
-
-    et_open_config *sc = (et_open_config *) sconfig;
-
-    if (sc == NULL || sc->init != ET_STRUCT_OK || val == NULL) {
-        return ET_ERROR;
-    }
-
-    *val = sc->multiport;
     return ET_OK;
 }
 
