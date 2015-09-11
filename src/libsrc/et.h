@@ -50,9 +50,10 @@ extern "C" {
 #define ET_SYSTEM_NSTATS    200	 /**<  Default max number of stations. */
 
 /* network stuff */
-#define ET_MULTICAST_PORT  11111 /**<  Default ET system UDP multicast port. */
-#define ET_BROADCAST_PORT  11111 /**<  Default ET system UDP broadcast port. */
+#define ET_UDP_PORT        11111 /**<  Default ET system UDP broad/multicast/directed-udp port. */
 #define ET_SERVER_PORT     11111 /**<  Default ET system TCP server port. */
+#define ET_MULTICAST_PORT  11111 /**<  @deprecated Previous default ET system UDP multicast port kept for backwards compatibility. */
+#define ET_BROADCAST_PORT  11111 /**<  @deprecated Previous default ET system UDP broadcast port kept for backwards compatibility. */
 
 #define ET_MULTICAST_ADDR  "239.200.0.0"    /**< Default multicast address to use in finding ET system. */
     
@@ -605,9 +606,6 @@ extern int et_open_config_getdebugdefault(et_openconfig sconfig, int *val);
 
 extern int et_open_config_setport(et_openconfig sconfig, int val);
 extern int et_open_config_getport(et_openconfig sconfig, int *val);
-
-extern int et_open_config_setmultiport(et_openconfig sconfig, int val);
-extern int et_open_config_getmultiport(et_openconfig sconfig, int *val);
 
 extern int et_open_config_setserverport(et_openconfig sconfig, int val);
 extern int et_open_config_getserverport(et_openconfig sconfig, int *val);
