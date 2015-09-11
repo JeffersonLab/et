@@ -435,8 +435,7 @@ typedef struct et_open_config_t {
     int             debug_default;   /**< Default debug output level which may be @ref ET_DEBUG_NONE,
                                           @ref ET_DEBUG_SEVERE, @ref ET_DEBUG_ERROR, @ref ET_DEBUG_WARN, or
                                           @ref ET_DEBUG_INFO. */
-    int             udpport;         /**< Port number for broadcast & direct UDP communication. */
-    int             multiport;       /**< Port number for multicast communication. */
+    int             udpport;         /**< Port number for broadcast, multicast & direct UDP communication. */
     int             serverport;      /**< Port number for ET system's TCP server thread. */
     int             policy;          /**< Policy to determine which responding ET system to a broad/ulticast will be
                                           chosen as the official respondent: 1) @ref ET_POLICY_ERROR - return error if
