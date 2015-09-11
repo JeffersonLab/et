@@ -181,6 +181,7 @@ class ListeningThread extends Thread {
         // packet & buffer to receive UDP packets
         byte[] rBuffer = new byte[1024]; // much larger than needed
         DatagramPacket rPacket = new DatagramPacket(rBuffer, 1024);
+        boolean localDebug = false;
 
         // Prepare output buffer we send in answer to inquiries:
         //
@@ -276,7 +277,7 @@ class ListeningThread extends Thread {
                 for (int j = 0; j < 4; j++) {
                     addr32 = addr32 << 8 | (((int) (netAddress.getAddress())[j]) & 0xFF);
                 }
-//System.out.println("sending addr32 = " + addr32 + ", IP addr = " + netAddress.getHostAddress());
+if (localDebug) System.out.println("sending addr32 = " + addr32 + ", IP addr = " + netAddress.getHostAddress());
                 // (11)
                 dos.writeInt(addr32);
                 // (12)
@@ -291,7 +292,7 @@ class ListeningThread extends Thread {
 
             // Send 1 broadcast address for each associated IP address in the above loop
             for (String address : sys.broadAddresses) {
-//System.out.println("sending broad = " + address);
+if (localDebug) System.out.println("sending broad = " + address);
                 // (15)
                 dos.writeInt(address.length() + 1);
                 // (16)
