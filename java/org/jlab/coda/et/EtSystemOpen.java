@@ -757,7 +757,7 @@ public class EtSystemOpen {
             throws IOException, UnknownHostException {
 
         byte buf[];
-        boolean localDebug = false;
+        boolean localDebug = (debug == EtConstants.debugInfo);
         ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData());
         DataInputStream dis = new DataInputStream(bais);
         // In case of multiple addresses from a responding ET system, a list of addresses. */
