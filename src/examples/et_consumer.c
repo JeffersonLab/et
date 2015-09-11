@@ -366,29 +366,25 @@ int main(int argc,char **argv) {
     if (broadAndMulticast) {
         printf("Broad and Multicasting\n");
         if (port == 0) {
-            et_open_config_setport(openconfig, ET_BROADCAST_PORT);
-            et_open_config_setmultiport(openconfig, ET_MULTICAST_PORT);
+            port = ET_UDP_PORT;
         }
-        else {
-            et_open_config_setport(openconfig, port);
-            et_open_config_setmultiport(openconfig, port);
-        }
+        et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_BROADANDMULTICAST);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
     else if (multicast) {
         printf("Multicasting\n");
         if (port == 0) {
-            port = ET_MULTICAST_PORT;
+            port = ET_UDP_PORT;
         }
-        et_open_config_setmultiport(openconfig, port);
+        et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_MULTICAST);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
     else if (broadcast) {
         printf("Broadcasting\n");
         if (port == 0) {
-            port = ET_BROADCAST_PORT;
+            port = ET_UDP_PORT;
         }
         et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_BROADCAST);
