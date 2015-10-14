@@ -95,6 +95,9 @@ public class EtSystemOpen {
      *  and {@link EtConstants#langC} for C. */
     private int language;
 
+    /** Is the ET system we're opening written in java? */
+    private boolean isJavaEtSystem;
+
     /** True if ET system is 64 bit, else false. */
     private boolean bit64;
 
@@ -1149,6 +1152,10 @@ public class EtSystemOpen {
             throw new EtException("may not open ET system with different # of select integers");
         }
 
+        if (language != 1) {
+            isJavaEtSystem = true;
+        }
+
         connected = true;
 
         if (debug >= EtConstants.debugInfo) {
@@ -1379,6 +1386,16 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
 
             try {
                 connectToEtServer();    // IOEx if no ET, EtEx if incompatible ET
+
+                // The above call finds out if ET system is implemented in C or Java.
+                // If Java, don't try to use JNI library.
+                if (isJavaEtSystem) {
+                    useJniLibrary = false;
+                    if (debug >= EtConstants.debugInfo) {
+                        System.out.println("connect(): map local shared memory = " + useJniLibrary);
+                    }
+                }
+
                 // Finally got a good connection
                 gotConnection = true;
                 break;
@@ -1402,7 +1419,6 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
         if (!gotConnection) {
             throw new IOException("Cannot create network connection to ET system", excep);
         }
-
 
         // try using JNI
         if (useJniLibrary) {
