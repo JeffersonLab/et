@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <math.h>
 #include <unistd.h>
 
