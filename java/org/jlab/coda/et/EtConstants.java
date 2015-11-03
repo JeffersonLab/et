@@ -27,7 +27,8 @@ public final class EtConstants {
     private EtConstants() {
     }
 
-    /** Ints representing ascii for "cMsg is cool", used to filter out portscanning software. */
+    /** Ints representing ascii for "ET2is2Grreat", used to filter out portscanning software.
+     *  Yes, the hex 32 should have been hex 20 to turn the 2's into spaces. Decimal 32 is a space. */
     public static final int[] magicNumbers = {0x45543269, 0x73324772, 0x72656174};
 
     // constants from et.h
