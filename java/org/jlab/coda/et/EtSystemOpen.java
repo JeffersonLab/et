@@ -1152,7 +1152,7 @@ public class EtSystemOpen {
             throw new EtException("may not open ET system with different # of select integers");
         }
 
-        if (language != 1) {
+        if (language == 2) {
             isJavaEtSystem = true;
         }
 
