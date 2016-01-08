@@ -1351,9 +1351,9 @@ System.out.println("connect(): timed out, try again");
                         continue;
                     }
 
-                    if (debug >= EtConstants.debugInfo) {
-                        System.out.println("connect(): SUCCESS creating socket");
-                    }
+//if (debug >= EtConstants.debugInfo) {
+                        System.out.println("connect(): SUCCESS creating socket to host " + connectionHost + " on port " + tcpPort);
+//                    }
                     break;
                 }
                 catch (SocketException ex) {
