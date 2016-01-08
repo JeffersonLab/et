@@ -1498,6 +1498,7 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
                 // open the ET system locally with native method
                 jni = EtJniAccess.getInstance(config.getEtName());
 
+System.out.println("connect(): connect to local C-ET using memory map");
             }
             catch (EtTimeoutException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
