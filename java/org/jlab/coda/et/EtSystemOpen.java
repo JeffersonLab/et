@@ -95,6 +95,9 @@ public class EtSystemOpen {
      *  and {@link EtConstants#langC} for C. */
     private int language;
 
+    /** Is the ET system we're opening written in java? */
+    private boolean isJavaEtSystem;
+
     /** True if ET system is 64 bit, else false. */
     private boolean bit64;
 
@@ -1081,10 +1084,15 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
             disconnect();
             throw new EtException("may not open wrong version ET system");
         }
+
         // double check to see if # of select ints are the same
         if (stationSelectInts != EtConstants.stationSelectInts) {
             disconnect();
             throw new EtException("may not open ET system with different # of select integers");
+        }
+
+        if (language == 2) {
+            isJavaEtSystem = true;
         }
 
         connected = true;
@@ -1171,7 +1179,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
      *     remotely or anywhere for the ET system.
      */
     synchronized public void connect() throws IOException,
-                                              EtException, EtTooManyException {
+            EtException, EtTooManyException {
 
         // In Java, all clients make a connection the the ET system server through sockets.
         // However, in cases where there is a local C-based, ET system, an attempt is also
@@ -1179,7 +1187,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
         useJniLibrary = false;
 
         long t1, t2;
-        List<String> addrList;
+        List<String> addrList = null;
         Exception excep = null;
         boolean gotConnection = false;
 
@@ -1204,7 +1212,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
             if (config.getNetworkContactMethod() == EtConstants.direct) {
                 // If making direct connection, we have host & port
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("connect: make a direct connection");
+                    System.out.println("connect(): make a direct connection");
                 }
                 tcpPort = config.getTcpPort();
 
@@ -1230,7 +1238,7 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
             }
             else {
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("connect: try to find server port");
+                    System.out.println("connect(): try to find server port");
                 }
 
                 // Send a UDP broad or multicast packet to find ET TCP server & port
@@ -1254,11 +1262,14 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
                         (useJniLibrary ? "locally" : "remotely"));
             }
 
-            // If user only wants to use sockets, don't use JNI
+            // If user only wants to use sockets, don't use JNI.
             if (config.isConnectRemotely()) {
                 useJniLibrary = false;
             }
-//System.out.println("connect(): map local shared memory = " + useJniLibrary);
+
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("connect(): map local shared memory = " + useJniLibrary);
+            }
 
             // If we did not get a list of IP addresses back, use what we have
             if (hostAddresses == null || hostAddresses.size() < 1) {
@@ -1268,8 +1279,10 @@ System.out.println("replyMatch:  addr #" + i + ": string br addr = " + repliedAd
             else {
                 // Put IP addresses in list with those on preferred local subnets first,
                 // other local subnets next, and all others last
-System.out.println("connect(): order ET's IP addresses with preferred = "
-                           + config.getNetworkInterface());
+                if (debug >= EtConstants.debugInfo) {
+                    System.out.println("connect(): order ET's IP addresses with preferred = "
+                                               + config.getNetworkInterface());
+                }
                 addrList = EtUtils.orderIPAddresses(hostAddresses, broadcastAddresses,
                                                     config.getNetworkInterface());
             }
@@ -1363,6 +1376,16 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
 
             try {
                 connectToEtServer();    // IOEx if no ET, EtEx if incompatible ET
+
+                // The above call finds out if ET system is implemented in C or Java.
+                // If Java, don't try to use JNI library.
+                if (isJavaEtSystem) {
+                    useJniLibrary = false;
+                    if (debug >= EtConstants.debugInfo) {
+                        System.out.println("connect(): map local shared memory = " + useJniLibrary);
+                    }
+                }
+
                 // Finally got a good connection
                 gotConnection = true;
                 break;
@@ -1386,7 +1409,6 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
         if (!gotConnection) {
             throw new IOException("Cannot create network connection to ET system", excep);
         }
-
 
         // try using JNI
         if (useJniLibrary) {
