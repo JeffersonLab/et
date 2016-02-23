@@ -20,6 +20,7 @@
     <property name="build.lib"     value="${build.dir}/lib" />
     <property name="local.jars"    value="java/jars" />
     <property name="doc.dir"       value="doc/javadoc" />
+    <property name="scripts.dir"   value="scripts" />
 
     <property name="jarName"       value="et-${et.version}.jar" />
     <property name="jarPath"       value="${build.lib}/${jarName}" />
@@ -219,6 +220,31 @@
         <antcall target="error"/>
         <antcall target="installInPrefix"/>
         <antcall target="installInCODA"/>
+        <antcall target="installScriptsInPrefix"/>
+        <antcall target="installScriptsInCODA"/>
+    </target>
+
+    <!-- Install in scripts in prefix -->
+    <target name="installScriptsInPrefix" if="prefixDefined">
+        <echo>Install scripts into ${prefix}/bin</echo>
+        <exec executable="bash">
+            <arg line="-c 'cp -pr ${scripts.dir}/* ${prefix}/bin'" />
+        </exec>
+    </target>
+
+    <!-- Install in scripts in $CODA -->
+    <target name="installScriptsInCODA" unless="prefixDefined" if="codaDefined">
+        <echo>Install scripts into ${env.CODA}/common/bin, ${env.CODA}/Linux-i686/bin, and ${env.CODA}/Linux-x86_64/bin</echo>
+        <!-- Using "exec", bash and cp preserves file permissions, but "copy" does not -->
+        <exec executable="bash">
+            <arg line="-c 'cp -pr ${scripts.dir}/* ${env.CODA}/common/bin'" />
+        </exec>
+        <exec executable="bash">
+            <arg line="-c 'cp -pr ${scripts.dir}/* ${env.CODA}/Linux-i686/bin'" />
+        </exec>
+        <exec executable="bash">
+            <arg line="-c 'cp -pr ${scripts.dir}/* ${env.CODA}/Linux-x86_64/bin'" />
+        </exec>
     </target>
 
     <!-- Install in prefix -->
