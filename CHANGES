@@ -94,12 +94,10 @@ ET-16.0 (created 7/29/2015)
     - condense C ET system server UDP listening code into 1 thread.
     - get rid of MacOS clang compilation errors
 
-    8/31/2015
     - fix bugs in java client's handling of ET server connection communication
     - fix bug setting java client debug level
     - fix bug which made java client act as remote even when local
 
-    9/8/2015
     - make java consumer, producer, and ET system take same cmd line args as C counterparts
     - make Java ET system's broadcast port and multicast port the same.
       This change will break code that relies on setting the multicast port explicitly
@@ -108,5 +106,8 @@ ET-16.0 (created 7/29/2015)
       broad/multicast and policy is error on multiple responses.
     - fix bug in Java EtSystemOpenConfig constructor when using a TTL value of 0 to
       signify the default (32).
+
+    - if cue > #-of-events when creating a non-blocking station, don't return an error,
+      just set cue = #-of-events.
 
 
