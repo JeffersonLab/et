@@ -110,4 +110,7 @@ ET-16.0 (created 7/29/2015)
     - if cue > #-of-events when creating a non-blocking station, don't return an error,
       just set cue = #-of-events.
 
+    - add script (etmonitor) to start gui et monitor and have script installed with
+      "ant install"
+
 
