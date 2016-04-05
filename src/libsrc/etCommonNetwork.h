@@ -96,17 +96,19 @@ extern int etDebug;
 #define   codanetHstrerror              etNetHstrerror
 #define   codanetStringToNumericIPaddr  etNetStringToNumericIPaddr
 
-#define   codanetGetInterfaceInfo       etNetGetInterfaceInfo
-#define   codanetFreeInterfaceInfo      etNetFreeInterfaceInfo
-#define   codanetFreeIpAddrs            etNetFreeIpAddrs
-#define   codanetGetNetworkInfo         etNetGetNetworkInfo
-#define   codanetFreeAddrList           etNetFreeAddrList
-#define   codanetGetBroadcastAddrs      etNetGetBroadcastAddrs
-#define   codanetGetIpAddrs             etNetGetIpAddrs
-#define   codanetOrderIpAddrs           etNetOrderIpAddrs
-#define   codanetMcastSetIf             etNetMcastSetIf
-#define   codanetGetIfNames             etNetGetIfNames
-
+#define   codanetGetInterfaceInfo          etNetGetInterfaceInfo
+#define   codanetFreeInterfaceInfo         etNetFreeInterfaceInfo
+#define   codanetFreeIpAddrs               etNetFreeIpAddrs
+#define   codanetGetNetworkInfo            etNetGetNetworkInfo
+#define   codanetFreeAddrList              etNetFreeAddrList
+#define   codanetGetBroadcastAddrs         etNetGetBroadcastAddrs
+#define   codanetGetIpAddrs                etNetGetIpAddrs
+#define   codanetOrderIpAddrs              etNetOrderIpAddrs
+#define   codanetMcastSetIf                etNetMcastSetIf
+#define   codanetGetIfNames                etNetGetIfNames
+#define   codanetGetMatchingLocalIpAddress etNetGetMatchingLocalIpAddress
+#define   codanetGetBroadcastAddress       etNetGetBroadcastAddress
+    
 
 
 /* convenient network definitions (from Richard Stevens ) */
