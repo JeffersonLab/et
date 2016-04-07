@@ -105,9 +105,9 @@ Help('--bindir=<dir>      copy binary  files to directory <dir> when doing insta
 #########################
 
 # Debug/optimization flags
-debugSuffix = ['']
+debugSuffix = ''
 if debug:
-    debugSuffix = ['-dbg']
+    debugSuffix = '-dbg'
     # Compile with -g and add debugSuffix to all executable names
     env.Append(CCFLAGS = ['-g'], PROGSUFFIX = debugSuffix)
 else:
