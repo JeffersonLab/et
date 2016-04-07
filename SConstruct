@@ -105,9 +105,9 @@ Help('--bindir=<dir>      copy binary  files to directory <dir> when doing insta
 #########################
 
 # Debug/optimization flags
-debugSuffix = ''
+debugSuffix = ['']
 if debug:
-    debugSuffix = '-dbg'
+    debugSuffix = ['-dbg']
     # Compile with -g and add debugSuffix to all executable names
     env.Append(CCFLAGS = ['-g'], PROGSUFFIX = debugSuffix)
 else:
@@ -133,7 +133,7 @@ if noReadWriteLocks:
 execLibs = ['m', 'pthread', 'dl', 'rt']
 if platform == 'Darwin':
     execLibs = ['pthread', 'dl']
-    env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined',  '-flat_namespace'])
+    env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined', '-flat_namespace'])
     env.Append(CCFLAGS = ['-fmessage-length=0'])
 
 
