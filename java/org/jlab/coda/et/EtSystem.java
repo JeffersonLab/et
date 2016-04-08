@@ -2646,12 +2646,16 @@ public class EtSystem {
 
 
     /**
+     * Gets the local address (dot decimal) used to connect to ET system.
+     * @return the local address (dot decimal) used to connect to ET system.
+     */
+    public String getLocalAddress() {return sys.getLocalAddress();}
+
+    /**
      * Gets the ET system's host name.
      * @return ET system's host name
      */
-    public String getHost() {
-        return sys.getHostAddress();
-    }
+    public String getHost() {return sys.getHostAddress();}
 
 
     /**
