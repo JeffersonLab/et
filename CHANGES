@@ -88,7 +88,7 @@ ET-15.1 (created 6/5/2015)
     - doxygen doc comments placed in files for all user functions.
     - enable generation of doxygen pages through scons
 
-ET-16.0 (created 7/29/2015)
+ET-16.0 (created 7/29/2015, updated 4/8/2016)
     - pass user's LD_LIBRARY_PATH into scons build environment
     - get rid of vxworks and solaris dependencies in C code and in scons files
     - condense C ET system server UDP listening code into 1 thread.
@@ -113,4 +113,6 @@ ET-16.0 (created 7/29/2015)
     - add script (etmonitor) to start gui et monitor and have script installed with
       "ant install"
 
+    - add method, EtSystem.getLocalAddress(), which gets the local, dot-decimal IP address
+      used to connect to the ET system. Useful to see which interface being used. 4/8/2016
 
