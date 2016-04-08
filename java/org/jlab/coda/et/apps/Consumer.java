@@ -339,6 +339,7 @@ System.out.println("Flow mode is parallel");
                 sys.setDebug(EtConstants.debugInfo);
             }
             sys.open();
+            System.out.println("Connect to ET using local IP addr = " + sys.getLocalAddress());
 
             // configuration of a new station
             EtStationConfig statConfig = new EtStationConfig();
