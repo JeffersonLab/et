@@ -853,10 +853,7 @@ int et_station_config_check(et_id *id, et_stat_config *sc)
       return ET_ERROR;
     }
     else if (sc->cue > id->sys->config.nevents) {
-      if (id->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "et_station_config_check, station cue must be <= total number of events\n");
-      }  
-      return ET_ERROR;
+        sc->cue = id->sys->config.nevents;
     }
   }  
   return ET_OK;
