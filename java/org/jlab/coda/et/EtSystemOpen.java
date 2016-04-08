@@ -1352,7 +1352,7 @@ System.out.println("connect(): tried but FAILED to bind outgoing data to " + out
                     try {
                         sock.connect(new InetSocketAddress(connectionHost, tcpPort), 3000); // IOEx, SocketTimeoutEx
                         // store for future reference
-                        localAddress = connectionHost;
+                        localAddress = sock.getLocalAddress().getHostAddress();
                     }
                     catch (SocketTimeoutException e) {
 System.out.println("connect(): timed out, try again");
