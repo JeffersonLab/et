@@ -42,6 +42,9 @@ public class EtSystemOpen {
     /** IP address (dot decimal) of the host the ET system resides on. */
     private String hostAddress;
 
+    /** Local IP address (dot decimal) used to create socket to the ET system. */
+    private String localAddress;
+
     /** List of all IP addresses (dot decimal) of the host the ET system resides on. */
     private ArrayList<String> hostAddresses;
 
@@ -163,6 +166,10 @@ public class EtSystemOpen {
     /** Gets the tcp server port number of the opened ET system.
      *  @return tcp server port number */
     public int getTcpPort() {return tcpPort;}
+
+    /** Gets the local address (dot decimal) used to connect to ET system.
+     *  @return the local address (dot decimal) used to connect to ET system. */
+    public String getLocalAddress() {return localAddress;}
 
     /** Gets the address (dot decimal) of the host the opened ET system is running on.
      *  @return the address (dot decimal) of the host the opened ET system is running on */
@@ -1218,7 +1225,7 @@ public class EtSystemOpen {
             if (config.getNetworkContactMethod() == EtConstants.direct) {
                 // If making direct connection, we have host & port
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("connect: make a direct connection");
+                    System.out.println("connect(): make a direct connection");
                 }
                 tcpPort = config.getTcpPort();
 
@@ -1234,6 +1241,7 @@ public class EtSystemOpen {
                 if (etOnLocalHost) {
                     // If host is local, use JNI if possible
                     useJniLibrary = true;
+                    // Place Collection of Strings into list
                     hostAddresses = new ArrayList<String>(localHostIpAddrs);
                     hostAddress = hostAddresses.get(0);
                 }
@@ -1244,7 +1252,7 @@ public class EtSystemOpen {
             }
             else {
                 if (debug >= EtConstants.debugInfo) {
-                    System.out.println("connect: try to find server port");
+                    System.out.println("connect(): try to find server port");
                 }
 
                 // Send a UDP broad or multicast packet to find ET TCP server & port
@@ -1304,12 +1312,10 @@ public class EtSystemOpen {
                     if (config.isNoDelay()) {
                         sock.setTcpNoDelay(true);
                     }
-                    // Set reading timeout to 2 second so dead ET sys
-                    // can be found by reading on a socket.
-                    // TODO: unnecessary as reading dead socket with throw IOException !
-                    //sock.setSoTimeout(2000);
+
                     // Set KeepAlive so we can tell if ET system is dead
                     sock.setKeepAlive(true);
+
                     // Set buffer sizes
                     if (config.getTcpRecvBufSize() > 0) {
                         sock.setReceiveBufferSize(config.getTcpRecvBufSize());
@@ -1345,6 +1351,8 @@ System.out.println("connect(): tried but FAILED to bind outgoing data to " + out
 
                     try {
                         sock.connect(new InetSocketAddress(connectionHost, tcpPort), 3000); // IOEx, SocketTimeoutEx
+                        // store for future reference
+                        localAddress = connectionHost;
                     }
                     catch (SocketTimeoutException e) {
 System.out.println("connect(): timed out, try again");
