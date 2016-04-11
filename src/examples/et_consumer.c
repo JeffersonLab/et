@@ -435,18 +435,13 @@ int main(int argc,char **argv) {
     if (locality == ET_REMOTE) {
         printf("ET is remote\n\n");
 
-//        et_system_gethost(id, host);
-//        et_system_getlocaladdress(id, localAddr);
-//        printf("Connect to ET, from ip = %s to %s\n", localAddr, host);
-
+        et_system_gethost(id, host);
+        et_system_getlocaladdress(id, localAddr);
+        printf("Connect to ET, from ip = %s to %s\n", localAddr, host);
     }
     else {
         printf("ET is local\n\n");
     }
-
-    et_system_gethost(id, host);
-    et_system_getlocaladdress(id, localAddr);
-    printf("Connect to ET from ip = %s to %s\n", localAddr, host);
 
     /* set level of debug output (everything) */
     et_system_setdebug(id, debugLevel);
