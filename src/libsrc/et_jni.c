@@ -155,27 +155,41 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
     if (status != ET_OK) {
         if (status == ET_ERROR_DEAD) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_DEAD");
         }
         else if (status == ET_ERROR_WAKEUP) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWakeUpException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_WAKEUP");
         }
         else if (status == ET_ERROR_TIMEOUT) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTimeoutException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_TIMEOUT");
         }
         else if (status == ET_ERROR_CLOSED) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_CLOSED");
         }
         else if (status == ET_ERROR_BUSY) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtBusyException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_BUSY");
         }
         else if (status == ET_ERROR_EMPTY) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtEmptyException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_EMPTY");
+        }
+        else if (status == ET_ERROR_READ) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtReadException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_READ");
+        }
+        else if (status == ET_ERROR_WRITE) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtWriteException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_WRITE");
         }
         else {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+            (*env)->ThrowNew(env, clazz, "getEvents (native): ET_ERROR_REMOTE");
         }
         
-        (*env)->ThrowNew(env, clazz, "getEvents (native): cannot get events");
         return NULL;
     }
 
