@@ -42,7 +42,7 @@ int main(int argc,char **argv) {
     int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
     int debugLevel = ET_DEBUG_ERROR;
     unsigned short port=0;
-    char et_name[ET_FILENAME_LENGTH], host[256], interface[16];
+    char et_name[ET_FILENAME_LENGTH], host[256], interface[16], localAddr[16];
     void *fakeData;
 
     int mcastAddrCount = 0, mcastAddrMax = 10;
@@ -432,6 +432,10 @@ int main(int argc,char **argv) {
             noAllocFlag = ET_NOALLOC;
         }
         printf("ET is remote\n\n");
+
+        et_system_gethost(id, host);
+        et_system_getlocaladdress(id, localAddr);
+        printf("Connect to ET, from ip = %s to %s\n", localAddr, host);
     }
     else {
         /* local blasting is just the same as local producing */

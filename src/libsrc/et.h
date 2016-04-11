@@ -581,6 +581,7 @@ extern int et_system_getstations(et_sys_id id, int *stations);
 extern int et_system_gettemps(et_sys_id id, int *temps);
 extern int et_system_getserverport(et_sys_id id, int *port);
 extern int et_system_gethost(et_sys_id id, char *host);
+extern int et_system_getlocaladdress(et_sys_id id, char *address);
 
 /*************************************************************/
 /* routines to store and read system config parameters used  */

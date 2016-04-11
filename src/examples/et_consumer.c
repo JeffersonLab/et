@@ -42,6 +42,7 @@ int main(int argc,char **argv) {
     int             debugLevel = ET_DEBUG_ERROR;
     unsigned short  port=0;
     char            stationName[ET_STATNAME_LENGTH], et_name[ET_FILENAME_LENGTH], host[256], interface[16];
+    char            localAddr[16];
 
     int             mcastAddrCount = 0, mcastAddrMax = 10;
     char            mcastAddr[mcastAddrMax][16];
@@ -433,10 +434,19 @@ int main(int argc,char **argv) {
     et_system_getlocality(id, &locality);
     if (locality == ET_REMOTE) {
         printf("ET is remote\n\n");
+
+//        et_system_gethost(id, host);
+//        et_system_getlocaladdress(id, localAddr);
+//        printf("Connect to ET, from ip = %s to %s\n", localAddr, host);
+
     }
     else {
         printf("ET is local\n\n");
     }
+
+    et_system_gethost(id, host);
+    et_system_getlocaladdress(id, localAddr);
+    printf("Connect to ET from ip = %s to %s\n", localAddr, host);
 
     /* set level of debug output (everything) */
     et_system_setdebug(id, debugLevel);

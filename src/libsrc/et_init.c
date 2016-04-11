@@ -309,6 +309,7 @@ int et_id_init(et_sys_id *id)
   etid->iov_max      = ET_IOV_MAX;
   etid->port         = 0;
   *etid->ethost      = '\0';
+  *etid->localAddr   = '\0';
   /* find endian value */
   if (etNetLocalByteOrder(&etid->endian) != ET_OK) {
     et_logmsg("SEVERE", "et_id_init, strange byteorder\n");

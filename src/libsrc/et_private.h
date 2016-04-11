@@ -506,7 +506,8 @@ typedef struct  et_id_t {
     int              iov_max;       /**< Store the operating system's value iovmax of client's node, default to
                                          @ref ET_IOV_MAX (how many separate buffers can be sent with one writev() call). */
     int              port;          /**< Port number for ET TCP server. */
-    char             ethost[ET_MAXHOSTNAMELEN];  /**< Host of the ET system. */
+    char             ethost[ET_MAXHOSTNAMELEN];   /**< Host of the ET system. */
+    char             localAddr[ET_IPADDRSTRLEN];  /**< Local dot-decimal address of socket connection to ET. */
     /******************/
 
     void            *pmap;          /**< Pointer to start of shared (mapped) memory. */

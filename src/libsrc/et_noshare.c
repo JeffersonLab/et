@@ -198,6 +198,13 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   }
   etid->sockfd = sockfd;
 
+  /* find and store local IP address of socket to ET */
+  etNetLocalSocketAddress(sockfd, etid->localAddr);
+  if (etid->debug >= ET_DEBUG_INFO) {
+    et_logmsg("INFO", "etn_open: connection from ip = %s to %s, port# %d\n",
+              etid->localAddr, etid->sys->host, etid->sys->port);
+  }
+
   /* put everything in one buffer */
   bufsize = (uint32_t)sizeof(transfer) + length;
   if ( (pbuf = buf = (char *) malloc(bufsize)) == NULL) {

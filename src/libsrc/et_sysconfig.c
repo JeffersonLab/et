@@ -1438,7 +1438,7 @@ int et_system_getserverport(et_sys_id id, int *port) {
 
 /**
  * This routine gets the host of the ET system.
- * To be safe the array should be at least @ref ET_MAXHOSTNAMELEN characters long.
+ * To be safe the array should be at least {@ref ET_MAXHOSTNAMELEN} characters long.
  *
  * @param sconfig   system configuration.
  * @param host      pointer which gets filled with the system's host.
@@ -1455,6 +1455,29 @@ int et_system_gethost(et_sys_id id, char *host) {
     }
 
     strcpy(host, etid->ethost);
+    return ET_OK;
+}
+
+
+/**
+ * This routine gets the local IP address, if any, used to connect remotely to the ET system.
+ * The array must be at least {@ref ET_IPADDRSTRLEN} characters long.
+ *
+ * @param sconfig   system configuration.
+ * @param address   pointer which gets filled with the local IP address used to connect remotely to the ET system.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or sconfig not initialized.
+ */
+int et_system_getlocaladdress(et_sys_id id, char *address) {
+
+    et_id *etid = (et_id *) id;
+
+    if (address == NULL || etid == NULL || etid->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    strcpy(address, etid->localAddr);
     return ET_OK;
 }
 

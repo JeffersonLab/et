@@ -191,6 +191,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
                         if (debug >= ET_DEBUG_INFO) {
                             et_logmsg("INFO", "etr_open: SUCCESS\n");
                         }
+                        strcpy(ethost, dotDecAddr->addr);
                         connected = 1;
                         break;
                     }
@@ -250,10 +251,11 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
         }
         return ET_ERROR_REMOTE;
     }
-    else {
-        if (debug >= ET_DEBUG_INFO) {
-            et_logmsg("INFO", "etr_open: ET system on %s, port# %d\n", ethost, port);
-        }
+
+    /* find and store local IP address of socket to ET */
+    etNetLocalSocketAddress(sockfd, etid->localAddr);
+    if (debug >= ET_DEBUG_INFO) {
+        et_logmsg("INFO", "etr_open: connection from %s to %s, port# %d\n", etid->localAddr, ethost, port);
     }
 
     /* Add data to id - locality, socket, port, and host, of the ET system */
