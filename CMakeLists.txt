@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 project(et_16_0)
 
-include_directories($ENV{CODA}/common/include $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
+#include_directories($ENV{CODA}/common/include $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
+include_directories(/daqfs/home/timmer/coda/et-16.0/src/libsrc $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -42,4 +43,12 @@ set(SOURCE_FILES
     src/examples/et_producer.c
     )
 
-add_executable(et_16_0 ${SOURCE_FILES})
+add_executable(et_16_0 ${SOURCE_FILES}
+    src/execsrc/et_start.c
+    src/execsrc/et_monitor.c
+    src/execsrc/et_2_et.c
+    src/execsrc/et_killer.c
+
+    src/examples/et_consumer.c
+    src/examples/et_producer.c
+    )
