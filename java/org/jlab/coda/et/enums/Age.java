@@ -25,9 +25,9 @@ import org.jlab.coda.et.EtConstants;
  */
 public enum Age {
 
-    /** Existing event with data, obtained throug getEvents(). */
+    /** Existing event with data, obtained through getEvents(). */
     USED     (EtConstants.eventUsed),
-    /** New event with no data, obtained throug newEvents(). */
+    /** New event with no data, obtained through newEvents(). */
     NEW      (EtConstants.eventNew);
 
     
