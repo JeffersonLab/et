@@ -113,8 +113,8 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_openLocalEtSystem
     getDataStatusVal = (*env)->GetMethodID(env, classEventImpl, "getDataStatusValue", "()I");
 
     /* get id's of a few different constructors */
-    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIILjava/nio/ByteBuffer;)V");
-    constrMethodId3 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[ILjava/nio/ByteBuffer;)V");
+    constrMethodId2 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIZLjava/nio/ByteBuffer;)V");
+    constrMethodId3 = (*env)->GetMethodID(env, classEventImpl, "<init>", "(IIIIIIIIII[IZLjava/nio/ByteBuffer;)V");
     
     if (debug) printf("\nopenLocalEtSystem (native) : done, opened ET system\n\n");
 }
@@ -227,7 +227,7 @@ if (debug) printf("getEvents (native) : will attempt to get events\n");
         (jint)pe[i]->memsize, (jint)pe[i]->memsize, (jint)pe[i]->datastatus,
         (jint)pe[i]->place,   (jint)pe[i]->age,     (jint)pe[i]->owner,
         (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
-        (jint)biteOrder, controlInts, byteBuf);
+        (jint)biteOrder, controlInts, (jboolean)pe[i]->temp, byteBuf);
       
         /* put event in array */
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
@@ -321,7 +321,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
         (jint)pe[i]->memsize, (jint)pe[i]->memsize,
         (jint)pe[i]->place,   (jint)pe[i]->owner,
         (jint)pe[i]->modify,  (jint)pe[i]->length,  (jint)pe[i]->priority,
-        (jint)biteOrder, byteBuf);
+        (jint)biteOrder,  (jboolean)pe[i]->temp,    byteBuf);
       
         /* put event in array */
         (*env)->SetObjectArrayElement(env, eventArray, i, event);
