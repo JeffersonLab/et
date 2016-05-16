@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
-project(et_16_0)
+project(et_16_1)
 
 #include_directories($ENV{CODA}/common/include $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
-include_directories(/daqfs/home/timmer/coda/et-16.0/src/libsrc $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
+include_directories(/daqfs/home/timmer/coda/et-16.1/src/libsrc $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -27,12 +27,14 @@ set(SOURCE_FILES
     src/libsrc/et_station.c
     src/libsrc/et_sysconfig.c
     src/libsrc/et_system.c
+    src/libsrc/etCommonNetwork.c
 
     src/libsrc/et_data.h
     src/libsrc/et_network.h
     src/libsrc/et_private.h
     src/libsrc/et.h
     src/libsrc/etCommonNetwork.h
+    src/libsrc/org_jlab_coda_et_EtJniAccess.h
 
     src/execsrc/et_start.c
     src/execsrc/et_monitor.c
@@ -43,7 +45,7 @@ set(SOURCE_FILES
     src/examples/et_producer.c
     )
 
-add_executable(et_16_0 ${SOURCE_FILES}
+add_executable(et_16_1 ${SOURCE_FILES}
     src/execsrc/et_start.c
     src/execsrc/et_monitor.c
     src/execsrc/et_2_et.c
