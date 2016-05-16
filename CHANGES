@@ -116,3 +116,9 @@ ET-16.0 (created 7/29/2015, updated 4/8/2016)
     - add method, EtSystem.getLocalAddress(), which gets the local, dot-decimal IP address
       used to connect to the ET system. Useful to see which interface being used. 4/8/2016
 
+ ET-16.1 (created 4/21/2016)
+
+    - added isTemp() method to java EtEvent(Impl) classes in order to tell if an event,
+      representing an event in a C-based ET system, is a temp event or not. This
+      necessitated a change in et_jni.c as well. Useful in debugging the operation of
+      an ET system.
