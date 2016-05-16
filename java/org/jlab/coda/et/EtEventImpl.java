@@ -120,6 +120,15 @@ public class EtEventImpl implements EtEvent {
     /** Flag specifying whether the ET system process is Java based or not. */
     private boolean isJava;
 
+    /**
+     * Flag specifying whether this event represents an event in a local,
+     * C-based ET system (through JNI), in which its memory is larger than
+     * that of the normal events necessitating the temporary
+     * allocation of another chunk of shared memory just for this event.
+     * Always false for java-based ET system events.
+     */
+    private boolean isTemp;
+
 
     
     /**
@@ -163,53 +172,53 @@ public class EtEventImpl implements EtEvent {
         init();
     }
 
-    /**
-     * Creates an event object for ET system users when connecting to local, C-based ET systems
-     * and using native methods to call et_events_get.
-     * No data array or buffer are created since we will be using shared
-     * memory and it will be taken care of later. Tons of args since it's a lot easier in
-     * JNI to call one method with lots of args then to call lots of set methods on one object.
-     *
-     * @param size      {@link #memSize}
-     * @param limit     {@link #sizeLimit}
-     * @param status    {@link #dataStatus}
-     * @param id        {@link #id}
-     * @param age       {@link #age}
-     * @param owner     {@link #owner}
-     * @param modify    {@link #modify}
-     * @param length    {@link #length}
-     * @param priority  {@link #modify}
-     * @param byteOrder {@link #byteOrder}
-     * @param control   {@link #control}
-     */
-    EtEventImpl(int size, int limit, int status, int id, int age, int owner,
-                int modify, int length, int priority, int byteOrder, int[] control) {
-
-        isJava         = false;
-        memSize        = size;
-        sizeLimit      = limit;
-        dataStatus     = DataStatus.getStatus(status);
-        this.id        = id;
-        this.age       = Age.getAge(age);
-        this.owner     = owner;
-        this.modify    = Modify.getModify(modify);
-        this.length    = length;
-        this.priority  = Priority.getPriority(priority);
-        this.byteOrder = byteOrder;
-
-        if (control != null) {
-            this.control = control.clone();
-        }
-        else {
-            this.control = new int[numSelectInts];
-        }
-    }
+//    /**
+//     * Creates an event object for ET system users when connecting to local, C-based ET systems
+//     * and using native methods to call et_events_get.
+//     * No data array or buffer are created since we will be using shared
+//     * memory and it will be taken care of later. Tons of args since it's a lot easier in
+//     * JNI to call one method with lots of args then to call lots of set methods on one object.
+//     *
+//     * @param size      {@link #memSize}
+//     * @param limit     {@link #sizeLimit}
+//     * @param status    {@link #dataStatus}
+//     * @param id        {@link #id}
+//     * @param age       {@link #age}
+//     * @param owner     {@link #owner}
+//     * @param modify    {@link #modify}
+//     * @param length    {@link #length}
+//     * @param priority  {@link #modify}
+//     * @param byteOrder {@link #byteOrder}
+//     * @param control   {@link #control}
+//     */
+//    EtEventImpl(int size, int limit, int status, int id, int age, int owner,
+//                int modify, int length, int priority, int byteOrder, int[] control) {
+//
+//        isJava         = false;
+//        memSize        = size;
+//        sizeLimit      = limit;
+//        dataStatus     = DataStatus.getStatus(status);
+//        this.id        = id;
+//        this.age       = Age.getAge(age);
+//        this.owner     = owner;
+//        this.modify    = Modify.getModify(modify);
+//        this.length    = length;
+//        this.priority  = Priority.getPriority(priority);
+//        this.byteOrder = byteOrder;
+//
+//        if (control != null) {
+//            this.control = control.clone();
+//        }
+//        else {
+//            this.control = new int[numSelectInts];
+//        }
+//    }
 
     /**
      * Creates an event object for ET system users when connecting to local, C-based ET systems
      * and using native methods to call et_events_new. The ByteBuffer object is created in JNI
      * code and directly "wraps" the et data pointer from the ET event obtained through
-     * et_events_new.
+     * et_events_new_group.
      * Tons of args since it's a lot easier in JNI to call one method
      * with lots of args then to call lots of set methods on one object.
      *
@@ -221,11 +230,12 @@ public class EtEventImpl implements EtEvent {
      * @param length    {@link #length}
      * @param priority  {@link #modify}
      * @param byteOrder {@link #byteOrder}
+     * @param isTemp    {@link #isTemp}
      * @param buffer    {@link #dataBuffer}
      */
     EtEventImpl(int size, int limit, int id, int owner,
                 int modify, int length, int priority,
-                int byteOrder, ByteBuffer buffer) {
+                int byteOrder, boolean isTemp, ByteBuffer buffer) {
 
         isJava         = false;
         memSize        = size;
@@ -238,6 +248,7 @@ public class EtEventImpl implements EtEvent {
         this.modify    = Modify.getModify(modify);
         this.length    = length;
         this.priority  = Priority.getPriority(priority);
+        this.isTemp    = isTemp;
 
         this.byteOrder = byteOrder;
         dataBuffer     = buffer;
@@ -269,11 +280,12 @@ public class EtEventImpl implements EtEvent {
      * @param priority  {@link #modify}
      * @param byteOrder {@link #byteOrder}
      * @param control   {@link #control}
+     * @param isTemp    {@link #isTemp}
      * @param buffer    {@link #dataBuffer}
      */
     EtEventImpl(int size, int limit, int status, int id, int age, int owner,
                 int modify, int length, int priority, int byteOrder, int[] control,
-                ByteBuffer buffer) {
+                boolean isTemp, ByteBuffer buffer) {
 
         isJava         = false;
         memSize        = size;
@@ -285,6 +297,7 @@ public class EtEventImpl implements EtEvent {
         this.modify    = Modify.getModify(modify);
         this.length    = length;
         this.priority  = Priority.getPriority(priority);
+        this.isTemp    = isTemp;
 
         if (control != null) {
             this.control = control;
@@ -310,6 +323,7 @@ public class EtEventImpl implements EtEvent {
      * @param ev event to duplicate
      */
     public EtEventImpl(EtEventImpl ev) {
+        this.isTemp     = ev.isTemp;
         this.isJava     = ev.isJava;
         this.memSize    = ev.memSize;
         this.sizeLimit  = ev.sizeLimit;
@@ -335,6 +349,7 @@ public class EtEventImpl implements EtEvent {
     /** Initialize an event's fields. Called for an event each time it passes
      *  through GRAND_CENTRAL station. */
     public void init() {
+        isTemp     = false;
         age        = Age.NEW;
         priority   = Priority.LOW;
         owner      = EtConstants.system;
@@ -349,30 +364,22 @@ public class EtEventImpl implements EtEvent {
     // getters
 
     
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int getId() {
         return id;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public Age getAge() {
         return age;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int getGroup() {
         return group;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public Priority getPriority() {
         return priority;
     }
@@ -385,23 +392,17 @@ public class EtEventImpl implements EtEvent {
         return priority.getValue();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int getOwner() {
         return owner;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int getLength() {
         return length;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int getMemSize() { return memSize; }
 
     /**
@@ -412,9 +413,7 @@ public class EtEventImpl implements EtEvent {
         return sizeLimit;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public DataStatus getDataStatus() {
         return dataStatus;
     }
@@ -427,47 +426,40 @@ public class EtEventImpl implements EtEvent {
         return dataStatus.getValue();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public Modify getModify() {
         return modify;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public ByteOrder getByteOrder() {
         // java is always big endian
         return ((byteOrder == 0x04030201) ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int getRawByteOrder() {
         return byteOrder;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public int[] getControl() {
         return control.clone();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public byte[] getData() throws UnsupportedOperationException {
         return dataBuffer.array();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public ByteBuffer getDataBuffer() {
         return dataBuffer;
+    }
+
+    /** {@inheritDoc} */
+    public boolean isTemp() {
+        return isTemp;
     }
 
 

@@ -154,6 +154,18 @@ public interface EtEvent {
      */
     public int getRawByteOrder();
 
+    /**
+     * Gets whether this event is a temporary event or not.
+     * For java-based ET systems this is always false. If this event represents
+     * an event in a local, C-based ET system (through JNI), this can be true if its
+     * memory is larger than that of the normal events necessitating the temporary
+     * allocation of another chunk of shared memory just for this event.
+     *
+     * @return {@code true} if this events represents a local, C-based ET system temp event,
+     *         else {@code false}.
+     */
+    public boolean isTemp();
+
 
     // setters
 
