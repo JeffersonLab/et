@@ -8,7 +8,7 @@
     <property environment="env"/>
 
     <!-- Version -->
-    <property name="et.version" value="16.0" />
+    <property name="et.version" value="16.1" />
 
     <!-- Debug -->
     <property name="javac.debug" value="on" />
@@ -228,7 +228,7 @@
     <target name="installScriptsInPrefix" if="prefixDefined">
         <echo>Install scripts into ${prefix}/bin</echo>
         <exec executable="bash">
-            <arg line="-c 'cp -pr ${scripts.dir}/* ${prefix}/bin'" />
+            <arg line="-c 'mkdir ${prefix}/bin; cp -pr ${scripts.dir}/* ${prefix}/bin'" />
         </exec>
     </target>
 
@@ -237,13 +237,13 @@
         <echo>Install scripts into ${env.CODA}/common/bin, ${env.CODA}/Linux-i686/bin, and ${env.CODA}/Linux-x86_64/bin</echo>
         <!-- Using "exec", bash and cp preserves file permissions, but "copy" does not -->
         <exec executable="bash">
-            <arg line="-c 'cp -pr ${scripts.dir}/* ${env.CODA}/common/bin'" />
+            <arg line="-c 'mkdir ${env.CODA}/common/bin; cp -pr ${scripts.dir}/* ${env.CODA}/common/bin'" />
         </exec>
         <exec executable="bash">
-            <arg line="-c 'cp -pr ${scripts.dir}/* ${env.CODA}/Linux-i686/bin'" />
+            <arg line="-c 'mkdir ${env.CODA}/Linux-i686/bin; cp -pr ${scripts.dir}/* ${env.CODA}/Linux-i686/bin'" />
         </exec>
         <exec executable="bash">
-            <arg line="-c 'cp -pr ${scripts.dir}/* ${env.CODA}/Linux-x86_64/bin'" />
+            <arg line="-c 'mkdir ${env.CODA}/Linux-x86_64/bin; cp -pr ${scripts.dir}/* ${env.CODA}/Linux-x86_64/bin'" />
         </exec>
     </target>
 
