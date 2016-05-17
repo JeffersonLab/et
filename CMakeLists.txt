@@ -27,12 +27,14 @@ set(SOURCE_FILES
     src/libsrc/et_station.c
     src/libsrc/et_sysconfig.c
     src/libsrc/et_system.c
+    src/libsrc/etCommonNetwork.c
 
     src/libsrc/et_data.h
     src/libsrc/et_network.h
     src/libsrc/et_private.h
     src/libsrc/et.h
     src/libsrc/etCommonNetwork.h
+    src/libsrc/org_jlab_coda_et_EtJniAccess.h
 
     src/execsrc/et_start.c
     src/execsrc/et_monitor.c
