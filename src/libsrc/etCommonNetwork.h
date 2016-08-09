@@ -279,7 +279,7 @@ extern int   codanetGetIpAddrs(char ***ipAddrs, int *count, char *host);
 extern int   codanetMcastSetIf(int sockfd, const char *ifname, uint32_t ifindex);
 extern int   codanetGetIfNames(char ***ifNames, int *count);
 extern codaIpList *codanetOrderIpAddrs(codaIpList *ipList, codaIpAddr *netinfo,
-                                       char* preferredSubnet);
+                                       char* preferredSubnet, int* noSubnetMatch);
 extern int   codanetGetMatchingLocalIpAddress(char *ip, char **matchingIp);
 extern int   codanetGetBroadcastAddress(char *ip, char **broadcastIp);
     
