@@ -1171,7 +1171,7 @@ public class EtSystemOpen {
                     ", event size = " + eventSize +
                     ", version = " + version +
                     ",\n      selectInts = " + stationSelectInts +
-                    ", language = " + (language == 1 ? "C" : "java"));
+                    ", language = " + (language == 2 ? "Java" : "C"));
         }
     }
 
@@ -1271,16 +1271,15 @@ public class EtSystemOpen {
                 }
             }
 
-            if (debug >= EtConstants.debugInfo) {
-                System.out.println("connect(): try to connect to ET system " +
-                        (useJniLibrary ? "locally" : "remotely"));
-            }
-
             // If user only wants to use sockets, don't use JNI
             if (config.isConnectRemotely()) {
                 useJniLibrary = false;
             }
-//System.out.println("connect(): map local shared memory = " + useJniLibrary);
+
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("connect(): try to connect to ET system " +
+                        (useJniLibrary ? "locally" : "remotely"));
+            }
 
             // If we did not get a list of IP addresses back, use what we have
             if (hostAddresses == null || hostAddresses.size() < 1) {
@@ -1350,7 +1349,7 @@ System.out.println("connect(): tried but FAILED to bind outgoing data to " + out
                     }
 
                     try {
-                        sock.connect(new InetSocketAddress(connectionHost, tcpPort), 3000); // IOEx, SocketTimeoutEx
+                        sock.connect(new InetSocketAddress(connectionHost, tcpPort), 1000); // IOEx, SocketTimeoutEx
                         // store for future reference
                         localAddress = sock.getLocalAddress().getHostAddress();
                     }
