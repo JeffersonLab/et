@@ -1241,7 +1241,8 @@ public class EtSystemOpen {
                 if (etOnLocalHost) {
                     // If host is local, use JNI if possible
                     useJniLibrary = true;
-                    // Place Collection of Strings into list
+                    // Place Collection of local IP address strings into list,
+                    // does not contain loopback.
                     hostAddresses = new ArrayList<String>(localHostIpAddrs);
                     hostAddress = hostAddresses.get(0);
                 }
@@ -1295,6 +1296,11 @@ public class EtSystemOpen {
                 }
                 addrList = EtUtils.orderIPAddresses(hostAddresses, broadcastAddresses,
                                                     config.getNetworkInterface());
+            }
+
+            // If we're on the local host, put the loopback address first
+            if (etOnLocalHost) {
+                addrList.add(0, "127.0.0.1");
             }
 
             // If one IP address fails, perhaps another will work
@@ -1398,9 +1404,9 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
                 // If Java, don't try to use JNI library.
                 if (isJavaEtSystem) {
                     useJniLibrary = false;
-                    if (debug >= EtConstants.debugInfo) {
-                        System.out.println("connect(): map local shared memory = " + useJniLibrary);
-                    }
+                    //if (debug >= EtConstants.debugInfo) {
+                    System.out.println("connect(): Not using local shared memory since connecting to java ET system");
+                    //}
                 }
 
                 // Finally got a good connection
@@ -1428,7 +1434,10 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
         }
 
         // try using JNI
-        if (useJniLibrary) {
+        if (!useJniLibrary) {
+            System.out.println("connect(): NOT using local shared memory");
+        }
+        else {
             try {
                 RandomAccessFile file = new RandomAccessFile(config.getEtName(), "rw");
                 FileChannel fc = file.getChannel();
