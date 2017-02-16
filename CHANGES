@@ -122,3 +122,5 @@ ET-16.0 (created 7/29/2015, updated 4/8/2016)
       representing an event in a C-based ET system, is a temp event or not. This
       necessitated a change in et_jni.c as well. Useful in debugging the operation of
       an ET system.
+
+    - got rid of the "-dbg" suffix when making libs/executables
