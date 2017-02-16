@@ -105,7 +105,7 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
  *             Finally, the async option returns immediately whether or not it was successful in obtaining a new
  *             event for the caller.
  * @param deltatime used only with the wait = ET_TIMED option, where it gives the time to wait before returning.
- *             For other options it will be ignored.
+ *                  For other options it will be ignored.
  * @param size the number of bytes desired for the event's data.
  *
  * @returns @ref ET_OK            if successful.
@@ -151,11 +151,19 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
         return ET_ERROR;
     }
 
-    if (wait == ET_TIMED && deltatime == NULL) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_event_new, specify a time for ET_TIMED mode\n");
+    if (wait == ET_TIMED) {
+        if (deltatime == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_event_new, specify a time for ET_TIMED mode\n");
+            }
+            return ET_ERROR;
         }
-        return ET_ERROR;
+        else if (deltatime->tv_sec < 0 || deltatime->tv_nsec < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_event_new, specify a positive value for sec and/or nsec\n");
+            }
+            return ET_ERROR;
+        }
     }
 
     if (etid->locality == ET_REMOTE) {
@@ -331,7 +339,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
  *              Finally, the async option returns immediately whether or not it was successful in obtaining a new
  *              event for the caller.
  * @param deltatime  used only with the wait = ET_TIMED option, where it gives the time to wait before returning.
- *              For other options it will be ignored.
+ *                   For other options it will be ignored.
  * @param size  the number of bytes desired for an event's data.
  * @param num   the number of desired events.
  * @param nread pointer which is filled with the number of events actually returned.
@@ -388,13 +396,21 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
         return ET_ERROR;
     }
     
-    if (wait == ET_TIMED && deltatime == NULL) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_events_new, specify a time for ET_TIMED mode\n");
+    if (wait == ET_TIMED) {
+        if (deltatime == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_events_new, specify a time for ET_TIMED mode\n");
+            }
+            return ET_ERROR;
         }
-        return ET_ERROR;
+        else if (deltatime->tv_sec < 0 || deltatime->tv_nsec < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_events_new, specify a positive value for sec and/or nsec\n");
+            }
+            return ET_ERROR;
+        }
     }
-  
+
     if (etid->locality == ET_REMOTE) {
         return etr_events_new(id, att, pe, mode, deltatime, size, num, nread);
     }
@@ -581,7 +597,7 @@ int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
  *              Finally, the async option returns immediately whether or not it was successful in obtaining a new
  *              event for the caller.
  * @param deltatime  used only with the wait = ET_TIMED option, where it gives the time to wait before returning.
- *              For other options it will be ignored.
+ *                   For other options it will be ignored.
  * @param size  the number of bytes desired for the event's data.
  * @param group is the group number of event to be acquired
  *
@@ -629,7 +645,7 @@ int et_event_new_group(et_sys_id id, et_att_id att, et_event **pe,
  *              Finally, the async option returns immediately whether or not it was successful in obtaining a new
  *              event for the caller.
  * @param deltatime  used only with the wait = ET_TIMED option, where it gives the time to wait before returning.
- *              For other options it will be ignored.
+ *                   For other options it will be ignored.
  * @param size  the number of bytes desired for the event's data.
  * @param num   the number of desired events.
  * @param group is the group number of event to be acquired
@@ -682,13 +698,21 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
         return ET_ERROR;
     }
 
-    if (wait == ET_TIMED && deltatime == NULL) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_events_new_group, specify a time for ET_TIMED mode\n");
+    if (wait == ET_TIMED) {
+        if (deltatime == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_events_new_group, specify a time for ET_TIMED mode\n");
+            }
+            return ET_ERROR;
         }
-        return ET_ERROR;
+        else if (deltatime->tv_sec < 0 || deltatime->tv_nsec < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_events_new_group, specify a positive value for sec and/or nsec\n");
+            }
+            return ET_ERROR;
+        }
     }
-  
+
     if (etid->locality == ET_REMOTE) {
         return etr_events_new_group(id, att, pe, mode, deltatime, size, num, group, nread);
     }
@@ -894,7 +918,7 @@ int et_events_new_group(et_sys_id id, et_att_id att, et_event *pe[],
  * @param mode  either ET_SLEEP, ET_ASYNC, or ET_TIMED.
  *
  * @param deltatime  used only with the mode = ET_TIMED option, where it gives the time to wait before returning.
- *              For other options it will be ignored.
+ *                   For other options it will be ignored.
  *
  * @returns @ref ET_OK            if successful
  * @returns @ref ET_ERROR         if bad argument(s), attachment not active, group is < 1,
@@ -935,13 +959,21 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
         return ET_ERROR;
     }
   
-    if (wait == ET_TIMED && deltatime == NULL) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_event_get, specify a time for ET_TIMED mode\n");
+    if (wait == ET_TIMED) {
+        if (deltatime == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_event_get, specify a time for ET_TIMED mode\n");
+            }
+            return ET_ERROR;
         }
-        return ET_ERROR;
+        else if (deltatime->tv_sec < 0 || deltatime->tv_nsec < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_event_get, specify a positive value for sec and/or nsec\n");
+            }
+            return ET_ERROR;
+        }
     }
-  
+
     if (etid->locality == ET_REMOTE) {
         return etr_event_get(id, att, pe, mode, deltatime);
     }
@@ -1103,7 +1135,7 @@ int et_event_get(et_sys_id id, et_att_id att, et_event **pe,
  * @param mode  either ET_SLEEP, ET_ASYNC, or ET_TIMED.
  *
  * @param deltatime  used only with the mode = ET_TIMED option, where it gives the time to wait before returning.
- *              For other options it will be ignored.
+ *                   For other options it will be ignored.
  * @param num   the number of desired events.
  * @param nread pointer which is filled with the number of events actually returned.
  *
@@ -1154,11 +1186,19 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
         return ET_ERROR;
     }
   
-    if (wait == ET_TIMED && deltatime == NULL) {
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("ERROR", "et_events_get, specify a time for ET_TIMED mode\n");
+    if (wait == ET_TIMED) {
+        if (deltatime == NULL) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_events_get, specify a time for ET_TIMED mode\n");
+            }
+            return ET_ERROR;
         }
-        return ET_ERROR;
+        else if (deltatime->tv_sec < 0 || deltatime->tv_nsec < 0) {
+            if (etid->debug >= ET_DEBUG_ERROR) {
+                et_logmsg("ERROR", "et_events_get, specify a positive value for sec and/or nsec\n");
+            }
+            return ET_ERROR;
+        }
     }
   
     if (etid->locality == ET_REMOTE) {
