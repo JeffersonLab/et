@@ -234,9 +234,9 @@ int main(int argc,char **argv) {
     }
 
     if (!multicast && !broadcast) {
+        /* Default to local host if direct connection */
         if (strlen(host) < 1) {
-            fprintf(stderr, "\nNeed to specify the specific host with -host flag\n\n");
-            errflg++;
+            strcpy(host, ET_HOST_LOCAL);
         }
     }
 
@@ -389,7 +389,7 @@ int main(int argc,char **argv) {
         et_open_config_gethost(openconfig, host);
         printf("Direct connection to %s\n", host);
     }
-     et_open_config_sethost(openconfig, ET_HOST_REMOTE);
+    /*et_open_config_sethost(openconfig, ET_HOST_REMOTE);*/
 
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
     et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
