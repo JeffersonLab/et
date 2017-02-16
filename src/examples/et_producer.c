@@ -78,7 +78,8 @@ int main(int argc,char **argv) {
              {0,       0, 0,    0}
             };
 
-    memset(host, 0, 16);
+    memset(host, 0, 256);
+    memset(interface, 0, 16);
     memset(mcastAddr, 0, mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 

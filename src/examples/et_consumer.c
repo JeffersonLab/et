@@ -80,7 +80,8 @@ int main(int argc,char **argv) {
               {"read", 0, NULL, 9},
               {0,0,0,0}};
 
-    memset(host, 0, 16);
+    memset(host, 0, 256);
+    memset(interface, 0, 16);
     memset(mcastAddr, 0, (size_t) mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
     memset(stationName, 0, ET_STATNAME_LENGTH);
@@ -495,10 +496,10 @@ int main(int argc,char **argv) {
         /**************/
 
         /* example of single, timeout read */
-        /*status = et_events_get(id, attach1, pe, ET_TIMED, &timeout, chunk, &numRead);*/
+        status = et_events_get(id, attach1, pe, ET_TIMED | ET_MODIFY, &timeout, chunk, &numRead);
 
         /* example of reading array of up to "chunk" events */
-        status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, chunk, &numRead);
+        //status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, chunk, &numRead);
         if (status == ET_OK) {
             ;
         }
