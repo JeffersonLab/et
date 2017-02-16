@@ -853,8 +853,9 @@ static void *et_sys_heartmonitor(void *arg)
         if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_sys_heartmonitor, kill bad process (%d,%d)\n", i, sys->proc[i].pid);
         }
-        /* kill process dead */
-        kill(sys->proc[i].pid, SIGKILL);
+        /* kill process dead - no, don't do that! Timmer 2/16/2017*/
+        /* If kill(0) succeeds, then process exists, but no signal sent. */
+        /* kill(sys->proc[i].pid, SIGKILL); */
         
         /* repair system, station, & transfer mutexes */
         et_fix_mutexes(id);
