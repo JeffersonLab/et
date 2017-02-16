@@ -150,7 +150,7 @@ int codanetTcpListen(int nonblocking, unsigned short port,
         err = setsockopt(listenfd, SOL_SOCKET, SO_SNDBUF, (char*) &sendBufSize, sizeof(sendBufSize));
         if (err < 0) {
             close(listenfd);
-            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: setsockopt error\n", codanetStr);
+            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpListen: setsockopt error\n", codanetStr);
             return(CODA_SOCKET_ERROR);
         }
     }
@@ -160,7 +160,7 @@ int codanetTcpListen(int nonblocking, unsigned short port,
         err = setsockopt(listenfd, SOL_SOCKET, SO_RCVBUF, (char*) &rcvBufSize, sizeof(rcvBufSize));
         if (err < 0) {
             close(listenfd);
-            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpConnect: setsockopt error\n", codanetStr);
+            if (codanetDebug >= CODA_DEBUG_ERROR) fprintf(stderr, "%sTcpListen: setsockopt error\n", codanetStr);
             return(CODA_SOCKET_ERROR);
         }
     }
