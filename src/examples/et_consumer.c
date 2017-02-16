@@ -255,9 +255,9 @@ int main(int argc,char **argv) {
     }
 
     if (!multicast && !broadcast) {
+        /* Default to local host if direct connection */
         if (strlen(host) < 1) {
-            fprintf(stderr, "\nNeed to specify the specific host with -host flag\n\n");
-            errflg++;
+            strcpy(host, ET_HOST_LOCAL);
         }
     }
 
