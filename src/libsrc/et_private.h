@@ -63,11 +63,11 @@ extern "C" {
 /* ***************************************
  * times for heart beating & monitoring *
  * ***************************************/
-/* 1.6 sec */
-#define ET_MON_SEC    30            /**< Seconds between monitoring heartbeat value (add to @ref ET_MON_NSEC). */
+/* 2 min 0.6 sec */
+#define ET_MON_SEC    120           /**< Seconds between monitoring heartbeat value (add to @ref ET_MON_NSEC). */
 #define ET_MON_NSEC   600000000     /**< Nanoseconds between monitoring heartbeat value (add to @ref ET_MON_SEC). */
-/* 0.5 sec */
-#define ET_BEAT_SEC   0             /**< Seconds between heartbeat increment (add to @ref ET_BEAT_NSEC). */
+/* 1.5 sec */
+#define ET_BEAT_SEC   1             /**< Seconds between heartbeat increment (add to @ref ET_BEAT_NSEC). */
 #define ET_BEAT_NSEC  500000000     /**< Nanoseconds between heartbeat increment (add to @ref ET_BEAT_SEC). */
 
 /** Max value for heartbeat. */
