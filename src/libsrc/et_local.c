@@ -48,7 +48,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   et_mem   etInfo;
   et_id   *etid;
   pid_t    my_pid;
-  struct timespec heartbeat;
+  struct timespec is_alive;
   int      i, err, status, my_index;
   char     *pSharedMem;
 
@@ -154,16 +154,15 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     et_logmsg("INFO", "etl_open, ET data  : ptr = %p\n", etid->data);
   }
     
-  heartbeat.tv_sec  = ET_BEAT_SEC;
-  heartbeat.tv_nsec = ET_BEAT_NSEC;
+  is_alive.tv_sec  = ET_IS_ALIVE_SEC;
+  is_alive.tv_nsec = ET_IS_ALIVE_NSEC;
   
   /* wait for ET system to start running */
   if (config->wait == ET_OPEN_WAIT) {
     status = et_wait_for_system(*id, &config->timeout, filename);
   }
-  /* wait 1 heartbeat minimum, to see if ET system is running */
   else {
-    status = et_wait_for_system(*id, &heartbeat, filename);
+    status = et_wait_for_system(*id, &is_alive, filename);
   }
 
   if (status != ET_OK) {
@@ -598,16 +597,16 @@ int et_wait_for_system(et_sys_id id, struct timespec *timeout, const char *etnam
       if (init) {
         if (etid->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_wait_for_system, waiting for initial heartbeat\n");
-	}
-	init--;
+        }
+        init--;
       }
       if (totalwait < 0.) {
         if (etid->debug >= ET_DEBUG_ERROR) {
           et_logmsg("ERROR", "et_wait_for_system, done waiting but ET system not alive\n");
-	}
-	return ET_ERROR_TIMEOUT;
+        }
+        return ET_ERROR_TIMEOUT;
       }
-      
+
       nanosleep(&sleeptime, NULL);
       if (!wait_forever) {
         totalwait -= increment;

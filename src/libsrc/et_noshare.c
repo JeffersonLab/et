@@ -42,7 +42,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   et_open_config *config = (et_open_config *) openconfig;
   et_mem etInfo;
   et_id *etid;
-  struct timespec heartbeat;
+  struct timespec is_alive;
   int status, sockfd, version, nselects;
   uint32_t length, bufsize;
   int systemType, byteOrder, correctEndian=0;
@@ -123,8 +123,8 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     et_logmsg("INFO", "etn_open, ET data  : ptr = %p\n", etid->data);
   }
     
-  heartbeat.tv_sec  = ET_BEAT_SEC;
-  heartbeat.tv_nsec = ET_BEAT_NSEC;
+  is_alive.tv_sec  = ET_IS_ALIVE_SEC;
+  is_alive.tv_nsec = ET_IS_ALIVE_NSEC;
   
   /* wait for ET system to start running */
   if (config->wait == ET_OPEN_WAIT) {
@@ -132,7 +132,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   }
   /* wait 1 heartbeat minimum, to see if ET system is running */
   else {
-    status = et_wait_for_system(*id, &heartbeat, filename);
+    status = et_wait_for_system(*id, &is_alive, filename);
   }
   
   if (status != ET_OK) {
@@ -331,12 +331,11 @@ int etn_alive(et_sys_id id)
     return ntohl((uint32_t)alive);
   }
   /* Socket error, so now monitor hbeat thru shared memory.
-   * Monitoring this way takes a couple seconds (1.5X the
-   * time for system's heart to beat), so only do it when
-   * socket communication fails
+   * Monitoring this way takes a couple seconds,
+   * so only do it when socket communication fails.
    */
-  waittime.tv_sec  = 3*ET_BEAT_SEC/2;
-  waittime.tv_nsec = 3*ET_BEAT_NSEC/2;
+  waittime.tv_sec  = ET_IS_ALIVE_SEC;
+  waittime.tv_nsec = ET_IS_ALIVE_NSEC;
   if (waittime.tv_nsec > 1000000000L) {
     waittime.tv_nsec -= 1000000000L;
     waittime.tv_sec  += 1;

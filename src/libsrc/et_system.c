@@ -94,7 +94,7 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
     int     err, status, num_try, try_max;
     unsigned int hbeat;
     pthread_attr_t  attr;
-    struct timespec waitforme, monitor, beat;
+    struct timespec waitforme, beat;
     et_sys_config  *config = (et_sys_config *) sconfig;
     et_mem         etInfo;
     char           *pSharedMem;
@@ -105,14 +105,9 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
     /* set some useful timeout periods */
     waitforme.tv_sec  = 0;
     waitforme.tv_nsec = 10000000; /* 10 millisec */
-    beat.tv_sec       = ET_BEAT_SEC + 2;
-    beat.tv_nsec      = ET_BEAT_NSEC;
-    monitor.tv_sec    = 2*ET_MON_SEC;
-    monitor.tv_nsec   = 2*ET_MON_NSEC;
-    if (monitor.tv_nsec >= 1000000000) {
-        monitor.tv_sec += monitor.tv_nsec/1000000000 + 1;
-        monitor.tv_nsec = 0;
-    }
+    beat.tv_sec       = ET_IS_ALIVE_SEC;
+    beat.tv_nsec      = ET_IS_ALIVE_NSEC;
+
 
     /* get thread attribute ready */
     status = pthread_attr_init(&attr);
@@ -496,9 +491,9 @@ int et_system_close(et_sys_id id) {
     etid->sys->asthread = ET_THREAD_KILL;
     pthread_cond_signal(&etid->sys->statadd);
 
-    /* wait for all event transfers to stop by waiting past 1 monitor period */
-    sometime.tv_sec  = ET_MON_SEC + 2;
-    sometime.tv_nsec = ET_MON_NSEC;
+    /* wait for all event transfers to stop by waiting a bit */
+    sometime.tv_sec  = ET_CLOSE_SEC;
+    sometime.tv_nsec = ET_CLOSE_NSEC;
     nanosleep(&sometime, NULL);
 
     /* stop all those conductor threads */

@@ -60,15 +60,24 @@ extern "C" {
 /** Max number of network addresses/names per host we'll examine. */
 #define ET_MAXADDRESSES 10
 
-/* ***************************************
+/****************************************
  * times for heart beating & monitoring *
- * ***************************************/
-/* 2 min 0.6 sec */
-#define ET_MON_SEC    120           /**< Seconds between monitoring heartbeat value (add to @ref ET_MON_NSEC). */
-#define ET_MON_NSEC   600000000     /**< Nanoseconds between monitoring heartbeat value (add to @ref ET_MON_SEC). */
-/* 1.5 sec */
-#define ET_BEAT_SEC   1             /**< Seconds between heartbeat increment (add to @ref ET_BEAT_NSEC). */
-#define ET_BEAT_NSEC  500000000     /**< Nanoseconds between heartbeat increment (add to @ref ET_BEAT_SEC). */
+ ****************************************/
+/* 2 min */
+#define ET_MON_SEC    120         /**< Seconds between monitoring heartbeat for disconnecting from unresponsive clients. */
+#define ET_MON_NSEC     0         /**< Nanoseconds between monitoring heartbeat for disconnecting from unresponsive clients. */
+
+/* 0.5 sec */
+#define ET_BEAT_SEC   0           /**< Seconds between heartbeat (integer increment). */
+#define ET_BEAT_NSEC  500000000   /**< Nanoseconds between heartbeat (integer increment). */
+
+/* 2 sec */
+#define ET_IS_ALIVE_SEC   2       /**< Seconds between monitoring heartbeat for seeing if ET alive. */
+#define ET_IS_ALIVE_NSEC  0       /**< Nanoseconds between monitoring heartbeat for seeing if ET alive. */
+
+/* 2.5 sec */
+#define ET_CLOSE_SEC   2          /**< Seconds to wait before shutting down ET system. */
+#define ET_CLOSE_NSEC  500000000  /**< Nanoseconds to wait before shutting down ET system. */
 
 /** Max value for heartbeat. */
 #define ET_HBMODULO UINT_MAX

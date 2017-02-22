@@ -85,7 +85,7 @@ int main(int argc,char **argv) {
     period.tv_sec = 5;
     period.tv_nsec = 0;
     tperiod  = period.tv_sec + (1.e-9)*period.tv_nsec;
-    hbperiod = ET_BEAT_SEC   + (1.e-9)*ET_BEAT_NSEC;
+    hbperiod = ET_IS_ALIVE_SEC + (1.e-9)*ET_IS_ALIVE_NSEC;
 
     strcpy(host, "localhost");
   
