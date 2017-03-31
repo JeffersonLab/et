@@ -477,7 +477,11 @@ int etl_kill(et_sys_id id)
 
     /* Record that fact that close has been called so no more access of shared mem */
     etid->closed = 1;
-  
+
+    /* Be sure to close server sockets so another ET system can be started right up again. */
+    if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
+    if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
+
     if (etl_alive(id)) {
         et_system_lock(etid->sys);
         etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
@@ -494,10 +498,6 @@ int etl_kill(et_sys_id id)
 
     et_stop_heartmonitor(etid);
     et_stop_heartbeat(etid);
-
-    /* Be sure to close server sockets so another ET system can be started right up again. */
-    if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
-    if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
 
     if (munmap(etid->pmap, etid->memsize) != 0) {
         if (etid->debug >= ET_DEBUG_ERROR) {
