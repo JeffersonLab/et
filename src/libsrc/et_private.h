@@ -399,6 +399,8 @@ typedef struct et_system_t {
   int              nprocesses;     /**< Current number of local processes which have opened system. */
   int              nattachments;   /**< Current number of attachments to stations in system. */
   int              port;           /**< TCP server port. */
+  int              tcpFd;          /**< TCP server's listening socket file descriptor. Used to close socket when killed. */
+  int              udpFd;          /**< UDP server's listening socket file descriptor. Used to close socket when killed. */
   et_stat_id       stat_head;      /**< Index to head of linked list of used stations (not storing this as a pointer
                                         makes for an awkward linked list, but it survives mapping the shared
                                         memory to a different spot). */

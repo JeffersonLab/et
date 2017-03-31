@@ -511,6 +511,10 @@ int et_system_close(et_sys_id id) {
     sometime.tv_nsec = 100000000; /* 0.1 sec */
     nanosleep(&sometime, NULL);
 
+    /* Be sure to close server sockets so another ET system can be started right up again. */
+    if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
+    if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
+
     /* unmap ET memory */
     if (munmap(etid->pmap, etid->memsize) != 0) {
         if (etid->debug >= ET_DEBUG_ERROR) {
@@ -591,6 +595,8 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   sys->ntemps       = 0;
   sys->nprocesses   = 0;
   sys->nattachments = 0;
+  sys->tcpFd        = -1;
+  sys->udpFd        = -1;
   
   sys->port         = 0;
  *sys->host         = '\0';

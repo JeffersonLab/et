@@ -449,10 +449,14 @@ int etl_kill(et_sys_id id)
     /* If the ET server got a command from a client to kill itself ... */
     if (etid->proc == ET_SYS) {
         et_system_lock(etid->sys);
+        /* Be sure to close server sockets so another ET system can be started right up again. */
+        if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
+        if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
         /* Set the magic bit that the hearbeat thread looks for.
          * That thread will kill us. */
         etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
         et_system_unlock(etid->sys);
+        sleep(1);
         return ET_OK;
     }
     
@@ -490,7 +494,11 @@ int etl_kill(et_sys_id id)
 
     et_stop_heartmonitor(etid);
     et_stop_heartbeat(etid);
-  
+
+    /* Be sure to close server sockets so another ET system can be started right up again. */
+    if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
+    if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
+
     if (munmap(etid->pmap, etid->memsize) != 0) {
         if (etid->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");

@@ -95,6 +95,8 @@ void *et_cast_thread(void *arg) {
         }
         exit(1);
     }
+    /* Store socket fd so it can be closed elsewhere. */
+    etid->sys->udpFd = sockfd;
 
 printf("Listening on port %d\n", config->port);
 
@@ -385,6 +387,8 @@ void *et_netserver(void *arg)
         }
         exit(1);
     }
+    /* Store fd so socket can be closed elsewhere. */
+    etid->sys->tcpFd = listenfd;
 
     if (debug)
         printf("TCP server listening on port %d\n", port);
