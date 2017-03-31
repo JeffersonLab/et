@@ -793,6 +793,11 @@ static void *et_sys_heartbeat(void *arg)
         }
         /* remove file */
         unlink(sys->config.filename);
+
+        /* Be sure to close server sockets so another ET system can be started right up again. */
+        if (id->sys->tcpFd > -1) close(id->sys->tcpFd);
+        if (id->sys->udpFd > -1) close(id->sys->udpFd);
+
         /* die */
         exit(-1);
     }

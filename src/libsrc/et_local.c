@@ -449,9 +449,6 @@ int etl_kill(et_sys_id id)
     /* If the ET server got a command from a client to kill itself ... */
     if (etid->proc == ET_SYS) {
         et_system_lock(etid->sys);
-        /* Be sure to close server sockets so another ET system can be started right up again. */
-        if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
-        if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
         /* Set the magic bit that the hearbeat thread looks for.
          * That thread will kill us. */
         etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
@@ -477,11 +474,7 @@ int etl_kill(et_sys_id id)
 
     /* Record that fact that close has been called so no more access of shared mem */
     etid->closed = 1;
-
-    /* Be sure to close server sockets so another ET system can be started right up again. */
-    if (etid->sys->tcpFd > -1) close(etid->sys->tcpFd);
-    if (etid->sys->udpFd > -1) close(etid->sys->udpFd);
-
+    
     if (etl_alive(id)) {
         et_system_lock(etid->sys);
         etid->sys->bitInfo = ET_SET_KILL(etid->sys->bitInfo);
