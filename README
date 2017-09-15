@@ -10,10 +10,10 @@ Thomas Jefferson National Accelerator Facility.
 
 This software runs on Linux and Darwin (Mac OSX).
 
-You must install Java version 1.5 or higher if you plan to compile
+You must install Java version 1.7 or higher if you plan to compile
 the ET java code and run it. If you're using the jar file from the CODA
-website, version 1.6 or higher is necessary since it was compiled with
-version 1.6.
+website, version 1.8 or higher is necessary since it was compiled with
+version 1.8.
 
 
 1) Getting & Installing ET
