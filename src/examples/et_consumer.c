@@ -496,10 +496,10 @@ int main(int argc,char **argv) {
         /**************/
 
         /* example of single, timeout read */
-        status = et_events_get(id, attach1, pe, ET_TIMED | ET_MODIFY, &timeout, chunk, &numRead);
+        //status = et_events_get(id, attach1, pe, ET_TIMED | ET_MODIFY, &timeout, chunk, &numRead);
 
         /* example of reading array of up to "chunk" events */
-        //status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, chunk, &numRead);
+        status = et_events_get(id, attach1, pe, ET_SLEEP, NULL, chunk, &numRead);
         if (status == ET_OK) {
             ;
         }
