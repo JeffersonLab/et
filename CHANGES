@@ -1,4 +1,6 @@
-Changes from the previous version:
+Changes to ET:
+
+ET_14.0
 
 - in C code, add mutex protection when calling et_close and other routines
   so there is much more thread safety. It is necessary to run this version
