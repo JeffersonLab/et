@@ -2097,7 +2097,7 @@ int et_event_getendian(et_event *pe, int *endian) {
  * is required and @ref ET_SWAP is returned. Otherwise @ref ET_NOSWAP is returned.
  *
  * @param pe       pointer to event.
- * @param endian   int pointer which gets filled with ET_SWAP or ET_NOSWAP.
+ * @param swap     int pointer which gets filled with ET_SWAP or ET_NOSWAP.
  *
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL.
