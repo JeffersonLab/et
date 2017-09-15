@@ -22,6 +22,7 @@ import java.util.HashSet;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.et.enums.Modify;
 
 
 /**
@@ -370,7 +371,8 @@ System.out.println("Flow mode is parallel");
             while (true) {
 
                 // get events from ET system
-                mevs = sys.getEvents(att, Mode.SLEEP, null, 0, chunk);
+                //mevs = sys.getEvents(att, Mode.TIMED, Modify.ANYTHING, 2000, chunk);
+                mevs = sys.getEvents(att, Mode.SLEEP, Modify.ANYTHING, 0, chunk);
 
                 // example of reading & printing event data
                 if (readData) {
