@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <math.h>
 #include <unistd.h>
@@ -33,7 +34,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
  * totalsize = total size of mapped mem
  */
 {
-  int       fd, num_pages;
+  int       fd, num_pages, err;
   void     *pmem;
   size_t    wantedsize, totalsize, pagesize;
   mode_t    mode;
@@ -47,7 +48,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
   totalsize  = pagesize * num_pages;
   /*printf("et_mem_create: size = %d bytes, requested size = %d bytes\n",totalsize, memsize);*/
 
-  mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+  mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH | S_IXUSR | S_IXGRP | S_IXOTH ;
   if ((fd = open(name, O_RDWR|O_CREAT|O_EXCL, mode)) < 0) {
     /* file exists already */
     return ET_ERROR_EXISTS;
@@ -70,6 +71,10 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
   }
 
   /* close fd for mapped mem since no longer needed */
+  err = fchmod(fd, mode);
+  if (err < 0) {
+    perror("et_mem_create: ");
+  }
   close(fd);
   
   if (pmemory   != NULL) *pmemory = pmem;
