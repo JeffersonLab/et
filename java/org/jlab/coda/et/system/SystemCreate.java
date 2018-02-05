@@ -380,7 +380,7 @@ public class SystemCreate {
         catch (InterruptedException ex) {}
 
         // Kill all threads if not already dead
-        etSystemThreads.stop();
+//        etSystemThreads.stop();
 
         // Delete ET file
         File etFile = new File(name);
