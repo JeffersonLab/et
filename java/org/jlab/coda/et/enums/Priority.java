@@ -29,7 +29,42 @@ public enum Priority {
 
     private int value;
 
-    private Priority(int value) {
+    /** Fast way to convert integer values into Priority objects. */
+    private static Priority[] intToType;
+
+    // Fill array after all enum objects created
+    static {
+        intToType = new Priority[2];
+        for (Priority type : values()) {
+            intToType[type.value] = type;
+        }
+    }
+
+	/**
+	 * Obtain the enum from the value.
+	 *
+	 * @param val the value to match.
+	 * @return the matching enum, or <code>null</code>.
+	 */
+    public static Priority getPriority(int val) {
+        if (val > 1 || val < 0) return null;
+        return intToType[val];
+    }
+
+    /**
+     * Obtain the name from the value.
+     *
+     * @param val the value to match.
+     * @return the name, or <code>null</code>.
+     */
+    public static String getName(int val) {
+        Priority s = getPriority(val);
+        if (s == null) return null;
+        return s.name();
+    }
+
+
+    Priority(int value) {
         this.value = value;
     }
 
@@ -39,38 +74,6 @@ public enum Priority {
      */
     public int getValue() {
         return value;
-    }
-
-    /**
-     * Obtain the name from the value.
-     *
-     * @param value the value to match.
-     * @return the name, or null.
-     */
-    public static String getName(int value) {
-        Priority pris[] = Priority.values();
-        for (Priority p : pris) {
-            if (p.value == value) {
-                return p.name();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Obtain the enum from the value.
-     *
-     * @param value the value to match.
-     * @return the matching enum, or <code>null</code>.
-     */
-    public static Priority getPriority(int value) {
-        Priority pris[] = Priority.values();
-        for (Priority p : pris) {
-            if (p.value == value) {
-                return p;
-            }
-        }
-        return null;
     }
 
 }

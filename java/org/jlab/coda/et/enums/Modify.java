@@ -37,7 +37,41 @@ public enum Modify {
 
     private int value;
 
-    private Modify(int value) {
+    /** Fast way to convert integer values into Modify objects. */
+    private static Modify[] intToType;
+
+    // Fill array after all enum objects created
+    static {
+        intToType = new Modify[9];
+        for (Modify type : values()) {
+            intToType[type.value] = type;
+        }
+    }
+
+	/**
+	 * Obtain the enum from the value.
+	 *
+	 * @param val the value to match.
+	 * @return the matching enum, or <code>null</code>.
+	 */
+    public static Modify getModify(int val) {
+        if (val != 0 && val != ANYTHING.value && val != HEADER.value) return null;
+        return intToType[val];
+    }
+
+    /**
+     * Obtain the name from the value.
+     *
+     * @param val the value to match.
+     * @return the name, or <code>null</code>.
+     */
+    public static String getName(int val) {
+        Modify s = getModify(val);
+        if (s == null) return null;
+        return s.name();
+    }
+
+    Modify(int value) {
         this.value = value;
     }
 
@@ -48,38 +82,5 @@ public enum Modify {
     public int getValue() {
         return value;
     }
-
-    /**
-     * Obtain the name from the value.
-     *
-     * @param value the value to match.
-     * @return the name, or null.
-     */
-    public static String getName(int value) {
-        Modify mods[] = Modify.values();
-        for (Modify m : mods) {
-            if (m.value == value) {
-                return m.name();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Obtain the enum from the value.
-     *
-     * @param value the value to match.
-     * @return the matching enum, or <code>null</code>.
-     */
-    public static Modify getModify(int value) {
-        Modify mods[] = Modify.values();
-        for (Modify m : mods) {
-            if (m.value == value) {
-                return m;
-            }
-        }
-        return null;
-    }
-
 
 }

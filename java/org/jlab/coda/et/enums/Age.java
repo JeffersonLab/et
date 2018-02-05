@@ -30,10 +30,43 @@ public enum Age {
     /** New event with no data, obtained through newEvents(). */
     NEW      (EtConstants.eventNew);
 
-    
     private int value;
 
-    private Age(int value) {
+    /** Fast way to convert integer values into Age objects. */
+    private static Age[] intToType;
+
+    // Fill array after all enum objects created
+    static {
+        intToType = new Age[2];
+        for (Age type : values()) {
+            intToType[type.value] = type;
+        }
+    }
+
+	/**
+	 * Obtain the enum from the value.
+	 *
+	 * @param val the value to match.
+	 * @return the matching enum, or <code>null</code>.
+	 */
+    public static Age getAge(int val) {
+        if (val > 1 || val < 0) return null;
+        return intToType[val];
+    }
+
+    /**
+     * Obtain the name from the value.
+     *
+     * @param val the value to match.
+     * @return the name, or <code>null</code>.
+     */
+    public static String getName(int val) {
+        Age s = getAge(val);
+        if (s == null) return null;
+        return s.name();
+    }
+
+    Age(int value) {
         this.value = value;
     }
 
@@ -45,35 +78,4 @@ public enum Age {
         return value;
     }
 
-    /**
-     * Obtain the name from the value.
-     *
-     * @param value the value to match.
-     * @return the name, or null.
-     */
-    public static String getName(int value) {
-        Age ages[] = Age.values();
-        for (Age a : ages) {
-            if (a.value == value) {
-                return a.name();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Obtain the enum from the value.
-     *
-     * @param value the value to match.
-     * @return the matching enum, or <code>null</code>.
-     */
-    public static Age getAge(int value) {
-        Age ages[] = Age.values();
-        for (Age a : ages) {
-            if (a.value == value) {
-                return a;
-            }
-        }
-        return null;
-    }
 }
