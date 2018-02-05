@@ -17,6 +17,7 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.enums.Age;
@@ -140,6 +141,7 @@ public class EtEventImpl implements EtEvent {
      */
     public EtEventImpl(int size) {
         memSize    = size;
+        sizeLimit  = size;
         isJava     = true;
         data       = new byte[size];
         control    = new int[numSelectInts];
@@ -358,6 +360,7 @@ public class EtEventImpl implements EtEvent {
         byteOrder  = 0x04030201;
         dataStatus = DataStatus.OK;
         System.arraycopy(controlInitValues, 0, control, 0, numSelectInts);
+        if (dataBuffer != null) dataBuffer.clear();
     }
 
 
@@ -443,9 +446,14 @@ public class EtEventImpl implements EtEvent {
     }
 
     /** {@inheritDoc} */
-    public int[] getControl() {
-        return control.clone();
-    }
+    public int[] getControl() {return control.clone();}
+
+    /**
+     * Gets the event's control array without copying.
+     * This is an array of integers which can be used for any purpose by the user.
+     * @return event's control array.
+     */
+    int[] getControlArray() {return control;}
 
     /** {@inheritDoc} */
     public byte[] getData() throws UnsupportedOperationException {
@@ -540,6 +548,18 @@ public class EtEventImpl implements EtEvent {
     public void setMemSize(int memSize) {
         this.memSize = memSize;
     }
+
+    /**
+     * Sets the limit of the size of the data buffer in bytes.
+     * @param sizeLimit limit of the size of the data buffer in bytes.
+     */
+    void setSizeLimit(int sizeLimit) {this.sizeLimit = sizeLimit;}
+
+    /**
+     * Sets flag specifying whether the ET system process is Java based or not.
+     * @param java if true, ET system is java-based, else it's C-based.
+     */
+    void setJava(boolean java) {isJava = java;}
 
     /**
      * Sets the event's data status. It can be ok {@link DataStatus#OK} which is the default,
