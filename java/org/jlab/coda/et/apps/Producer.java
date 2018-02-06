@@ -24,6 +24,7 @@ import java.util.HashSet;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.et.enums.Modify;
 
 /**
  * This class is an example of an event producer for an ET system.
@@ -38,7 +39,7 @@ public class Producer {
 
     private static void usage() {
         System.out.println("\nUsage: java Producer -f <et name>\n" +
-                "                      [-h] [-v] [-r] [-m] [-b] [-nd] [-blast]\n" +
+                "                      [-h] [-v] [-n] [-r] [-m] [-b] [-nd] [-blast]\n" +
                 "                      [-host <ET host>] [-w <big endian? 0/1>]\n" +
                 "                      [-s <event size>] [-c <chunk size>] [-g <group>]\n" +
                 "                      [-d <delay>] [-p <ET port>]\n" +
@@ -48,7 +49,8 @@ public class Producer {
                 "       -f     ET system's (memory-mapped file) name\n" +
                 "       -host  ET system's host if direct connection (default to local)\n" +
                 "       -h     help\n" +
-                "       -v     verbose output\n\n" +
+                "       -v     verbose output\n" +
+                "       -n     use new, non-garbage-generating new,get,put,dump methods\n\n" +
 
                 "       -s     event size in bytes\n" +
                 "       -c     number of events in one get/put array\n" +
@@ -83,7 +85,7 @@ public class Producer {
 
         int group=1, delay=0, size=32, port=0;
         int chunk=1, recvBufSize=0, sendBufSize=0;
-        boolean noDelay=false, verbose=false, remote=false, blast=false;
+        boolean noDelay=false, verbose=false, newIF=false, remote=false, blast=false;
         boolean bigEndian=true, writeData=false;
         boolean broadcast=false, multicast=false, broadAndMulticast=false;
         HashSet<String> multicastAddrs = new HashSet<String>();
@@ -118,6 +120,9 @@ public class Producer {
             }
             else if (args[i].equalsIgnoreCase("-v")) {
                 verbose = true;
+            }
+            else if (args[i].equalsIgnoreCase("-n")) {
+                newIF = true;
             }
             else if (args[i].equalsIgnoreCase("-r")) {
                 remote = true;
@@ -367,6 +372,13 @@ public class Producer {
             // attach to GRAND_CENTRAL
             EtAttachment att = sys.attach(gc);
 
+            // Stuff to use the new, garbage-minimizing, non-locking methods
+            int validEvents;
+            EtContainer container = null;
+            if (newIF) {
+                container = new EtContainer(sys, chunk, (int)sys.getEventSize());
+            }
+
             EtEvent[]   mevs;
             EtEventImpl realEvent;
             int         startingVal = 0;
@@ -385,23 +397,31 @@ public class Producer {
 
             while (true) {
                 // Get array of new events (don't allocate local mem if blasting)
-                mevs = sys.newEvents(att, Mode.SLEEP, blast, 0, chunk, size, group);
-                count += mevs.length;
+                if (newIF) {
+                    container.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
+                    sys.newEvents(container);
+                    count += validEvents = container.getEventCount();
+                    mevs = container.getEventArray();
+                }
+                else {
+                    mevs = sys.newEvents(att, Mode.SLEEP, blast, 0, chunk, size, group);
+                    count += validEvents = mevs.length;
+                }
 
                 // If blasting data (and remote), don't write anything,
                 // just use what's in fixed (fake) buffer.
                 if (blast) {
-                    for (EtEvent ev : mevs) {
-                        realEvent = (EtEventImpl) ev;
+                    for (int i=0; i < validEvents; i++) {
+                        realEvent = (EtEventImpl) mevs[i];
                         realEvent.setDataBuffer(fakeDataBuf);
 
                         // set data length
-                        ev.setLength(size);
+                        mevs[i].setLength(size);
                     }
                 }
                 // Write data, set control values here
                 else if (writeData) {
-                    for (int j = 0; j < mevs.length; j++) {
+                    for (int j=0; j < validEvents; j++) {
                         // Put integer (j + startingVal) into data buffer
                         if (bigEndian) {
                             mevs[j].getDataBuffer().putInt(j + startingVal);
@@ -421,16 +441,21 @@ public class Producer {
                     startingVal += mevs.length;
                 }
                 else {
-                    for (EtEvent ev : mevs) {
-                        ev.setLength(size);
+                    for (int i=0; i < validEvents; i++) {
+                        mevs[i].setLength(size);
                     }
                 }
 
                 if (delay > 0) Thread.sleep(delay);
 
-
-                // Put events back into ET system
-                sys.putEvents(att, mevs);
+                // put events back into ET system
+                if (newIF) {
+                    container.putEvents(att, mevs, 0, validEvents);
+                    sys.putEvents(container);
+                }
+                else {
+                    sys.putEvents(att, mevs);
+                }
 
 
                 // calculate the event rate
