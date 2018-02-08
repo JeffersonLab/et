@@ -18,6 +18,7 @@ import java.lang.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashSet;
 
 import org.jlab.coda.et.*;
@@ -37,7 +38,7 @@ public class Consumer {
 
     private static void usage() {
         System.out.println("\nUsage: java Consumer -f <et name> -s <station name>\n" +
-                "                      [-h] [-v] [-n] [-nb] [-r] [-m] [-b] [-nd] [-read] [-dump]\n" +
+                "                      [-h] [-v] [-n] [-e] [-nb] [-r] [-m] [-b] [-nd] [-read] [-dump]\n" +
                 "                      [-host <ET host>] [-p <ET port>]\n" +
                 "                      [-c <chunk size>] [-q <Q size>]\n" +
                 "                      [-pos <station pos>] [-ppos <parallel station pos>]\n" +
@@ -51,6 +52,7 @@ public class Consumer {
 
                 "       -v     verbose output (also prints data if reading with -read)\n" +
                 "       -n     use new, non-garbage-generating new,get,put,dump methods\n" +
+                "       -e     if specified read data as little endian, else big\n" +
                 "       -read  read data (1 int for each event)\n" +
                 "       -dump  dump events back into ET (go directly to GC) instead of put\n" +
                 "       -c     number of events in one get/put array\n" +
@@ -87,6 +89,7 @@ public class Consumer {
         boolean dump=false, readData=false, noDelay=false;
         boolean blocking=true, verbose=false, newIF=false, remote=false;
         boolean broadcast=false, multicast=false, broadAndMulticast=false;
+        ByteOrder order = ByteOrder.BIG_ENDIAN;
         HashSet<String> multicastAddrs = new HashSet<String>();
         String outgoingInterface=null, etName=null, host=null, statName=null;
 
@@ -123,6 +126,7 @@ public class Consumer {
                 verbose = true;
             }
             else if (args[i].equalsIgnoreCase("-n")) {
+System.out.println("Using NEW interface");
                 newIF = true;
             }
             else if (args[i].equalsIgnoreCase("-r")) {
@@ -142,6 +146,9 @@ public class Consumer {
             }
             else if (args[i].equalsIgnoreCase("-s")) {
                 statName = args[++i];
+            }
+            else if (args[i].equalsIgnoreCase("-e")) {
+                order = ByteOrder.LITTLE_ENDIAN;
             }
             else if (args[i].equalsIgnoreCase("-p")) {
                 try {
@@ -399,6 +406,7 @@ System.out.println("Flow mode is parallel");
                     for (int i=0; i < validEvents; i++) {
                         // Get event's data buffer
                         ByteBuffer buf = mevs[i].getDataBuffer();
+                        buf.order(order);
                         num = buf.getInt(0);
                         len = mevs[i].getLength();
                         bytes += len;
@@ -407,7 +415,7 @@ System.out.println("Flow mode is parallel");
                         if (verbose) {
                             System.out.println("    data (len = " + mevs[i].getLength() + ") = " + num);
 
-                            try {
+                            if (buf.hasArray()) {
                                 // If using byte array you need to watch out for endianness
                                 byte[] data = mevs[i].getData();
                                 int idata = EtUtils.bytesToInt(data,0);
@@ -420,8 +428,6 @@ System.out.println("Flow mode is parallel");
                                     System.out.println("    data (len = " + len +
                                                                ")does NOT need swapping, int = " + idata);
                                 }
-                            }
-                            catch (UnsupportedOperationException e) {
                             }
 
                             System.out.print("control array = {");

@@ -122,6 +122,7 @@ public class Producer {
                 verbose = true;
             }
             else if (args[i].equalsIgnoreCase("-n")) {
+System.out.println("Using NEW interface");
                 newIF = true;
             }
             else if (args[i].equalsIgnoreCase("-r")) {
@@ -431,6 +432,7 @@ public class Producer {
                             mevs[j].getDataBuffer().putInt(Integer.reverseBytes(j + startingVal));
                             mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
                         }
+                        if (verbose) System.out.println("Wrote " + (j + startingVal));
 
                         // Set data length to be full buf size even though we only wrote 1 int
                         mevs[j].setLength(size);
@@ -438,7 +440,7 @@ public class Producer {
                         // Set event's control array
                         mevs[j].setControl(con);
                     }
-                    startingVal += mevs.length;
+                    startingVal += validEvents;
                 }
                 else {
                     for (int i=0; i < validEvents; i++) {
