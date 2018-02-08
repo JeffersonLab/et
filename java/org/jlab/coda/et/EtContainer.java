@@ -57,7 +57,7 @@ public class EtContainer {
     EtEventImpl[] realEvents;
 
     /** Place to temporarily store events being put/dumped. */
-    EtEventImpl[] putEvents;
+    EtEvent[] putEvents;
 
     /** Place to temporarily store events being put/dumped. */
     EtEventImpl[] holdEvents;
@@ -158,7 +158,7 @@ public class EtContainer {
      * @param count needed number of events in arrays.
      * @param size  needed bytes in each event's internal data buffer.
      */
-    void adjustEventArraySize(int count, int size) {
+    private void adjustEventArraySize(int count, int size) {
         if (realEvents == null || eventArraySize < count) {
             // Pick the largest
             bufSize = bufSize < size ? size : bufSize;
@@ -347,10 +347,12 @@ public class EtContainer {
 
         // We're setup to call the putEvents() method
         method = PUT;
-        
-        putEvents = (EtEventImpl[]) evs;
-        // C interface does not have "offset" so accommodate that here
-        if (offset > 0 && holdEvents.length < length) {
+
+        // We cannot cast evs to putEvents since putEvents is a subclass
+        putEvents = evs;
+
+        // Need space to hold all evs elements in EtEventImpl array
+        if (holdEvents.length < length) {
             holdEvents = new EtEventImpl[length];
         }
     }
@@ -392,9 +394,10 @@ public class EtContainer {
         // We're setup to call the dumpEvents() method
         method = DUMP;
         
-        putEvents = (EtEventImpl[]) evs;
-        // C interface does not have "offset" so accommodate that here
-        if (offset > 0 && holdEvents.length < length) {
+        putEvents = evs;
+        
+        // Need space to hold all evs elements in EtEventImpl array
+        if (holdEvents.length < length) {
             holdEvents = new EtEventImpl[length];
         }
     }
