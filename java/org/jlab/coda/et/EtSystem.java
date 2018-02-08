@@ -2381,7 +2381,7 @@ public class EtSystem {
                     // skip unused int here
                     evs[j].setRawByteOrder(EtUtils.bytesToInt(buffer, 28));
                     index = 32;   // skip unused int
-                    int[] control = evs[j].getControlArray();
+                    int[] control = evs[j].getControlNoCopy();
                     for (int i=0; i < selectInts; i++) {
                         control[i] = EtUtils.bytesToInt(buffer, index+=4);
                     }
@@ -2483,16 +2483,10 @@ public class EtSystem {
     private void putEventsJNI(int attId, EtEvent[] evs, int offset, int length)
             throws EtException, EtDeadException, EtClosedException {
 
-        EtEventImpl[] events;
-        if (offset == 0) {
-            events = (EtEventImpl[])evs;
-        }
-        else {
-            // C interface has no offset (why did I do that again?), so compensate for that
-            events = new EtEventImpl[length];
-            for (int i = 0; i < length; i++) {
-                events[i] = (EtEventImpl) evs[offset + i];
-            }
+        // C interface has no offset (why did I do that again?), so compensate for that
+        EtEventImpl[] events = new EtEventImpl[length];
+        for (int i = 0; i < length; i++) {
+            events[i] = (EtEventImpl) evs[offset + i];
         }
 
         sys.getJni().putEvents(sys.getJni().getLocalEtId(), attId, events, length);
@@ -2600,8 +2594,7 @@ public class EtSystem {
                                    ByteOrder.BIG_ENDIAN, header, 16);
                 EtUtils.intToBytes(evs[i].getRawByteOrder(), ByteOrder.BIG_ENDIAN, header, 20);
                 indx = 28;  // skip 1 int here
-                //control = evs[i].getControl();
-                control = ((EtEventImpl)evs[i]).getControlArray();
+                control = evs[i].getControlNoCopy();
                 for (int j=0; j < selectInts; j++,indx+=4) {
                     EtUtils.intToBytes(control[j], ByteOrder.BIG_ENDIAN, header, indx);
                 }
@@ -2663,7 +2656,7 @@ public class EtSystem {
         int offset = container.offset;
         int length = container.length;
         EtAttachment att = container.att;
-        EtEventImpl[] evs = container.putEvents;
+        EtEvent[] evs = container.putEvents;
 
         final int selectInts = EtConstants.stationSelectInts;
         final int dataShift  = EtConstants.dataShift;
@@ -2690,17 +2683,14 @@ public class EtSystem {
 
         // Did we get things locally through JNI?
         if (sys.usingJniLibrary()) {
-            if (offset == 0) {
-                sys.getJni().putEvents(sys.getJni().getLocalEtId(), att.getId(), evs, length);
+            // C interface has no offset, so compensate for that.
+            // Cast subclass to superclass object by object as
+            // array to array is not permitted.
+            EtEventImpl[] events = container.holdEvents;
+            for (int i = 0; i < length; i++) {
+                events[i] = (EtEventImpl)evs[offset + i];
             }
-            else {
-                // C interface has no offset (why did I do that again?), so compensate for that
-                EtEventImpl[] events = container.holdEvents;
-                for (int i = 0; i < length; i++) {
-                    events[i] = evs[offset + i];
-                }
-                sys.getJni().putEvents(sys.getJni().getLocalEtId(), att.getId(), events, length);
-            }
+            sys.getJni().putEvents(sys.getJni().getLocalEtId(), att.getId(), events, length);
             return;
         }
 
@@ -2730,7 +2720,7 @@ public class EtSystem {
                 EtUtils.intToBytes(evs[i].getRawByteOrder(), ByteOrder.BIG_ENDIAN, header, 20);
                 indx = 28;  // skip 1 int here
                 // Doing this instead of evs[i].getControl() saves copying the array
-                control = evs[i].getControlArray();
+                control = evs[i].getControlNoCopy();
                 for (int j=0; j < selectInts; j++,indx+=4) {
                     EtUtils.intToBytes(control[j], ByteOrder.BIG_ENDIAN, header, indx);
                 }
@@ -2963,7 +2953,7 @@ public class EtSystem {
         int offset = container.offset;
         int length = container.length;
         EtAttachment att = container.att;
-        EtEventImpl[] evs = container.putEvents;
+        EtEvent[] evs = container.putEvents;
 
         // find out how many we're sending
         int numEvents = 0;
@@ -2977,17 +2967,14 @@ public class EtSystem {
 
         // Did we get things locally through JNI?
         if (sys.usingJniLibrary()) {
-            if (offset == 0) {
-                sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), att.getId(), evs, length);
+            // C interface has no offset, so compensate for that.
+            // Cast subclass to superclass object by object as
+            // array to array is not permitted.
+            EtEventImpl[] events = container.holdEvents;
+            for (int i = 0; i < length; i++) {
+                events[i] = (EtEventImpl)evs[offset + i];
             }
-            else {
-                // C interface has no offset (why did I do that again?), so compensate for that
-                EtEventImpl[] events = container.holdEvents;
-                for (int i = 0; i < length; i++) {
-                    events[i] = evs[offset + i];
-                }
-                sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), att.getId(), events, length);
-            }
+            sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), att.getId(), events, length);
             return;
         }
 
