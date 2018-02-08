@@ -32,7 +32,7 @@ public interface EtEvent {
      * Initialize an event's fields. Called for an event each time it passes
      * through GRAND_CENTRAL station.
      */
-    public void init();
+    void init();
 
 
     // getters
@@ -42,7 +42,7 @@ public interface EtEvent {
      * Gets the event's id number.
      * @return event's id number.
      */
-    public int getId();
+    int getId();
 
     /**
      * Gets the age of the event, either {@link Age#NEW} if a new event obtained through
@@ -52,7 +52,7 @@ public interface EtEvent {
      *
      * @return age of the event.
      */
-    public Age getAge();
+    Age getAge();
 
     /**
      * Gets the group the event belongs to (1, 2, ...) if ET system events are divided into groups.
@@ -60,7 +60,7 @@ public interface EtEvent {
      *
      * @return the group the event belongs to.
      */
-    public int getGroup();
+    int getGroup();
 
     /**
      * Gets the event's priority, either high {@link Priority#HIGH} or low {@link Priority#LOW}.
@@ -69,19 +69,19 @@ public interface EtEvent {
      * 
      * @return event's priority.
      */
-    public Priority getPriority();
+    Priority getPriority();
 
     /**
      * Gets the size of the data buffer in bytes.
      * @return size of the data buffer in bytes
      */
-    public int getMemSize();
+    int getMemSize();
 
     /**
      * Gets the length of the data in bytes.
      * @return length of the data in bytes.
      */
-    public int getLength();
+    int getLength();
 
     /**
      * Gets the status of the data (set by the system), which can be OK {@link DataStatus#OK},
@@ -92,7 +92,7 @@ public interface EtEvent {
      *
      * @return status of the data.
      */
-    public DataStatus getDataStatus();
+    DataStatus getDataStatus();
 
     /**
      * Gets the event's modify value when receiving it over the network.
@@ -106,15 +106,23 @@ public interface EtEvent {
      *
      * @return event's modify value.
      */
-    public Modify getModify();
+    Modify getModify();
 
     /**
-     * Gets the event's control array.
+     * Gets a copy of the event's control array.
      * This is an array of integers which can be used for any purpose by the user.
      * 
+     * @return copy of event's control array.
+     */
+    int[] getControl();
+
+    /**
+     * Gets a reference to the event's control array without copying.
+     * This is an additional method added later to facilitate minimizing garbage creation.
+     * This is an array of integers which can be used for any purpose by the user.
      * @return event's control array.
      */
-    public int[] getControl();
+    int[] getControlNoCopy();
 
     /**
      * Gets the data array which is backing the event's data buffer if there is one.
@@ -126,13 +134,13 @@ public interface EtEvent {
      * @return data array which is backing the event's data buffer
      * @throws UnsupportedOperationException if there is no backing array
      */
-    public byte[] getData() throws UnsupportedOperationException;
+    byte[] getData() throws UnsupportedOperationException;
 
     /**
      * Gets the event's data buffer.
      * @return event's data buffer.
      */
-    public ByteBuffer getDataBuffer();
+    ByteBuffer getDataBuffer();
 
     /**
      * Gets the attachment id of the attachment which owns or got the event.
@@ -140,19 +148,19 @@ public interface EtEvent {
      *
      * @return id of owning attachment or {@link EtConstants#system} if system owns it
      */
-    public int getOwner();
+    int getOwner();
 
     /**
      * Gets the event data's byte order.
      * @return event data's byte order
      */
-    public ByteOrder getByteOrder();
+    ByteOrder getByteOrder();
 
     /**
      * Gets the raw byte order data (0x04030201 or 0x01020304).
      * @return raw byte order data (0x04030201 or 0x01020304).
      */
-    public int getRawByteOrder();
+    int getRawByteOrder();
 
     /**
      * Gets whether this event is a temporary event or not.
@@ -164,7 +172,7 @@ public interface EtEvent {
      * @return {@code true} if this events represents a local, C-based ET system temp event,
      *         else {@code false}.
      */
-    public boolean isTemp();
+    boolean isTemp();
 
 
     // setters
@@ -177,7 +185,7 @@ public interface EtEvent {
      *
      * @param pri event priority
      */
-    public void setPriority(Priority pri);
+    void setPriority(Priority pri);
 
     /**
      * Sets the event's data length in bytes.
@@ -185,7 +193,7 @@ public interface EtEvent {
      * @param len data length
      * @throws EtException if length is less than zero
      */
-    public void setLength(int len) throws EtException;
+    void setLength(int len) throws EtException;
 
     /**
      * Sets the event's control array by copying it into the event.
@@ -193,7 +201,7 @@ public interface EtEvent {
      * @param con control array
      * @throws EtException if control array has the wrong number of elements
      */
-    public void setControl(int[] con) throws EtException;
+    void setControl(int[] con) throws EtException;
 
     /**
      * Set the event data's byte order.
@@ -230,5 +238,5 @@ public interface EtEvent {
      *
      * @return <code>true</code> if swapping is needed, otherwise <code>false</code>
      */
-    public boolean needToSwap();
+    boolean needToSwap();
 }
