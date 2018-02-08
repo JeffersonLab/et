@@ -448,12 +448,8 @@ public class EtEventImpl implements EtEvent {
     /** {@inheritDoc} */
     public int[] getControl() {return control.clone();}
 
-    /**
-     * Gets the event's control array without copying.
-     * This is an array of integers which can be used for any purpose by the user.
-     * @return event's control array.
-     */
-    int[] getControlArray() {return control;}
+    /** {@inheritDoc} */
+    public int[] getControlNoCopy() {return control;}
 
     /** {@inheritDoc} */
     public byte[] getData() throws UnsupportedOperationException {
