@@ -13,8 +13,10 @@ package org.jlab.coda.et;
 import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.et.enums.Modify;
 import org.jlab.coda.et.exception.*;
+import org.jlab.coda.et.system.AttachmentLocal;
 
 import java.util.BitSet;
+import java.util.List;
 
 import static org.jlab.coda.et.EtContainer.MethodType.*;
 
@@ -30,7 +32,7 @@ public class EtContainer {
      * Keep track of whether we're setup to do a
      * newEvents(), getEvents(), putEvents(), or dumpEvents().
      */
-    enum MethodType {NEW, GET, PUT, DUMP;}
+    public enum MethodType {NEW, NEW_LOCAL, GET, GET_LOCAL, PUT, PUT_LOCAL, DUMP, DUMP_LOCAL;}
 
     /** The method this container is set to deal with. */
     MethodType method = NEW;
@@ -56,10 +58,10 @@ public class EtContainer {
     /** Actual ET events with buffers/real memory. */
     EtEventImpl[] realEvents;
 
-    /** Place to temporarily store events being put/dumped. */
+    /** Reference to events being put/dumped. */
     EtEvent[] putEvents;
 
-    /** Place to temporarily store events being put/dumped. */
+    /** Place to store references to events being put/dumped using JNI. */
     EtEventImpl[] holdEvents;
 
     /** When doing put/dumpEvents, offset into event array arg. */
@@ -68,8 +70,14 @@ public class EtContainer {
     /** When doing put/dumpEvents, number of events to put/dump. */
     int length;
 
+    /** Which element of putEvents array has the END event? */
+    private int endIndex = -1;
+
     /** Attachment to ET system used to make, get, put, and dump events. */
     EtAttachment att;
+
+    /** Local attachment to ET system used to make, get, put, and dump events. */
+    AttachmentLocal attLocal;
 
     /** Et system object to track if putting event from correct attachment. */
     private EtSystem sys;
@@ -151,6 +159,23 @@ public class EtContainer {
         }
     }
 
+    public EtAttachment getAtt() {return att;}
+
+    public AttachmentLocal getAttLocal() {return attLocal;}
+
+    public Mode getMode() {return mode;}
+
+    public int getCount() {return count;}
+
+    public int getSize() {return size;}
+
+    public int getGroup() {return group;}
+
+    public int getMicroSec() {return microSec;}
+
+    public EtEventImpl[] getHoldEvents() {return holdEvents;}
+
+    public MethodType getMethod() {return method;}
 
     /**
      * Make sure the event arrays have at least the given number of events
@@ -243,12 +268,76 @@ public class EtContainer {
         // We're setup to call the newEvents() method
         method = NEW;
         jniEvents = null;
+        endIndex = -1;
 
         // Make sure there's room for the desired sized new events
         adjustEventArraySize(count, size);
 
         for (int i=0; i < eventArraySize; i++) {
             realEvents[i].init();
+        }
+    }
+
+    /**
+     * This method is for expert use only!
+     * Set this container up for getting new (unused) events from a specified group
+     * of such events in an ET system.
+     * Will access local Java-based ET systems running in the same JVM.
+     *
+     * @param att       local attachment object.
+     * @param modeVal   if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link EtConstants#sleep},
+     *                  to wait for a set time {@link EtConstants#timed},
+     *                  or to return immediately {@link EtConstants#async}.
+     * @param microSec  the number of microseconds to wait if a timed wait is specified.
+     * @param count     the number of events desired .
+     * @param size      the size of events in bytes.
+     * @param group     group number from which to draw new events. Some ET systems have
+     *                  unused events divided into groups whose numbering starts at 1.
+     *                  For ET system not so divided, all events belong to group 1.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     */
+    public void newEvents(AttachmentLocal att, int modeVal,
+                          int microSec, int count, int size, int group)
+                throws EtException {
+
+        Mode mode = Mode.getMode(modeVal);
+
+        if (mode == null) {
+            throw new EtException("modeVal arg invalid");
+        }
+        else if (att == null) {
+            throw new EtException("Invalid attachment");
+        }
+        else if (count < 0) {
+            throw new EtException("count arg negative");
+        }
+        else if ((microSec < 0) && (mode == Mode.TIMED)) {
+            throw new EtException("microSec arg negative");
+        }
+        else if (size < 1) {
+            throw new EtException("size arg < 1");
+        }
+        else if (group < 1) {
+            throw new EtException("group arg < 1");
+        }
+
+        this.attLocal = att;
+        this.mode = mode;
+        this.microSec = microSec;
+        this.count = count;
+        this.size = size;
+        this.group = group;
+
+        // We're setup to call the local newEvents() method
+        method = NEW_LOCAL;
+        jniEvents = null;
+        endIndex = -1;
+
+        if (holdEvents.length < count) {
+            holdEvents = new EtEventImpl[count];
         }
     }
 
@@ -306,6 +395,61 @@ public class EtContainer {
         // We're setup to call the getEvents() method
         method = GET;
         jniEvents = null;
+        endIndex = -1;
+
+        // Make sure there's room for ET sized new events
+        adjustEventArraySize(count, 0);
+    }
+
+
+    /**
+     * This method is for expert use only!
+     * Set this container up for getting events from an ET system.
+     * Will access local Java-based ET systems running in the same JVM.
+     *
+     * @param att      local attachment object.
+     * @param modeVal  if there are no new events available, this parameter specifies
+     *                 whether to wait for some by sleeping {@link EtConstants#sleep},
+     *                 to wait for a set time {@link EtConstants#timed},
+     *                 or to return immediately {@link EtConstants#async}.
+     * @param microSec the number of microseconds to wait if a timed wait is specified.
+     * @param count    the number of events desired.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     *     if the attachment's station is GRAND_CENTRAL;
+     *     if the attachment object is invalid;
+     */
+    public void getEvents(AttachmentLocal att, int modeVal, int microSec, int count)
+                throws EtException {
+
+        Mode mode = Mode.getMode(modeVal);
+
+        if (att == null) {
+            throw new EtException("Invalid attachment");
+        }
+        else if (att.getStation().getId() == 0) {
+            throw new EtException("may not get events from GRAND_CENTRAL");
+        }
+        else if (count < 0) {
+            throw new EtException("count arg negative");
+        }
+        else if (mode == null) {
+            throw new EtException("modeVal arg invalid");
+        }
+        else if ((mode == Mode.TIMED) && (microSec < 0)) {
+            throw new EtException("microSec arg negative");
+        }
+
+        this.attLocal = att;
+        this.mode = mode;
+        this.microSec = microSec;
+        this.count = count;
+
+        // We're setup to call the local getEvents() method
+        method = GET_LOCAL;
+        jniEvents = null;
+        endIndex = -1;
 
         // Make sure there's room for ET sized new events
         adjustEventArraySize(count, 0);
@@ -359,6 +503,40 @@ public class EtContainer {
 
 
     /**
+     * This method is for expert use only!
+     * Set this container up for putting (used) events back into an ET system.
+     * Will access local Java-based ET systems running in the same JVM.
+     *
+     * @param att     local attachment object
+     * @param evs     array of event objects
+     *
+     * @throws EtException
+     *     if invalid arg(s);
+     *     if events are not owned by this attachment;
+     */
+    public void putEvents(AttachmentLocal att, EtEventImpl[] evs)
+                    throws EtException {
+
+        if (evs == null) {
+            throw new EtException("Invalid event array arg");
+        }
+
+        if (att == null) {
+            throw new EtException("Invalid attachment");
+        }
+
+        this.attLocal = att;
+
+        // We're setup to call the local local putEvents() method
+        method = PUT_LOCAL;
+
+        // Probably not the best thing to do, but this code
+        // will only be called by emu internals.
+        holdEvents = evs;
+    }
+
+
+    /**
      * Set this container up for dumping events back into an ET system.
      * Will access local C-based ET systems through JNI/shared memory, but other ET
      * systems through sockets.
@@ -403,6 +581,40 @@ public class EtContainer {
     }
 
 
+    /**
+     * This method is for expert use only!
+     * Set this container up for dumping events back into an ET system.
+     * Will access local Java-based ET systems running in the same JVM.
+     *
+     * @param att     local attachment object
+     * @param evs     array of event objects
+     *
+     * @throws EtException
+     *     if invalid arg(s);
+     *     if events are not owned by this attachment;
+     */
+    public void dumpEvents(AttachmentLocal att, EtEventImpl[] evs)
+                    throws EtException {
+
+        if (evs == null) {
+            throw new EtException("Invalid event array arg");
+        }
+
+        if (att == null) {
+            throw new EtException("Invalid attachment");
+        }
+
+        this.attLocal = att;
+
+        // We're setup to call the local dumpEvents() method
+        method = DUMP_LOCAL;
+
+        // Probably not the best thing to do, but this code
+        // will only be called by emu internals.
+        holdEvents = evs;
+    }
+
+
     //***********************************************
 
 
@@ -439,25 +651,75 @@ public class EtContainer {
         }
     }
 
-    
+
+    /**
+     * This method is <b>NOT</b> for general use! Experts only!
+     * Take the new events obtained in
+     * {@link org.jlab.coda.et.system.SystemCreate#newEvents(EtContainer)}
+     * and assign them to local storage.
+     * @param list list of events which will be placed in {@link #holdEvents}.
+     */
+    public void holdLocalEvents(List<EtEventImpl> list) {
+        eventCount = list.size();
+        for (int i=0; i < eventCount; i++) {
+            holdEvents[i] = list.get(i);
+        }
+    }
+
+
+    /**
+     * This method is <b>NOT</b> for general use! Experts only!
+     * Take the events obtained in
+     * {@link org.jlab.coda.et.system.SystemCreate#getEvents(EtContainer)}
+     *  and assign them to local storage.
+     * @param evs array of events which will be placed in {@link #holdEvents}.
+     * @param len number of valid events in array (starting at 0).
+     */
+    public void holdLocalEvents(EtEventImpl[] evs, int len) {
+        eventCount = len;
+        holdEvents = evs;
+    }
+
+
     /**
      * Get an array containing events resulting from a call to
      * {@link #newEvents(EtAttachment, Mode, int, int, int, int)} or
      * {@link #getEvents(EtAttachment, Mode, Modify, int, int)}.
      * Not all of these are valid since the returned array is a reference to a
      * large internal array. Get the number of valid events by calling
-     * {@link #getEventCount()}. Please don't do anything nasty to
+     * {@link #getEventCount()}. Don't do anything nasty to
      * the elements of this internal array.
      *
      * @return events from a newEvents() or getEvents() call; null if last call
-     *         was not to either of these but to putEvents() or dumpEvents().
+     *         was not to either of these.
      */
     public EtEvent[] getEventArray() {
-        if (method != NEW && method != GET) return null;
-        if (jniEvents != null) {
-            return jniEvents;
+        if (method == NEW || method == GET) {
+            if (jniEvents != null) {
+                return jniEvents;
+            }
+            return realEvents;
         }
-        return realEvents;
+        return null;
+    }
+
+    /**
+     * Get an array containing events resulting from a call to
+     * {@link #newEvents(AttachmentLocal, int, int, int, int, int)} or
+     * {@link #getEvents(AttachmentLocal, int, int, int)}.
+     * Not all of these are valid since the returned array is a reference to a
+     * large internal array. Get the number of valid events by calling
+     * {@link #getEventCount()}. Don't do anything nasty to
+     * the elements of this internal array.
+     *
+     * @return events from a LOCAL newEvents() or getEvents() call; null if last call
+     *         was not to either of these.
+     */
+    public EtEventImpl[] getEventArrayLocal() {
+        if (method == NEW_LOCAL || method == GET_LOCAL) {
+            return holdEvents;
+        }
+        return null;
     }
 
 
@@ -493,6 +755,23 @@ public class EtContainer {
             }
         }
     }
+
+
+    /**
+     * Get the index into the array of the events being put containing the END event.
+     * Useful in CODA.
+     * @return index into the array of the events being put containing the END event.
+     *         Equals -1 if none.
+     */
+    public int getEndIndex() {return endIndex;}
+
+    /**
+     * Set the index into the array of the events being put containing the END event.
+     * Useful in CODA.
+     * @param index index into the array of the events being put containing the END event.
+     *        Set to -1 if none.
+     */
+    public void setEndIndex(int index) {endIndex = index;}
 
 
     //****************************************************
