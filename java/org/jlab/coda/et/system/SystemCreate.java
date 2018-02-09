@@ -1381,6 +1381,8 @@ public class SystemCreate {
     }
 
 
+
+
     /**
      * Get new or unused events from an ET system.
      *
@@ -1442,6 +1444,67 @@ public class SystemCreate {
         return evs;
     }
 
+    
+    /**
+     * Get new or unused events from an ET system.
+     *
+     * @param container helping object used to set/get parameters for getting new events.
+     *
+     * @throws EtException
+     *     if the group number is not meaningful, or
+     *     if container arg is null or not setup for newEvents.
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}
+     */
+    public void newEvents(EtContainer container)
+            throws EtException, EtEmptyException, EtBusyException,
+                   EtTimeoutException, EtWakeUpException {
+
+        if (container == null || container.getMethod() != EtContainer.MethodType.NEW_LOCAL) {
+            throw new EtException("arg null or not setup for newEvents");
+        }
+
+        AttachmentLocal att = container.getAttLocal();
+        int mode = container.getMode().getValue();
+        int microSec = container.getMicroSec();
+        int count = container.getCount();
+        int size = container.getSize();
+        int group = container.getGroup();
+
+        // check to see if value of group is meaningful
+        if (group > config.getGroups().length) {
+            throw new EtException("group number is too high");
+        }
+
+        // get events from GrandCentral Station's output list
+        List<EtEventImpl> evs = gcStation.getInputList().get(att, mode, microSec, count, group);
+
+        // for each event ...
+        for (EtEventImpl ev : evs) {
+            // initialize fields
+            ev.init();
+            // registered as owned by this attachment
+            ev.setOwner(att.getId());
+            // if size is too small make it larger
+            if (ev.getMemSize() < size) {
+                ev.setData(new byte[size]);
+                ev.setMemSize(size);
+            }
+        }
+
+        // keep track of # of events made by this attachment
+        att.setEventsMake(att.getEventsMake() + evs.size());
+        container.holdLocalEvents(evs);
+    }
+
 
     /**
      * Get events from an ET system.
@@ -1481,6 +1544,50 @@ public class SystemCreate {
         att.setEventsGet(att.getEventsGet() + evs.length);
 
         return evs;
+    }
+
+
+    /**
+     * Get events from an ET system.
+     *
+     * @param container helping object used to set/get parameters for getting events.
+     *
+     * @throws EtException
+     *     if the container arg is null or not setup for getEvents.
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty.
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked).
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired.
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup,
+     *     {@link EventList#wakeUp(AttachmentLocal)}, {@link EventList#wakeUpAll}.
+     */
+    public void getEvents(EtContainer container)
+            throws EtException, EtEmptyException, EtBusyException,
+                   EtTimeoutException, EtWakeUpException {
+
+        if (container == null || container.getMethod() != EtContainer.MethodType.GET_LOCAL) {
+            throw new EtException("arg null or not setup for getEvents");
+        }
+
+        AttachmentLocal att = container.getAttLocal();
+        int mode = container.getMode().getValue();
+        int microSec = container.getMicroSec();
+        int count = container.getCount();
+
+        EtEventImpl[] evs = att.getStation().getInputList().get(att, mode, microSec, count);
+
+        // each event is registered as owned by this attachment
+        for (EtEventImpl ev : evs) {
+            ev.setOwner(att.getId());
+        }
+
+        // keep track of # of events gotten by this attachment
+        att.setEventsGet(att.getEventsGet() + evs.length);
+        container.holdLocalEvents(evs, evs.length);
     }
 
 
@@ -1532,6 +1639,33 @@ public class SystemCreate {
     /**
      * Put events into an ET system.
      *
+     * @param container helping object used to set/get parameters for getting events.
+     */
+   public void putEvents(EtContainer container) throws EtException {
+
+       if (container == null || container.getMethod() != EtContainer.MethodType.PUT_LOCAL) {
+           throw new EtException("arg null or not setup for putEvents");
+       }
+
+       AttachmentLocal att = container.getAttLocal();
+       EtEventImpl[] eventArray = container.getHoldEvents();
+
+       // mark events as used and as owned by system
+       for (EtEventImpl ev : eventArray) {
+//System.out.println("putEvents: set age & owner of event " + i);
+           ev.setAge(Age.USED);
+           ev.setOwner(EtConstants.system);
+       }
+
+       att.getStation().getOutputList().put(eventArray);
+       // keep track of # of events put by this attachment
+       att.setEventsPut(att.getEventsPut() + eventArray.length);
+   }
+
+
+    /**
+     * Put events into an ET system.
+     *
      * @param att         attachment object
      * @param eventList   list of event objects
      */
@@ -1551,6 +1685,34 @@ public class SystemCreate {
         att.setEventsPut(att.getEventsPut() + eventList.size());
 
         return;
+    }
+
+
+    /**
+     * Dispose of unwanted events in an ET system. The events are recycled and not
+     * made available to any other user.
+     *
+     * @param container helping object used to set/get parameters for getting events.
+     */
+    public void dumpEvents(EtContainer container) throws EtException {
+
+        if (container == null || container.getMethod() != EtContainer.MethodType.DUMP_LOCAL) {
+            throw new EtException("arg null or not setup for dumpEvents");
+        }
+
+        AttachmentLocal att = container.getAttLocal();
+        EtEventImpl[] eventArray = container.getHoldEvents();
+
+        // mark as owned by system
+        for (EtEventImpl ev : eventArray) {
+            ev.setOwner(EtConstants.system);
+        }
+
+        // put into GrandCentral Station
+        gcStation.getInputList().putInGC(eventArray);
+
+        // keep track of # of events put by this attachment
+        att.setEventsDump(att.getEventsDump() + eventArray.length);
     }
 
 
