@@ -528,7 +528,7 @@ public class EtSystem {
              (config.getRestoreMode() == EtConstants.stationRestoreIn)  ||
              (config.getPrescale()    != 1))) {
 
-            throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, nonBlocking, prescale=1, & not restoreIn");
+            throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, blocking, prescale=1, & not restoreIn");
         }
 
         // If redistributing restored events, must be a parallel station
