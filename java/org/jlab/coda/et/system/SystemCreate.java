@@ -1587,7 +1587,7 @@ public class SystemCreate {
 
         // keep track of # of events gotten by this attachment
         att.setEventsGet(att.getEventsGet() + evs.length);
-        container.holdLocalEvents(evs, evs.length);
+        container.holdLocalEvents(evs);
     }
 
 

@@ -661,6 +661,13 @@ public class EtContainer {
      */
     public void holdLocalEvents(List<EtEventImpl> list) {
         eventCount = list.size();
+
+        // I know, terribly inefficient, but caused by SystemCreate's lack of
+        // offset and length args when putting and dumping events.
+        if (holdEvents.length != eventCount) {
+            holdEvents = new EtEventImpl[eventCount];
+        }
+
         for (int i=0; i < eventCount; i++) {
             holdEvents[i] = list.get(i);
         }
@@ -673,10 +680,9 @@ public class EtContainer {
      * {@link org.jlab.coda.et.system.SystemCreate#getEvents(EtContainer)}
      *  and assign them to local storage.
      * @param evs array of events which will be placed in {@link #holdEvents}.
-     * @param len number of valid events in array (starting at 0).
      */
-    public void holdLocalEvents(EtEventImpl[] evs, int len) {
-        eventCount = len;
+    public void holdLocalEvents(EtEventImpl[] evs) {
+        eventCount = evs.length;
         holdEvents = evs;
     }
 
