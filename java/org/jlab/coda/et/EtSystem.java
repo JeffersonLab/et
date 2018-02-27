@@ -1684,7 +1684,17 @@ public class EtSystem {
      * Will access local C-based ET systems through JNI/shared memory, but other ET
      * systems through sockets. This method is NOT synchronized so it is NOT thread-safe
      * when used with other methods from this class. This is done for performance reasons.
-     * Also, no checks to see if connected to ET.
+     * Also, no checks to see if connected to ET.<p>
+     *
+     * <b>Warning:</b> a call to this method must be
+     * followed by a call to {@link #putEvents(EtContainer)} or {@link #dumpEvents(EtContainer)}
+     * with the same container argument.
+     * If that does not occur, and this method is called twice or more in succession,
+     * then the previously obtained new events (in the EtContainer) will be overwritten
+     * by the newly obtained events.<p>
+     *
+     * This method is only useful for callers who are trying to minimize generated JVM garbage
+     * and familiar with the limitations of its use.
      *
      * @param container helping object used to set/get parameters for getting new event.
      *
@@ -2656,7 +2666,7 @@ public class EtSystem {
         int offset = container.offset;
         int length = container.length;
         EtAttachment att = container.att;
-        EtEvent[] evs = container.putEvents;
+        EtEventImpl[] evs = container.putDumpEvents;
 
         final int selectInts = EtConstants.stationSelectInts;
         final int dataShift  = EtConstants.dataShift;
@@ -2683,12 +2693,15 @@ public class EtSystem {
 
         // Did we get things locally through JNI?
         if (sys.usingJniLibrary()) {
+            if (offset == 0) {
+                sys.getJni().putEvents(sys.getJni().getLocalEtId(), att.getId(), evs, length);
+                return;
+            }
+
             // C interface has no offset, so compensate for that.
-            // Cast subclass to superclass object by object as
-            // array to array is not permitted.
             EtEventImpl[] events = container.holdEvents;
             for (int i = 0; i < length; i++) {
-                events[i] = (EtEventImpl)evs[offset + i];
+                events[i] = evs[offset + i];
             }
             sys.getJni().putEvents(sys.getJni().getLocalEtId(), att.getId(), events, length);
             return;
@@ -2953,7 +2966,7 @@ public class EtSystem {
         int offset = container.offset;
         int length = container.length;
         EtAttachment att = container.att;
-        EtEvent[] evs = container.putEvents;
+        EtEventImpl[] evs = container.putDumpEvents;
 
         // find out how many we're sending
         int numEvents = 0;
@@ -2967,12 +2980,15 @@ public class EtSystem {
 
         // Did we get things locally through JNI?
         if (sys.usingJniLibrary()) {
+            if (offset == 0) {
+                sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), att.getId(), evs, length);
+                return;
+            }
+
             // C interface has no offset, so compensate for that.
-            // Cast subclass to superclass object by object as
-            // array to array is not permitted.
             EtEventImpl[] events = container.holdEvents;
             for (int i = 0; i < length; i++) {
-                events[i] = (EtEventImpl)evs[offset + i];
+                events[i] = evs[offset + i];
             }
             sys.getJni().dumpEvents(sys.getJni().getLocalEtId(), att.getId(), events, length);
             return;
