@@ -49,19 +49,17 @@ public class EtContainer {
     /** Convenience variable for realEvents.length - total # of events we have. */
     private int eventArraySize;
 
-    /** Place to hold ET events. */
-    EtEvent[] events;
-
     /** Array returned by new/getEvents when using jni. */
-    private EtEvent[] jniEvents;
+    private EtEventImpl[] jniEvents;
 
     /** Actual ET events with buffers/real memory. */
     EtEventImpl[] realEvents;
 
-    /** Reference to events being put/dumped. */
-    EtEvent[] putEvents;
+    /** Reference to events being put/dumped using normal calls.
+     *  Actual events were originally placed in either jniEvents or realEvents. */
+    EtEventImpl[] putDumpEvents;
 
-    /** Place to store references to events being put/dumped using JNI. */
+    /** Place to store references to events being put/dumped using JNI with local calls. */
     EtEventImpl[] holdEvents;
 
     /** When doing put/dumpEvents, offset into event array arg. */
@@ -70,8 +68,17 @@ public class EtContainer {
     /** When doing put/dumpEvents, number of events to put/dump. */
     int length;
 
-    /** Which element of putEvents array has the END event? */
-    private int endIndex = -1;
+    /** If used by CODA, does an element of holdEvents/putEvents array have the END event? */
+    private boolean hasEndEvent;
+
+    /**
+     * Sometimes not all events obtained through new/getEvents will
+     * be used. If only some are useful, store the last useful event's or
+     * "last" index in this variable. The caller can do a putEvents on the
+     * useful and a dumpEvents on the rest.<p>
+     * This is relevant when dealing with prestart or end events in CODA.
+     */
+    private int lastIndex = -1;
 
     /** Attachment to ET system used to make, get, put, and dump events. */
     EtAttachment att;
@@ -118,6 +125,7 @@ public class EtContainer {
             throw new EtException("sys arg null");
         }
         this.sys = sys;
+        etEventSize = (int) sys.getEventSize();
     }
 
     /**
@@ -145,12 +153,11 @@ public class EtContainer {
         // least the size of the ET events or may get into a mode of operation
         // that is slow and inefficient by having to constantly allocate bigger
         // buffers.
-        etEventSize  = (int) sys.getEventSize();
+        etEventSize = (int) sys.getEventSize();
         bufSize = size > etEventSize ? size : etEventSize;
 
         eventArraySize = count;
 
-        events = new EtEvent[eventArraySize];
         holdEvents = new EtEventImpl[eventArraySize];
         realEvents = new EtEventImpl[eventArraySize];
 
@@ -180,20 +187,19 @@ public class EtContainer {
     /**
      * Make sure the event arrays have at least the given number of events
      * at the given data buffer size (with ET event size minimum).
-     * @param count needed number of events in arrays.
-     * @param size  needed bytes in each event's internal data buffer.
+     * @param count    needed number of events in arrays.
+     * @param size     needed bytes in each event's internal data buffer.
+     * @param allocate if true, allocate memory for internal storage of events.
      */
-    private void adjustEventArraySize(int count, int size) {
+    private void adjustEventArraySize(int count, int size, boolean allocate) {
         if (realEvents == null || eventArraySize < count) {
             // Pick the largest
             bufSize = bufSize < size ? size : bufSize;
-            etEventSize  = (int) sys.getEventSize();
             bufSize = bufSize < etEventSize? etEventSize : bufSize;
 
             eventArraySize = count;
 //System.out.println("Init event/realEvent arrays to len = " + eventArraySize);
 
-            events = new EtEvent[eventArraySize];
             holdEvents = new EtEventImpl[eventArraySize];
             realEvents = new EtEventImpl[eventArraySize];
 
@@ -209,10 +215,14 @@ public class EtContainer {
                 realEvents[i] = new EtEventImpl(bufSize);
             }
         }
+        else if (allocate) {
+            for (int i=0; i < eventArraySize; i++) {
+                realEvents[i] = new EtEventImpl(bufSize);
+            }
+        }
     }
      
     //***********************************************
-
     /**
      * Set this container up for getting new (unused) events from a specified group
      * of such events in an ET system.
@@ -237,6 +247,36 @@ public class EtContainer {
      */
     public void newEvents(EtAttachment att, Mode mode,
                           int microSec, int count, int size, int group)
+                throws EtException {
+        newEvents(att, mode, microSec, count, size, group, false);
+    }
+
+    /**
+     * Set this container up for getting new (unused) events from a specified group
+     * of such events in an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att       attachment object.
+     * @param mode      if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                  to wait for a set time {@link Mode#TIMED},
+     *                  or to return immediately {@link Mode#ASYNC}.
+     * @param microSec  the number of microseconds to wait if a timed wait is specified.
+     * @param count     the number of events desired .
+     * @param size      the size of events in bytes.
+     * @param group     group number from which to draw new events. Some ET systems have
+     *                  unused events divided into groups whose numbering starts at 1.
+     *                  For ET system not so divided, all events belong to group 1.
+     * @param allocate  if true, allocate new objects in which to store the new events.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     *     if attachment object is invalid;
+     */
+    public void newEvents(EtAttachment att, Mode mode,
+                          int microSec, int count, int size, int group,
+                          boolean allocate)
                 throws EtException {
 
         if (mode == null) {
@@ -268,10 +308,11 @@ public class EtContainer {
         // We're setup to call the newEvents() method
         method = NEW;
         jniEvents = null;
-        endIndex = -1;
+        lastIndex = -1;
+        hasEndEvent = false;
 
         // Make sure there's room for the desired sized new events
-        adjustEventArraySize(count, size);
+        adjustEventArraySize(count, size, allocate);
 
         for (int i=0; i < eventArraySize; i++) {
             realEvents[i].init();
@@ -334,13 +375,12 @@ public class EtContainer {
         // We're setup to call the local newEvents() method
         method = NEW_LOCAL;
         jniEvents = null;
-        endIndex = -1;
+        lastIndex = -1;
+        hasEndEvent = false;
 
-        if (holdEvents.length < count) {
-            holdEvents = new EtEventImpl[count];
-        }
+        // Space for new events is created when SystemCreate.newEvents()
+        // calls holdLocalEvents().
     }
-
 
     /**
      * Set this container up for getting events from an ET system.
@@ -369,6 +409,37 @@ public class EtContainer {
     public void getEvents(EtAttachment att, Mode mode, Modify modify,
                           int microSec, int count)
                 throws EtException {
+        getEvents(att, mode, modify, microSec, count, false);
+    }
+
+    /**
+     * Set this container up for getting events from an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att      attachment object.
+     * @param mode     if there are no events available, this parameter specifies
+     *                 whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                 to wait for a set time {@link Mode#TIMED},
+     *                 or to return immediately {@link Mode#ASYNC}.
+     * @param modify   this specifies whether this application plans
+     *                 on modifying the data in events obtained {@link Modify#ANYTHING}, or
+     *                 only modifying headers {@link Modify#HEADER}. The default assumed ,{@link Modify#NOTHING},
+     *                 means that no values are modified resulting in the events being put back into
+     *                 the ET system (by remote server) immediately upon being copied and that copy
+     *                 sent to this method's caller.
+     * @param microSec the number of microseconds to wait if a timed wait is specified.
+     * @param count    the number of events desired.
+     * @param allocate if true, allocate new objects in which to store the new events.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     *     if the attachment's station is GRAND_CENTRAL;
+     *     if the attachment object is invalid;
+     */
+    public void getEvents(EtAttachment att, Mode mode, Modify modify,
+                          int microSec, int count, boolean allocate)
+                throws EtException {
 
         if (att == null|| !att.isUsable() || att.getSys() != sys) {
             throw new EtException("Invalid attachment");
@@ -395,10 +466,11 @@ public class EtContainer {
         // We're setup to call the getEvents() method
         method = GET;
         jniEvents = null;
-        endIndex = -1;
+        lastIndex = -1;
+        hasEndEvent = false;
 
         // Make sure there's room for ET sized new events
-        adjustEventArraySize(count, 0);
+        adjustEventArraySize(count, 0, allocate);
     }
 
 
@@ -449,10 +521,8 @@ public class EtContainer {
         // We're setup to call the local getEvents() method
         method = GET_LOCAL;
         jniEvents = null;
-        endIndex = -1;
-
-        // Make sure there's room for ET sized new events
-        adjustEventArraySize(count, 0);
+        lastIndex = -1;
+        hasEndEvent = false;
     }
 
 
@@ -462,7 +532,6 @@ public class EtContainer {
      * systems through sockets.
      *
      * @param att     attachment object
-     * @param evs     array of event objects
      * @param offset  offset into array
      * @param length  number of array elements to put
      *
@@ -470,14 +539,18 @@ public class EtContainer {
      *     if invalid arg(s);
      *     if events are not owned by this attachment;
      */
-    public void putEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
+    public void putEvents(EtAttachment att, int offset, int length)
                     throws EtException {
 
-        if (evs == null) {
-            throw new EtException("Invalid event array arg");
+        // Where are our events stored?
+        if (jniEvents != null) {
+            putDumpEvents = jniEvents;
+        }
+        else {
+            putDumpEvents = realEvents;
         }
 
-        if (offset < 0 || length < 0 || offset + length > evs.length) {
+        if (offset < 0 || length < 0 || offset + length > putDumpEvents.length) {
             throw new EtException("Bad offset or length argument(s)");
         }
 
@@ -492,11 +565,8 @@ public class EtContainer {
         // We're setup to call the putEvents() method
         method = PUT;
 
-        // We cannot cast evs to putEvents since putEvents is a subclass
-        putEvents = evs;
-
         // Need space to hold all evs elements in EtEventImpl array
-        if (holdEvents.length < length) {
+        if (offset > 0 && holdEvents.length < length) {
             holdEvents = new EtEventImpl[length];
         }
     }
@@ -507,19 +577,14 @@ public class EtContainer {
      * Set this container up for putting (used) events back into an ET system.
      * Will access local Java-based ET systems running in the same JVM.
      *
-     * @param att     local attachment object
-     * @param evs     array of event objects
+     * @param att local attachment object
      *
      * @throws EtException
      *     if invalid arg(s);
      *     if events are not owned by this attachment;
      */
-    public void putEvents(AttachmentLocal att, EtEventImpl[] evs)
+    public void putEvents(AttachmentLocal att)
                     throws EtException {
-
-        if (evs == null) {
-            throw new EtException("Invalid event array arg");
-        }
 
         if (att == null) {
             throw new EtException("Invalid attachment");
@@ -529,10 +594,6 @@ public class EtContainer {
 
         // We're setup to call the local local putEvents() method
         method = PUT_LOCAL;
-
-        // Probably not the best thing to do, but this code
-        // will only be called by emu internals.
-        holdEvents = evs;
     }
 
 
@@ -542,7 +603,6 @@ public class EtContainer {
      * systems through sockets.
      *
      * @param att     attachment object
-     * @param evs     array of event objects
      * @param offset  offset into array
      * @param length  number of array elements to put
      *
@@ -550,14 +610,18 @@ public class EtContainer {
      *     if invalid arg(s);
      *     if events are not owned by this attachment;
      */
-    public void dumpEvents(EtAttachment att, EtEvent[] evs, int offset, int length)
+    public void dumpEvents(EtAttachment att, int offset, int length)
                     throws EtException {
 
-        if (evs == null) {
-            throw new EtException("Invalid event array arg");
+        // Where are our events stored?
+        if (jniEvents != null) {
+            putDumpEvents = jniEvents;
+        }
+        else {
+            putDumpEvents = realEvents;
         }
 
-        if (offset < 0 || length < 0 || offset + length > evs.length) {
+        if (offset < 0 || length < 0 || offset + length > putDumpEvents.length) {
             throw new EtException("Bad offset or length argument(s)");
         }
 
@@ -571,11 +635,9 @@ public class EtContainer {
 
         // We're setup to call the dumpEvents() method
         method = DUMP;
-        
-        putEvents = evs;
-        
+
         // Need space to hold all evs elements in EtEventImpl array
-        if (holdEvents.length < length) {
+        if (offset > 0 && holdEvents.length < length) {
             holdEvents = new EtEventImpl[length];
         }
     }
@@ -586,19 +648,14 @@ public class EtContainer {
      * Set this container up for dumping events back into an ET system.
      * Will access local Java-based ET systems running in the same JVM.
      *
-     * @param att     local attachment object
-     * @param evs     array of event objects
+     * @param att local attachment object
      *
      * @throws EtException
      *     if invalid arg(s);
      *     if events are not owned by this attachment;
      */
-    public void dumpEvents(AttachmentLocal att, EtEventImpl[] evs)
+    public void dumpEvents(AttachmentLocal att)
                     throws EtException {
-
-        if (evs == null) {
-            throw new EtException("Invalid event array arg");
-        }
 
         if (att == null) {
             throw new EtException("Invalid attachment");
@@ -608,10 +665,6 @@ public class EtContainer {
 
         // We're setup to call the local dumpEvents() method
         method = DUMP_LOCAL;
-
-        // Probably not the best thing to do, but this code
-        // will only be called by emu internals.
-        holdEvents = evs;
     }
 
 
@@ -664,7 +717,7 @@ public class EtContainer {
 
         // I know, terribly inefficient, but caused by SystemCreate's lack of
         // offset and length args when putting and dumping events.
-        if (holdEvents.length != eventCount) {
+        if (holdEvents == null || holdEvents.length != eventCount) {
             holdEvents = new EtEventImpl[eventCount];
         }
 
@@ -749,12 +802,6 @@ public class EtContainer {
     
     /** Clear out unused event arrays. */
     private void clear() {
-        if (events != null) {
-            for (int i=0; i < events.length; i++) {
-                events[i] = null;
-            }
-        }
-
         if (realEvents != null) {
             for (EtEventImpl ev : realEvents) {
                 ev.init();
@@ -763,29 +810,40 @@ public class EtContainer {
     }
 
 
-    /**
-     * Get the index into the array of the events being put containing the END event.
-     * Useful in CODA.
-     * @return index into the array of the events being put containing the END event.
-     *         Equals -1 if none.
-     */
-    public int getEndIndex() {return endIndex;}
-
-    /**
-     * Set the index into the array of the events being put containing the END event.
-     * Useful in CODA.
-     * @param index index into the array of the events being put containing the END event.
-     *        Set to -1 if none.
-     */
-    public void setEndIndex(int index) {endIndex = index;}
-
 
     //****************************************************
     // For CODA online and use in the Disruptor package.
     //****************************************************
 
-    /** Is this the END event? */
-    public boolean[] isEnd;
+    /**
+     * Get the index of the last valid event in the array of the events being put.
+     * Useful in CODA.
+     * @return index of the last valid event in the array of the events being put.
+     *         Equals -1 if none.
+     */
+    public int getLastIndex() {return lastIndex;}
+
+    /**
+     * Set the index of the last valid event in the array of the events being put.
+     * Useful in CODA.
+     * @param index index of the last valid event in the array of the events being put.
+     *              Set to -1 if none.
+     */
+    public void setLastIndex(int index) {lastIndex = index;}
+
+    /**
+     * Get whether the events being put contain the END event.
+     * @return true if the events being put contain the END event.
+     */
+    public boolean hasEndEvent() {return hasEndEvent;}
+
+    /**
+     * Set whether the events being put contain the END event.
+     * @param index true if the events being put contain the END event.
+     */
+    public void setHasEndEvent(boolean index) {
+        hasEndEvent = index;}
+
 
     /** Number of evio events in ET event. */
     public int[] itemCounts;
