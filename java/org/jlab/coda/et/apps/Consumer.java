@@ -454,7 +454,7 @@ System.out.println("Flow mode is parallel");
                 if (dump) {
                     // dump events back into ET system
                     if (newIF) {
-                        container.dumpEvents(att, mevs, 0, validEvents);
+                        container.dumpEvents(att, 0, validEvents);
                         sys.dumpEvents(container);
                     }
                     else {
@@ -464,7 +464,7 @@ System.out.println("Flow mode is parallel");
                 else {
                     // put events back into ET system
                     if (newIF) {
-                        container.putEvents(att, mevs, 0, validEvents);
+                        container.putEvents(att, 0, validEvents);
                         sys.putEvents(container);
                     }
                     else {

@@ -452,7 +452,7 @@ System.out.println("Using NEW interface");
 
                 // put events back into ET system
                 if (newIF) {
-                    container.putEvents(att, mevs, 0, validEvents);
+                    container.putEvents(att, 0, validEvents);
                     sys.putEvents(container);
                 }
                 else {
