@@ -1554,6 +1554,7 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -1773,6 +1774,7 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -2047,6 +2049,7 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -2281,6 +2284,7 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
