@@ -1692,17 +1692,17 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
           size_t len;
           et_att_id  att;
 
-/*printf("etr_events_put: read incoming array\n");*/
+/*printf("et_events_put server: read incoming array\n");*/
           if (etNetTcpRead(connfd, (void *) incoming, sizeof(incoming)) != sizeof(incoming)) {
             goto end;
           }
           att     = ntohl(incoming[0]);
           nevents = ntohl(incoming[1]);
-/*          size    = ET_64BIT_UINT(ntohl(incoming[2]),ntohl(incoming[3]));
-printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, size);*/
+          /*size    = ET_64BIT_UINT(ntohl(incoming[2]),ntohl(incoming[3]));*/
+/*printf("et_events_put server: att = %d, nevents = %d, size(bytes) = %lu\n", att, nevents, size);*/
 
           for (i=0; i < nevents; i++) {
-/*printf("etr_events_put: i = %d, read in header next, %d ints\n", i, 7+ET_STATION_SELECT_INTS);*/
+/*printf("et_events_put server: i = %d, read in header next, %d ints\n", i, 7+ET_STATION_SELECT_INTS);*/
             if (etNetTcpRead(connfd, (void *)hheader, sizeof(hheader)) != sizeof(hheader)) {
               goto end;
             }
@@ -1716,10 +1716,10 @@ printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, siz
             events[i] = (et_event *) ntohl(hheader[1]);
 #endif*/
             events[i]              = ET_P2EVENT(etid, ntohl(hheader[0])); /* hheader[1] is NOT used */
-/*printf("etr_events_put: pointer = %p\n", events[i]);*/
+/*printf("et_events_put server: pointer = %p, id = %d\n", events[i],  ntohl(hheader[0]));*/
             events[i]->length      = ET_64BIT_UINT(ntohl(hheader[2]),ntohl(hheader[3]));
             len                    = (size_t)events[i]->length;
-/*printf("etr_events_put: len = %d\n", (int)len); */
+/*printf("et_events_put server: ev #%d, len = %lu\n", i, events[i]->length);*/
             events[i]->priority    = ntohl(hheader[4]) & ET_PRIORITY_MASK;
             events[i]->datastatus  =(ntohl(hheader[4]) & ET_DATA_MASK) >> ET_DATA_SHIFT;
             events[i]->byteorder   = hheader[5];
@@ -1728,13 +1728,13 @@ printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, siz
             }
             /* only read data if modifying everything */
             if (events[i]->modify == ET_MODIFY) {
-              if (etNetTcpRead(connfd, events[i]->pdata, (int)len) != len) {
+/*printf("et_events_put server: read in data because modify = ET_MODIFY\n");*/
+                if (etNetTcpRead(connfd, events[i]->pdata, (int)len) != len) {
                 goto end;
               }
-/*printf("etr_events_put: read in data next = %d\n", ET_SWAP32(*((int *) (events[i]->pdata))) );*/
+/*printf("et_events_put server: read in data next = %d\n", ET_SWAP32(*((int *) (events[i]->pdata))) );*/
             }
           }
-/*printf("etr_events_put: put event for real\n");*/
           err = et_events_put(id, att, events, nevents);
 
           err = htonl((uint32_t)err);
@@ -2003,7 +2003,7 @@ printf("etr_events_put: att = %d, nevents = %d, size = %lu\n", att, nevents, siz
             size  = ET_64BIT_UINT(ntohl(incoming[2]), ntohl(incoming[3]));
             num   = ntohl(incoming[4]);
             group = ntohl(incoming[5]);
-
+            
 #ifndef _LP64
             /* if we're 32 bit, a 64 bit app may ask for events which are too big */
             if (bit64 && num*size > UINT32_MAX/5) {
