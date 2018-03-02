@@ -1508,7 +1508,8 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num) {
         if (pe[i]->length > pe[i]->memsize) {
             et_mem_unlock(etid);
             if (etid->debug >= ET_DEBUG_ERROR) {
-                et_logmsg("ERROR", "et_events_put, 1 or more data lengths are too large!\n");
+                et_logmsg("ERROR", "et_events_put, 1 or more data lengths are too large(%lu > %lu)!\n",
+                          pe[i]->length, pe[i]->memsize);
             }
             return ET_ERROR;
         }
