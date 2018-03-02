@@ -1554,7 +1554,6 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
-            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -1774,7 +1773,6 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
-            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -1799,54 +1797,57 @@ public class EtSystem {
         try {
 
             while (true) {
-                out.write(buffer, 0, 36);
-                out.flush();
+                
+                synchronized (this) {
+                    out.write(buffer, 0, 36);
+                    out.flush();
 
-                // ET system clients are liable to get stuck here if the ET
-                // system crashes. If the socket connection has been broken,
-                // an IOException will be generated.
-                err = in.readInt();
+                    // ET system clients are liable to get stuck here if the ET
+                    // system crashes. If the socket connection has been broken,
+                    // an IOException will be generated.
+                    err = in.readInt();
 
-                if (err < EtConstants.ok) {
-                    if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
-                        System.out.println("error in ET system (newEvents), err = " + err);
-                    }
+                    if (err < EtConstants.ok) {
+                        if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
+                            System.out.println("error in ET system (newEvents), err = " + err);
+                        }
 
-                    // throw some exceptions
-                    if (err == EtConstants.error) {
-                        throw new EtException("bad mode value or group # too high" );
-                    }
-                    else if (err == EtConstants.errorBusy) {
-                        throw new EtBusyException("input list is busy");
-                    }
-                    else if (err == EtConstants.errorEmpty) {
-                        throw new EtEmptyException("no events in list");
-                    }
-                    else if (err == EtConstants.errorWakeUp) {
-                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
-                    }
-                    else if (err == EtConstants.errorTimeout) {
-                        // Only get here if using SLEEP or TIMED modes
-                        if (mode == Mode.SLEEP || iterations-- > 0) {
+                        // throw some exceptions
+                        if (err == EtConstants.error) {
+                            throw new EtException("bad mode value or group # too high");
+                        }
+                        else if (err == EtConstants.errorBusy) {
+                            throw new EtBusyException("input list is busy");
+                        }
+                        else if (err == EtConstants.errorEmpty) {
+                            throw new EtEmptyException("no events in list");
+                        }
+                        else if (err == EtConstants.errorWakeUp) {
+                            throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                        }
+                        else if (err == EtConstants.errorTimeout) {
+                            // Only get here if using SLEEP or TIMED modes
+                            if (mode == Mode.SLEEP || iterations-- > 0) {
 // System.out.println("implement sleep with another timed mode call (newEvents)");
-                            continue;
+                                continue;
+                            }
+                            if (debug >= EtConstants.debugError) {
+                                System.out.println("newEvents timeout");
+                            }
+                            throw new EtTimeoutException("no events within timeout");
                         }
-                        if (debug >= EtConstants.debugError) {
-                            System.out.println("newEvents timeout");
-                        }
-                        throw new EtTimeoutException("no events within timeout");
                     }
+
+                    // number of events to expect
+                    numEvents = err;
+                    int numBytes = 4 * numEvents;
+
+                    // list of events to return
+                    evs = container.realEvents;
+                    container.adjustByteArraySize(numBytes);
+                    buffer = container.byteArray;
+                    in.readFully(buffer, 0, numBytes);
                 }
-
-                // number of events to expect
-                numEvents = err;
-                int numBytes = 4*numEvents;
-
-                // list of events to return
-                evs = container.realEvents;
-                container.adjustByteArraySize(numBytes);
-                buffer = container.byteArray;
-                in.readFully(buffer, 0, numBytes);
 
                 break;
             }
@@ -2049,7 +2050,6 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
-            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -2284,7 +2284,6 @@ public class EtSystem {
         // break it up into repeated smaller time chunks for the
         // reason mentioned above. Don't break it up if timeout <= 1 sec.
         else if (mode == Mode.TIMED && (microSec > 1000000))  {
-            netMode = Mode.TIMED;
             sec  =  newTimeInterval/1000000;
             nsec = (newTimeInterval - sec*1000000) * 1000;
             // How many times do we call getEvents() with this new timeout value?
@@ -2293,7 +2292,7 @@ public class EtSystem {
             if (microSec % newTimeInterval > 0) iterations++;
         }
 
-        int err;
+        int err, numEvents;
         EtEventImpl[] evs;
 
         byte[] buffer = container.byteArray;
@@ -2309,100 +2308,102 @@ public class EtSystem {
 
             while (true) {
 
-                // Write over the network
-                out.write(buffer, 0, 28);
-                out.flush();
+                synchronized (this) {
+                    // Write over the network
+                    out.write(buffer, 0, 28);
+                    out.flush();
 
-                // ET system clients are liable to get stuck here if the ET
-                // system crashes. So use the 2 second socket timeout to try
-                // to read again. If the socket connection has been broken,
-                // an IOException will be generated.
-                err = in.readInt();
+                    // ET system clients are liable to get stuck here if the ET
+                    // system crashes. So use the 2 second socket timeout to try
+                    // to read again. If the socket connection has been broken,
+                    // an IOException will be generated.
+                    err = in.readInt();
 
-                if (err < EtConstants.ok) {
-                    if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
-                        System.out.println("error in ET system (getEvents), err = " + err);
-                    }
-
-                    if (err == EtConstants.error) {
-                        throw new EtException("bad mode value" );
-                    }
-                    else if (err == EtConstants.errorBusy) {
-                        throw new EtBusyException("input list is busy");
-                    }
-                    else if (err == EtConstants.errorEmpty) {
-                        throw new EtEmptyException("no events in list");
-                    }
-                    else if (err == EtConstants.errorWakeUp) {
-                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
-                    }
-                    else if (err == EtConstants.errorTimeout) {
-                        // Only get here if using SLEEP or TIMED modes
-                        if (mode == Mode.SLEEP || iterations-- > 0) {
-                            continue;
+                    if (err < EtConstants.ok) {
+                        if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
+                            System.out.println("error in ET system (getEvents), err = " + err);
                         }
-                        if (debug >= EtConstants.debugError) {
-                            //System.out.println("error in ET system (getEvents), timeout");
+
+                        if (err == EtConstants.error) {
+                            throw new EtException("bad mode value");
                         }
-                        throw new EtTimeoutException("no events within timeout");
-                    }
-                }
-
-                // skip reading total size (long)
-                in.readLong();
-
-                final int selectInts   = EtConstants.stationSelectInts;
-                final int dataShift    = EtConstants.dataShift;
-                final int dataMask     = EtConstants.dataMask;
-                final int priorityMask = EtConstants.priorityMask;
-
-                int numEvents = err;
-                evs = container.realEvents;
-                int byteChunk = 4*(9 + EtConstants.stationSelectInts);
-                int index;
-
-                long  length, memSize;
-                int   priAndStat;
-
-                for (int j=0; j < numEvents; j++) {
-                    in.readFully(buffer, 0, byteChunk);
-
-                    length  = EtUtils.bytesToLong(buffer, 0);
-                    memSize = EtUtils.bytesToLong(buffer, 8);
-
-                    // Note that the server will not send events too big for us,
-                    // we'll get an error above.
-
-                    // if C ET system we are connected to is 64 bits ...
-                    if (!isJava && sys.isBit64()) {
-                        // if event size > ~1G, only allocate enough to hold data
-                        if (memSize > Integer.MAX_VALUE/2) {
-                            memSize = length;
+                        else if (err == EtConstants.errorBusy) {
+                            throw new EtBusyException("input list is busy");
+                        }
+                        else if (err == EtConstants.errorEmpty) {
+                            throw new EtEmptyException("no events in list");
+                        }
+                        else if (err == EtConstants.errorWakeUp) {
+                            throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                        }
+                        else if (err == EtConstants.errorTimeout) {
+                            // Only get here if using SLEEP or TIMED modes
+                            if (mode == Mode.SLEEP || iterations-- > 0) {
+                                continue;
+                            }
+                            if (debug >= EtConstants.debugError) {
+                                //System.out.println("error in ET system (getEvents), timeout");
+                            }
+                            throw new EtTimeoutException("no events within timeout");
                         }
                     }
 
-                    // If we have more data arriving than there's room for ...
-                    if (memSize > evs[j].getMemSize()) {
-                        evs[j] = container.realEvents[j] = new EtEventImpl((int)memSize);
-                    }
-                    evs[j].setJava(isJava);
-                    evs[j].setLength((int)length);
-                    evs[j].getDataBuffer().limit((int)length);
-                    priAndStat = EtUtils.bytesToInt(buffer, 16);
-                    evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
-                    evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
-                    evs[j].setId(EtUtils.bytesToInt(buffer, 20));
-                    // skip unused int here
-                    evs[j].setRawByteOrder(EtUtils.bytesToInt(buffer, 28));
-                    index = 32;   // skip unused int
-                    int[] control = evs[j].getControlNoCopy();
-                    for (int i=0; i < selectInts; i++) {
-                        control[i] = EtUtils.bytesToInt(buffer, index+=4);
-                    }
-                    evs[j].setModify(modify);
-                    evs[j].setOwner(att.getId());
+                    // skip reading total size (long)
+                    in.readLong();
 
-                    in.readFully(evs[j].getData(), 0, (int)length);
+                    final int selectInts = EtConstants.stationSelectInts;
+                    final int dataShift = EtConstants.dataShift;
+                    final int dataMask = EtConstants.dataMask;
+                    final int priorityMask = EtConstants.priorityMask;
+
+                    numEvents = err;
+                    evs = container.realEvents;
+                    int byteChunk = 4 * (9 + EtConstants.stationSelectInts);
+                    int index;
+
+                    long length, memSize;
+                    int priAndStat;
+
+                    for (int j = 0; j < numEvents; j++) {
+                        in.readFully(buffer, 0, byteChunk);
+
+                        length = EtUtils.bytesToLong(buffer, 0);
+                        memSize = EtUtils.bytesToLong(buffer, 8);
+
+                        // Note that the server will not send events too big for us,
+                        // we'll get an error above.
+
+                        // if C ET system we are connected to is 64 bits ...
+                        if (!isJava && sys.isBit64()) {
+                            // if event size > ~1G, only allocate enough to hold data
+                            if (memSize > Integer.MAX_VALUE / 2) {
+                                memSize = length;
+                            }
+                        }
+
+                        // If we have more data arriving than there's room for ...
+                        if (memSize > evs[j].getMemSize()) {
+                            evs[j] = container.realEvents[j] = new EtEventImpl((int) memSize);
+                        }
+                        evs[j].setJava(isJava);
+                        evs[j].setLength((int) length);
+                        evs[j].getDataBuffer().limit((int) length);
+                        priAndStat = EtUtils.bytesToInt(buffer, 16);
+                        evs[j].setPriority(Priority.getPriority(priAndStat & priorityMask));
+                        evs[j].setDataStatus(DataStatus.getStatus((priAndStat & dataMask) >> dataShift));
+                        evs[j].setId(EtUtils.bytesToInt(buffer, 20));
+                        // skip unused int here
+                        evs[j].setRawByteOrder(EtUtils.bytesToInt(buffer, 28));
+                        index = 32;   // skip unused int
+                        int[] control = evs[j].getControlNoCopy();
+                        for (int i = 0; i < selectInts; i++) {
+                            control[i] = EtUtils.bytesToInt(buffer, index += 4);
+                        }
+                        evs[j].setModify(modify);
+                        evs[j].setOwner(att.getId());
+
+                        in.readFully(evs[j].getData(), 0, (int) length);
+                    }
                 }
 
                 container.holdNewEvents(evs, numEvents);
@@ -2591,13 +2592,6 @@ public class EtSystem {
         out.writeInt(numEvents);
         out.writeLong((long)bytes);
 
-//        EtUtils.intToBytes(EtConstants.netEvsPut, ByteOrder.BIG_ENDIAN, header, 0);
-//        EtUtils.intToBytes(att.getId(), ByteOrder.BIG_ENDIAN, header, 4);
-//        EtUtils.intToBytes(numEvents, ByteOrder.BIG_ENDIAN, header, 8);
-//        EtUtils.longToBytes((long)bytes, ByteOrder.BIG_ENDIAN, header, 12);
-//        out.write(header, 0, 20);
-
-
         for (int i=offset; i < offset+length; i++) {
             // send only if modifying an event (data or header) ...
             if (evs[i].getModify() != Modify.NOTHING) {
@@ -2660,7 +2654,7 @@ public class EtSystem {
      * @throws EtClosedException
      *     if the ET system is closed
      */
-    public void putEvents(EtContainer container)
+    synchronized public void putEvents(EtContainer container)
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (container == null || container.method != EtContainer.MethodType.PUT) {
@@ -2721,52 +2715,55 @@ public class EtSystem {
         container.adjustByteArraySize(headerSize);
         byte[] header = container.byteArray;
 
-        out.writeInt(EtConstants.netEvsPut);
-        out.writeInt(att.getId());
-        out.writeInt(numEvents);
-        out.writeLong((long)bytes);
+        // Synchronize communication with ET system
+        synchronized (this) {
+            out.writeInt(EtConstants.netEvsPut);
+            out.writeInt(att.getId());
+            out.writeInt(numEvents);
+            out.writeLong((long) bytes);
 
-        for (int i=offset; i < offset+length; i++) {
-            // send only if modifying an event (data or header) ...
-            if (evs[i].getModify() != Modify.NOTHING) {
-                EtUtils.intToBytes(evs[i].getId(), ByteOrder.BIG_ENDIAN, header, 0);
-                // skip 1 int here
-                EtUtils.longToBytes((long) evs[i].getLength(), ByteOrder.BIG_ENDIAN, header, 8);
-                EtUtils.intToBytes(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift,
-                                   ByteOrder.BIG_ENDIAN, header, 16);
-                EtUtils.intToBytes(evs[i].getRawByteOrder(), ByteOrder.BIG_ENDIAN, header, 20);
-                indx = 28;  // skip 1 int here
-                // Doing this instead of evs[i].getControl() saves copying the array
-                control = evs[i].getControlNoCopy();
-                for (int j=0; j < selectInts; j++,indx+=4) {
-                    EtUtils.intToBytes(control[j], ByteOrder.BIG_ENDIAN, header, indx);
-                }
-                // Much Faster to put header data into byte array and write
-                // it out once instead of writing each int and long.
-                out.write(header, 0, headerSize);
-
-                // send data only if modifying whole event
-                if (evs[i].getModify() == Modify.ANYTHING) {
-                    ByteBuffer buf = evs[i].getDataBuffer();
-                    if (buf == null) throw new EtException("null data buffer");
-                    if (!buf.hasArray()) {
-//System.out.println("Memory mapped buffer does NOT have a backing array !!!");
-                        for (int j=0; j<evs[i].getLength(); j++) {
-                            out.write(buf.get(j));
-                        }
+            for (int i = offset; i < offset + length; i++) {
+                // send only if modifying an event (data or header) ...
+                if (evs[i].getModify() != Modify.NOTHING) {
+                    EtUtils.intToBytes(evs[i].getId(), ByteOrder.BIG_ENDIAN, header, 0);
+                    // skip 1 int here
+                    EtUtils.longToBytes((long) evs[i].getLength(), ByteOrder.BIG_ENDIAN, header, 8);
+                    EtUtils.intToBytes(evs[i].getPriority().getValue() | evs[i].getDataStatus().getValue() << dataShift,
+                                       ByteOrder.BIG_ENDIAN, header, 16);
+                    EtUtils.intToBytes(evs[i].getRawByteOrder(), ByteOrder.BIG_ENDIAN, header, 20);
+                    indx = 28;  // skip 1 int here
+                    // Doing this instead of evs[i].getControl() saves copying the array
+                    control = evs[i].getControlNoCopy();
+                    for (int j = 0; j < selectInts; j++, indx += 4) {
+                        EtUtils.intToBytes(control[j], ByteOrder.BIG_ENDIAN, header, indx);
                     }
-                    else {
-                        out.write(buf.array(), 0, evs[i].getLength());
+                    // Much Faster to put header data into byte array and write
+                    // it out once instead of writing each int and long.
+                    out.write(header, 0, headerSize);
+
+                    // send data only if modifying whole event
+                    if (evs[i].getModify() == Modify.ANYTHING) {
+                        ByteBuffer buf = evs[i].getDataBuffer();
+                        if (buf == null) throw new EtException("null data buffer");
+                        if (!buf.hasArray()) {
+//System.out.println("Memory mapped buffer does NOT have a backing array !!!");
+                            for (int j = 0; j < evs[i].getLength(); j++) {
+                                out.write(buf.get(j));
+                            }
+                        }
+                        else {
+                            out.write(buf.array(), 0, evs[i].getLength());
+                        }
                     }
                 }
             }
+
+            out.flush();
+
+            // err should always be = Constants.ok
+            // skip reading error
+            in.readInt();
         }
-
-        out.flush();
-
-        // err should always be = Constants.ok
-        // skip reading error
-        in.readInt();
     }
 
 
@@ -2960,7 +2957,7 @@ public class EtSystem {
      * @throws EtClosedException
      *     if the ET system is closed
      */
-    public void dumpEvents(EtContainer container)
+    synchronized public void dumpEvents(EtContainer container)
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (container == null || container.method != EtContainer.MethodType.DUMP) {
@@ -3003,21 +3000,23 @@ public class EtSystem {
             return;
         }
 
-        out.writeInt(EtConstants.netEvsDump);
-        out.writeInt(att.getId());
-        out.writeInt(numEvents);
+        synchronized (this) {
+            out.writeInt(EtConstants.netEvsDump);
+            out.writeInt(att.getId());
+            out.writeInt(numEvents);
 
-        for (int i=offset; i<offset+length; i++) {
-            // send only if modifying an event (data or header) ...
-            if (evs[i].getModify() != Modify.NOTHING) {
-                out.writeInt(evs[i].getId());
+            for (int i = offset; i < offset + length; i++) {
+                // send only if modifying an event (data or header) ...
+                if (evs[i].getModify() != Modify.NOTHING) {
+                    out.writeInt(evs[i].getId());
+                }
             }
-        }
-        out.flush();
+            out.flush();
 
-        // err should always be = Constants.ok
-        // skip reading error
-        in.readInt();
+            // err should always be = Constants.ok
+            // skip reading error
+            in.readInt();
+        }
     }
 
 
