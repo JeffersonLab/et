@@ -86,9 +86,6 @@ public class EtContainer {
     /** Local attachment to ET system used to make, get, put, and dump events. */
     AttachmentLocal attLocal;
 
-    /** Et system object to track if putting event from correct attachment. */
-    private EtSystem sys;
-
     /**
      * Array used in newEvents(), getEvents(), putEvents(), or dumpEvents()
      * for any purpose. Defined here to prevent allocation each time method
@@ -117,15 +114,14 @@ public class EtContainer {
 
     /**
      * Constructor.
-     * @param sys  ET system object.
-     * @throws EtException  if arg is null.
+     * @param eventSize  ET system event size in bytes.
+     * @throws EtException if eventSize < 1.
      */
-    public EtContainer(EtSystem sys) throws EtException {
-        if (sys == null) {
-            throw new EtException("sys arg null");
+    public EtContainer(int eventSize) throws EtException {
+        if (eventSize < 1) {
+            throw new EtException("eventSize must be > 0");
         }
-        this.sys = sys;
-        etEventSize = (int) sys.getEventSize();
+        etEventSize = eventSize;
     }
 
     /**
@@ -134,27 +130,20 @@ public class EtContainer {
      * If the specified size is less than the ET buffer size, it is
      * internally set to the ET buffer size.
      *
-     * @param sys     ET system object.
-     * @param count   number of internal buffers/events.
-     * @param size    number of bytes in each internal buffer.
-     * @throws EtException if sys arg null or count arg < 1.
+     * @param count      number of internal buffers/events.
+     * @param eventSize  ET system event size in bytes.
+     * @throws EtException if either arg < 1.
      */
-    public EtContainer(EtSystem sys, int count, int size) throws EtException {
-        if (sys == null) {                                
-            throw new EtException("sys arg null");
+    public EtContainer(int count, int eventSize) throws EtException {
+        if (count < 1 || eventSize < 1) {
+            throw new EtException("args must be > 0");
         }
-        else if (count < 1) {
-            throw new EtException("count arg must be > 0");
-        }
-
-        this.sys = sys;
 
         // Be smart here, we want the size of our internal buffers to be at
         // least the size of the ET events or may get into a mode of operation
         // that is slow and inefficient by having to constantly allocate bigger
         // buffers.
-        etEventSize = (int) sys.getEventSize();
-        bufSize = size > etEventSize ? size : etEventSize;
+        bufSize = etEventSize = eventSize;
 
         eventArraySize = count;
 
@@ -166,22 +155,69 @@ public class EtContainer {
         }
     }
 
+    /**
+     * Get the size of ET system events in bytes.
+     * @return size of ET system events in bytes.
+     */
+    public int getEtEventSize() {return etEventSize;}
+
+    /**
+     * Get the attachment to ET system.
+     * @return attachment to ET system.
+     */
     public EtAttachment getAtt() {return att;}
 
+    /**
+     * If ET is java-based in this JVM, attachment to it.
+     * @return attachment to ET system if system is java-based in this JVM.
+     */
     public AttachmentLocal getAttLocal() {return attLocal;}
 
+    /**
+     * Get the mode used to obtain events with newEvents() or getEvents().
+     * @return mode used to obtain events with newEvents() or getEvents().
+     */
     public Mode getMode() {return mode;}
 
+    /**
+     * Get the number of events asked for in newEvents() or getEvents().
+     * @return number of events asked for in newEvents() or getEvents().
+     */
     public int getCount() {return count;}
 
+    /**
+     * Get the size in bytes of events asked for in newEvents().
+     * @return size in bytes of events asked for in newEvents().
+     */
     public int getSize() {return size;}
 
+    /**
+     * Get the group number from which to get events in newEvents().
+     * @return group number from which to get events in newEvents().
+     */
     public int getGroup() {return group;}
 
+    /**
+     * Get the timeout in microseconds used when obtaining
+     * events with newEvents() or getEvents().
+     * @return timeout in microseconds used when obtaining
+     *         events with newEvents() or getEvents().
+     */
     public int getMicroSec() {return microSec;}
 
+    /**
+     * Get the array used to store references to events being put/dumped using JNI with local calls.
+     * OR containing events resulting from a local call to newEvents() or getEvents().
+     * @return array used to store references to events used with local calls.
+     */
     public EtEventImpl[] getHoldEvents() {return holdEvents;}
 
+    /**
+     * Get variable keeping track of whether we're setup to do a
+     * newEvents(), getEvents(), putEvents(), or dumpEvents().
+     * @return variable keeping track of whether we're setup to do a
+     *         newEvents(), getEvents(), putEvents(), or dumpEvents().
+     */
     public MethodType getMethod() {return method;}
 
     /**
@@ -216,6 +252,7 @@ public class EtContainer {
             }
         }
         else if (allocate) {
+            if (bufSize < size) bufSize = size;
             for (int i=0; i < eventArraySize; i++) {
                 realEvents[i] = new EtEventImpl(bufSize);
             }
@@ -282,7 +319,7 @@ public class EtContainer {
         if (mode == null) {
             throw new EtException("mode arg null");
         }
-        else if (att == null || !att.isUsable() || att.getSys() != sys) {
+        else if (att == null || !att.isUsable()) {
             throw new EtException("Invalid attachment");
         }
         else if (count < 0) {
@@ -441,7 +478,7 @@ public class EtContainer {
                           int microSec, int count, boolean allocate)
                 throws EtException {
 
-        if (att == null|| !att.isUsable() || att.getSys() != sys) {
+        if (att == null|| !att.isUsable()) {
             throw new EtException("Invalid attachment");
         }
         else if (att.getStation().getId() == 0) {
@@ -554,7 +591,7 @@ public class EtContainer {
             throw new EtException("Bad offset or length argument(s)");
         }
 
-        if (att == null || !att.isUsable() || att.getSys() != sys) {
+        if (att == null || !att.isUsable()) {
             throw new EtException("Invalid attachment");
         }
 
@@ -565,8 +602,8 @@ public class EtContainer {
         // We're setup to call the putEvents() method
         method = PUT;
 
-        // Need space to hold all evs elements in EtEventImpl array
-        if (offset > 0 && holdEvents.length < length) {
+        // May need space to hold all evs elements in EtEventImpl array
+        if ((offset > 0) && (jniEvents != null) && (holdEvents.length < length)) {
             holdEvents = new EtEventImpl[length];
         }
     }
@@ -625,7 +662,7 @@ public class EtContainer {
             throw new EtException("Bad offset or length argument(s)");
         }
 
-        if (att == null || !att.isUsable() || att.getSys() != sys) {
+        if (att == null || !att.isUsable()) {
             throw new EtException("Invalid attachment");
         }
 
@@ -636,8 +673,8 @@ public class EtContainer {
         // We're setup to call the dumpEvents() method
         method = DUMP;
 
-        // Need space to hold all evs elements in EtEventImpl array
-        if (offset > 0 && holdEvents.length < length) {
+        // May need space to hold all evs elements in EtEventImpl array
+        if ((offset > 0) && (jniEvents != null) && (holdEvents.length < length)) {
             holdEvents = new EtEventImpl[length];
         }
     }
@@ -809,8 +846,6 @@ public class EtContainer {
         }
     }
 
-
-
     //****************************************************
     // For CODA online and use in the Disruptor package.
     //****************************************************
@@ -841,18 +876,6 @@ public class EtContainer {
      * Set whether the events being put contain the END event.
      * @param index true if the events being put contain the END event.
      */
-    public void setHasEndEvent(boolean index) {
-        hasEndEvent = index;}
-
-
-    /** Number of evio events in ET event. */
-    public int[] itemCounts;
-
-    /** Bit infos to set in EventWriter. */
-    public BitSet bitInfos[] /*= new BitSet(24)*/;
-
-    /** Ids to set in EventWriter. */
-    public int[] recordIds;
-
+    public void setHasEndEvent(boolean index) {hasEndEvent = index;}
 
 }
