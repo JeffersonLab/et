@@ -376,7 +376,7 @@ System.out.println("Flow mode is parallel");
             int validEvents;
             EtContainer container = null;
             if (newIF) {
-                container = new EtContainer(sys, chunk, (int)sys.getEventSize());
+                container = new EtContainer(chunk, (int)sys.getEventSize());
             }
 
             int    len, num;

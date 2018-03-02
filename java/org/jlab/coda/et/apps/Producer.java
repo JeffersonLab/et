@@ -377,7 +377,7 @@ System.out.println("Using NEW interface");
             int validEvents;
             EtContainer container = null;
             if (newIF) {
-                container = new EtContainer(sys, chunk, (int)sys.getEventSize());
+                container = new EtContainer(chunk, (int)sys.getEventSize());
             }
 
             EtEvent[]   mevs;
