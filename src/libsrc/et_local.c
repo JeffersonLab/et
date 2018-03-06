@@ -372,7 +372,7 @@ int etl_close(et_sys_id id)
     }
     return et_system_close(id);
   }
-  
+
   if (etl_alive(id)) {
     /* check for this process' attachments to stations */
     for (i=0; i < etid->sys->config.nattachments; i++) {
@@ -398,16 +398,16 @@ int etl_close(et_sys_id id)
 
   et_stop_heartmonitor(etid);
   et_stop_heartbeat(etid);
-  
+
   if (munmap(etid->pmap, etid->memsize) != 0) {
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");
     }
   }
-  
+
   et_mem_unlock(etid);
   et_id_destroy(id);
- 
+
   return ET_OK;
 }
 
