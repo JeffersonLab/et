@@ -337,7 +337,6 @@ public class EtSystem {
         try {
             // Are we using JNI? If so, close the ET system it opened.
             if (sys.usingJniLibrary()) {
-//System.out.println("   Close et sys JNI object");
                 sys.getJni().close();
             }
 //            else {
@@ -358,7 +357,7 @@ public class EtSystem {
                 out.close();
                 sys.disconnect(); // does sock.close()
             }
-            catch (IOException ex) { /* ignore exception */ }
+            catch (IOException ex) {/* ignore exception */}
         }
 
         open = false;
@@ -1682,9 +1681,7 @@ public class EtSystem {
     /**
      * Get new (unused) events from a specified group of such events in an ET system.
      * Will access local C-based ET systems through JNI/shared memory, but other ET
-     * systems through sockets. This method is NOT synchronized so it is NOT thread-safe
-     * when used with other methods from this class. This is done for performance reasons.
-     * Also, no checks to see if connected to ET.<p>
+     * systems through sockets. No check to see if connected to ET.<p>
      *
      * <b>Warning:</b> a call to this method must be
      * followed by a call to {@link #putEvents(EtContainer)} or {@link #dumpEvents(EtContainer)}
@@ -2030,8 +2027,8 @@ public class EtSystem {
                 if (!open) {
                     throw new EtClosedException("Not connected to ET system");
                 }
-                return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
             }
+            return getEventsJNI(att.getId(), mode.getValue(), sec, nsec, count);
         }
 
         // When using the network, do NOT use SLEEP mode because that
@@ -2202,9 +2199,7 @@ public class EtSystem {
      * systems through sockets. The data ByteBuffer object in each event
      * has its limit set to the data length (not the buffer's full capacity).<p>
      *
-     * This method is NOT synchronized so it is NOT thread-safe
-     * when used with other methods from this class. This is done for performance reasons.
-     * Also, no checks to see if connected to ET.
+     * No check to see if connected to ET.
      * 
      * @param container helping object used to set/get parameters for getting new event.
      *
@@ -2306,7 +2301,15 @@ public class EtSystem {
 
         try {
 
+            boolean wait = false;
+
             while (true) {
+
+                // Allow other synchronized methods to be called here
+                if (wait) {
+                    try {Thread.sleep(10);}
+                    catch (InterruptedException e) { }
+                }
 
                 synchronized (this) {
                     // Write over the network
@@ -2339,6 +2342,8 @@ public class EtSystem {
                         else if (err == EtConstants.errorTimeout) {
                             // Only get here if using SLEEP or TIMED modes
                             if (mode == Mode.SLEEP || iterations-- > 0) {
+                                // Give other synchronized methods a chance to run
+                                wait = true;
                                 continue;
                             }
                             if (debug >= EtConstants.debugError) {
