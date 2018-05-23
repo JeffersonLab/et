@@ -826,6 +826,136 @@ public class EtUtils {
 
 
     /**
+     * Takes a list of dotted-decimal formatted IP address strings and their corresponding
+     * broadcast addresses and orders them so that those on the given local subnet are first,
+     * those on other local subnets are next, and all others come last.
+     * This only works for IPv4.
+     * Included in the returned linked hashmap is a boolean telling whether the address
+     * in the list is on same subnet as the preferred address or not.
+     *
+     * @param ipAddresses      list of addresses to order; null if arg is null
+     * @param broadAddresses   list of broadcast addresses - each associated w/ corresponding
+     *                         ip address
+     * @param preferredAddress if not null, it is the preferred subnet(broadcast) address
+     *                         used in sorting so that addresses on the given list which
+     *                         exist on the preferred subnet are first on the returned list.
+     *                         If a local, non-subnet ip address is given, it will be
+     *                         converted internally to the subnet it is on.
+     * @param etOnLocalHost    is the ET system that client is trying to connect to, on the local host?
+     *
+     * @return ordered linked hashmap of given IP addresses in dotted-decimal form (key)
+     *         with boolean telling if on same subnet as preferredAddress (value). The
+     *         addresses on the given local subnet are listed first (boolean = true),
+     *         then those on other local subnets listed next (boolean = false),
+     *         finally all others last (boolean = false).
+     */
+    public static LinkedHashMap<String, Boolean> orderIPAddresses(
+                                        List<String> ipAddresses,
+                                        List<String> broadAddresses,
+                                        String preferredAddress,
+                                        boolean etOnLocalHost) {
+
+        if (ipAddresses == null) {
+            return null;
+        }
+
+        // List of all addrs, ordered
+        LinkedHashMap<String,Boolean> finalIpList = new LinkedHashMap<String,Boolean>();
+
+        // List of IP addrs on preferred subnet
+        LinkedHashMap<String,Boolean> preferred = new LinkedHashMap<String,Boolean>();
+
+        // List of all addrs on local subnets besides preferred
+        LinkedHashMap<String,Boolean> ipListSameSubnets = new LinkedHashMap<String,Boolean>();
+
+        // List of all addrs not on local subnets or preferred
+        LinkedHashMap<String,Boolean> ipListOtherSubnets = new LinkedHashMap<String,Boolean>();
+
+        // Convert the preferred address into a local subnet address
+        String prefSubnet = null;
+        try {
+            // Will be null if not local
+            prefSubnet = getBroadcastAddress(preferredAddress);
+        }
+        catch (EtException e) {
+            // preferredAddresses is null or not in dotted-decimal format, so ignore
+        }
+
+        // Iterate through argument list of addresses
+        outerLoop:
+        for (int i=0; i < ipAddresses.size(); i++) {
+
+            // If the remote IP addresses are accompanied by their subnet addresses ...
+            if (broadAddresses != null && broadAddresses.size() > i) {
+                String ipSubNet = broadAddresses.get(i);
+
+                try {
+                    // Iterate through list of local addresses and see if its
+                    // broadcast address matches the remote broadcast address.
+                    // If so, put it in preferred list.
+                    Enumeration<NetworkInterface> enumer = NetworkInterface.getNetworkInterfaces();
+                    while (enumer.hasMoreElements()) {
+                        NetworkInterface ni = enumer.nextElement();
+                        if (!ni.isUp() || ni.isLoopback()) {
+                            continue;
+                        }
+                        List<InterfaceAddress> ifAddrs = ni.getInterfaceAddresses();
+
+                        for (InterfaceAddress ifAddr : ifAddrs) {
+                            Inet4Address addrv4;
+                            try { addrv4 = (Inet4Address)ifAddr.getAddress(); }
+                            catch (ClassCastException e) {
+                                // probably IPv6 so ignore
+                                continue;
+                            }
+
+                            String localBroadcastAddr = ifAddr.getBroadcast().getHostAddress();
+
+                            // If the 2 are on the same subnet as the preferred address,
+                            // place it on the preferred list.
+                            if (prefSubnet != null &&
+                                prefSubnet.equals(ipSubNet) &&
+                                prefSubnet.equals(localBroadcastAddr)) {
+
+//System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on preferred subnet: " + prefSubnet);
+                                preferred.put(ipAddresses.get(i), Boolean.TRUE);
+                                continue outerLoop;
+                            }
+                            // If the 2 are on the same subnet but not on the preferred address,
+                            // place it on the same subnet list.
+                            else if (localBroadcastAddr.equals(ipSubNet)) {
+//System.out.println("orderIPAddresses: ip " + ipAddresses.get(i) + " on local subnet: " + localBroadcastAddr);
+                                ipListSameSubnets.put(ipAddresses.get(i), Boolean.FALSE);
+                                continue outerLoop;
+                            }
+                        }
+                    }
+                }
+                catch (SocketException e) {}
+            }
+
+            // This address is not on the preferred or any of the
+            // local subnets, so put it on the other subnet list.
+//System.out.println("Add " + ip + " to list bottom");
+            ipListOtherSubnets.put(ipAddresses.get(i), Boolean.FALSE);
+        }
+//System.out.println("\n");
+
+        // Put things into one ordered list
+        //
+        // If we're on the local host, put the loopback address first
+        if (etOnLocalHost) {
+            finalIpList.put("127.0.0.1", Boolean.FALSE);
+        }
+        finalIpList.putAll(preferred);
+        finalIpList.putAll(ipListSameSubnets);
+        finalIpList.putAll(ipListOtherSubnets);
+
+        return finalIpList;
+    }
+
+
+    /**
      * This method tells whether the 2 given IP addresses in dot-decimal notation
      * are on the same subnet or not given a subnet mask in integer form
      * (local byte order). This only works for IPv4.
