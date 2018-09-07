@@ -19,6 +19,7 @@ import org.jlab.coda.et.exception.EtException;
 import java.net.*;
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,6 +28,34 @@ import java.util.regex.Pattern;
  * @author timmer
  */
 public class EtUtils {
+
+
+    private static final long SLEEP_PRECISION = TimeUnit.MILLISECONDS.toNanos(2);
+    private static final long SPIN_YIELD_PRECISION = TimeUnit.MICROSECONDS.toNanos(2);
+
+    /**
+     * Spin-yield loop based alternative to Thread.sleep
+     * Based on the code of Andy Malakov
+     * http://andy-malakov.blogspot.fr/2010/06/alternative-to-threadsleep.html
+     */
+    public static void sleepNanos(long nanoDuration) throws InterruptedException {
+        final long end = System.nanoTime() + nanoDuration;
+        long timeLeft = nanoDuration;
+        do {
+            if (timeLeft > SLEEP_PRECISION) {
+                Thread.sleep(1);
+            } else {
+                if (timeLeft > SPIN_YIELD_PRECISION) {
+                    Thread.yield();
+                }
+            }
+            timeLeft = end - System.nanoTime();
+
+            if (Thread.interrupted())
+                throw new InterruptedException();
+        } while (timeLeft > 0);
+    }
+
 
     /**
      * Turn short into byte array.
