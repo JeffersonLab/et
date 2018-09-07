@@ -2659,7 +2659,7 @@ public class EtSystem {
      * @throws EtClosedException
      *     if the ET system is closed
      */
-    synchronized public void putEvents(EtContainer container)
+    public void putEvents(EtContainer container)
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (container == null || container.method != EtContainer.MethodType.PUT) {
@@ -2681,7 +2681,7 @@ public class EtSystem {
         for (int i=offset; i < offset+length; i++) {
             // each event must be registered as owned by this attachment
             if (evs[i].getOwner() != att.getId()) {
-                throw new EtException("may not put event(s), not owner");
+                throw new EtException("may not put event(s), not owner on event " + i);
             }
             // if modifying header only or header & data ...
             if (evs[i].getModify() != Modify.NOTHING) {
@@ -2962,7 +2962,7 @@ public class EtSystem {
      * @throws EtClosedException
      *     if the ET system is closed
      */
-    synchronized public void dumpEvents(EtContainer container)
+    public void dumpEvents(EtContainer container)
             throws IOException, EtException, EtDeadException, EtClosedException {
 
         if (container == null || container.method != EtContainer.MethodType.DUMP) {
