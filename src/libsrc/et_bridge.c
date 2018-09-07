@@ -1091,7 +1091,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
       goto end;
     }
     total_read += num_read;
-    
+
     /* init vars */
     num_new_prev = total_new = 0;
     
@@ -1112,7 +1112,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
         et_events_put(id_from, att_from, get, num_read);
         goto end;
       }
-      
+
       total_new += num_new;
       num_dump = 0;
       iov_bufs = 1;
@@ -1259,7 +1259,7 @@ static int ET_2_remoteET(et_sys_id id_from, et_sys_id id_to,
          free(put[i]);
         }
       }
-       
+
       if (num_dump) {
         /* dump unused events into the "to" ET system */
         status = et_events_dump(id_to, att_to, dump, num_dump);
