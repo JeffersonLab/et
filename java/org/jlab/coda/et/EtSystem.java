@@ -378,14 +378,18 @@ public class EtSystem {
         // If communication with ET system fails, we've already been "closed"
         // and cannot, therefore, kill the ET system.
         try {
-            // Are we using JNI? If so, close the ET system it opened.
+            // Do we get things locally through JNI?
             if (sys.usingJniLibrary()) {
-//System.out.println("   Close et sys JNI object");
+                // Value of "open" valid if synchronized
+                synchronized (this) {
+                    if (!open) {
+                        throw new EtClosedException("Not connected to ET system");
+                    }
+                }
+                sys.getJni().killEtSystem(sys.getJni().getLocalEtId());
+                // Do some bookkeeping even though ET system will be dead
                 sys.getJni().close();
             }
-//            else {
-//System.out.println("   Do NOT close et sys JNI object since NO local shared memory");
-//            }
 
             out.writeInt(EtConstants.netKill);
             out.flush();
