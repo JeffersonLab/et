@@ -1637,9 +1637,9 @@ public class EtSystem {
 // System.out.println("implement sleep with another timed mode call (newEvents)");
                             continue;
                         }
-                        if (debug >= EtConstants.debugError) {
-                            System.out.println("newEvents timeout");
-                        }
+//                        if (debug >= EtConstants.debugError) {
+//                            System.out.println("newEvents timeout");
+//                        }
                         throw new EtTimeoutException("no events within timeout");
                     }
                 }
@@ -1832,9 +1832,9 @@ public class EtSystem {
 // System.out.println("implement sleep with another timed mode call (newEvents)");
                                 continue;
                             }
-                            if (debug >= EtConstants.debugError) {
-                                System.out.println("newEvents timeout");
-                            }
+//                            if (debug >= EtConstants.debugError) {
+//                                System.out.println("newEvents timeout");
+//                            }
                             throw new EtTimeoutException("no events within timeout");
                         }
                     }
