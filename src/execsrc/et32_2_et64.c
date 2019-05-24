@@ -43,15 +43,16 @@ int main(int argc,char **argv) {
     et_sys_id       id_from, id_to;
     
     int i, j, c, i_tmp, status, ntransferred=0;
-    int errflg=0, chunk=100;
+    int errflg=0, chunk=100, queue=ET_STATION_CUE;
     int multicast=1, statPos=ET_END;
-    int sendBufSize=0, recvBufSize=0, noDelay=0;
+    int sendBufSize=0, recvBufSize=0, noDelay=0, nonBlock=0;
     int debugLevel = ET_DEBUG_ERROR;
     unsigned short port=0;
     char etNameIn[ET_FILENAME_LENGTH], etNameOut[ET_FILENAME_LENGTH];
     char host[256], interface[16], statIn[ET_STATNAME_LENGTH];
     int mcastAddrCount = 0, mcastAddrMax = 10;
     char mcastAddr[mcastAddrMax][16];
+    struct timespec timeout = {0, 0};
 
 
     /* 4 multiple character command-line options */
@@ -62,6 +63,7 @@ int main(int argc,char **argv) {
              {"sin",   1, NULL, 4},
              {"spos",  1, NULL, 5},
              {"nd",    0, NULL, 6},
+             {"nb",    0, NULL, 7},
              {0,       0, 0,    0}
             };
 
@@ -75,7 +77,7 @@ int main(int argc,char **argv) {
     /* Default name of input station name */
     strcpy(statIn, "TransferOut");
 
-    while ((c = getopt_long_only(argc, argv, "vdh:a:p:c:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vdh:a:p:c:i:q:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -99,6 +101,16 @@ int main(int argc,char **argv) {
                 } else {
                     printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
                     exit(-1);
+                }
+                break;
+
+            case 'q':
+                i_tmp = atoi(optarg);
+                if (i_tmp < 1) {
+                    printf("Invalid argument to -q. Must be > 0.\n");
+                    exit(-1);
+                } else {
+                    queue = i_tmp;
                 }
                 break;
 
@@ -172,6 +184,11 @@ printf("Output ET file name is set to %s\n", etNameOut);
                 noDelay = 1;
                 break;
 
+            /* case nb */
+            case 7:
+                nonBlock = 1;
+                break;
+
             case 'v':
                 debugLevel = ET_DEBUG_INFO;
                 break;
@@ -193,14 +210,16 @@ printf("Output ET file name is set to %s\n", etNameOut);
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n\n",
                 argv[0], "-fin <input ET name>  -fout <output ET name>",
-                "                     [-h] [-v] [-d] [-nd]",
-                "                     [-host <host>] [-c <chunk size>]",
+                "                     [-h] [-v] [-d] [-nd] [-nb]",
+                "                     [-host <host>] [-c <chunk size>] [-q <station q size>]",
                 "                     [-sin <station name>] [-spos <station position]",
                 "                     [-p <port>] [-i <interface addr>] [-a <mcast addr>]");
 
 
         fprintf(stderr, "          -sin   input station name (defaults to \"TransferOut\")\n");
         fprintf(stderr, "          -spos  input station position (defaults to last)\n");
+        fprintf(stderr, "          -q     input station queue size if nonblocking (defaults to 10)\n");
+        fprintf(stderr, "          -nb    input station is nonblocking\n");
         fprintf(stderr, "          -v     verbose output\n");
         fprintf(stderr, "          -h     help\n\n");
 
@@ -246,6 +265,8 @@ printf("Output ET file name is set to %s\n", etNameOut);
     /********************************/
     et_open_config_init(&openconfig);
     et_open_config_sethost(openconfig, ET_HOST_LOCAL);
+    et_open_config_setwait(openconfig, ET_OPEN_WAIT);
+    et_open_config_settimeout(openconfig, timeout);
     et_open_config_setdebugdefault(openconfig, debugLevel);
     if (et_open(&id_from, etNameIn, openconfig) != ET_OK) {
         printf("%s: et_open problems\n", argv[0]);
@@ -323,7 +344,13 @@ printf("open et = %s\n", etNameOut);
     /* Create input station.            */
     /************************************/
     et_station_config_init(&sconfig);
-    et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
+    if (nonBlock) {
+        et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
+        et_station_config_setcue(sconfig, queue);
+    }
+    else {
+        et_station_config_setblock(sconfig, ET_STATION_BLOCKING);
+    }
     if ((status = et_station_create_at(id_from, &stat_from, statIn, sconfig, statPos, 0)) < ET_OK) {
         if (status == ET_ERROR_EXISTS) {
             /* stat_from contains pointer to existing station */;
@@ -376,7 +403,7 @@ printf("created station = %s\n", statIn);
 
     error:
     return -1;
-}
+};
 
 
 
