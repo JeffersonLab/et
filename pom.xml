@@ -3,7 +3,7 @@
     <groupId>org.jlab.coda</groupId>
     <artifactId>et</artifactId>
     <packaging>jar</packaging>
-    <version>16.0</version>
+    <version>16.2</version>
     <name>Event Transfer Java Library</name>
     <build>
         <sourceDirectory>./java/</sourceDirectory>
