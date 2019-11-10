@@ -8,6 +8,11 @@ include(cmake/os.cmake)
 
 include(FindThreads)
 
+# This assumes you are installing into a director like
+# /usr/local/opt/project_version and 
+# /usr/local/etc/modulesfiles is in MODULEPATH
+set(LMOD_INSTALL_PREFIX ../../etc/modulefiles)
+set(INSTALL_LMOD_FILES ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -76,8 +81,22 @@ target_link_libraries(et_monitor PRIVATE coda_et)
 target_link_libraries(et_2_et    PRIVATE coda_et)
 target_link_libraries(et_killer  PRIVATE coda_et)
 
-include(GNUInstallDirs)
 
+include(GNUInstallDirs)
+# ---------------------------------
+# Configure/install modulefile
+configure_file (
+  etc/modulefile.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_VERSION}
+  )
+
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_VERSION}
+  DESTINATION ${LMOD_INSTALL_PREFIX}/${PROJECT_NAME}
+  )
+
+# ---------------------------------
+# install header files
 install(FILES ${HEADER_FILES}
   DESTINATION include/coda/et
   )
@@ -85,7 +104,10 @@ install(FILES ${HEADER_FILES}
 #  DESTINATION ${CMAKE_INSTALL_LIBDIR}
 #  )
 
-install(TARGETS coda_et 
+ 
+
+
+install(TARGETS coda_et  et_start  et_monitor et_2_et   et_killer
   EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -110,10 +132,10 @@ install(EXPORT ${PROJECT_NAME}Targets
     )
 
 set(TARGETS_INSTALL_PATH lib/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake)
-CONFIGURE_PACKAGE_CONFIG_FILE(
+configure_package_config_file(
   cmake/${PROJECT_NAME}Config.cmake.in  
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib
+  INSTALL_DESTINATION lib/${PROJECT_NAME}
   PATH_VARS TARGETS_INSTALL_PATH
   )
 
