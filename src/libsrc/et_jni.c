@@ -45,6 +45,16 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_closeLocalEtSystem
     et_close((et_sys_id)etId);
 }
 
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    killEtSystem
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_killEtSystem
+        (JNIEnv *env, jobject thisObj, jlong etId)
+{
+    et_kill((et_sys_id) etId);
+}
 
 /*
  * Class:     org_jlab_coda_et_EtJniAccess

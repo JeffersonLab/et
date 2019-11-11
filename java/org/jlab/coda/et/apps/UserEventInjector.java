@@ -15,33 +15,31 @@
 package org.jlab.coda.et.apps;
 
 
-import java.lang.*;
+import org.jlab.coda.et.*;
+import org.jlab.coda.et.enums.Mode;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashSet;
 
-import org.jlab.coda.et.*;
-import org.jlab.coda.et.enums.Mode;
-import org.jlab.coda.et.enums.Modify;
-
 /**
  * This class is an example of an event producer for an ET system.
  *
  * @author Carl Timmer
  */
-public class Producer {
+public class UserEventInjector {
 
-    public Producer() {
+    public UserEventInjector() {
     }
 
 
     private static void usage() {
-        System.out.println("\nUsage: java Producer -f <et name>\n" +
-                "                      [-h] [-v] [-n] [-r] [-m] [-b] [-nd] [-blast]\n" +
+        System.out.println("\nUsage: java UserEventInjector -f <et name>\n" +
+                "                      [-h] [-v] [-n] [-r] [-m] [-b] [-nd]\n" +
                 "                      [-host <ET host>] [-w <big endian? 0/1>]\n" +
-                "                      [-s <event size>] [-c <chunk size>] [-g <group>]\n" +
+                "                      [-g <group>]\n" +
                 "                      [-d <delay>] [-p <ET port>]\n" +
                 "                      [-i <interface address>] [-a <mcast addr>]\n" +
                 "                      [-rb <buf size>] [-sb <buf size>]\n\n" +
@@ -52,16 +50,12 @@ public class Producer {
                 "       -v     verbose output\n" +
                 "       -n     use new, non-garbage-generating new,get,put,dump methods\n\n" +
 
-                "       -s     event size in bytes\n" +
-                "       -c     number of events in one get/put array\n" +
                 "       -g     group from which to get new events (1,2,...)\n" +
                 "       -d     delay in millisec between each round of getting and putting events\n\n" +
 
                 "       -p     ET port (TCP for direct, UDP for broad/multicast)\n" +
                 "       -r     act as remote (TCP) client even if ET system is local\n" +
-                "       -w     write data (1 sequential int per event), 1 = Java (big) endian, 0 else\n" +
-                "       -blast if remote, use external data buf (no mem allocation),\n" +
-                "              do not write data (overrides -w)\n\n" +
+                "       -w     write data (1 sequential int per event), 1 = Java (big) endian, 0 else\n\n" +
 
                 "       -i     outgoing network interface address (dot-decimal)\n" +
                 "       -a     multicast address(es) (dot-decimal), may use multiple times\n" +
@@ -85,8 +79,8 @@ public class Producer {
 
         int group=1, delay=0, size=32, port=0;
         int chunk=1, recvBufSize=0, sendBufSize=0;
-        boolean noDelay=false, verbose=false, newIF=false, remote=false, blast=false;
-        boolean bigEndian=true, writeData=false;
+        boolean noDelay=false, verbose=false, newIF=false, remote=false;
+        boolean bigEndian=true;
         boolean broadcast=false, multicast=false, broadAndMulticast=false;
         HashSet<String> multicastAddrs = new HashSet<String>();
         String outgoingInterface=null, etName=null, host=null;
@@ -134,14 +128,10 @@ System.out.println("Using NEW interface");
             else if (args[i].equalsIgnoreCase("-b")) {
                 broadcast = true;
             }
-            else if (args[i].equalsIgnoreCase("-blast")) {
-                blast = true;
-            }
             else if (args[i].equalsIgnoreCase("-w")) {
                 try {
                     int isBigEndian = Integer.parseInt(args[++i]);
                     bigEndian = isBigEndian != 0;
-                    writeData = true;
                 }
                 catch (NumberFormatException ex) {
                     System.out.println("Did not specify a proper endian value (1=big, else 0).");
@@ -164,22 +154,7 @@ System.out.println("Using NEW interface");
                     return;
                 }
             }
-            else if (args[i].equalsIgnoreCase("-c")) {
-                try {
-                    chunk = Integer.parseInt(args[++i]);
-                    if ((chunk < 1) || (chunk > 1000)) {
-                        System.out.println("Chunk size may be 1 - 1000.");
-                        usage();
-                        return;
-                    }
-                }
-                catch (NumberFormatException ex) {
-                    System.out.println("Did not specify a proper chunk size.");
-                    usage();
-                    return;
-                }
-            }
-            else if (args[i].equalsIgnoreCase("-rb")) {
+           else if (args[i].equalsIgnoreCase("-rb")) {
                 try {
                     recvBufSize = Integer.parseInt(args[++i]);
                     if (recvBufSize < 0) {
@@ -205,21 +180,6 @@ System.out.println("Using NEW interface");
                 }
                 catch (NumberFormatException ex) {
                     System.out.println("Did not specify a proper send buffer size.");
-                    usage();
-                    return;
-                }
-            }
-            else if (args[i].equalsIgnoreCase("-s")) {
-                try {
-                    size = Integer.parseInt(args[++i]);
-                    if (size < 1) {
-                        System.out.println("Size needs to be positive int.");
-                        usage();
-                        return;
-                    }
-                }
-                catch (NumberFormatException ex) {
-                    System.out.println("Did not specify a proper size.");
                     usage();
                     return;
                 }
@@ -264,6 +224,58 @@ System.out.println("Using NEW interface");
             usage();
             return;
         }
+
+        //-----------------------------------------------------------------
+        // Create a buffer with evio data containing a "first event" or BOR
+        //-----------------------------------------------------------------
+        ByteBuffer firstBuffer = ByteBuffer.allocate(14*4);
+        // Block header
+        firstBuffer.putInt(14);
+        firstBuffer.putInt(1);
+        firstBuffer.putInt(8);
+        firstBuffer.putInt(1);
+        firstBuffer.putInt(0);
+                    // version | is last block | user type | is first event
+        firstBuffer.putInt(0x4 | (0x1 << 9) | (0x4 << 10) | (0x1 << 14));
+        firstBuffer.putInt(0);
+        firstBuffer.putInt(0xc0da0100);
+        // Bank header
+        firstBuffer.putInt(5);
+                      // num=1 | unsigned int | tag
+        firstBuffer.putInt(0x1 | (0x1 << 8) | (0x2 << 16));
+        // Bank data
+        firstBuffer.putInt(1);
+        firstBuffer.putInt(2);
+        firstBuffer.putInt(3);
+        firstBuffer.putInt(4);
+
+        firstBuffer.flip();
+
+        //-----------------------------------------------------------------
+        // Create a buffer with evio data but is NOT a "first event" or BOR
+        //-----------------------------------------------------------------
+        ByteBuffer userBuffer = ByteBuffer.allocate(14*4);
+        // Block header
+        userBuffer.putInt(14);
+        userBuffer.putInt(1);
+        userBuffer.putInt(8);
+        userBuffer.putInt(1);
+        userBuffer.putInt(0);
+                   // version | is last block | user type
+        userBuffer.putInt(0x4 | (0x1 << 9) | (0x4 << 10));
+        userBuffer.putInt(0);
+        userBuffer.putInt(0xc0da0100);
+        // Bank header
+        userBuffer.putInt(5);
+                     // num=3 | unsigned int | tag
+        userBuffer.putInt(0x3 | (0x1 << 8) | (0x4 << 16));
+        // Bank data
+        userBuffer.putInt(5);
+        userBuffer.putInt(6);
+        userBuffer.putInt(7);
+        userBuffer.putInt(8);
+
+        userBuffer.flip();
 
 
         try {
@@ -348,18 +360,11 @@ System.out.println("Using NEW interface");
             }
             sys.open();
 
-            // Make things self-consistent by not taking time to write data if blasting.
-            // Blasting flag takes precedence.
-            if (blast) {
-                writeData = false;
-            }
 
             // Find out if we have a remote connection to the ET system
             // so we know if we can use external data buffer for events
             // for blasting - which is quite a bit faster.
             if (sys.usingJniLibrary()) {
-                // Local blasting is just the same as local producing
-                blast = false;
                 System.out.println("ET is local\n");
             }
             else {
@@ -380,18 +385,10 @@ System.out.println("Using NEW interface");
                 container = new EtContainer(chunk, (int)sys.getEventSize());
             }
 
-            EtEvent[]   mevs;
-            EtEventImpl realEvent;
-            int         startingVal = 0;
+            EtEvent[]   events;
             long        t1, t2, time, totalT=0L, totalCount=0L, count=0L;
             double      rate, avgRate;
-            ByteBuffer  fakeDataBuf = ByteBuffer.allocate(size);
-
-            // create control array of correct size
-            int[] con = new int[EtConstants.stationSelectInts];
-            for (int i=0; i < EtConstants.stationSelectInts; i++) {
-                con[i] = i+1;
-            }
+            boolean  sendFirstEvent = true;
 
             // keep track of time for event rate calculations
             t1 = System.currentTimeMillis();
@@ -399,53 +396,29 @@ System.out.println("Using NEW interface");
             while (true) {
                 // Get array of new events (don't allocate local mem if blasting)
                 if (newIF) {
-                    container.newEvents(att, Mode.SLEEP, 0, chunk, size, group);
+                    container.newEvents(att, Mode.SLEEP, 0, 1, size, group);
                     sys.newEvents(container);
                     count += validEvents = container.getEventCount();
-                    mevs = container.getEventArray();
+                    events = container.getEventArray();
                 }
                 else {
-                    mevs = sys.newEvents(att, Mode.SLEEP, blast, 0, chunk, size, group);
-                    count += validEvents = mevs.length;
+                    events = sys.newEvents(att, Mode.SLEEP, false, 0, 1, size, group);
+                    count += validEvents = events.length;
                 }
 
-                // If blasting data (and remote), don't write anything,
-                // just use what's in fixed (fake) buffer.
-                if (blast) {
-                    for (int i=0; i < validEvents; i++) {
-                        realEvent = (EtEventImpl) mevs[i];
-                        realEvent.setDataBuffer(fakeDataBuf);
-
-                        // set data length
-                        mevs[i].setLength(size);
-                    }
-                }
                 // Write data, set control values here
-                else if (writeData) {
-                    for (int j=0; j < validEvents; j++) {
-                        // Put integer (j + startingVal) into data buffer
-                        if (bigEndian) {
-                            mevs[j].getDataBuffer().putInt(j + startingVal);
-                            mevs[j].setByteOrder(ByteOrder.BIG_ENDIAN);
-                        }
-                        else {
-                            mevs[j].getDataBuffer().putInt(Integer.reverseBytes(j + startingVal));
-                            mevs[j].setByteOrder(ByteOrder.LITTLE_ENDIAN);
-                        }
-                        if (verbose) System.out.println("Wrote " + (j + startingVal));
-
-                        // Set data length to be full buf size even though we only wrote 1 int
-                        mevs[j].setLength(size);
-
-                        // Set event's control array
-                        mevs[j].setControl(con);
+                for (int j=0; j < validEvents; j++) {
+                    ByteBuffer buf = events[j].getDataBuffer();
+                    if (sendFirstEvent) {
+                        buf.put(firstBuffer);
+                        firstBuffer.flip();
                     }
-                    startingVal += validEvents;
-                }
-                else {
-                    for (int i=0; i < validEvents; i++) {
-                        mevs[i].setLength(size);
+                    else {
+                        buf.put(userBuffer);
+                        userBuffer.flip();
                     }
+                    events[j].setByteOrder(ByteOrder.BIG_ENDIAN);
+                    events[j].setLength(14*4);
                 }
 
                 if (delay > 0) Thread.sleep(delay);
@@ -456,7 +429,7 @@ System.out.println("Using NEW interface");
                     sys.putEvents(container);
                 }
                 else {
-                    sys.putEvents(att, mevs);
+                    sys.putEvents(att, events);
                 }
 
 

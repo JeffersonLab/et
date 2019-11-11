@@ -33,9 +33,44 @@ public enum DataStatus {
 
     private int value;
 
-    private DataStatus(int value) {
+    /** Fast way to convert integer values into DataStatus objects. */
+    private static DataStatus[] intToType;
+
+    // Fill array after all enum objects created
+    static {
+        intToType = new DataStatus[3];
+        for (DataStatus type : values()) {
+            intToType[type.value] = type;
+        }
+    }
+
+	/**
+	 * Obtain the enum from the value.
+	 *
+	 * @param val the value to match.
+	 * @return the matching enum, or <code>null</code>.
+	 */
+    public static DataStatus getStatus(int val) {
+        if (val > 2 || val < 0) return null;
+        return intToType[val];
+    }
+
+    /**
+     * Obtain the name from the value.
+     *
+     * @param val the value to match.
+     * @return the name, or <code>null</code>.
+     */
+    public static String getName(int val) {
+        DataStatus s = getStatus(val);
+        if (s == null) return null;
+        return s.name();
+    }
+
+    DataStatus(int value) {
         this.value = value;
     }
+
 
     /**
      * Get the enum's value.
@@ -43,38 +78,6 @@ public enum DataStatus {
      */
     public int getValue() {
         return value;
-    }
-
-    /**
-     * Obtain the name from the value.
-     *
-     * @param value the value to match.
-     * @return the name, or null.
-     */
-    public static String getName(int value) {
-        DataStatus stats[] = DataStatus.values();
-        for (DataStatus s : stats) {
-            if (s.value == value) {
-                return s.name();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Obtain the enum from the value.
-     *
-     * @param value the value to match.
-     * @return the matching enum, or <code>null</code>.
-     */
-    public static DataStatus getStatus(int value) {
-        DataStatus stats[] = DataStatus.values();
-        for (DataStatus s : stats) {
-            if (s.value == value) {
-                return s;
-            }
-        }
-        return null;
     }
 
 }

@@ -18,6 +18,7 @@ import java.lang.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashSet;
 
 import org.jlab.coda.et.*;
@@ -37,7 +38,7 @@ public class Consumer {
 
     private static void usage() {
         System.out.println("\nUsage: java Consumer -f <et name> -s <station name>\n" +
-                "                      [-h] [-v] [-nb] [-r] [-m] [-b] [-nd] [-read] [-dump]\n" +
+                "                      [-h] [-v] [-n] [-e] [-nb] [-r] [-m] [-b] [-nd] [-read] [-dump]\n" +
                 "                      [-host <ET host>] [-p <ET port>]\n" +
                 "                      [-c <chunk size>] [-q <Q size>]\n" +
                 "                      [-pos <station pos>] [-ppos <parallel station pos>]\n" +
@@ -50,6 +51,8 @@ public class Consumer {
                 "       -h     help\n\n" +
 
                 "       -v     verbose output (also prints data if reading with -read)\n" +
+                "       -n     use new, non-garbage-generating new,get,put,dump methods\n" +
+                "       -e     if specified read data as little endian, else big\n" +
                 "       -read  read data (1 int for each event)\n" +
                 "       -dump  dump events back into ET (go directly to GC) instead of put\n" +
                 "       -c     number of events in one get/put array\n" +
@@ -84,8 +87,9 @@ public class Consumer {
         int port=0, flowMode = EtConstants.stationSerial;
         int position=1, pposition=0, qSize=0, chunk=1, recvBufSize=0, sendBufSize=0;
         boolean dump=false, readData=false, noDelay=false;
-        boolean blocking=true, verbose=false, remote=false;
+        boolean blocking=true, verbose=false, newIF=false, remote=false;
         boolean broadcast=false, multicast=false, broadAndMulticast=false;
+        ByteOrder order = ByteOrder.BIG_ENDIAN;
         HashSet<String> multicastAddrs = new HashSet<String>();
         String outgoingInterface=null, etName=null, host=null, statName=null;
 
@@ -121,6 +125,10 @@ public class Consumer {
             else if (args[i].equalsIgnoreCase("-v")) {
                 verbose = true;
             }
+            else if (args[i].equalsIgnoreCase("-n")) {
+System.out.println("Using NEW interface");
+                newIF = true;
+            }
             else if (args[i].equalsIgnoreCase("-r")) {
                 remote = true;
             }
@@ -138,6 +146,9 @@ public class Consumer {
             }
             else if (args[i].equalsIgnoreCase("-s")) {
                 statName = args[++i];
+            }
+            else if (args[i].equalsIgnoreCase("-e")) {
+                order = ByteOrder.LITTLE_ENDIAN;
             }
             else if (args[i].equalsIgnoreCase("-p")) {
                 try {
@@ -361,6 +372,13 @@ System.out.println("Flow mode is parallel");
             // array of events
             EtEvent[] mevs;
 
+            // Stuff to use the new, garbage-minimizing, non-locking methods
+            int validEvents;
+            EtContainer container = null;
+            if (newIF) {
+                container = new EtContainer(chunk, (int)sys.getEventSize());
+            }
+
             int    len, num;
             long   t1=0L, t2=0L, time, totalT=0L, count=0L, totalCount=0L, bytes=0L, totalBytes=0L;
             double rate, avgRate;
@@ -371,28 +389,38 @@ System.out.println("Flow mode is parallel");
             while (true) {
 
                 // get events from ET system
-                //mevs = sys.getEvents(att, Mode.TIMED, Modify.ANYTHING, 2000, chunk);
-                mevs = sys.getEvents(att, Mode.SLEEP, Modify.ANYTHING, 0, chunk);
+                if (newIF) {
+                    container.getEvents(att, Mode.SLEEP, Modify.ANYTHING, 0, chunk);
+                    sys.getEvents(container);
+                    validEvents = container.getEventCount();
+                    mevs = container.getEventArray();
+                }
+                else {
+                    //mevs = sys.getEvents(att, Mode.TIMED, Modify.ANYTHING, 2000, chunk);
+                    mevs = sys.getEvents(att, Mode.SLEEP, Modify.ANYTHING, 0, chunk);
+                    validEvents = mevs.length;
+                }
 
                 // example of reading & printing event data
                 if (readData) {
-                    for (EtEvent mev : mevs) {
+                    for (int i=0; i < validEvents; i++) {
                         // Get event's data buffer
-                        ByteBuffer buf = mev.getDataBuffer();
+                        ByteBuffer buf = mevs[i].getDataBuffer();
+                        buf.order(order);
                         num = buf.getInt(0);
-                        len = mev.getLength();
+                        len = mevs[i].getLength();
                         bytes += len;
                         totalBytes += len;
 
                         if (verbose) {
-                            System.out.println("    data (len = " + mev.getLength() + ") = " + num);
+                            System.out.println("    data (len = " + mevs[i].getLength() + ") = " + num);
 
-                            try {
+                            if (buf.hasArray()) {
                                 // If using byte array you need to watch out for endianness
-                                byte[] data = mev.getData();
+                                byte[] data = mevs[i].getData();
                                 int idata = EtUtils.bytesToInt(data,0);
-                                System.out.println("data byte order = " + mev.getByteOrder());
-                                if (mev.needToSwap()) {
+                                System.out.println("data byte order = " + mevs[i].getByteOrder());
+                                if (mevs[i].needToSwap()) {
                                     System.out.println("    data (len = " +len +
                                                                ") needs swapping, swapped int = " + Integer.reverseBytes(idata));
                                 }
@@ -401,11 +429,9 @@ System.out.println("Flow mode is parallel");
                                                                ")does NOT need swapping, int = " + idata);
                                 }
                             }
-                            catch (UnsupportedOperationException e) {
-                            }
 
                             System.out.print("control array = {");
-                            int[] con = mev.getControl();
+                            int[] con = mevs[i].getControl();
                             for (int j : con) {
                                 System.out.print(j + " ");
                             }
@@ -414,8 +440,8 @@ System.out.println("Flow mode is parallel");
                     }
                 }
                 else {
-                    for (EtEvent mev : mevs) {
-                        len = mev.getLength();
+                    for (int i=0; i < validEvents; i++) {
+                        len = mevs[i].getLength();
                         bytes += len;       // +52 for overhead
                         totalBytes += len;  // +52 for overhead
                     }
@@ -424,15 +450,29 @@ System.out.println("Flow mode is parallel");
                     // totalBytes += 20;
                 }
 
-                // put events back into ET system
-                if (!dump) {
-                    sys.putEvents(att, mevs);
+
+                if (dump) {
+                    // dump events back into ET system
+                    if (newIF) {
+                        container.dumpEvents(att, 0, validEvents);
+                        sys.dumpEvents(container);
+                    }
+                    else {
+                        sys.dumpEvents(att, mevs);
+                    }
                 }
                 else {
-                    // dump events back into ET system
-                    sys.dumpEvents(att, mevs);
+                    // put events back into ET system
+                    if (newIF) {
+                        container.putEvents(att, 0, validEvents);
+                        sys.putEvents(container);
+                    }
+                    else {
+                        sys.putEvents(att, mevs);
+                    }
                 }
-                count += mevs.length;
+
+                count += validEvents;
 
                 // calculate the event rate
                 t2 = System.currentTimeMillis();

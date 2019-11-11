@@ -40,19 +40,22 @@ public class Blaster {
     private static void usage() {
         System.out.println("\nUsage: java Blaster -f <ET name> -host <ET host> [-h] [-v] [-c <chunk size>]\n" +
                 "                     [-s <event size>] [-g <group>] [-p <ET server port>] [-i <interface address>]\n" +
-                "                     [-rb <buffer size>] [-sb <buffer size>] [-nd]\n\n" +
-                "       -host  ET system's host\n" +
-                "       -f     ET system's (memory-mapped file) name\n" +
-                "       -h     help\n" +
-                "       -v     verbose output\n" +
-                "       -c     number of events in one get/put array\n" +
-                "       -s     event size in bytes\n" +
-                "       -g     group from which to get new events (1,2,...)\n" +
-                "       -p     ET server port\n" +
-                "       -i     outgoing network interface IP address (dot-decimal)\n\n" +
-                "       -rb    TCP receive buffer size (bytes)\n" +
-                "       -sb    TCP send buffer size (bytes)\n" +
-                "       -nd    turn on TCP no-delay\n" +
+                "                     [-rb <buffer size>] [-sb <buffer size>] [-nd]\n" +
+                "                     [-d <nanosec>] [-d <nanosec>]\n\n" +
+                "       -host    ET system's host\n" +
+                "       -f       ET system's (memory-mapped file) name\n" +
+                "       -h       help\n" +
+                "       -v       verbose output\n" +
+                "       -c       number of events in one get/put array\n" +
+                "       -s       event size in bytes\n" +
+                "       -g       group from which to get new events (1,2,...)\n" +
+                "       -p       ET server port\n" +
+                "       -i       outgoing network interface IP address (dot-decimal)\n\n" +
+                "       -rb      TCP receive buffer size (bytes)\n" +
+                "       -sb      TCP send buffer size (bytes)\n" +
+                "       -nd      turn on TCP no-delay\n" +
+                "       -d       delay in nanoseconds between each send\n" +
+                "       -single  put events back one by one (chunk = 1)\n\n" +
                 "        This consumer works by making a direct connection to the\n" +
                 "        ET system's server port.\n");
     }
@@ -65,10 +68,12 @@ public class Blaster {
         int group = 1;
         int size  = 32;
         int chunk = 1;
+        int nanosec = 0;
         int recvBufSize = 0;
         int sendBufSize = 0;
         boolean noDelay = false;
         boolean verbose = false;
+        boolean singleBack = false;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equalsIgnoreCase("-f")) {
@@ -91,6 +96,21 @@ public class Blaster {
                 }
                 catch (NumberFormatException ex) {
                     System.out.println("Did not specify a proper port number.");
+                    usage();
+                    return;
+                }
+            }
+            else if (args[i].equalsIgnoreCase("-d")) {
+                try {
+                    nanosec = Integer.parseInt(args[++i]);
+                    if (nanosec < 0) {
+                        System.out.println("Nanoseconds of delay must be >= 0.");
+                        usage();
+                        return;
+                    }
+                }
+                catch (NumberFormatException ex) {
+                    System.out.println("Did not specify a proper delay number.");
                     usage();
                     return;
                 }
@@ -176,6 +196,9 @@ public class Blaster {
             else if (args[i].equalsIgnoreCase("-v")) {
                 verbose = true;
             }
+            else if (args[i].equalsIgnoreCase("-single")) {
+                singleBack = true;
+            }
             else {
                 usage();
                 return;
@@ -192,9 +215,9 @@ public class Blaster {
             EtSystemOpenConfig config = new EtSystemOpenConfig(etName, host, port);
             config.setConnectRemotely(true);
 
-            if (noDelay)              config.setNoDelay(noDelay);
-            if (recvBufSize > 0)      config.setTcpRecvBufSize(recvBufSize);
-            if (sendBufSize > 0)      config.setTcpSendBufSize(sendBufSize);
+            if (noDelay) config.setNoDelay(noDelay);
+            if (recvBufSize > 0) config.setTcpRecvBufSize(recvBufSize);
+            if (sendBufSize > 0) config.setTcpSendBufSize(sendBufSize);
             if (netInterface != null) config.setNetworkInterface(netInterface);
 
             // create ET system object with verbose debugging output
@@ -216,8 +239,8 @@ public class Blaster {
             byte[] data = new byte[size];
             ByteBuffer byteBuffer = ByteBuffer.wrap(data);
 
-            long   eventCount=0L, byteCount=0L;
-            long   t1, t2, time, totalT=0L, totalEventCount=0L, totalByteCount=0L;
+            long eventCount = 0L, byteCount = 0L;
+            long t1, t2, time, totalT = 0L, totalEventCount = 0L, totalByteCount = 0L;
             double eventRate, avgEventRate, byteRate, avgByteRate;
 
 
@@ -240,10 +263,27 @@ public class Blaster {
                     mev.setLength(size);
                 }
 
-                // put events back into ET system
-                sys.putEvents(att, mevs);
-                eventCount += mevs.length;
-                byteCount  += mevs.length*(size + 52) + 20; // 52 is event overhead, 20 is ET call overhead
+                if (singleBack) {
+                    // put events back into ET system, one at a time
+                    for (int i=0; i < mevs.length; i++) {
+                        sys.putEvents(att, mevs, i, 1);
+                        eventCount++;
+                        byteCount += (size + 52) + 20; // 52 is event overhead, 20 is ET call overhead
+                        if (nanosec > 0) {
+                            EtUtils.sleepNanos(nanosec);
+                        }
+                    }
+                }
+                else {
+                    // put all events back into ET system, all at once
+                    sys.putEvents(att, mevs);
+                    eventCount += mevs.length;
+                    byteCount += mevs.length * (size + 52) + 20; // 52 is event overhead, 20 is ET call overhead
+
+                    if (nanosec > 0) {
+                        EtUtils.sleepNanos(nanosec);
+                    }
+                }
 
                 // calculate the event rate
                 t2 = System.currentTimeMillis();

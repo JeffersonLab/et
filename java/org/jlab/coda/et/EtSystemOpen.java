@@ -1200,7 +1200,7 @@ public class EtSystemOpen {
         useJniLibrary = false;
 
         long t1, t2;
-        List<String> addrList;
+        LinkedHashMap<String,Boolean> addrList;
         Exception excep = null;
         boolean gotConnection = false;
 
@@ -1211,13 +1211,15 @@ public class EtSystemOpen {
             // address, find the specific IP associated with it and use that
             // to bind to.
             outgoingIp = EtUtils.getMatchingLocalIpAddress(config.getNetworkInterface());
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("connect(): outgoing IP = " + outgoingIp);
+            }
         }
 
         t1 = t2 = System.currentTimeMillis();
 
         while (t2 <= (t1 + config.getWaitTime())) {
             // Create a connection to an ET system TCP Server
-//System.out.println("connect(): Creating socket to ET");
             sock = null;
 
             // If directly connecting we have NOT broad/multicast
@@ -1284,28 +1286,42 @@ public class EtSystemOpen {
 
             // If we did not get a list of IP addresses back, use what we have
             if (hostAddresses == null || hostAddresses.size() < 1) {
-                addrList = new LinkedList<String>();
-                addrList.add(hostAddress);
+                addrList = new LinkedHashMap<String,Boolean>();
+                // If we're on the local host, put the loopback address first
+                if (etOnLocalHost) {
+                    addrList.put("127.0.0.1", Boolean.FALSE);
+                }
+                addrList.put(hostAddress, Boolean.FALSE);
             }
             else {
                 // Put IP addresses in list with those on preferred local subnets first,
-                // other local subnets next, and all others last
+                // other local subnets next, and all others last.
+                // If we're on the local host, put the loopback address first.
                 if (debug >= EtConstants.debugInfo) {
                     System.out.println("connect(): order ET's IP addresses with preferred = "
                                                + config.getNetworkInterface());
                 }
-                addrList = EtUtils.orderIPAddresses(hostAddresses, broadcastAddresses,
-                                                    config.getNetworkInterface());
+                
+                addrList = EtUtils.orderIPAddresses(hostAddresses,
+                                                    broadcastAddresses,
+                                                    config.getNetworkInterface(),
+                                                    etOnLocalHost);
             }
 
-            // If we're on the local host, put the loopback address first
-            if (etOnLocalHost) {
-                addrList.add(0, "127.0.0.1");
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("connect(): ET's ordered IP addresses = ");
+                for (Map.Entry<String,Boolean> entry : addrList.entrySet()) {
+                    System.out.println("           ip = " + entry.getKey());
+                }
             }
 
             // If one IP address fails, perhaps another will work
-            for (String connectionHost : addrList) {
+            for (Map.Entry<String,Boolean> entry : addrList.entrySet()) {
+
+                String connectionHost = entry.getKey();
+                boolean onPreferredSubnet = entry.getValue();
                 excep = null;
+
                 try {
                     // In order to avoid blocking forever when attempting
                     // to connect to a non-existing server, use the Socket
@@ -1331,31 +1347,37 @@ public class EtSystemOpen {
 
                     // Pick outgoing interface & ephemeral port BEFORE connecting
                     if (config.getNetworkInterface() != null) {
-                        // The outgoing network interface address may be a specific IP address
-                        // or it may be a broadcast/subnet address. If it is a broadcast
-                        // address, find the specific IP associated with it and use that
-                        // to bind to.
+                        // The outgoing network interface address is, at this point,
+                        // a specific IP address. Only bind to the preferred outgoing ip address
+                        // IFFF the address we're connecting to is also on it.
                         if (outgoingIp != null) {
-                            try {
-                                sock.bind(new InetSocketAddress(outgoingIp, 0));
-                                if (debug >= EtConstants.debugInfo) {
-                                    System.out.println("connect(): bound outgoing data to " + outgoingIp);
+                            if (onPreferredSubnet) {
+                                try {
+                                    sock.bind(new InetSocketAddress(outgoingIp, 0));
+                                    if (debug >= EtConstants.debugInfo) {
+                                        System.out.println("connect(): bound outgoing data to " + outgoingIp);
+                                    }
+                                }
+                                catch (IOException e) {
+                                    // If we cannot bind to this IP address, forget about it
+                                    System.out.println("connect(): tried but FAILED to bind outgoing data to " + outgoingIp);
                                 }
                             }
-                            catch (IOException e) {
-                                // If we cannot bind to this IP address, forget about it
-System.out.println("connect(): tried but FAILED to bind outgoing data to " + outgoingIp);
+                            else {
+                                if (debug >= EtConstants.debugInfo) {
+                                     System.out.println("connect(): cannot specify preferred subnet since destination IP address is NOT on it");
+                                }
                             }
                         }
                     }
 
-                    // Make actual TCP connection with 3 second timeout
+                    // Make actual TCP connection with 5 second timeout
                     if (debug >= EtConstants.debugInfo) {
                         System.out.println("connect(): try connect to host " + connectionHost + " on port " + tcpPort);
                     }
 
                     try {
-                        sock.connect(new InetSocketAddress(connectionHost, tcpPort), 1000); // IOEx, SocketTimeoutEx
+                        sock.connect(new InetSocketAddress(connectionHost, tcpPort), 5000); // IOEx, SocketTimeoutEx
                         // store for future reference
                         localAddress = sock.getLocalAddress().getHostAddress();
                     }

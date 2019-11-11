@@ -119,7 +119,7 @@ static int et_event_make(et_id *id, et_event *pe, size_t size)
  * @returns @ref ET_ERROR_TIMEOUT if timeout on ET_TIMED option.
  * @returns @ref ET_ERROR_BUSY    if cannot access events due to activity of other processes when in ET_ASYNC mode.
  * @returns @ref ET_ERROR_EMPTY   if no events available in ET_ASYNC mode.
-
+ * @returns @ref ET_ERROR_TOOMANY if too many temp events have been made and no more available.
  */
 int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
                  int mode, struct timespec *deltatime, size_t size) {
@@ -355,6 +355,7 @@ int et_event_new(et_sys_id id, et_att_id att, et_event **pe,
  * @returns @ref ET_ERROR_TIMEOUT if timeout on ET_TIMED option.
  * @returns @ref ET_ERROR_BUSY    if cannot access events due to activity of other processes when in ET_ASYNC mode.
  * @returns @ref ET_ERROR_EMPTY   if no events available in ET_ASYNC mode.
+ * @returns @ref ET_ERROR_TOOMANY if too many temp events have been made and no more available.
  */
 int et_events_new(et_sys_id id, et_att_id att, et_event *pe[],
                   int mode, struct timespec *deltatime,
@@ -1507,7 +1508,8 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num) {
         if (pe[i]->length > pe[i]->memsize) {
             et_mem_unlock(etid);
             if (etid->debug >= ET_DEBUG_ERROR) {
-                et_logmsg("ERROR", "et_events_put, 1 or more data lengths are too large!\n");
+                et_logmsg("ERROR", "et_events_put, 1 or more data lengths are too large(%lu > %lu)!\n",
+                          pe[i]->length, pe[i]->memsize);
             }
             return ET_ERROR;
         }
@@ -1730,7 +1732,8 @@ int et_events_dump(et_sys_id id, et_att_id att, et_event *pe[], int num)
         if (pe[i]->owner != att) {
             et_mem_unlock(etid);
             if (etid->debug >= ET_DEBUG_ERROR) {
-                et_logmsg("ERROR", "et_events_dump, not event owner so can't put back\n");
+                et_logmsg("ERROR", "et_events_dump, attachment (%d) not event owner (%d) so can't put back\n",
+                          att, pe[i]->owner);
             }
             return ET_ERROR;
         }
@@ -1746,7 +1749,7 @@ int et_events_dump(et_sys_id id, et_att_id att, et_event *pe[], int num)
             if (et_temp_remove(pe[i]->filename, pe[i]->pdata, (size_t) pe[i]->memsize) != ET_OK) {
                 et_mem_unlock(etid);
                 if (etid->debug >= ET_DEBUG_ERROR) {
-                    et_logmsg("ERROR", "et_event_dump, error in removing temp mem\n");
+                    et_logmsg("ERROR", "et_evenst_dump, error in removing temp mem\n");
                 }
                 return ET_ERROR;
             }

@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/mman.h>
+#include <sys/time.h>
 
 #include "et_private.h"
 #include "et_network.h"
@@ -43,6 +44,9 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   et_mem etInfo;
   et_id *etid;
   struct timespec is_alive;
+  struct timespec sleeptime;
+  struct timeval  start, now;
+  double          dstart, dnow, dtimeout;
   int status, sockfd, version, nselects;
   uint32_t length, bufsize;
   int systemType, byteOrder, correctEndian=0;
@@ -55,13 +59,50 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 
   etid->debug = config->debug_default;
 
-  /* attach to mapped memory */
-  err = et_mem_attach(filename, (void **)&pSharedMem, &etInfo);
-  if (err != ET_OK) {
+  /* 0.5 sec per sleep (1Hz) */
+  sleeptime.tv_sec  = 1;
+  sleeptime.tv_nsec = 0;
+
+  /* set minimum time to wait for connection to ET */
+  /* if timeout == 0, wait "forever" */
+  if ((config->timeout.tv_sec == 0) && (config->timeout.tv_nsec == 0)) {
+    dtimeout = 1.e9; /* 31 years */
+  }
+  else {
+    dtimeout = config->timeout.tv_sec + 1.e-9*(config->timeout.tv_nsec);
+  }
+
+  /* keep track of starting time */
+  gettimeofday(&start, NULL);
+  dstart = start.tv_sec + 1.e-6*(start.tv_usec);
+
+  while (1) {
+    /* attach to mapped memory */
+    err = et_mem_attach(filename, (void **) &pSharedMem, &etInfo);
+    if (err != ET_OK) {
       if (etid->debug >= ET_DEBUG_ERROR) {
-          et_logmsg("ERROR", "etn_open: cannot attach to ET system file\n");
+        et_logmsg("ERROR", "etn_open: cannot attach to ET system file\n");
       }
+
+      /* if user wants to wait ... */
+      if (config->wait == ET_OPEN_WAIT) {
+        /* see if the min time has elapsed, if so quit. */
+        gettimeofday(&now, NULL);
+        dnow = now.tv_sec + 1.e-6*(now.tv_usec);
+
+        if ((dnow - dstart) > dtimeout) {
+          return err;
+        }
+
+        /* try again */
+        nanosleep(&sleeptime, NULL);
+        continue;
+      }
+
       return err;
+    }
+
+    break;
   }
 
   /* size of mapped memory */

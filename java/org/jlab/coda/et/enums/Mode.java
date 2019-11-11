@@ -35,7 +35,41 @@ public enum Mode {
 
     private int value;
 
-    private Mode(int value) {
+    /** Fast way to convert integer values into Mode objects. */
+    private static Mode[] intToType;
+
+    // Fill array after all enum objects created
+    static {
+        intToType = new Mode[3];
+        for (Mode type : values()) {
+            intToType[type.value] = type;
+        }
+    }
+
+	/**
+	 * Obtain the enum from the value.
+	 *
+	 * @param val the value to match.
+	 * @return the matching enum, or <code>null</code>.
+	 */
+    public static Mode getMode(int val) {
+        if (val > 2 || val < 0) return null;
+        return intToType[val];
+    }
+
+    /**
+     * Obtain the name from the value.
+     *
+     * @param val the value to match.
+     * @return the name, or <code>null</code>.
+     */
+    public static String getName(int val) {
+        Mode s = getMode(val);
+        if (s == null) return null;
+        return s.name();
+    }
+
+    Mode(int value) {
         this.value = value;
     }
 
@@ -45,38 +79,6 @@ public enum Mode {
      */
     public int getValue() {
         return value;
-    }
-
-    /**
-     * Obtain the name from the value.
-     *
-     * @param value the value to match.
-     * @return the name, or null.
-     */
-    public static String getName(int value) {
-        Mode modes[] = Mode.values();
-        for (Mode m : modes) {
-            if (m.value == value) {
-                return m.name();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Obtain the enum from the value.
-     *
-     * @param value the value to match.
-     * @return the matching enum, or <code>null</code>.
-     */
-    public static Mode getMode(int value) {
-        Mode modes[] = Mode.values();
-        for (Mode m : modes) {
-            if (m.value == value) {
-                return m;
-            }
-        }
-        return null;
     }
 
 }
