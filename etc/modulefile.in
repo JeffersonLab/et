@@ -1,0 +1,22 @@
+#%Module1.0#####################################################################
+##
+## for @PROJECT_NAME@
+##
+proc ModulesHelp { } {
+    puts stderr "This module sets up environment for @PROJECT_NAME@"
+}
+
+module-whatis   "@PROJECT_NAME@ @PROJECT_VERSION@"
+
+# for Tcl script use only
+set     version      3.2.8
+
+set iprefix @CMAKE_INSTALL_PREFIX@
+
+prepend-path    PATH             $iprefix/bin
+prepend-path    ROOT_INCLUDE_PATH $iprefix/include
+prepend-path    MANPATH         $iprefix/share/man
+prepend-path    LD_LIBRARY_PATH $iprefix/lib
+prepend-path    LD_LIBRARY_PATH $iprefix/lib64
+prepend-path    PYTHONPATH      $iprefix/lib
+prepend-path    PYTHONPATH      $iprefix/lib64

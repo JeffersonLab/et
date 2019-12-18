@@ -10,3 +10,4 @@ build/
 doc/doxygen/C/
 doc/javadoc/
 doxyerrors.log
+build/*
