@@ -88,10 +88,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
  * beginning of the ET system file for a total of 64 bytes.
  * In order this includes:
  *
- * byteOrder      : when read should be 0x0403020
- *
- *
- * 1, if not, byte order
+ * byteOrder      : when read should be 0x04030201, if not, byte order
  *                : is reversed from local order.
  * sytemType      : type of local system using the mapped memory.
  *                : Right now there are only 2 types. One is an ET
