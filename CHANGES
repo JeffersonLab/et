@@ -135,3 +135,15 @@ ET-16.0 (created 7/29/2015, updated 4/8/2016)
       much more efficient and faster Event Builder and Event Recorder in CODA.
     - add jni method to kill ET system programatically
     
+ ET-16.3
+
+    - Argonne National Lab added their cmake directories and files
+    - Bugs in the network code and compilation warnings were removed.
+
+ ET-16.4
+
+    - The Argonne National Lab cmake directories and files were removed.
+      A couple of cmake files were added to be compatible with the rest of
+      CODA cmake files being developed.
+    - Bugs in the network code and compilation warnings were removed.
+
