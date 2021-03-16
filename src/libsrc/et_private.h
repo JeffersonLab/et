@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 #define ET_VERSION 16           /**< Major version number. */
-#define ET_VERSION_MINOR 2      /**< Minor version number. */
+#define ET_VERSION_MINOR 3      /**< Minor version number. */
 
 #define ET_LANG_C     0         /**< C language version of ET software. */
 #define ET_LANG_CPP   1         /**< C++ language version of ET software.  */
