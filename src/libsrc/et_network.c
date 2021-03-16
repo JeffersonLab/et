@@ -171,7 +171,7 @@ codaIpList *et_orderIpAddrs(et_response *response, codaIpAddr *netinfo,
 
         /* Compare with local subnets */
         while (local != NULL) {
-            if (local->broadcast == NULL || bcastAddress == NULL) break;
+            if (strlen(local->broadcast) < 1 || bcastAddress == NULL) break;
 
 /*printf("et_orderIpAddrs: ET ip = %s, bcast = %s, local bcast = %s\n",
                     ipAddress, bcastAddress, local->broadcast);*/
