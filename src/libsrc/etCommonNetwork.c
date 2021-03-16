@@ -2554,13 +2554,13 @@ int codanetGetNetworkInfo(codaIpAddr **ipaddrs, codaNetInfo *info)
             info->ipinfo[i].saddr.sin_addr.s_addr   = ipaddr->saddr.sin_addr.s_addr;
             info->ipinfo[i].netmask.sin_addr.s_addr = ipaddr->netmask.sin_addr.s_addr;
             
-            if (ipaddr->addr  != NULL) strcpy(info->ipinfo[i].addr, ipaddr->addr);
+            if (strlen(ipaddr->addr) > 0) strcpy(info->ipinfo[i].addr, ipaddr->addr);
             else  info->ipinfo[i].addr[0] = '\0';
             
-            if (ipaddr->canon != NULL) strcpy(info->ipinfo[i].canon, ipaddr->canon);
+            if (strlen(ipaddr->canon) > 0) strcpy(info->ipinfo[i].canon, ipaddr->canon);
             else  info->ipinfo[i].canon[0] = '\0';
             
-            if (ipaddr->broadcast != NULL) strcpy(info->ipinfo[i].broadcast, ipaddr->broadcast);
+            if (strlen(ipaddr->broadcast) > 0) strcpy(info->ipinfo[i].broadcast, ipaddr->broadcast);
             else  info->ipinfo[i].broadcast[0] = '\0';
             
             for (j=0; j < ipaddr->aliasCount; j++) {
@@ -3210,7 +3210,7 @@ codaIpList *codanetOrderIpAddrs(codaIpList *ipList, codaIpAddr *netinfo,
 
         /* Compare with local subnets */
         while (local != NULL) {
-            if (local->broadcast == NULL || bCastAddrLen < 7 || bCastAddrLen > 15) {
+            if (strlen(local->broadcast) < 1 || bCastAddrLen < 7 || bCastAddrLen > 15) {
                 /* Comparison cannot be done since no subnet info available,
                  * either locally or in provided list. Put at bottom of list.
                  * A dot-decimal IP address must be at least 7 chars long but no longer than 15. */
