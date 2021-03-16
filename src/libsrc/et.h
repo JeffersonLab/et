@@ -253,24 +253,28 @@ extern "C" {
 /* Macros for swapping ints of various sizes */
 
 /** Macro to swap endian of 64 bit arg. */
-#define ET_SWAP64(x) ( (((x) >> 56) & 0x00000000000000FFL) | \
-                       (((x) >> 40) & 0x000000000000FF00L) | \
-                       (((x) >> 24) & 0x0000000000FF0000L) | \
-                       (((x) >> 8)  & 0x00000000FF000000L) | \
-                       (((x) << 8)  & 0x000000FF00000000L) | \
-                       (((x) << 24) & 0x0000FF0000000000L) | \
-                       (((x) << 40) & 0x00FF000000000000L) | \
-                       (((x) << 56) & 0xFF00000000000000L) )
+#define ET_SWAP16(x) \
+    ((uint16_t)((((uint16_t)(x)) >> 8) | \
+                (((uint16_t)(x)) << 8)))
 
-/** Macro to swap endian of 32 bit arg. */
-#define ET_SWAP32(x) ( (((x) >> 24) & 0x000000FF) | \
-                       (((x) >> 8)  & 0x0000FF00) | \
-                       (((x) << 8)  & 0x00FF0000) | \
-                       (((x) << 24) & 0xFF000000) )
+/** Macro for swapping 32 bit types. */
+#define ET_SWAP32(x) \
+    ((uint32_t)((((uint32_t)(x)) >> 24) | \
+                (((uint32_t)(x) & 0x00ff0000) >>  8) | \
+                (((uint32_t)(x) & 0x0000ff00) <<  8) | \
+                (((uint32_t)(x)) << 24)))
 
-/** Macro to swap endian of 16 bit arg. */
-#define ET_SWAP16(x) ( (((x) >> 8) & 0x00FF) | \
-                       (((x) << 8) & 0xFF00) )
+/** Macro for swapping 64 bit types. */
+#define ET_SWAP64(x) \
+    ((uint64_t)((((uint64_t)(x)) >> 56) | \
+                (((uint64_t)(x) & 0x00ff000000000000ULL) >> 40) | \
+                (((uint64_t)(x) & 0x0000ff0000000000ULL) >> 24) | \
+                (((uint64_t)(x) & 0x000000ff00000000ULL) >>  8) | \
+                (((uint64_t)(x) & 0x00000000ff000000ULL) <<  8) | \
+                (((uint64_t)(x) & 0x0000000000ff0000ULL) << 24) | \
+                (((uint64_t)(x) & 0x000000000000ff00ULL) << 40) | \
+                (((uint64_t)(x)) << 56)))
+
 
 
 /** Macro to exit program with unrecoverable error (see "Programming with POSIX threads' by Butenhof). */
