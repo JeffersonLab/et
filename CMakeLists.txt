@@ -1,152 +1,214 @@
-cmake_minimum_required(VERSION 3.2)
-project(coda_et
-  VERSION 16.1.0
-  )
+# To use this, do the following the first time:
+#   % mkdir build
+#   % cd build
+#   % cmake .. -DCMAKE_BUILD_TYPE=Release
+#   % make (install)
+#
+#
+# If you want the examples compiled also, then this instead
+#  % cmake .. -DCMAKE_BUILD_TYPE=Release -DET_BUILD_EXAMPLES=True
+#
+#
+# After doing this once can do the following to recompile
+#  % cd <top level evio dir>
+#  % cmake --build build (--target install)
+#
+#
+# The installation will default to the CODA env variable if it's defined
+# This can be overridden on command line (in build dir) with:
+#   % cmake -DCODA_INSTALL=<my_dir> ..
+#   % make install
 
-include(GNUInstallDirs)
-include(cmake/os.cmake)
 
-include(FindThreads)
+# This call must be placed BEFORE "project" command
+cmake_minimum_required(VERSION 3.3)
 
-# This assumes you are installing into a director like
-# /usr/local/opt/project_version and 
-# /usr/local/etc/modulesfiles is in MODULEPATH
-set(LMOD_INSTALL_PREFIX ../../etc/modulefiles)
-set(INSTALL_LMOD_FILES ON)
+project(evio VERSION 16.3)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_DEBUG_POSTFIX -dbg)
+
+
+# Place libs & binaries in build/lib and bin (this is not for installation)
+set(LIBRARY_OUTPUT_PATH    ${CMAKE_BINARY_DIR}/lib)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+
+
+# Set architecture-related string for installation consistent with scons file
+set(ARCH ${CMAKE_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR})
+message(STATUS "ARCH = " ${ARCH})
+
+
+# Install into $CODA_INSTALL directory
+if (DEFINED CODA_INSTALL)
+    message(STATUS "CODA_INSTALL = " ${CODA_INSTALL})
+    set(INSTALL_DIR_DEFINED 1)
+    set(CMAKE_INSTALL_PREFIX ${CODA_INSTALL}/${ARCH})
+    set(CMAKE_INSTALL_INCLUDEDIR ${CODA_INSTALL}/common/include)
+    message(STATUS "CMAKE_INSTALL_PREFIX reset to " ${CMAKE_INSTALL_PREFIX})
+# Install into $CODA directory
+elseif (DEFINED ENV{CODA})
+    message(STATUS "CODA = " $ENV{CODA})
+    set(INSTALL_DIR_DEFINED 1)
+    set(CMAKE_INSTALL_PREFIX $ENV{CODA}/${ARCH})
+    set(CMAKE_INSTALL_INCLUDEDIR $ENV{CODA}/common/include)
+    message(STATUS "CMAKE_INSTALL_PREFIX reset to " ${CMAKE_INSTALL_PREFIX})
+else()
+    message(STATUS "Set the \"CODA\" env var or specify -DCODA_INSTALL=... on the command line or no installation possible!")
+endif()
+
 
 set(HEADER_FILES
-  src/libsrc/et_data.h
-  src/libsrc/et_network.h
-  src/libsrc/et_private.h
-  src/libsrc/et.h
-  src/libsrc/etCommonNetwork.h
-  #  src/libsrc/org_jlab_coda_et_EtJniAccess.h
-  )
+        src/libsrc/et_data.h
+        src/libsrc/et_network.h
+        src/libsrc/et_private.h
+        src/libsrc/et.h
+        src/libsrc/etCommonNetwork.h
+        )
+
 set(SOURCE_FILES
-  src/libsrc/et_attachment.c
-  src/libsrc/et_bridge.c
-  src/libsrc/et_common.c
-  src/libsrc/et_data.c
-  src/libsrc/et_event.c
-  src/libsrc/et_init.c
-  #src/libsrc/et_jni.c
-  src/libsrc/et_local.c
-  src/libsrc/et_mem.c
-  src/libsrc/et_network.c
-  src/libsrc/et_noshare.c
-  src/libsrc/et_openconfig.c
-  src/libsrc/et_readwrite.c
-  #src/libsrc/et_remoteclient.c
-  src/libsrc/et_remote.c
-  src/libsrc/et_server.c
-  src/libsrc/et_statconfig.c
-  src/libsrc/et_station.c
-  src/libsrc/et_sysconfig.c
-  src/libsrc/et_system.c
-  src/libsrc/etCommonNetwork.c
-  )
+        src/libsrc/et_attachment.c
+        src/libsrc/et_bridge.c
+        src/libsrc/et_common.c
+        src/libsrc/et_data.c
+        src/libsrc/et_event.c
+        src/libsrc/et_init.c
+        src/libsrc/et_local.c
+        src/libsrc/et_mem.c
+        src/libsrc/et_network.c
+        src/libsrc/et_noshare.c
+        src/libsrc/et_openconfig.c
+        src/libsrc/et_readwrite.c
+        src/libsrc/et_remote.c
+        src/libsrc/et_server.c
+        src/libsrc/et_statconfig.c
+        src/libsrc/et_station.c
+        src/libsrc/et_sysconfig.c
+        src/libsrc/et_system.c
+        src/libsrc/etCommonNetwork.c
+        )
 
 set (REMOTE_SOURCE_FILES
-  src/libsrc/et_init.c
-  src/libsrc/et_network.c
-  src/libsrc/etCommonNetwork.c
-  src/libsrc/et_openconfig.c
-  src/libsrc/et_remote.c
-  src/libsrc/et_remoteclient.c
-  src/libsrc/et_statconfig.c
-  src/libsrc/et_sysconfig.c
+        src/libsrc/et_init.c
+        src/libsrc/et_network.c
+        src/libsrc/etCommonNetwork.c
+        src/libsrc/et_openconfig.c
+        src/libsrc/et_remote.c
+        src/libsrc/et_remoteclient.c
+        src/libsrc/et_statconfig.c
+        src/libsrc/et_sysconfig.c
+        )
 
-  )
+set (EXEC_SOURCE_FILES
+        src/execsrc/et32_2_et64.c
+        src/execsrc/et_2_et.c
+        src/execsrc/et_killer.c
+        src/execsrc/et_monitor.c
+        src/execsrc/et_printIFinfo.c
+        src/execsrc/et_start.c
+        )
 
-add_library(coda_et SHARED ${SOURCE_FILES})
-
-target_include_directories(coda_et PUBLIC 
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/libsrc>
-  $<INSTALL_INTERFACE:include/coda/et>
-  )
-
-target_link_libraries(coda_et PUBLIC Threads::Threads dl m)
-# java :( 
-#$ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
-
-add_executable(et_start    src/execsrc/et_start.c)
-add_executable(et_monitor  src/execsrc/et_monitor.c)
-add_executable(et_2_et     src/execsrc/et_2_et.c)
-add_executable(et_killer   src/execsrc/et_killer.c)
-
-target_link_libraries(et_start   PRIVATE coda_et)
-target_link_libraries(et_monitor PRIVATE coda_et)
-target_link_libraries(et_2_et    PRIVATE coda_et)
-target_link_libraries(et_killer  PRIVATE coda_et)
+set (EXAMPLE_FILES
+        src/examples/et_blaster.c
+        src/examples/et_consumer.c
+        src/examples/et_producer.c
+        src/examples/et_producerTest.c
+        )
 
 
-include(GNUInstallDirs)
-# ---------------------------------
-# Configure/install modulefile
-configure_file (
-  etc/modulefile.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_VERSION}
-  )
+# Search for doxygen executable
+find_package(Doxygen)
+if( DOXYGEN_FOUND )
+    message(STATUS "Doxygen found")
 
-install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_VERSION}
-  DESTINATION ${LMOD_INSTALL_PREFIX}/${PROJECT_NAME}
-  )
+    # Change these values from cmake defaults in the Doxyfile
+    set(DOXYGEN_GENERATE_TREEVIEW YES)
+    set(DOXYGEN_REFERENCED_BY_RELATION YES)
+    set(DOXYGEN_EXCLUDE_PATTERNS */.* */CMakeFiles/* CMakeLists.txt CMakeCache.txt)
+    set(DOXYGEN_FILE_PATTERNS *.c *.h)
+    #set(DOXYGEN_WARN_LOGFILE doxyerrors.log)
+    set(DOXYGEN_JAVADOC_AUTOBRIEF YES)
+    set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxygen/C)
 
-# ---------------------------------
-# install header files
-install(FILES ${HEADER_FILES}
-  DESTINATION include/coda/et
-  )
-#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hcCalibrationDict_rdict.pcm
-#  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#  )
-
- 
+    # Add target of "docs"
+    doxygen_add_docs(docs src/libsrc)
+endif()
 
 
-install(TARGETS coda_et  et_start  et_monitor et_2_et   et_killer
-  EXPORT ${PROJECT_NAME}Targets
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-#add_executable(et_consumer src/examples/et_consumer.c)
-#add_executable(et_producer src/examples/et_producer.c)
+# Shared evio library
+add_library(et SHARED ${SOURCE_FILES})
+set_target_properties(et PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+target_link_libraries(et PUBLIC pthread dl m)
 
-#include_directories($ENV{CODA}/common/include $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
 
-#target_include_directories(et_16_1_GIT src/libsrc $ENV{JAVA_HOME}/include $ENV{JAVA_HOME}/include/linux $ENV{JAVA_HOME}/Headers)
+# Remote evio library
+add_library(et_remote SHARED ${REMOTE_SOURCE_FILES})
+set_target_properties(et_remote PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+target_link_libraries(et_remote PUBLIC pthread dl m)
 
-# -------------------------
-# install library config
-include(CMakePackageConfigHelpers)
 
-# Install and export targets
-install(EXPORT ${PROJECT_NAME}Targets
-    FILE ${PROJECT_NAME}Targets.cmake
-    NAMESPACE ${PROJECT_NAME}::
-    DESTINATION lib/${PROJECT_NAME}
-    )
+# Search for JNI header so ET's jni interface library can be made
+find_package(JNI 1.8)
+if (JNI_FOUND)
+    message (STATUS "JNI header found")
+    add_library(et_jni SHARED src/libsrc/et_jni.c)
+    set_target_properties(et_jni PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+    include_directories(et_jni PUBLIC ${JNI_INCLUDE_DIRS})
+    target_link_libraries(et_jni PUBLIC et)
+endif()
 
-set(TARGETS_INSTALL_PATH lib/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake)
-configure_package_config_file(
-  cmake/${PROJECT_NAME}Config.cmake.in  
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib/${PROJECT_NAME}
-  PATH_VARS TARGETS_INSTALL_PATH
-  )
 
-  write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION ${VERSION}
-    COMPATIBILITY SameMajorVersion
-    )
+# Executables
+foreach(fileName ${EXEC_SOURCE_FILES})
+    # Get file name with no directory or extension as executable name
+    get_filename_component(execName ${fileName} NAME_WE)
+    # Create executable from file
+    add_executable(${execName} ${fileName})
+    # Put debug extension on if applicable
+    set_target_properties(${execName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+    # Include directories
+    include_directories(${execName} PUBLIC src/libsrc)
+    # Needs these libs
+    target_link_libraries(${execName} et)
 
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-  DESTINATION lib/${PROJECT_NAME}
-  )
+    # Only install if installation directory has been defined
+    if (DEFINED INSTALL_DIR_DEFINED)
+        # Install into bin/testC dir
+        install(TARGETS ${execName} RUNTIME)
+    endif()
+endforeach(fileName)
+
+
+# Example Programs
+if(ET_BUILD_EXAMPLES)
+    foreach(fileName ${EXAMPLE_FILES})
+        get_filename_component(execName ${fileName} NAME_WE)
+        add_executable(${execName} ${fileName})
+        set_target_properties(${execName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+        include_directories(${execName} PUBLIC src/libsrc)
+        target_link_libraries(${execName} et pthread)
+
+        if (DEFINED INSTALL_DIR_DEFINED)
+            install(TARGETS ${execName} RUNTIME DESTINATION bin/examples)
+        endif()
+    endforeach(fileName)
+endif()
+
+
+# Only install if installation directory has been defined
+if (DEFINED INSTALL_DIR_DEFINED)
+    # Installation defaulting to ${CMAKE_INSTALL_PREFIX}/lib or include
+    install(TARGETS et ARCHIVE)
+    install(FILES ${C_HEADER_FILES} DESTINATION include)
+endif()
+
+
+# Uninstall target
+if(NOT TARGET uninstall)
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+
+  add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+endif()
 
