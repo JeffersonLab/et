@@ -154,6 +154,7 @@ if (JNI_FOUND)
     set_target_properties(et_jni PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
     include_directories(et_jni PUBLIC ${JNI_INCLUDE_DIRS})
     target_link_libraries(et_jni PUBLIC et)
+    install(TARGETS et_jni LIBRARY)
 endif()
 
 
@@ -197,8 +198,8 @@ endif()
 # Only install if installation directory has been defined
 if (DEFINED INSTALL_DIR_DEFINED)
     # Installation defaulting to ${CMAKE_INSTALL_PREFIX}/lib or include
-    install(TARGETS et ARCHIVE)
-    install(FILES ${C_HEADER_FILES} DESTINATION include)
+    install(TARGETS et et_remote LIBRARY)
+    install(FILES ${HEADER_FILES} DESTINATION include)
 endif()
 
 
