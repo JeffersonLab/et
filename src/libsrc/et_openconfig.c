@@ -69,6 +69,7 @@ int et_open_config_init(et_openconfig *sconfig) {
     sc->timeout.tv_sec   = 0;
     sc->timeout.tv_nsec  = 0;
     strcpy(sc->host, ET_HOST_LOCAL);
+    sc->interface[0]     = 0;
     sc->policy           = ET_POLICY_FIRST; /* use first response to broad/multicast */
     sc->mcastaddrs.count = 0;
 
@@ -1013,11 +1014,6 @@ int et_open_config_getinterface(et_openconfig sconfig, char *val) {
 
     if (sc == NULL || sc->init != ET_STRUCT_OK || val == NULL) {
         return ET_ERROR;
-    }
-
-    if (sc->interface == NULL) {
-        *val = '\0';
-        return ET_OK;
     }
 
     strncpy(val, sc->interface, ET_IPADDRSTRLEN-1);

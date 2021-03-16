@@ -94,7 +94,7 @@ int etr_open(et_sys_id *id, const char *et_filename, et_openconfig openconfig)
      * addresses we get back from the ET system when calling et_findserver.
      * We can generate both right now.
      */
-    if (config->interface != NULL) {
+    if (strlen(config->interface) > 0) {
         /* First find an IP address given either an IP or broadcast address. */
         err = codanetGetMatchingLocalIpAddress(config->interface, &ifRegularIP);
         if (err != CODA_OK) {
