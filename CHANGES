@@ -126,3 +126,12 @@ ET-16.0 (created 7/29/2015, updated 4/8/2016)
       an ET system.
 
     - got rid of the "-dbg" suffix when making libs/executables
+    
+    
+ ET-16.2 (6/6/2019)
+ 
+    - add the EtContainer.java class and related changes to facilitate an API that generates
+      little or no garbage when getting and putting events. This was driven by the need for a
+      much more efficient and faster Event Builder and Event Recorder in CODA.
+    - add jni method to kill ET system programatically
+    
