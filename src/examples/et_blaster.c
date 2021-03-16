@@ -41,7 +41,7 @@
 /*---------------------------------------------------------------*/
 /* CIRCULAR BUFFER STUFF */
 
-static struct circBuf_t {
+struct circBuf_t {
     int               hasData;
     int               numRead;
     et_event          **pEvents; /* array of pointers to events */
