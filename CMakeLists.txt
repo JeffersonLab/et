@@ -153,7 +153,7 @@ if (JNI_FOUND)
     add_library(et_jni SHARED src/libsrc/et_jni.c)
     set_target_properties(et_jni PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
     include_directories(et_jni PUBLIC ${JNI_INCLUDE_DIRS})
-    target_link_libraries(et_jni PUBLIC et)
+    target_link_libraries(et_jni PUBLIC et lib)
     install(TARGETS et_jni LIBRARY)
 endif()
 
@@ -174,7 +174,7 @@ foreach(fileName ${EXEC_SOURCE_FILES})
     # Only install if installation directory has been defined
     if (DEFINED INSTALL_DIR_DEFINED)
         # Install into bin/testC dir
-        install(TARGETS ${execName} RUNTIME)
+        install(TARGETS ${execName} RUNTIME bin)
     endif()
 endforeach(fileName)
 
@@ -198,7 +198,7 @@ endif()
 # Only install if installation directory has been defined
 if (DEFINED INSTALL_DIR_DEFINED)
     # Installation defaulting to ${CMAKE_INSTALL_PREFIX}/lib or include
-    install(TARGETS et et_remote LIBRARY)
+    install(TARGETS et et_remote LIBRARY lib)
     install(FILES ${HEADER_FILES} DESTINATION include)
 endif()
 
