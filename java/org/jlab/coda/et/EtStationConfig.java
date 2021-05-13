@@ -168,6 +168,7 @@ public class EtStationConfig implements Serializable {
      *
      * @param group  station configuration of head of existing group of parallel stations
      * @param config configuration of station seeking to be added to the group
+     * @return false if configs are incompatible, else true.
      */
     public static boolean compatibleParallelConfigs(EtStationConfig group, EtStationConfig config) {
 

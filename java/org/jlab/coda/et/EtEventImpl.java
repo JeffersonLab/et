@@ -578,7 +578,7 @@ public class EtEventImpl implements EtEvent {
      * the ET system (by remote server) immediately upon being copied and that copy
      * sent to the user.
      * 
-     * @param modify
+     * @param modify is {@link Modify#ANYTHING}, {@link Modify#HEADER}, or {@link Modify#NOTHING}.
      */
     public void setModify(Modify modify) {
         this.modify = modify;

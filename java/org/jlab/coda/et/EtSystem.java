@@ -72,7 +72,7 @@ public class EtSystem {
      * Construct a new EtSystem object.
      *
      * @param config EtSystemOpenConfig object to specify how to open the ET
-     *               system of interest (copy is stored & used)
+     *               system of interest (copy is stored and used)
      * @param debug  debug level (e.g. {@link EtConstants#debugInfo})
      * @throws EtException if config is null or not self-consistent
      */
@@ -114,7 +114,7 @@ public class EtSystem {
      * Construct a new EtSystem object. Debug level set to print only errors.
      *
      * @param config EtSystemOpenConfig object to specify how to open the ET
-     *               system of interest (copy is stored & used)
+     *               system of interest (copy is stored and used)
      * @throws EtException if config is not self-consistent
      */
     public EtSystem(EtSystemOpenConfig config) throws EtException {
@@ -870,8 +870,8 @@ public class EtSystem {
    *     if arg is null;
    *     if the station does not exist;
    *     if trying to move GRAND_CENTRAL;
-   *     if position is < 1 (GRAND_CENTRAL is always first);
-   *     if parallelPosition < 0;
+   *     if position is &lt; 1 (GRAND_CENTRAL is always first);
+   *     if parallelPosition &lt; 0;
    *     if station object is invalid;
    *     if trying to move an incompatible parallel station to an existing group
    *        of parallel stations or to the head of an existing group of parallel
@@ -1385,9 +1385,7 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     public EtEvent[] newEvents(EtAttachment att, Mode mode, int microSec, int count, int size)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
@@ -1489,9 +1487,7 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     public EtEvent[] newEvents(EtAttachment att, Mode mode, boolean noBuffer,
                                             int microSec, int count, int size, int group)
@@ -1699,7 +1695,6 @@ public class EtSystem {
      *
      * @param container helping object used to set/get parameters for getting new event.
      *
-     * @return an array of new events obtained from ET system. Count may be different from that requested.
      *
      * @throws IOException
      *     if problems with network communications
@@ -1719,9 +1714,7 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     public void newEvents(EtContainer container)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
@@ -1921,9 +1914,7 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     private EtEvent[] getEventsJNI(int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
@@ -1982,9 +1973,7 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     public EtEvent[] getEvents(EtAttachment att, Mode mode, Modify modify, int microSec, int count)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
@@ -2207,8 +2196,6 @@ public class EtSystem {
      * 
      * @param container helping object used to set/get parameters for getting new event.
      *
-     * @return an array of events obtained from ET system. Count may be different from that requested.
-     *
      * @throws IOException
      *     if problems with network communications
      * @throws EtException
@@ -2228,9 +2215,7 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     public void getEvents(EtContainer container)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
@@ -2532,7 +2517,7 @@ public class EtSystem {
      * @throws EtException
      *     if invalid arg(s);
      *     if events are not owned by this attachment;
-     *     if null data buffer & whole event's being modified;
+     *     if null data buffer and whole event's being modified;
      * @throws EtDeadException
      *     if the ET system processes are dead
      * @throws EtClosedException
@@ -2657,7 +2642,7 @@ public class EtSystem {
      *     if invalid arg;
      *     arg not configured for this method;
      *     if events are not owned by this attachment;
-     *     if null data buffer & whole event's being modified;
+     *     if null data buffer and whole event's being modified;
      * @throws EtDeadException
      *     if the ET system processes are dead
      * @throws EtClosedException

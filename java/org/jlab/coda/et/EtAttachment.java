@@ -86,7 +86,7 @@ public class EtAttachment {
 
     /**
      * Sets whether this attachment object is usable or not.
-     * @param usable <code>true</code> if this attachment object is usable and <code>false otherwise
+     * @param usable <code>true</code> if this attachment object is usable and <code>false</code> otherwise
      */
     void setUsable(boolean usable) {
         this.usable = usable;
@@ -131,6 +131,8 @@ public class EtAttachment {
     /**
      * Gets the number of events put into the ET system by this attachment.
      * @return number of events put into the ET system by this attachment
+     * @throws IOException if there are network communication problems
+     * @throws EtException if the station no longer exists
      */
     public long getEventsPut() throws IOException, EtException {
         return getLongValue(EtConstants.netAttPut);
@@ -139,6 +141,8 @@ public class EtAttachment {
     /**
      * Gets the number of events gotten from the ET system by this attachment.
      * @return number of events gotten from the ET system by this attachment
+     * @throws IOException if there are network communication problems
+     * @throws EtException if the station no longer exists
      */
     public long getEventsGet() throws IOException, EtException {
         return getLongValue(EtConstants.netAttGet);
@@ -149,6 +153,8 @@ public class EtAttachment {
      * station) through this attachment.
      *
      * @return number of events dumped into the ET system by this attachment
+     * @throws IOException if there are network communication problems
+     * @throws EtException if the station no longer exists
      */
     public long getEventsDump() throws IOException, EtException {
         return getLongValue(EtConstants.netAttDump);
@@ -157,6 +163,8 @@ public class EtAttachment {
     /**
      * Gets the number of new events gotten from the ET system by this attachment.
      * @return number of new events gotten from the ET system by this attachment
+     * @throws IOException if there are network communication problems
+     * @throws EtException if the station no longer exists
      */
     public long getEventsMake() throws IOException, EtException {
         return getLongValue(EtConstants.netAttMake);

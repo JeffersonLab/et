@@ -115,7 +115,7 @@ public class EtContainer {
     /**
      * Constructor.
      * @param eventSize  ET system event size in bytes.
-     * @throws EtException if eventSize < 1.
+     * @throws EtException if eventSize &lt; 1.
      */
     public EtContainer(int eventSize) throws EtException {
         if (eventSize < 1) {
@@ -132,7 +132,7 @@ public class EtContainer {
      *
      * @param count      number of internal buffers/events.
      * @param eventSize  ET system event size in bytes.
-     * @throws EtException if either arg < 1.
+     * @throws EtException if either arg &lt; 1.
      */
     public EtContainer(int count, int eventSize) throws EtException {
         if (count < 1 || eventSize < 1) {

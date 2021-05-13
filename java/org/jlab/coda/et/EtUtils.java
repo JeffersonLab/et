@@ -37,6 +37,8 @@ public class EtUtils {
      * Spin-yield loop based alternative to Thread.sleep
      * Based on the code of Andy Malakov
      * http://andy-malakov.blogspot.fr/2010/06/alternative-to-threadsleep.html
+     * @param nanoDuration number of nano sec to sleep.
+     * @throws InterruptedException if thread interrupted during sleep.
      */
     public static void sleepNanos(long nanoDuration) throws InterruptedException {
         final long end = System.nanoTime() + nanoDuration;
@@ -352,8 +354,9 @@ public class EtUtils {
     /**
       * Determine whether a given host name refers to the local host.
       * @param hostName host name that is checked to see if its local or not
+      * @return true if the host is local, else false.
       */
-     public static final boolean isHostLocal(String hostName) {
+     public static boolean isHostLocal(String hostName) {
         if (hostName == null || hostName.length() < 1) return false;
         if (hostName.equals("127.0.0.1")) return true;
 
@@ -377,8 +380,9 @@ public class EtUtils {
      * Determine whether two given host names refers to the same host.
      * @param hostName1 host name that is checked to see if it is the same as the other arg or not.
      * @param hostName2 host name that is checked to see if it is the same as the other arg or not.
+     * @return true if the hosts are the same, else false.
      */
-     public static final boolean isHostSame(String hostName1, String hostName2) {
+     public static boolean isHostSame(String hostName1, String hostName2) {
         // Arg check
         if (hostName1 == null || hostName1.length() < 1) return false;
         if (hostName2 == null || hostName2.length() < 1) return false;
@@ -993,7 +997,8 @@ public class EtUtils {
      * @param ipAddress2 second IP address in dot-decimal notation
      * @param subnetMask subnet mask as LOCAL-byte-ordered 32 bit int
      *
-     * @returns {@code true} if on same subnet, else {@code false}.
+     * @return {@code true} if on same subnet, else {@code false}.
+     * @throws EtException if one or both IP address args are not dot-decimal format or arg is null.
      */
     static boolean onSameSubnet(String ipAddress1, String ipAddress2, int subnetMask)
                                     throws EtException
@@ -1026,7 +1031,8 @@ public class EtUtils {
      *                   meaning highest order byte in element 0)
      * @param subnetMask subnet mask as LOCAL-byte-ordered 32 bit int
      *
-     * @returns {@code true} if on same subnet, else {@code false}.
+     * @return {@code true} if on same subnet, else {@code false}.
+     * @throws EtException if first IP address arg is not dot-decimal format or arg is null.
      */
     static boolean onSameSubnet(String ipAddress1, byte[] ipAddress2, int subnetMask)
                                     throws EtException
@@ -1054,7 +1060,7 @@ public class EtUtils {
      * is returned. This only works for IPv4.
      *
      * @param ipAddress IPV4 address
-     * @returns IPV4 address in numeric form if arg is valid dot-decimal address, else null
+     * @return IPV4 address in numeric form if arg is valid dot-decimal address, else null
      *          (in network byte order with highest order byte in element 0).
      */
     public static byte[] isDottedDecimal(String ipAddress)

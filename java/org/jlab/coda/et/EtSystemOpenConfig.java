@@ -150,8 +150,8 @@ public class EtSystemOpenConfig {
      *     if null or blank hostName;
      *     if method value is not valid;
      *     if method is direct and no actual host name was specified;
-     *     if port numbers are < 1024 or > 65535 (except if = 0 which uses default value);
-     *     if ttl is < 0 or > 254;
+     *     if port numbers are &lt; 1024 or &gt; 65535 (except if = 0 which uses default value);
+     *     if ttl is &lt; 0 or &gt; 254;
      *     if policy value is not valid
      */
     public EtSystemOpenConfig(String etName, String hostName,
@@ -302,7 +302,7 @@ public class EtSystemOpenConfig {
      *
      * @throws EtException
      *     if no broadcast addresses were specified;
-     *     if port number is < 1024 or > 65535
+     *     if port number is &lt; 1024 or &gt; 65535
      */
     public EtSystemOpenConfig(String etName, int uPort, String hostName)
             throws EtException {
@@ -328,7 +328,7 @@ public class EtSystemOpenConfig {
      *
      * @throws EtException
      *     if no broadcast addresses were specified;
-     *     if port number is < 1024 or > 65535
+     *     if port number is &lt; 1024 or &gt; 65535
      */
     public EtSystemOpenConfig(String etName, int uPort, String hostName,
                               Collection<String> bAddrs)
@@ -357,8 +357,8 @@ public class EtSystemOpenConfig {
      *
      * @throws EtException
      *     if no multicast addresses were specified;
-     *     if port number is < 1024 or > 65535;
-     *     if ttl is < 0 or > 254
+     *     if port number is &lt; 1024 or ^gt; 65535;
+     *     if ttl is &lt; 0 or &gt; 254
      */
     public EtSystemOpenConfig(String etName, String hostName,
                              Collection<String> mAddrs, int mPort, int ttlNum)
@@ -380,7 +380,7 @@ public class EtSystemOpenConfig {
      *
      * @throws EtException
      *     if no actual host name was specified;
-     *     if port number is < 1024 or > 65535
+     *     if port number is &lt; 1024 or &gt; 65535
      */
     public EtSystemOpenConfig(String etName, String hostName, int tPort)
             throws EtException {
@@ -562,7 +562,10 @@ public class EtSystemOpenConfig {
      *  @return boolean indicating wether we are broadcasting to find ET system */
     public boolean isBroadcasting() {return broadcasting;}
 
-    /** Set true if we're broadcasting to find ET system. */
+    /**
+     * Set true if we're broadcasting to find ET system.
+     * @param on true if we're broadcasting to find ET system, else false.
+     */
     public void broadcasting(boolean on) {broadcasting = on;}
 
     /** Are we going to connect to an ET system remotely only (=true), or will
@@ -773,7 +776,7 @@ public class EtSystemOpenConfig {
      *  @param port UDP port number for broad/multicasting and sending udp packets to known hosts;
      *              set to 0 for default = {@link EtConstants#udpPort}.
 
-     *  @throws EtException if the port number is < 1024 or > 65535
+     *  @throws EtException if the port number is &lt; 1024 or &gt; 65535
      */
     public void setUdpPort(int port) throws EtException {
         if (port == 0) {
@@ -793,7 +796,7 @@ public class EtSystemOpenConfig {
      *  @param port TCP server port number of the ET system;
      *              set to 0 for default = {@link EtConstants#serverPort}.
 
-     *  @throws EtException if the port number is < 1024 or > 65535
+     *  @throws EtException if the port number is &lt; 1024 or &gt; 65535
      */
     public void setTcpPort(int port) throws EtException {
         if (port == 0) {
@@ -810,9 +813,9 @@ public class EtSystemOpenConfig {
     /**
      *  Sets the time-to-live value for multicasting.
      *
-     *  @param ttlNum time-to-live value for multicasting (-1 < ttl < 255);
+     *  @param ttlNum time-to-live value for multicasting (-1 &lt; ttl &lt; 255);
      *                set to 0 for default = {@link EtConstants#multicastTTL}.
-     *  @throws EtException if the port number is < 0 or > 254
+     *  @throws EtException if the port number is &lt; 0 or ^gt; 254
      */
     public void setTTL(int ttlNum) throws EtException {
         if (ttlNum == 0) {

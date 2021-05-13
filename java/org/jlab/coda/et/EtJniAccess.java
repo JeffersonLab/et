@@ -220,9 +220,7 @@ class EtJniAccess {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     native EtEventImpl[] getEvents(long etId, int attId, int mode, int sec, int nsec, int count)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
@@ -262,9 +260,7 @@ class EtJniAccess {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,

@@ -237,7 +237,10 @@ public class EtSystemOpen {
      *          to access events. */
     public boolean usingJniLibrary() {return useJniLibrary;}
 
-    /** Gets the object used to access native methods when using local, C-based ET system. */
+    /**
+     * Gets the object used to access native methods when using local, C-based ET system.
+     * @return the object used to access native methods when using local, C-based ET system.
+     */
     public EtJniAccess getJni() {return jni;}
 
 
@@ -1611,6 +1614,7 @@ class DatagramReceive extends Thread {
      * This needs to be synchronized so the "wait" will work.
      *
      * @param time time to wait in milliseconds before timing out.
+     * @return status, 0 if timed out, 1 if received packet, -1 if error.
      */
     synchronized int waitForReply(int time) {
         // If the thread was started before we got a chance to wait for the

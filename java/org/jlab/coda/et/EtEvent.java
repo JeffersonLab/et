@@ -225,6 +225,7 @@ public interface EtEvent {
      *
      * @param byteOrder data's byte order as big with 0x04030201 or
      *                  as little with 0x01020304.
+     * @throws EtException if argument is a bad value
      */
     void setRawByteOrder(int byteOrder) throws EtException;
 

@@ -94,7 +94,7 @@ public class EtStation {
      * @return array of select integers
      * @throws EtException
      *     if the station has been removed or cannot be found
-     * @see EtStationConfig#select
+     * @throws IOException if error reading or writing stream
      */
     public int[] getSelectWords() throws IOException, EtException {
         if (!usable) {throw new EtException("station has been removed");}
