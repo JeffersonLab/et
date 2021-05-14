@@ -33,6 +33,14 @@
     <property name="jlooxPath2"    value="${local.jars}/${jlooxName2}" />
     <property name="jlooxPath3"    value="${local.jars}/${jlooxName3}" />
 
+    <!-- Set Classpath, ignore caller's classpath -->
+    <property name="build.sysclasspath" value="ignore" />
+    <!-- By default use local jars in classpath -->
+    <path id="classpath">
+        <fileset dir="${local.jars}" >
+            <include name="*.jar" />
+        </fileset>
+    </path>
 
     <!-- Targets -->
     
@@ -100,13 +108,11 @@
         </condition>
 
     </target>
+    <!-- ************************************************************* -->
 
-
-    <!-- Set Classpath, ignore caller's classpath -->
-    <property name="build.sysclasspath" value="ignore" />
 
     <!-- if $CODA is set, use that for classpath, use local jars if necessary -->
-    <target name="CODA_cp" depends="installCheck,CODA_nocp" if="codaDefined">
+    <target name="CODA_cp" depends="installCheck" if="codaDefined">
         <path id="classpath">
             <fileset dir="${env.CODA}/common/jar" >
                 <include name="*.jar" />
@@ -118,20 +124,11 @@
         <echo message="Compile with jars in $CODA/common/jar" />
     </target>
 
-    <!-- if $CODA is NOT set, use jars provided with this distribution -->
-    <target name="CODA_nocp" unless="codaDefined">
-        <path id="classpath">
-            <fileset dir="${local.jars}" >
-                <include name="*.jar" />
-            </fileset>
-        </path>
-        <echo message="Compile with jars in ${local.jars}" />
-    </target>
     <!-- ************************************************************* -->
 
 
     <!-- Prepare things by creating directories -->
-    <target name="prepare">
+    <target name="prepare" depends="installCheck" >
         <mkdir dir="${build.dir}" />
         <mkdir dir="${build.classes}" />
         <mkdir dir="${build.lib}" />
