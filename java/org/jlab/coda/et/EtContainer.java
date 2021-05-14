@@ -15,7 +15,6 @@ import org.jlab.coda.et.enums.Modify;
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.system.AttachmentLocal;
 
-import java.util.BitSet;
 import java.util.List;
 
 import static org.jlab.coda.et.EtContainer.MethodType.*;
