@@ -99,7 +99,7 @@ def is64BitMachine(env, platform, machine):
         ret = conf.CheckBits(ccflags)
         env = conf.Finish()
         if ret < 1:
-            print 'Cannot run test, assume 32 bit system'
+            print ('Cannot run test, assume 32 bit system')
             return False
         elif ret == 64:
             # Test shows 64 bit system'
@@ -141,8 +141,8 @@ def getInstallationDirs(osname, prefix, incdir, libdir, bindir):
         # prefix not defined try CODA env var
         if codaHomeEnv == "":
             if (incdir == None) or (libdir == None) or (bindir == None):
-                print "\nNeed to define CODA, or use the --prefix option,"
-                print "or all the --incdir, --libdir, and --bindir options.\n"
+                print ("\nNeed to define CODA, or use the --prefix option,")
+                print ("or all the --incdir, --libdir, and --bindir options.\n")
                 raise SystemExit
         else:
             prefix = codaHomeEnv
@@ -190,9 +190,9 @@ def makeIncludeDirs(includeDir, archIncludeDir, archDir, archIncLocalLink):
         os.makedirs(includeDir)
     # Make sure it's a directory (if we didn't create it)
     elif not os.path.isdir(includeDir):
-        print
-        print "Error:", includeDir, "is NOT a directory"
-        print
+        print()
+        print("Error:", includeDir, "is NOT a directory")
+        print()
         raise SystemExit
 
     if includeDir == archIncludeDir:
@@ -208,9 +208,9 @@ def makeIncludeDirs(includeDir, archIncludeDir, archDir, archIncLocalLink):
         except OSError:
             return
     elif not os.path.isdir(archDir):
-        print
-        print "Error:", archDir, "is NOT a directory"
-        print
+        print()
+        print("Error:", archDir, "is NOT a directory")
+        print()
         raise SystemExit
 
     #
@@ -220,18 +220,18 @@ def makeIncludeDirs(includeDir, archIncludeDir, archDir, archIncLocalLink):
     if not os.path.exists(archIncludeDir):
         # Create symbolic link: symlink(source, linkname)
         try:
-    	    if (archIncLocalLink == None) or (archIncLocalLink == ''):
-	    	symlink(includeDir, archIncludeDir)
+            if (archIncLocalLink == None) or (archIncLocalLink == ''):
+                symlink(includeDir, archIncludeDir)
             else:
-	    	symlink(archIncLocalLink, archIncludeDir)
+                symlink(archIncLocalLink, archIncludeDir)
         except OSError:
             # Failed to create symbolic link, so
             # just make it a regular directory
             os.makedirs(archIncludeDir)
     elif not os.path.isdir(archIncludeDir):
-        print
-        print "Error:", archIncludeDir, "is NOT a directory"
-        print
+        print()
+        print("Error:", archIncludeDir, "is NOT a directory")
+        print()
         raise SystemExit
 
     return
@@ -266,18 +266,18 @@ def configureJNI(env):
             java_base = '/System/Library/Frameworks/JavaVM.framework'
         else:
             # Search for the java compiler
-            print "JAVA_HOME environment variable not set. Searching for javac to find jni.h ..."
+            print("JAVA_HOME environment variable not set. Searching for javac to find jni.h ...")
             if not env.get('JAVAC'):
-                print "The Java compiler must be installed and in the current path, exiting"
+                print("The Java compiler must be installed and in the current path, exiting")
                 return 0
             jcdir = os.path.dirname(env.WhereIs('javac'))
             if not jcdir:
-                print "   not found, exiting"
+                print("   not found, exiting")
                 return 0
             # assuming the compiler found is in some directory like
             # /usr/jdkX.X/bin/javac, java's home directory is /usr/jdkX.X
             java_base = os.path.join(jcdir, "..")
-            print "  found, dir = " + java_base        
+            print("  found, dir = " + java_base)
         
     if sys.platform == 'darwin':
         # Apple does not use Sun's naming convention

@@ -22,11 +22,11 @@ from subprocess import Popen, PIPE
 import coda
 
 # Created files & dirs will have this permission
-os.umask(002)
+os.umask(2)
 
 # Software version
 versionMajor = '16'
-versionMinor = '2'
+versionMinor = '4'
 
 # Determine the os and machine names
 uname    = os.uname();
@@ -36,7 +36,22 @@ osname   = os.getenv('CODA_OSNAME', platform + '-' +  machine)
 
 # Create an environment while importing the user's PATH & LD_LIBRARY_PATH.
 # This allows us to get to other compilers for example.
-env = Environment(ENV = {'PATH' : os.environ['PATH'], 'LD_LIBRARY_PATH' : os.environ['LD_LIBRARY_PATH']})
+path = os.getenv('PATH', '')
+ldLibPath = os.getenv('LD_LIBRARY_PATH', '')
+
+if path == '':
+    print()
+    print("Error: set PATH environmental variable")
+    print()
+    raise SystemExit
+
+if ldLibPath == '':
+    print()
+    print("Warning: LD_LIBRARY_PATH environmental variable not defined")
+    print()
+    env = Environment(ENV = {'PATH' : os.environ['PATH']})
+else:
+    env = Environment(ENV = {'PATH' : os.environ['PATH'], 'LD_LIBRARY_PATH' : os.environ['LD_LIBRARY_PATH']})
 
 
 ################################
@@ -49,9 +64,9 @@ env = Environment(ENV = {'PATH' : os.environ['PATH'], 'LD_LIBRARY_PATH' : os.env
 # a configure-type test.
 is64bits = coda.is64BitMachine(env, platform, machine)
 if is64bits:
-    print "We're on a 64-bit machine"
+    print("We're on a 64-bit machine")
 else:
-    print "We're on a 32-bit machine"
+    print("We're on a 32-bit machine")
 
 
 #############################################
@@ -64,19 +79,19 @@ Help('\nlocal scons OPTIONS:\n')
 # debug option
 AddOption('--dbg', dest='ddebug', default=False, action='store_true')
 debug = GetOption('ddebug')
-if debug: print "Enable debugging"
+if debug: print("Enable debugging")
 Help('--dbg               compile with debug flag\n')
 
 # 32 bit option
 AddOption('--32bits', dest='use32bits', default=False, action='store_true')
 use32bits = GetOption('use32bits')
-if use32bits: print "use 32-bit libs & executables even on 64 bit system"
+if use32bits: print("use 32-bit libs & executables even on 64 bit system")
 Help('--32bits            compile 32bit libs & executables on 64bit system\n')
 
 # Pthread read/write locks option
 AddOption('--no-rwlock', dest='norwlock', default=False, action='store_true')
 noReadWriteLocks = GetOption('norwlock')
-if noReadWriteLocks: print "compile without read-write locks"
+if noReadWriteLocks: print ("compile without read-write locks")
 Help('--no-rwlock         compile without pthread read/write locks\n')
 
 # install directory option
@@ -140,7 +155,7 @@ if platform == 'Darwin':
 if is64bits and use32bits:
     osname = osname + '-32'
 
-print "OSNAME =", osname
+print ("OSNAME =", osname)
 
 # Hidden sub directory into which variant builds go
 archDir = '.' + osname + debugSuffix
@@ -177,15 +192,15 @@ if 'install' in COMMAND_LINE_TARGETS:
     # Create the include directories (make symbolic link if possible)
     coda.makeIncludeDirs(incInstallDir, archIncInstallDir, osDir, archIncLocalLink)
 
-    print 'Main install dir  = ', mainInstallDir
-    print 'bin  install dir  = ', binInstallDir
-    print 'lib  install dir  = ', libInstallDir
-    print 'inc  install dirs = ', incInstallDir, ", ", archIncInstallDir
+    print('Main install dir  = ', mainInstallDir)
+    print('bin  install dir  = ', binInstallDir)
+    print('lib  install dir  = ', libInstallDir)
+    print('inc  install dirs = ', incInstallDir, ", ", archIncInstallDir)
 
 else:
-    print 'No installation being done'
+    print('No installation being done')
 
-print
+print()
 
 # use "install" on command line to install libs & headers
 Help('install             install libs, headers, and binaries\n')
@@ -200,7 +215,7 @@ Help('install -c          uninstall libs, headers, and binaries\n')
 
 # Because we're using JNI, we need access to <jni.h> when compiling. 
 if not coda.configureJNI(env):
-    print "\nJava Native Interface header is required, set JAVA_HOME, exiting\n"
+    print ("\nJava Native Interface header is required, set JAVA_HOME, exiting\n")
     Exit(0)
 
 
