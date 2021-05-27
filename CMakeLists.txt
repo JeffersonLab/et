@@ -6,7 +6,7 @@
 #
 #
 # If you want the examples compiled also, then this instead
-#  % cmake .. -DCMAKE_BUILD_TYPE=Release -DET_BUILD_EXAMPLES=True
+#  % cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=True
 #
 #
 # After doing this once can do the following to recompile
@@ -23,7 +23,7 @@
 # This call must be placed BEFORE "project" command
 cmake_minimum_required(VERSION 3.3)
 
-project(evio VERSION 16.3)
+project(evio VERSION 16.4)
 
 set(CMAKE_DEBUG_POSTFIX -dbg)
 
@@ -180,7 +180,7 @@ endforeach(fileName)
 
 
 # Example Programs
-if(ET_BUILD_EXAMPLES)
+if(BUILD_EXAMPLES)
     foreach(fileName ${EXAMPLE_FILES})
         get_filename_component(execName ${fileName} NAME_WE)
         add_executable(${execName} ${fileName})
