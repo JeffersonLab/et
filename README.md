@@ -134,7 +134,7 @@ To build the libraries and executables on the Mac:
 2. mkdir build
 3. cd build
 4. cmake .. –DCMAKE_BUILD_TYPE=Release
-5.make
+5. make
 
 In order to compile all the examples as well, place –DMAKE_EXAMPLES=1 on the cmake command line.
 The above commands will place everything in the current “build” directory and will keep generated
@@ -143,7 +143,7 @@ files from mixing with the source and config files.
 In addition to a having a copy in the build directory, installing the library, binary and include
 files can be done by calling cmake in 2 ways:
 
-1. cmake .. –DCMAKE_BUILD_TYPE=Release –DCODA_INSTALL=<install dir>
+1. cmake .. –DCMAKE_BUILD_TYPE=Release –DCODA_INSTALL=&lt;install dir&gt;
 2. make install
 
 or
