@@ -182,7 +182,7 @@ $JAVA_HOME/include/darwin.
 
 One can download the pre-built et-16.4.jar file from:
 
-  https://coda.jlab.org/drupal/content/event-transfer-et
+  https://coda.jlab.org/drupal/content/et-164
 
 One can also find the pre-built et-16.4.jar file in the repository in the java/jars/java8
 directory built with Java 8, or in the java/jars/java15 directory built with Java 15,
