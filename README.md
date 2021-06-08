@@ -227,8 +227,9 @@ by the GUI graphics. These are installed when executing "ant install"
 and uninstalled when executing "ant uninstall".
 
 
------------------------------
-## **Documentation**
+----------------------------
+# **Generating Documentation**
+----------------------------
 
 All documentation links are provided above.
 
