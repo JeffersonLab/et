@@ -83,34 +83,34 @@ The following are the options of _**scons**_:
 
 Command | Action
 ------------ | -------------
-scons -h     |         print out help
-scons        |         make C libraries
-scons -c     |         remove all generated files
-scons install     |    make C libraries,
-                 | |   place libraries in architecture-specific lib directory
-                 | |   make binaries
-                 | |   place execsrc binaries in architecture-specific bin directory
-                 | |   place example binaries in bin/examples directory
-                 | |   place test binaries in bin/test directory
-                 | |   place headers in include directory
-scons install -c  |    uninstall libs, headers, and binaries
-scons tar         |    create a tar file (et-16.x.tgz) of the ET top level
-                 | |   directory and put in ./tar directory
-scons doc         |    generate html documentation from javadoc and doxygen
-                 | |   comments in the source code and put in ./doc directory
-scons undoc       |    remove the doc/javadoc directory
-scons --dbg       |    compile with debug flag
-scons --32bits    |    compile 32bit libraries & executables on 64bit system
+scons -h             |         print out help
+scons                |         make C libraries
+scons -c             |         remove all generated files
+scons install        |    make C libraries,
+.                    |   place libraries in architecture-specific lib directory
+.                    |   make binaries
+.                    |   place execsrc binaries in architecture-specific bin directory
+.                    |   place example binaries in bin/examples directory
+.                    |   place test binaries in bin/test directory
+.                    |   place headers in include directory
+scons install -c     |    uninstall libs, headers, and binaries
+scons tar            |    create a tar file (et-16.x.tgz) of the ET top level
+.                    |   directory and put in ./tar directory
+scons doc            |    generate html documentation from javadoc and doxygen
+.                    |   comments in the source code and put in ./doc directory
+scons undoc          |    remove the doc/javadoc directory
+scons --dbg          |    compile with debug flag
+scons --32bits       |    compile 32bit libraries & executables on 64bit system
 scons --prefix=<dir> | use base directory <dir> when doing install.
-                   | | Defaults to CODA environmental variable.
-                   | | Libs go in <dir>/<arch>/lib, headers in <dir>/<arch>/include
-                   | | and executables in <dir>/<arch>/bin
+.                    | Defaults to CODA environmental variable.
+.                    | Libs go in <dir>/<arch>/lib, headers in <dir>/<arch>/include
+.                    | and executables in <dir>/<arch>/bin
 scons --incdir=<dir> | copy header files to directory <dir> when doing install
-                   | | (takes precedence over --prefix or default location)
+.                    | (takes precedence over --prefix or default location)
 scons --libdir=<dir> | copy library files to directory <dir> when doing install
-                   | | (takes precedence over --prefix or default location)
+.                    | (takes precedence over --prefix or default location)
 scons --bindir=<dir> | copy executable files to directory <dir> when doing install
-                   | | (takes precedence over --prefix or default location)
+.                    | (takes precedence over --prefix or default location)
 
 
 You can see these options by running "scons -h"
