@@ -17,31 +17,29 @@ You must install Java version 8 or higher if you plan to compile
 the ET java code and run it. If you're using the jar file from the CODA
 website, Java 8 or higher is necessary since it was compiled with that version.
 
+###**Main evio links:**
 
-**The home page is:**
+  [ET Home Page](https://coda.jlab.org/drupal/content/event-transfer-et/)
 
-  https://coda.jlab.org/drupal/content/event-transfer-et/
-
-**All code is contained in the github repository (default = master branch):**
-
-  https://github.com/JeffersonLab/et
+  [ET on GitHub](https://github.com/JeffersonLab/et)
 
   
 -----------------------------
-## **Documentation**
+# **Documentation**
+----------------------------
 
-Documentation is contained in the repository but may also be accessed at the home site:
+Documentation on GitHub:
 
-Documentation Type | Link
------------- | -------------
-PDF User's Guide | https://coda.jlab.org/drupal/content/et-164-users-guide
-Javadoc | https://coda.jlab.org/drupal/content/et-164-javadoc
-Javadoc for developers | https://coda.jlab.org/drupal/content/et-164-developers-javadoc
-Doxygen doc for C | https://coda.jlab.org/drupal/content/et-164-doxygen
+* [All Documentation](https://jeffersonlab.github.io/et)
 
+Documentation on the home page:
+
+* [User's Guide PDF](https://coda.jlab.org/drupal/content/et-164-users-guide)
+* [Javadoc for Java Library](https://coda.jlab.org/drupal/content/et-164-javadoc)
+* [Doxygen for C Library](https://coda.jlab.org/drupal/content/et-164-doxygen)
 
 ----------------------------
-# **C LIBRARIES**
+# **C Library**
 ----------------------------
 
 There are 3 separate C libraries that are built. The first is the full ET library,
@@ -118,7 +116,7 @@ You can see these options by running "scons -h"
 
 Note that currently only Linux and Darwin (Mac OSX)
 operating systems are supported. The libraries and executables
-are placed into the $CODA/<arch>/lib and bin subdirectories
+are placed into the _**$CODA/[arch]/lib**_ and _**bin**_ subdirectories
 (eg. ...Linux-x86_64/lib).  Be sure to change your LD_LIBRARY_PATH
 environmental variable to include the correct lib directory.
 
@@ -130,11 +128,11 @@ environmental variable to include the correct lib directory.
 Evio can also be compiled with cmake using the included CMakeLists.txt file.
 To build the libraries and executables on the Mac:
 
-1. cd <et dir>
-2. mkdir build
-3. cd build
-4. cmake .. –DCMAKE_BUILD_TYPE=Release
-5. make
+    cd <et dir>
+    mkdir build
+    cd build
+    cmake .. –DCMAKE_BUILD_TYPE=Release
+    make
 
 In order to compile all the examples as well, place –DMAKE_EXAMPLES=1 on the cmake command line.
 The above commands will place everything in the current “build” directory and will keep generated
@@ -143,13 +141,13 @@ files from mixing with the source and config files.
 In addition to a having a copy in the build directory, installing the library, binary and include
 files can be done by calling cmake in 2 ways:
 
-1. cmake .. –DCMAKE_BUILD_TYPE=Release –DCODA_INSTALL=&lt;install dir&gt;
-2. make install
+    cmake .. –DCMAKE_BUILD_TYPE=Release –DCODA_INSTALL=<install dir>
+    make install
 
 or
 
-1. cmake .. –DCMAKE_BUILD_TYPE=Release
-2. make install
+    cmake .. –DCMAKE_BUILD_TYPE=Release
+    make install
 
 The first option explicitly sets the installation directory. The second option installs in the directory
 given in the CODA environmental variable. If cmake was run previously, remove the CMakeCache.txt file so
@@ -180,11 +178,15 @@ $JAVA_HOME/include/darwin.
 # **Java**
 ----------------------------
 
-One can download the pre-built et-16.4.jar file from:
+One can download the Java 8, pre-built et-16.4.jar file from either:
 
-  https://coda.jlab.org/drupal/content/et-164
+  [ET Home Page](https://coda.jlab.org/drupal/content/et-164)
+ 
+or
 
-One can also find the pre-built et-16.4.jar file in the repository in the java/jars/java8
+  [GitHub Repo](https://github.com/JeffersonLab/et/blob/master/java/jars/java8/et-16.4.jar)
+
+One can find the pre-built et-16.4.jar file in the repository in the java/jars/java8
 directory built with Java 8, or in the java/jars/java15 directory built with Java 15,
 or it can be generated. The generated jar file is placed in build/lib.
 In any case, put the jar file into your classpath and run your java application.
@@ -198,25 +200,29 @@ on your system (http://ant.apache.org):
     cd <et dir>
     ant
 
-To get a list of options with ant, type "ant help":
+To get a list of options with ant, type _**ant help**_:
 
-     ant  help       - print out usage
-     ant  env        - print out build file variables' values
-     ant  compile    - compile java files
-     ant  clean      - remove class files
-     ant  cleanall   - remove all generated files
-     ant  jar        - compile and create et jar file
-     and  install    - create et jar file, remove other version et jars,
-                       and install all jars into 'prefix'
-                       if given on command line by -Dprefix=dir',
-                       else install into CODA if defined" />
-     ant  uninstall  - remove all current jar files previously installed
-                       into 'prefix' or CODA
-     ant  all        - clean, compile and create et jar file
-     ant  javadoc    - create javadoc documentation
-     ant  developdoc - create javadoc documentation for developer
-     ant  undoc      - remove all javadoc documentation
-     ant  prepare    - create necessary directories
+    help: 
+        [echo] Usage: ant [ant options] <target1> [target2 | target3 | ...]
+    
+        [echo]      targets:
+        [echo]      help        - print out usage
+        [echo]      env         - print out build file variables' values
+        [echo]      compile     - compile java files
+        [echo]      clean       - remove class files
+        [echo]      cleanall    - remove all generated files
+        [echo]      jar         - compile and create jar file
+        [echo]      install     - create jar file and install into 'prefix'
+        [echo]                    if given on command line by -Dprefix=dir',
+        [echo]                    else install into CODA if defined
+        [echo]      uninstall   - remove jar file previously installed into 'prefix'
+        [echo]                    if given on command line by -Dprefix=dir',
+        [echo]                    else installed into CODA if defined
+        [echo]      all         - clean, compile and create jar file
+        [echo]      javadoc     - create javadoc documentation
+        [echo]      developdoc  - create javadoc documentation for developer
+        [echo]      undoc       - remove all javadoc documentation
+        [echo]      prepare     - create necessary directories
 
 
 To generate a new ET jar file, type "ant jar" which will
@@ -271,7 +277,8 @@ for developer-level documentation. To remove it:
     ant undoc
 
 -----------------------------
-## **Copyright**
+# **Copyright**
+----------------------------
 
 For any issues regarding use and copyright, read the NOTICE file.
 

@@ -38,7 +38,7 @@ PROJECT_NUMBER         = 16.4
 # If a relative path is entered, it will be relative to the location
 # where doxygen was started. If left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = $(TOPLEVEL)/doc/doxygen/C
+OUTPUT_DIRECTORY       = ./doc/doxygen/C
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create
 # 4096 sub-directories (in 2 levels) under the output directory of each output
@@ -415,7 +415,12 @@ SORT_MEMBER_DOCS       = YES
 
 SORT_BRIEF_DOCS        = NO
 
-# If the SORT_MEMBERS_CTORS_1ST tag is set to YES then doxygen will sort the (brief and detailed) documentation of class members so that constructors and destructors are listed first. If set to NO (the default) the constructors will appear in the respective orders defined by SORT_MEMBER_DOCS and SORT_BRIEF_DOCS. This tag will be ignored for brief docs if SORT_BRIEF_DOCS is set to NO and ignored for detailed docs if SORT_MEMBER_DOCS is set to NO.
+# If the SORT_MEMBERS_CTORS_1ST tag is set to YES then doxygen will sort the
+#(brief and detailed) documentation of class members so that constructors and
+#destructors are listed first. If set to NO (the default) the constructors will
+#appear in the respective orders defined by SORT_MEMBER_DOCS and SORT_BRIEF_DOCS.
+#This tag will be ignored for brief docs if SORT_BRIEF_DOCS is set to NO and
+#ignored for detailed docs if SORT_MEMBER_DOCS is set to NO.
 
 SORT_MEMBERS_CTORS_1ST = NO
 
@@ -578,19 +583,19 @@ WARN_LOGFILE           = doxyerrors.log
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = $(TOPLEVEL)/src/libsrc/et_attachment.c \
-                         $(TOPLEVEL)/src/libsrc/et_bridge.c \
-                         $(TOPLEVEL)/src/libsrc/et_common.c \
-                         $(TOPLEVEL)/src/libsrc/et_event.c \
-                         $(TOPLEVEL)/src/libsrc/et_openconfig.c \
-                         $(TOPLEVEL)/src/libsrc/et_statconfig.c \
-                         $(TOPLEVEL)/src/libsrc/et_station.c \
-                         $(TOPLEVEL)/src/libsrc/et_sysconfig.c \
-                         $(TOPLEVEL)/src/libsrc/et_system.c \
-                         $(TOPLEVEL)/src/libsrc/et_remote.c \
-                         $(TOPLEVEL)/src/libsrc/et.h \
-                         $(TOPLEVEL)/src/libsrc/et_private.h \
-                         $(TOPLEVEL)/src/libsrc/et_network.h
+INPUT                  = ./src/libsrc/et_attachment.c \
+                         ./src/libsrc/et_bridge.c \
+                         ./src/libsrc/et_common.c \
+                         ./src/libsrc/et_event.c \
+                         ./src/libsrc/et_openconfig.c \
+                         ./src/libsrc/et_statconfig.c \
+                         ./src/libsrc/et_station.c \
+                         ./src/libsrc/et_sysconfig.c \
+                         ./src/libsrc/et_system.c \
+                         ./src/libsrc/et_remote.c \
+                         ./src/libsrc/et.h \
+                         ./src/libsrc/et_private.h \
+                         ./src/libsrc/et_network.h
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is

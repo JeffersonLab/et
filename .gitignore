@@ -5,6 +5,7 @@ _*
 
 # except this one
 !.gitignore
+!.github
 
 # ignore generated files/dirs
 cmake-*
