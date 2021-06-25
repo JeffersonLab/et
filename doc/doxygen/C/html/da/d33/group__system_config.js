@@ -1,0 +1,28 @@
+var group__system_config =
+[
+    [ "et_system_config_addmulticast", "da/d33/group__system_config.html#ga50efb463eb0091e564ffdff2e1004e9a", null ],
+    [ "et_system_config_destroy", "da/d33/group__system_config.html#ga7c5a63edcca7d24663a8e270b308ec7d", null ],
+    [ "et_system_config_getattachments", "da/d33/group__system_config.html#gafd6b25f3bd44a73f718b7160027b8628", null ],
+    [ "et_system_config_getevents", "da/d33/group__system_config.html#gaaf120fc914452b3f1781311e76939c12", null ],
+    [ "et_system_config_getfile", "da/d33/group__system_config.html#gad574bc030585e42cfea27525369083d7", null ],
+    [ "et_system_config_getport", "da/d33/group__system_config.html#ga8535deb82798fc9761cd3e13aa9443ab", null ],
+    [ "et_system_config_getprocs", "da/d33/group__system_config.html#gaa66ae29c663a5ee632c1e247d2607b0d", null ],
+    [ "et_system_config_getserverport", "da/d33/group__system_config.html#ga8c8a95200a735c5736d8f20e12b973cb", null ],
+    [ "et_system_config_getsize", "da/d33/group__system_config.html#ga929e0e20cae5323315e906ea3c31beab", null ],
+    [ "et_system_config_getstations", "da/d33/group__system_config.html#ga80a1c322cb19b4bc29fc2053b70aa430", null ],
+    [ "et_system_config_gettcp", "da/d33/group__system_config.html#ga18f58a17255a206f66cb2958be35d09a", null ],
+    [ "et_system_config_gettemps", "da/d33/group__system_config.html#ga48157ce612007e2418197ba365e6d45e", null ],
+    [ "et_system_config_init", "da/d33/group__system_config.html#gac672b8d9a366a3ad7d3be534eea55765", null ],
+    [ "et_system_config_removemulticast", "da/d33/group__system_config.html#ga9249ec0b3ff1697ad4d3718275161cfd", null ],
+    [ "et_system_config_setattachments", "da/d33/group__system_config.html#gaf76a578e35eade4529765bedae84db50", null ],
+    [ "et_system_config_setevents", "da/d33/group__system_config.html#ga3dcb97be1d36ff33e0f373b1c6f10a5a", null ],
+    [ "et_system_config_setfile", "da/d33/group__system_config.html#ga18519af53d4b70d7c9b434dc8846384c", null ],
+    [ "et_system_config_setgroups", "da/d33/group__system_config.html#ga8b3c3a0ae7604d573337fe8bacd8595e", null ],
+    [ "et_system_config_setport", "da/d33/group__system_config.html#ga504f83e3ae5576fb282353f8f68d90ee", null ],
+    [ "et_system_config_setprocs", "da/d33/group__system_config.html#gaf8b6a2a1621eeeee4d4af28a21f30339", null ],
+    [ "et_system_config_setserverport", "da/d33/group__system_config.html#gab0730865e8a5abcef360b593a55c7424", null ],
+    [ "et_system_config_setsize", "da/d33/group__system_config.html#gaf27e097ff59df270eb9640d9c01f4397", null ],
+    [ "et_system_config_setstations", "da/d33/group__system_config.html#ga21d2e3aaf15a3ea3609f973fa293e68a", null ],
+    [ "et_system_config_settcp", "da/d33/group__system_config.html#gaa96b68679405db99908f60cad3376720", null ],
+    [ "et_system_config_settemps", "da/d33/group__system_config.html#ga83e2c8e4b740cb4062a0bf3e3b261260", null ]
+];
