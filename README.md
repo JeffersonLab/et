@@ -302,5 +302,5 @@ for developer-level documentation. To remove it:
 
 ----------------------------
 
-For any issues regarding use and copyright, read the NOTICE file.
+For any issues regarding use and copyright, read the [license](LICENSE.txt) file.
 
