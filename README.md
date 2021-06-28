@@ -93,28 +93,32 @@ the directory in which to install things and then run:
 
     scons install
 
-The following are the options of _**scons**_:
+The following are the options of scons seen by executing _**scons -h**_:
 
 Command | Action
 ------------ | -------------
-scons -h             |         print out help
-scons                |         make C libraries
-scons -c             |         remove all generated files
-scons install        |    make C libraries,
-.                    |   place libraries in architecture-specific lib directory
-.                    |   make binaries
-.                    |   place execsrc binaries in architecture-specific bin directory
-.                    |   place example binaries in bin/examples directory
-.                    |   place test binaries in bin/test directory
-.                    |   place headers in include directory
-scons install -c     |    uninstall libs, headers, and binaries
-scons tar            |    create a tar file (et-16.x.tgz) of the ET top level
-.                    |   directory and put in ./tar directory
-scons doc            |    generate html documentation from javadoc and doxygen
-.                    |   comments in the source code and put in ./doc directory
-scons undoc          |    remove the doc/javadoc directory
-scons --dbg          |    compile with debug flag
-scons --32bits       |    compile 32bit libraries & executables on 64bit system
+scons -h             | print out help
+scons                | make C libraries
+scons -c             | remove all generated files
+scons install        | make C libraries,
+.                    | place libraries in architecture-specific lib directory
+.                    | make binaries
+.                    | place execsrc binaries in architecture-specific bin directory
+.                    | place example binaries in bin/examples directory
+.                    | place test binaries in bin/test directory
+.                    | place headers in include directory
+scons install -c     | uninstall libs, headers, and binaries
+scons tar            | create a tar file (et-16.x.tgz) of the ET top level
+.                    | directory and put in ./tar directory
+scons doc            | generate html documentation from javadoc and doxygen
+.                    | comments in the source code and put in ./doc directory
+scons undoc          | remove the doc/javadoc directory
+scons --dbg          | compile with debug flag
+scons --no-rwlock    | compile without read-write lock used for preventing access of unmapped
+.                    | memory after calling et_close. This flag is necessary on platforms that
+.                    | do not support POSIX read-write locks. This lock is a
+.                    | safety feature and not necessary for proper operation.
+scons --32bits       | compile 32bit libraries & executables on 64bit system
 scons --prefix=<dir> | use base directory <dir> when doing install.
 .                    | Defaults to CODA environmental variable.
 .                    | Libs go in <dir>/<arch>/lib, headers in <dir>/<arch>/include
@@ -125,9 +129,6 @@ scons --libdir=<dir> | copy library files to directory <dir> when doing install
 .                    | (takes precedence over --prefix or default location)
 scons --bindir=<dir> | copy executable files to directory <dir> when doing install
 .                    | (takes precedence over --prefix or default location)
-
-
-You can see these options by running "scons -h"
 
 
 Note that currently only Linux and Darwin (Mac OSX)
@@ -198,11 +199,11 @@ $JAVA_HOME/include/darwin.
 
 One can download the Java 8, pre-built et-16.4.jar file from either:
 
-  [ET Home Page](https://coda.jlab.org/drupal/content/et-164)
+  [Jar File @ Home Page](https://coda.jlab.org/drupal/content/et-164)
  
 or
 
-  [GitHub Repo](https://github.com/JeffersonLab/et/blob/master/java/jars/java8/et-16.4.jar)
+  [Jar File @ GitHub](https://github.com/JeffersonLab/et/blob/master/java/jars/java8/et-16.4.jar)
 
 One can find the pre-built et-16.4.jar file in the repository in the java/jars/java8
 directory built with Java 8, or in the java/jars/java15 directory built with Java 15,
