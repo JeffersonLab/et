@@ -17,7 +17,7 @@ You must install Java version 8 or higher if you plan to compile
 the ET java code and run it. If you're using the jar file from the CODA
 website, Java 8 or higher is necessary since it was compiled with that version.
 
-###**Main evio links:**
+### **Main evio links:**
 
   [ET Home Page](https://coda.jlab.org/drupal/content/event-transfer-et/)
 
