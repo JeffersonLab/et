@@ -2,6 +2,10 @@
 # **ET 16.4 SOFTWARE PACKAGE**
 ----------------------------
 
+![Image of ET](ETsystem.jpg)
+
+### **ET System figure which shows threads and event flow**
+
 The ET or Event Transfer system is used to transfer events (data buffers)
 between different user processes using shared memory. It's designed
 for speed and reliability. Remote access to ET system data is possible
