@@ -1,10 +1,14 @@
 ----------------------------
+
 # **ET 16.4 SOFTWARE PACKAGE**
+
 ----------------------------
 
 ![Image of ET](ETsystem.jpg)
 
 ### **ET System figure which shows threads and event flow**
+
+----------------------------
 
 The ET or Event Transfer system is used to transfer events (data buffers)
 between different user processes using shared memory. It's designed
@@ -29,7 +33,9 @@ website, Java 8 or higher is necessary since it was compiled with that version.
 
   
 -----------------------------
+
 # **Documentation**
+
 ----------------------------
 
 Documentation on GitHub:
@@ -43,7 +49,9 @@ Documentation on the home page:
 * [Doxygen for C Library](https://coda.jlab.org/drupal/content/et-164-doxygen)
 
 ----------------------------
+
 # **C Library**
+
 ----------------------------
 
 There are 3 separate C libraries that are built. The first is the full ET library,
@@ -179,7 +187,9 @@ $JAVA_HOME/include/darwin.
 
 
 ----------------------------
+
 # **Java**
+
 ----------------------------
 
 One can download the Java 8, pre-built et-16.4.jar file from either:
@@ -280,8 +290,10 @@ for developer-level documentation. To remove it:
 
     ant undoc
 
------------------------------
+----------------------------
+
 # **Copyright**
+
 ----------------------------
 
 For any issues regarding use and copyright, read the NOTICE file.
