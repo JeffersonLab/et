@@ -23,7 +23,7 @@ website, Java 8 or higher is necessary since it was compiled with that version.
 ----------------------------
 
 
-![Image of ET](ETsystem.jpg)
+![Image of ET](doc/images/ETsystem.jpg)
 
 ### **ET System figure which shows threads and event flow**
 
