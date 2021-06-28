@@ -4,11 +4,6 @@
 
 ----------------------------
 
-![Image of ET](ETsystem.jpg)
-
-### **ET System figure which shows threads and event flow**
-
-----------------------------
 
 The ET or Event Transfer system is used to transfer events (data buffers)
 between different user processes using shared memory. It's designed
@@ -24,6 +19,15 @@ VxWorks is no longer supported in this version.
 You must install Java version 8 or higher if you plan to compile
 the ET java code and run it. If you're using the jar file from the CODA
 website, Java 8 or higher is necessary since it was compiled with that version.
+
+----------------------------
+
+
+![Image of ET](ETsystem.jpg)
+
+### **ET System figure which shows threads and event flow**
+
+----------------------------
 
 ### **Main evio links:**
 
