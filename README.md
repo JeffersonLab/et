@@ -29,7 +29,7 @@ website, Java 8 or higher is necessary since it was compiled with that version.
 
 ----------------------------
 
-### **Main evio links:**
+### **Main ET links:**
 
   [ET Home Page](https://coda.jlab.org/drupal/content/event-transfer-et/)
 
@@ -142,7 +142,7 @@ environmental variable to include the correct lib directory.
 ## **Compiling using CMake**
 
 
-Evio can also be compiled with cmake using the included CMakeLists.txt file.
+ET can also be compiled with cmake using the included CMakeLists.txt file.
 To build the libraries and executables on the Mac:
 
     cd <et dir>
