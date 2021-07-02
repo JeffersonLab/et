@@ -18,6 +18,7 @@ Here are links to the documentation contained in the github repository
 ___________________________
 ## **Version 16.4**
 
-* [All Documentation](https://jeffersonlab.github.io/et)
-
+* [User's Guide PDF](https://jeffersonlab.github.io/et/doc/users_guide/ET_Users_Guide.pdf)
+* [Javadoc for Java Library](https://jeffersonlab.github.io/et/doc/javadoc/index.html)
+* [Doxygen for C Library](https://jeffersonlab.github.io/et/doc/doxygen/C/html/index.html)
 
