@@ -13,7 +13,7 @@
  *----------------------------------------------------------------------------*
  *
  * Description:
- *      Routines for operating systems like Linux that cannot share mutexes
+ *      Routines for operating systems like Mac that cannot share mutexes
  *	between different Unix processes.
  *
  *----------------------------------------------------------------------------*/
@@ -32,11 +32,11 @@
 #include "et_network.h"
 
 /*
- * For a Linux local open, need to map the ET system memory AND
+ * For a Mac local open, need to map the ET system memory AND
  * open up a network connection to the server which the ET system
  * is running. Thus, the server handles all the mutex and condition
  * variable stuff, and the application can read the data right
- * from the mapped memory. Voila, a local ET system on Linux.
+ * from the mapped memory. Voila, a local ET system on Mac.
  */
 int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
 {     
@@ -199,7 +199,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   /* find client's iov_max value */
 #ifndef __APPLE__
   if ( (etid->iov_max = (int)sysconf(_SC_IOV_MAX)) == -1) {
-    /* set it to POSIX minimum by default (it always bombs on Linux) */
+    /* set it to POSIX minimum by default (it always bombs on Mac) */
     etid->iov_max = ET_IOV_MAX;
   }
 #else
@@ -227,7 +227,7 @@ int etn_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   transfer[7] = 0;
   
   /* make the network connection */
-  err = etNetTcpConnect(etid->sys->host, config->interface,
+  err = etNetTcpConnect("127.0.0.1", config->interface,
                         (unsigned short)etid->sys->port, config->tcpSendBufSize,
                         config->tcpRecvBufSize, config->tcpNoDelay, &sockfd, NULL);
   if (err != ET_OK) {
@@ -578,7 +578,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_READ;
   }
 
-  if (err != ET_OK) {
+  if (err < 0) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, error in server\n");
@@ -589,7 +589,7 @@ int etn_events_new(et_sys_id id, et_att_id att, et_event *evs[],
   nevents = err;
   
   /* The following should be independent of whether 64 or 32 bit code.
-   * Take advantage of the fact that in local Linux mode, the sizeof
+   * Take advantage of the fact that in local Mac mode, the sizeof
    * a pointer is the same here in client as it is in server.
    * If it weren't, the client would never have been able to do an
    * et_open which checks to see if it's 64 or 32 bit file.
@@ -675,7 +675,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_READ;
   }
 
-  if (err != ET_OK) {
+  if (err < 0) {
     et_tcp_unlock(etid);
     if (etid->debug >= ET_DEBUG_ERROR) {
       et_logmsg("ERROR", "etn_events_new, error in server\n");
@@ -686,7 +686,7 @@ int etn_events_new_group(et_sys_id id, et_att_id att, et_event *evs[],
   nevents = err;
   
   /* The following should be independent of whether 64 or 32 bit code.
-   * Take advantage of the fact that in local Linux mode, the sizeof
+   * Take advantage of the fact that in local Mac mode, the sizeof
    * a pointer is the same here in client as it is in server.
    * If it weren't, the client would never have been able to do an
    * et_open which checks to see if it's 64 or 32 bit file.
@@ -847,7 +847,7 @@ int etn_events_get(et_sys_id id, et_att_id att, et_event *evs[],
     return ET_ERROR_READ;
   }
 
-  if (err != ET_OK) {
+  if (err < 0) {
     et_tcp_unlock(etid);
     return err;
   }
