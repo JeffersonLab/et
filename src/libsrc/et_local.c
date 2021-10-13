@@ -141,18 +141,22 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
    * was the one that previously opened the ET system as Linux idiotically
    * assigns different pid's for different threads.
    */
-  my_pid = getpid();
-  for (i=0; i < etid->sys->config.nprocesses; i++) {
-    if ((etid->sys->proc[i].num > -1) &&
-        (etid->sys->proc[i].pid == my_pid)) {
-      /* already have ET system opened */
-      if (etid->debug >= ET_DEBUG_ERROR) {
-        et_logmsg("ERROR", "etl_open: each process can open an ET system only once!\n");
-      }
-      munmap(etid->pmap, etid->memsize);
-      return ET_ERROR;
-    }
-  }
+
+  // Remove this code since the et_server now uses et_open to handle remote clients
+  // and thus needs to do multiple opens.
+
+//  my_pid = getpid();
+//  for (i=0; i < etid->sys->config.nprocesses; i++) {
+//    if ((etid->sys->proc[i].num > -1) &&
+//        (etid->sys->proc[i].pid == my_pid)) {
+//      /* already have ET system opened */
+//      if (etid->debug >= ET_DEBUG_ERROR) {
+//        et_logmsg("ERROR", "etl_open: each process can open an ET system only once!\n");
+//      }
+//      munmap(etid->pmap, etid->memsize);
+//      return ET_ERROR;
+//    }
+//  }
 
   /* Take care of 64 / 32 bit issues */
   etid->bit64 = ET_GET_BIT64(etid->sys->bitInfo);
