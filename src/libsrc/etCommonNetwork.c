@@ -2077,7 +2077,7 @@ struct ifi_info *codanetGetInterfaceInfo(int family, int doaliases)
         ifilast = NULL;
 
         for (theifaddrs = ifaddrsp; theifaddrs->ifa_next != NULL; theifaddrs=theifaddrs->ifa_next) {
-            ifr = (struct ifreq *) ptr;
+            //ifr = (struct ifreq *) ptr;
 
             /* for next one in buffer */
             switch (theifaddrs->ifa_addr->sa_family) {
