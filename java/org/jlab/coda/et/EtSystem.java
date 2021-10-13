@@ -448,7 +448,7 @@ public class EtSystem {
      *      if arg is null;
      *      if the attachment object is invalid
      * @throws EtClosedException
-   *     if the ET system is closed
+     *     if the ET system is closed
      */
     synchronized public void wakeUpAttachment(EtAttachment att)
             throws IOException, EtException, EtClosedException {
