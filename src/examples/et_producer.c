@@ -452,7 +452,7 @@ int main(int argc,char **argv) {
         printf("%s: error in et_station_attach\n", argv[0]);
         exit(1);
     }
-  
+
     /* read time for future statistics calculations */
 #if defined __APPLE__
     gettimeofday(&t1, NULL);
@@ -464,7 +464,7 @@ int main(int argc,char **argv) {
 
 
     while (1) {
-      
+
         status = et_events_new_group(id, attach1, pe, ET_SLEEP | noAllocFlag,
                                      NULL, size, chunk, group, &numRead);
 
