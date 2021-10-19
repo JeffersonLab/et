@@ -495,9 +495,9 @@ void *et_netserver(void *arg)
             continue;
         }
 
-        if (etid->debug >= ET_DEBUG_ERROR) {
-            et_logmsg("INFO", "et_netserver: magic numbers do match, accept ET client\n");
-        }
+//        if (etid->debug >= ET_DEBUG_ERROR) {
+//            et_logmsg("INFO", "et_netserver: magic numbers do match, accept ET client\n");
+//        }
 
         if (debug)
             printf("TCP server got a connection so spawn thread\n");
@@ -700,10 +700,12 @@ static void et_command_loop(et_threadinfo *info)
 
 
   et_openconfig openconfig;
-  // Config defaults to using local ET system - memory map
   et_open_config_init(&openconfig);
+  et_open_config_sethost(openconfig, ET_HOST_LOCAL);
   et_open(&clientId, etid->sys->config.filename, openconfig);
   cliId = (et_id *) clientId;
+  et_open_config_destroy(openconfig);
+
 
   /* The Command Loop ... */
   while (1) {
