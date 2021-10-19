@@ -139,7 +139,6 @@ elif not use32bits:
 
 execLibs = ['']
 
-
 if noReadWriteLocks:
     env.Append(CPPDEFINES = ['NO_RW_LOCK'])
 
@@ -150,6 +149,9 @@ if platform == 'Darwin':
     execLibs = ['pthread', 'dl']
     env.Append(CPPDEFINES = ['Darwin'], SHLINKFLAGS = ['-multiply_defined', '-undefined', '-flat_namespace'])
     env.Append(CCFLAGS = ['-fmessage-length=0'])
+else:
+    # Do this to get pthread_timedjoin_np on Linux
+    env.Append(CPPDEFINES = ["_GNU_SOURCE"])
 
 
 if is64bits and use32bits:

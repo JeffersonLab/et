@@ -17,9 +17,10 @@
  *	with heartbeats.
  *
  *----------------------------------------------------------------------------*/
- 
+
 
 #include <stdio.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <string.h>
 #include <time.h>
@@ -910,25 +911,56 @@ static int et_start_heartmonitor(et_id *id)
 /* cancel heartbeat thread */
 static void et_stop_heartbeat(et_id *id)
 {
-  int status;
+    int status;
+    struct timespec wait;
+    wait.tv_sec = 0;
+    wait.tv_nsec = 200000000;  /* 200 millisec */
   
-  status = pthread_cancel(id->sys->proc[id->proc].hbeat_thd_id);
-  if (status != 0) {
-    err_abort(status, "Cancel heartbeat thread");
-  }
-  return;
+    status = pthread_cancel(id->sys->proc[id->proc].hbeat_thd_id);
+    if (status != 0) {
+        err_abort(status, "Cancel heartbeat thread");
+    }
+
+#ifdef _GNU_SOURCE
+    // Wait for up to 0.2 seconds for the thread to finish
+    status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
+    if (status != 0) {
+        err_abort(status, "Cancel heartbeat thread");
+    }
+#else
+    status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
+    if (status != 0) {
+        err_abort(status, "Cancel heartbeat thread");
+    }
+#endif
 }
   
 /******************************************************/
 /* cancel heart monitor thread */
 static void et_stop_heartmonitor(et_id *id)
 {
-  int status;
-  
-  status = pthread_cancel(id->sys->proc[id->proc].hmon_thd_id);
-  if (status != 0) {
-    err_abort(status, "Cancel heart monitor thread");
-  }
-  return;
+    int status;
+    struct timespec wait;
+    wait.tv_sec = 0;
+    wait.tv_nsec = 100000000;  /* 100 millisec */
+
+    status = pthread_cancel(id->sys->proc[id->proc].hmon_thd_id);
+    if (status != 0) {
+      err_abort(status, "Cancel heart monitor thread");
+    }
+
+#ifdef _GNU_SOURCE
+    // Wait for up to 0.2 seconds for the thread to finish
+    status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
+    if (status != 0) {
+        err_abort(status, "Cancel heartbeat thread");
+    }
+#else
+    status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
+    if (status != 0) {
+        err_abort(status, "Cancel heartbeat thread");
+    }
+#endif
+
 }
 
