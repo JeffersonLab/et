@@ -555,7 +555,7 @@ int main(int argc,char **argv) {
         }
 
         // CLOSE ET
-        et_close(id);
+        et_forcedclose(id);
 
     } /* while(1) */
 
