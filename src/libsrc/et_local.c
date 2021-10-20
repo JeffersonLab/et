@@ -804,10 +804,10 @@ static int et_start_heartbeat(et_id *id)
     err_abort(status, "Thread attr init");
   }
    
-  status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if(status != 0) {
-    err_abort(status, "Thread attr init");
-  }
+//  status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+//  if(status != 0) {
+//    err_abort(status, "Thread attr init");
+//  }
   
   status = pthread_create(&id->sys->proc[id->proc].hbeat_thd_id,
                           &attr, et_heartbeat, (void *) id);
@@ -868,10 +868,10 @@ static int et_start_heartmonitor(et_id *id)
     err_abort(status, "Thread attr init");
   }
   
-  status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if(status != 0) {
-    err_abort(status, "Thread attr init");
-  }
+//  status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+//  if(status != 0) {
+//    err_abort(status, "Thread attr init");
+//  }
   
   status = pthread_create(&id->sys->proc[id->proc].hmon_thd_id,
                           &attr, et_heartmonitor, (void *) id);
