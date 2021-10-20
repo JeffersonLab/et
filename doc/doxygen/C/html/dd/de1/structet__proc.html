@@ -102,6 +102,9 @@ Data Fields</h2></td></tr>
 <tr class="memitem:acd41e017966003bef71053a668ad8214"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d4/d12/et_8h.html#aa01c1a1779604cc16cb60c805e50e7e6">et_att_id</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/de1/structet__proc.html#acd41e017966003bef71053a668ad8214">att</a> [<a class="el" href="../../dd/d57/et__private_8h.html#a172828b3c802e28b974c9b99a9361f7c">ET_ATTACHMENTS_MAX</a>]</td></tr>
 <tr class="memdesc:acd41e017966003bef71053a668ad8214"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array in which an element (indexed by the id# of an attachment owned by this process) gives the id# of the attachment and -1 otherwise.  <a href="../../dd/de1/structet__proc.html#acd41e017966003bef71053a668ad8214">More...</a><br /></td></tr>
 <tr class="separator:acd41e017966003bef71053a668ad8214"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a953d3da8844e2e44a51f6398021e8148"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/de1/structet__proc.html#a953d3da8844e2e44a51f6398021e8148">time</a></td></tr>
+<tr class="memdesc:a953d3da8844e2e44a51f6398021e8148"><td class="mdescLeft">&#160;</td><td class="mdescRight">Time ET system opened, used to prevent race conditions caused by rapid open and close cycles.  <a href="../../dd/de1/structet__proc.html#a953d3da8844e2e44a51f6398021e8148">More...</a><br /></td></tr>
+<tr class="separator:a953d3da8844e2e44a51f6398021e8148"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae3c5c6d1be00b3b5be05388eeec074c0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/de1/structet__proc.html#ae3c5c6d1be00b3b5be05388eeec074c0">nattachments</a></td></tr>
 <tr class="memdesc:ae3c5c6d1be00b3b5be05388eeec074c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of attachments to an ET system in this process.  <a href="../../dd/de1/structet__proc.html#ae3c5c6d1be00b3b5be05388eeec074c0">More...</a><br /></td></tr>
 <tr class="separator:ae3c5c6d1be00b3b5be05388eeec074c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -272,6 +275,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p><a class="el" href="../../dd/d57/et__private_8h.html#a2c8f4c313dcd9fa9c9a6fd72d6c89c4f">ET_PROC_OPEN</a> if open or connected to ET system, or <a class="el" href="../../dd/d57/et__private_8h.html#a15a84799dccc2252a079f6ecf25a395a">ET_PROC_CLOSED</a> if closed/unconnected. </p>
+
+</div>
+</div>
+<a id="a953d3da8844e2e44a51f6398021e8148"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a953d3da8844e2e44a51f6398021e8148">&#9670;&nbsp;</a></span>time</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t et_proc::time</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Time ET system opened, used to prevent race conditions caused by rapid open and close cycles. </p>
 
 </div>
 </div>

@@ -8,5 +8,6 @@ var structet__proc =
     [ "nattachments", "dd/de1/structet__proc.html#ae3c5c6d1be00b3b5be05388eeec074c0", null ],
     [ "num", "dd/de1/structet__proc.html#a0a9a906a0dad299f85dd84d21b3b2b33", null ],
     [ "pid", "dd/de1/structet__proc.html#a6a1b1fafbbfd28d761d0982b6d99bca7", null ],
-    [ "status", "dd/de1/structet__proc.html#a4b808831280c2533c26535da86145289", null ]
+    [ "status", "dd/de1/structet__proc.html#a4b808831280c2533c26535da86145289", null ],
+    [ "time", "dd/de1/structet__proc.html#a953d3da8844e2e44a51f6398021e8148", null ]
 ];
