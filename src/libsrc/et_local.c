@@ -54,7 +54,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   struct timespec is_alive;
   struct timespec sleeptime;
   struct timeval  start, now;
-  double          dstart, dnow, dtimeout;
+  uint64_t        dstart, dnow, dtimeout; // microseconds
   int      i, err, status, my_index;
   char     *pSharedMem;
 
@@ -70,15 +70,15 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
   /* set minimum time to wait for connection to ET */
   /* if timeout == 0, wait "forever" */
   if ((config->timeout.tv_sec == 0) && (config->timeout.tv_nsec == 0)) {
-    dtimeout = 1.e9; /* 31 years */
+    dtimeout = 1000000000UL; /* 31 years */
   }
   else {
-    dtimeout = config->timeout.tv_sec + 1.e-9*(config->timeout.tv_nsec);
+    dtimeout = 1000000UL*config->timeout.tv_sec + config->timeout.tv_nsec/1000;
   }
 
   /* keep track of starting time */
   gettimeofday(&start, NULL);
-  dstart = start.tv_sec + 1.e-6*(start.tv_usec);
+  dstart = 1000000UL*start.tv_sec + start.tv_usec;
 
   while (1) {
     /* attach to mapped memory */
@@ -92,7 +92,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
       if (config->wait == ET_OPEN_WAIT) {
         /* see if the min time has elapsed, if so quit. */
         gettimeofday(&now, NULL);
-        dnow = now.tv_sec + 1.e-6*(now.tv_usec);
+        dnow = 1000000UL*now.tv_sec + now.tv_usec;
 
         if ((dnow - dstart) > dtimeout) {
           return err;
@@ -251,6 +251,7 @@ int etl_open(et_sys_id *id, const char *filename, et_openconfig openconfig)
     
   etid->sys->nprocesses++;
   etid->proc = my_index;
+  etid->sys->proc[my_index].time = dstart;
   etid->sys->proc[my_index].num = my_index;
   etid->sys->proc[my_index].pid = my_pid;
   etid->sys->proc[my_index].et_status = ET_PROC_ETOK;
@@ -399,63 +400,134 @@ int et_unlook(et_sys_id id)
   return ET_OK;
 }
 
+///******************************************************/
+//int etl_close(et_sys_id id)
+//{
+//  et_id *etid = (et_id *) id;
+//  int i;
+//
+//  /* Don't allow simultaneous access of shared mem as we're about to unmap it */
+//  et_memWrite_lock(etid);
+//
+//  /* Record that fact that close has been called so no more access of shared mem */
+//  etid->closed = 1;
+//
+//  /* ET system must call et_system_close, not et_close */
+//  if (etid->proc == ET_SYS) {
+//    et_mem_unlock(etid);
+//    if (etid->debug >= ET_DEBUG_WARN) {
+//      et_logmsg("WARN", "et_close, calling et_system_close instead for ET system process\n");
+//    }
+//    return et_system_close(id);
+//  }
+//
+//  if (etl_alive(id)) {
+//    /* check for this process' attachments to stations */
+//    for (i=0; i < etid->sys->config.nattachments; i++) {
+//      if (etid->sys->proc[etid->proc].att[i] != -1) {
+//        et_mem_unlock(etid);
+//        if (etid->debug >= ET_DEBUG_ERROR) {
+//          et_logmsg("ERROR", "et_close, detach from all stations first\n");
+//        }
+//        return ET_ERROR;
+//      }
+//    }
+//
+//    et_system_lock(etid->sys);
+//    etid->sys->nprocesses--;
+//    et_init_process(etid->sys, etid->proc);
+//    /* if we crash right here, system mutex is permanently locked */
+//    et_system_unlock(etid->sys);
+//  }
+//  else {
+//    etid->sys->nprocesses--;
+//    et_init_process(etid->sys, etid->proc);
+//  }
+//
+//  et_stop_heartmonitor(etid);
+//  et_stop_heartbeat(etid);
+//
+//  if (munmap(etid->pmap, etid->memsize) != 0) {
+//    if (etid->debug >= ET_DEBUG_ERROR) {
+//      et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");
+//    }
+//  }
+//
+//  et_mem_unlock(etid);
+//  et_id_destroy(id);
+//
+//  return ET_OK;
+//}
+
 /******************************************************/
 int etl_close(et_sys_id id)
 {
-  et_id *etid = (et_id *) id;
-  int i;
+    et_id *etid = (et_id *) id;
+    int i;
 
-  /* Don't allow simultaneous access of shared mem as we're about to unmap it */
-  et_memWrite_lock(etid);
+    /* Don't allow simultaneous access of shared mem as we're about to unmap it */
+    et_memWrite_lock(etid);
 
-  /* Record that fact that close has been called so no more access of shared mem */
-  etid->closed = 1;
-  
-  /* ET system must call et_system_close, not et_close */
-  if (etid->proc == ET_SYS) {
-    et_mem_unlock(etid);
-    if (etid->debug >= ET_DEBUG_WARN) {
-      et_logmsg("WARN", "et_close, calling et_system_close instead for ET system process\n");
-    }
-    return et_system_close(id);
-  }
+    /* Record that fact that close has been called so no more access of shared mem */
+    etid->closed = 1;
 
-  if (etl_alive(id)) {
-    /* check for this process' attachments to stations */
-    for (i=0; i < etid->sys->config.nattachments; i++) {
-      if (etid->sys->proc[etid->proc].att[i] != -1) {
+    /* ET system must call et_system_close, not et_close */
+    if (etid->proc == ET_SYS) {
         et_mem_unlock(etid);
-        if (etid->debug >= ET_DEBUG_ERROR) {
-          et_logmsg("ERROR", "et_close, detach from all stations first\n");
+        if (etid->debug >= ET_DEBUG_WARN) {
+            et_logmsg("WARN", "et_close, calling et_system_close instead for ET system process\n");
         }
-        return ET_ERROR;
-      }
+        return et_system_close(id);
     }
+
+    // Keep the ET system from killing us while we shutdown the heartbeat thread
+    et_system_lock(etid->sys);
+    etid->sys->proc[etid->proc].status = ET_PROC_CLOSED;
+    et_system_unlock(etid->sys);
+
+    // Stop threads first since they use etid->sys->proc[etid->proc] and et_init_process
+    // clears that structure making it available for the next client ...
+    et_stop_heartmonitor(etid);
+    et_stop_heartbeat(etid);
 
     et_system_lock(etid->sys);
-    etid->sys->nprocesses--;
-    et_init_process(etid->sys, etid->proc);
-    /* if we crash right here, system mutex is permanently locked */
+    etid->sys->proc[etid->proc].status = ET_PROC_OPEN;
     et_system_unlock(etid->sys);
-  }
-  else {
-    etid->sys->nprocesses--;
-    et_init_process(etid->sys, etid->proc);
-  }
 
-  et_stop_heartmonitor(etid);
-  et_stop_heartbeat(etid);
 
-  if (munmap(etid->pmap, etid->memsize) != 0) {
-    if (etid->debug >= ET_DEBUG_ERROR) {
-      et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");
+    if (etl_alive(id)) {
+        /* check for this process' attachments to stations */
+        for (i=0; i < etid->sys->config.nattachments; i++) {
+            if (etid->sys->proc[etid->proc].att[i] != -1) {
+                et_mem_unlock(etid);
+                if (etid->debug >= ET_DEBUG_ERROR) {
+                    et_logmsg("ERROR", "et_close, detach from all stations first\n");
+                }
+                return ET_ERROR;
+            }
+        }
+
+        et_system_lock(etid->sys);
+        etid->sys->nprocesses--;
+        et_init_process(etid->sys, etid->proc);
+        /* if we crash right here, system mutex is permanently locked */
+        et_system_unlock(etid->sys);
     }
-  }
+    else {
+        etid->sys->nprocesses--;
+        et_init_process(etid->sys, etid->proc);
+    }
 
-  et_mem_unlock(etid);
-  et_id_destroy(id);
+    if (munmap(etid->pmap, etid->memsize) != 0) {
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_close, cannot unmap ET memory\n");
+        }
+    }
 
-  return ET_OK;
+    et_mem_unlock(etid);
+    et_id_destroy(id);
+
+    return ET_OK;
 }
 
 /******************************************************/
@@ -907,82 +979,47 @@ static int et_start_heartmonitor(et_id *id)
   
   return ET_OK;
 }
-  
+
 /******************************************************/
 /* cancel heartbeat thread */
 static void et_stop_heartbeat(et_id *id)
 {
-    int status;
-    struct timespec wait = {0, 500000000};  /* 500 millisec */
-  
-    status = pthread_cancel(id->sys->proc[id->proc].hbeat_thd_id);
-    if (status != 0) {
-        err_abort(status, "Cancel heartbeat thread");
-    }
-
-#ifdef _GNU_SOURCE
-    // Wait for up to 0.2 seconds for the thread to finish
-    status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
-    if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: pthread join timed out after .4 sec");
-    }
-    else if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: thread not yet terminated");
-    }
-    else if (status == EINVAL) {
-        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np");
-    }
-#else
-    status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
-    if (status == EDEADLK) {
-        printf("et_stop_heartmonitor: thread deadlocked");
-    }
-    else if (status == EINVAL) {
-        printf("et_stop_heartmonitor: thread non joinable or another thread already waiting to join");
+    int status = pthread_cancel(id->sys->proc[id->proc].hbeat_thd_id);
+    if (status == 0) {
+        status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
+        if (status == EDEADLK) {
+            printf("et_stop_heartbeat: thread deadlocked\n");
+        }
+        else if (status == EINVAL) {
+            printf("et_stop_heartbeat: thread non joinable or another thread already waiting to join\n");
+        }
+        else if (status == ESRCH) {
+            printf("et_stop_heartbeat: no such thread found\n");
+        }
     }
     else if (status == ESRCH) {
-        printf("et_stop_heartmonitor: no such thread found");
+        printf("et_stop_heartbeat: no heartbeat thread to cancel for id = %d\n", id->proc);
     }
-#endif
-
 }
-  
+
 /******************************************************/
 /* cancel heart monitor thread */
 static void et_stop_heartmonitor(et_id *id)
 {
-    int status;
-    struct timespec wait = {0, 500000000};  /* 500 millisec */
-
-    status = pthread_cancel(id->sys->proc[id->proc].hmon_thd_id);
-    if (status != 0) {
-      err_abort(status, "Cancel heart monitor thread");
-    }
-
-#ifdef _GNU_SOURCE
-    // Wait for up to 0.2 seconds for the thread to finish
-    status = pthread_timedjoin_np(id->sys->proc[id->proc].hmon_thd_id, NULL, &wait);
-    if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: pthread join timed out after .4 sec");
-    }
-    else if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: thread not yet terminated");
-    }
-    else if (status == EINVAL) {
-        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np");
-    }
-#else
-    status = pthread_join(id->sys->proc[id->proc].hmon_thd_id, NULL);
-    if (status == EDEADLK) {
-        printf("et_stop_heartmonitor: thread deadlocked");
-    }
-    else if (status == EINVAL) {
-        printf("et_stop_heartmonitor: thread non joinable or another thread already waiting to join");
+    int status = pthread_cancel(id->sys->proc[id->proc].hmon_thd_id);
+    if (status == 0) {
+        status = pthread_join(id->sys->proc[id->proc].hmon_thd_id, NULL);
+        if (status == EDEADLK) {
+            printf("et_stop_heartmonitor: thread deadlocked\n");
+        }
+        else if (status == EINVAL) {
+            printf("et_stop_heartmonitor: thread non joinable or another thread already waiting to join\n");
+        }
+        else if (status == ESRCH) {
+            printf("et_stop_heartmonitor: no such thread found\n");
+        }
     }
     else if (status == ESRCH) {
-        printf("et_stop_heartmonitor: no such thread found");
+        printf("et_stop_heartmonitor: no heart monitor thread to cancel for id = %d\n", id->proc);
     }
-#endif
-
 }
-
