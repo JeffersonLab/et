@@ -490,10 +490,10 @@ int etl_close(et_sys_id id)
     et_stop_heartmonitor(etid);
     et_stop_heartbeat(etid);
 
+    // Change this back so et_system can clean up if necessary
     et_system_lock(etid->sys);
     etid->sys->proc[etid->proc].status = ET_PROC_OPEN;
     et_system_unlock(etid->sys);
-
 
     if (etl_alive(id)) {
         /* check for this process' attachments to stations */
