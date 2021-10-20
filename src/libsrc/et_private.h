@@ -308,6 +308,8 @@ struct et_proc {
   et_proc_id    num;                      /**< Unique index # of this process. */
   et_att_id     att[ET_ATTACHMENTS_MAX];  /**< Array in which an element (indexed by the id# of an attachment owned
                                                by this process) gives the id# of the attachment and -1 otherwise. */
+  uint64_t      time;                     /**< Time ET system opened, used to prevent race conditions caused by rapid
+                                               open and close cycles. */
   int           nattachments;             /**< Number of attachments to an ET system in this process. */
   int           status;                   /**< @ref ET_PROC_OPEN if open or connected to ET system, or
                                                @ref ET_PROC_CLOSED if closed/unconnected. */

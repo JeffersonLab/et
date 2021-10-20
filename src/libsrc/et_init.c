@@ -59,7 +59,8 @@ int et_sharedmutex(void) {
 void et_init_process(et_system *sys, et_proc_id id)
 {
   int i;
-  
+
+  sys->proc[id].time         = 0L;
   sys->proc[id].num          = -1;
   sys->proc[id].nattachments = 0;
   sys->proc[id].et_status    = ET_PROC_ETDEAD;

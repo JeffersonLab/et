@@ -17,6 +17,7 @@
  *
  *----------------------------------------------------------------------------*/
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -813,6 +814,7 @@ static void *et_sys_heartmonitor(void *arg)
   int numprocs = sys->config.nprocesses;
   int i, j, status;
   unsigned int oldheartbt[ET_PROCESSES_MAX], newheartbt[ET_PROCESSES_MAX];
+  uint64_t newTime[ET_PROCESSES_MAX], oldTime[ET_PROCESSES_MAX];
   struct timespec timeout;
   const int forever = 1;
  
@@ -821,8 +823,9 @@ static void *et_sys_heartmonitor(void *arg)
   
   /* signal that thread started */
   id->race = -1;
-  
-  memset(oldheartbt, -1, ET_PROCESSES_MAX*sizeof(unsigned int));
+
+    memset(oldheartbt, -1, ET_PROCESSES_MAX*sizeof(unsigned int));
+    memset(oldTime, 0, ET_PROCESSES_MAX*sizeof(uint64_t));
 
   while (forever) {
     /* read other process's heartbeats every ET_MON_SEC seconds */
@@ -835,6 +838,7 @@ static void *et_sys_heartmonitor(void *arg)
         if (sys->proc[i].status != ET_PROC_OPEN) {
             continue;
         }
+        newTime[i] = sys->proc[i].time;
         newheartbt[i] = sys->proc[i].heartbeat;
     }
     et_system_unlock(sys);
@@ -847,15 +851,29 @@ static void *et_sys_heartmonitor(void *arg)
       
       if (oldheartbt[i] != newheartbt[i]) {
           oldheartbt[i]  = newheartbt[i];
+          oldTime[i]     = newTime[i];
       }
       /* else if no more heartbeat from process, eliminate it from ET system */
       else {
+          /*
+           * We can get confused if processes come and go rapidly.
+           * The heartbeat may not appear to change (it may stay at 1),
+           * but in reality the original processes has gone, done et_close(),
+           * and a new processes occupies this part of shared memory.
+           * Check for that by checking the timestamp of when the process was started.
+           */
+          if (oldTime[i] != newTime[i]) {
+et_logmsg("INFO", "et_sys_heartmonitor, time of old proc = %ul, new = %ul, process changed so don't kill\n", oldTime[i], newTime[i]);
+              oldTime[i]  = newTime[i];
+              continue;
+          }
+
         /* tell all routines called that we're cleaning up */
         id->cleanup = 1;
         
-        if (id->debug >= ET_DEBUG_INFO) {
+//        if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_sys_heartmonitor, kill bad process (%d,%d)\n", i, sys->proc[i].pid);
-        }
+//        }
         /* kill process dead - no, don't do that! Timmer 2/16/2017*/
         /* If kill(0) succeeds, then process exists, but no signal sent. */
         /* kill(sys->proc[i].pid, SIGKILL); */
