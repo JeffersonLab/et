@@ -924,13 +924,13 @@ static void et_stop_heartbeat(et_id *id)
     // Wait for up to 0.2 seconds for the thread to finish
     status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
     if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: pthread join timed out after .4 sec")
+        printf("et_stop_heartmonitor: pthread join timed out after .4 sec");
     }
     else if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: thread not yet terminated")
+        printf("et_stop_heartmonitor: thread not yet terminated");
     }
     else if (status == EINVAL) {
-        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np")
+        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np");
     }
 #else
     status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
@@ -961,18 +961,18 @@ static void et_stop_heartmonitor(et_id *id)
 
 #ifdef _GNU_SOURCE
     // Wait for up to 0.2 seconds for the thread to finish
-    status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
+    status = pthread_timedjoin_np(id->sys->proc[id->proc].hmon_thd_id, NULL, &wait);
     if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: pthread join timed out after .4 sec")
+        printf("et_stop_heartmonitor: pthread join timed out after .4 sec");
     }
     else if (status == ETIMEDOUT) {
-        printf("et_stop_heartmonitor: thread not yet terminated")
+        printf("et_stop_heartmonitor: thread not yet terminated");
     }
     else if (status == EINVAL) {
-        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np")
+        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np");
     }
 #else
-    status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
+    status = pthread_join(id->sys->proc[id->proc].hmon_thd_id, NULL);
     if (status == EDEADLK) {
         printf("et_stop_heartmonitor: thread deadlocked");
     }
