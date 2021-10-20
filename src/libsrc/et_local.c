@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <errno.h>
 #include <stddef.h>
 #include <string.h>
 #include <time.h>
@@ -912,9 +913,7 @@ static int et_start_heartmonitor(et_id *id)
 static void et_stop_heartbeat(et_id *id)
 {
     int status;
-    struct timespec wait;
-    wait.tv_sec = 0;
-    wait.tv_nsec = 200000000;  /* 200 millisec */
+    struct timespec wait = {0, 500000000};  /* 500 millisec */
   
     status = pthread_cancel(id->sys->proc[id->proc].hbeat_thd_id);
     if (status != 0) {
@@ -924,15 +923,28 @@ static void et_stop_heartbeat(et_id *id)
 #ifdef _GNU_SOURCE
     // Wait for up to 0.2 seconds for the thread to finish
     status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
-    if (status != 0) {
-        err_abort(status, "Cancel heartbeat thread");
+    if (status == ETIMEDOUT) {
+        printf("et_stop_heartmonitor: pthread join timed out after .4 sec")
+    }
+    else if (status == ETIMEDOUT) {
+        printf("et_stop_heartmonitor: thread not yet terminated")
+    }
+    else if (status == EINVAL) {
+        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np")
     }
 #else
     status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
-    if (status != 0) {
-        err_abort(status, "Cancel heartbeat thread");
+    if (status == EDEADLK) {
+        printf("et_stop_heartmonitor: thread deadlocked");
+    }
+    else if (status == EINVAL) {
+        printf("et_stop_heartmonitor: thread non joinable or another thread already waiting to join");
+    }
+    else if (status == ESRCH) {
+        printf("et_stop_heartmonitor: no such thread found");
     }
 #endif
+
 }
   
 /******************************************************/
@@ -940,9 +952,7 @@ static void et_stop_heartbeat(et_id *id)
 static void et_stop_heartmonitor(et_id *id)
 {
     int status;
-    struct timespec wait;
-    wait.tv_sec = 0;
-    wait.tv_nsec = 100000000;  /* 100 millisec */
+    struct timespec wait = {0, 500000000};  /* 500 millisec */
 
     status = pthread_cancel(id->sys->proc[id->proc].hmon_thd_id);
     if (status != 0) {
@@ -952,13 +962,25 @@ static void et_stop_heartmonitor(et_id *id)
 #ifdef _GNU_SOURCE
     // Wait for up to 0.2 seconds for the thread to finish
     status = pthread_timedjoin_np(id->sys->proc[id->proc].hbeat_thd_id, NULL, &wait);
-    if (status != 0) {
-        err_abort(status, "Cancel heartbeat thread");
+    if (status == ETIMEDOUT) {
+        printf("et_stop_heartmonitor: pthread join timed out after .4 sec")
+    }
+    else if (status == ETIMEDOUT) {
+        printf("et_stop_heartmonitor: thread not yet terminated")
+    }
+    else if (status == EINVAL) {
+        printf("et_stop_heartmonitor: bad arg to pthread_timedjoin_np")
     }
 #else
     status = pthread_join(id->sys->proc[id->proc].hbeat_thd_id, NULL);
-    if (status != 0) {
-        err_abort(status, "Cancel heartbeat thread");
+    if (status == EDEADLK) {
+        printf("et_stop_heartmonitor: thread deadlocked");
+    }
+    else if (status == EINVAL) {
+        printf("et_stop_heartmonitor: thread non joinable or another thread already waiting to join");
+    }
+    else if (status == ESRCH) {
+        printf("et_stop_heartmonitor: no such thread found");
     }
 #endif
 
