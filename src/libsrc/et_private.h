@@ -63,8 +63,8 @@ extern "C" {
 /****************************************
  * times for heart beating & monitoring *
  ****************************************/
-/* 2 min */
-#define ET_MON_SEC    120         /**< Seconds between monitoring heartbeat for disconnecting from unresponsive clients. */
+/* 20 sec */
+#define ET_MON_SEC     20         /**< Seconds between monitoring heartbeat for disconnecting from unresponsive clients. */
 #define ET_MON_NSEC     0         /**< Nanoseconds between monitoring heartbeat for disconnecting from unresponsive clients. */
 
 /* 0.5 sec */
