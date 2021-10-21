@@ -949,8 +949,20 @@ static void *et_sys_heartmonitor(void *arg)
            */
           et_station_detach((et_sys_id) id, j);
         }
-        
-         /* clean up process info */
+
+        // Join threads of dead processe
+        et_logmsg("INFO", "et_sys_heartmonitor, attempt to cancel client's heart beat and monitor threads, %d\n", i);
+        status = pthread_cancel(id->sys->proc[i].hbeat_thd_id);
+        if (status == 0) {
+            pthread_join(id->sys->proc[i].hbeat_thd_id, NULL);
+        }
+
+        status = pthread_cancel(id->sys->proc[i].hmon_thd_id);
+        if (status == 0) {
+            pthread_join(id->sys->proc[i].hmon_thd_id, NULL);
+        }
+
+        /* clean up process info */
         if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_sys_heartmonitor, cleanup process %d\n", i);
         }
