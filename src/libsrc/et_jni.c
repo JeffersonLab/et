@@ -534,7 +534,8 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jintArray selectInts = (*env)->GetObjectField(env, stationConfig, fid_9);
     jint *selectElements = (*env)->GetIntArrayElements(env, selectInts, &isCopy);
     int selects[ET_STATION_SELECT_INTS];
-    for (int j=0; j < ET_STATION_SELECT_INTS; j++) {
+    int j;
+    for (j=0; j < ET_STATION_SELECT_INTS; j++) {
         selects[j] = (int) selectElements[j];
     }
     et_station_config_setselectwords(sconfig, selects);
