@@ -526,12 +526,16 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 
     jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
     const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
-    et_station_config_setfunction(sconfig, func);
+    if (func != NULL) {
+        et_station_config_setfunction(sconfig, func);
+    }
     printf("createStation (native) : 2.1\n");
 
     jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
     const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
-    et_station_config_setlib(sconfig, lib);
+    if (lib != NULL) {
+        et_station_config_setlib(sconfig, lib);
+    }
     printf("createStation (native) : 3\n");
 
     // Get int array of select ints
