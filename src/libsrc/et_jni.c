@@ -599,6 +599,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
 {
     et_id *etid = (et_id *) etId;
 
+    printf("stationNameToObject (native) : will attempt to get existing station\n");
     // Convert stationName to C string
     const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
 
@@ -647,6 +648,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
     et_stat_id stat_id = (int) stationId;
     et_att_id att;
 
+    printf("attach (native) : will attempt to attach to station\n");
     int status = et_station_attach((et_sys_id)etid, stat_id, &att);
 
     if (status != ET_OK) {
