@@ -742,6 +742,7 @@ public class EtSystem {
 
         // check station configuration for self consistency
         configCheck(config);
+        System.out.println("Creating station " + name + ": using JNI = " + sys.usingJniLibrary());
 
         // Do we get things locally through JNI?
         if (sys.usingJniLibrary()) {
