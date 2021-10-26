@@ -609,7 +609,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
 
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
 
-    if (status == 1) {
+    if (status == ET_OK) {
         et_logmsg("INFO", "stationNameToObject (native): FOUND station, status = %d, stat id = %d\n", status,  stat_id);
         // Return station id
         return (jint)stat_id;
