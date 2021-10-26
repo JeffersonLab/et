@@ -1478,7 +1478,7 @@ int et_station_isattached(et_sys_id id, et_stat_id stat_id, et_att_id att) {
  *
  * @returns 1                     if station exists.
  * @returns 0                     if station does not exist.
- * @returns @ref ET_ERROR         stat_name argument is NULL.
+ * @returns @ref ET_ERROR_BADARG  stat_name argument is NULL.
  * @returns @ref ET_ERROR_CLOSED  if et_close already called.
  * @returns @ref ET_ERROR_DEAD    if ET system is dead.
  * @returns @ref ET_ERROR_READ    for a remote user's network read error.
@@ -1493,7 +1493,7 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name) 
 
     /* name check */
     if (stat_name == NULL) {
-        return ET_ERROR;
+        return ET_ERROR_BADARG;
     }
 
     if (etid->locality == ET_REMOTE) {
@@ -1542,7 +1542,8 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name) 
  * @param stat_name  station name.
  *
  * @returns @ref ET_OK            if successful.
- * @returns @ref ET_ERROR         if no station by that name exists or stat_name is NULL.
+ * @returns @ref ET_ERROR         if no station by that name exists.
+ * @returns @ref ET_ERROR_BADARG  if stat_name arg is NULL.
  * @returns @ref ET_ERROR_CLOSED  if et_close already called.
  * @returns @ref ET_ERROR_DEAD    if ET system is dead.
  * @returns @ref ET_ERROR_READ    for a remote user's network read error.

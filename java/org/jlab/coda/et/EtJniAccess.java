@@ -305,4 +305,22 @@ class EtJniAccess {
             throws EtDeadException, EtClosedException, EtException,
                    EtExistsException, EtTooManyException;
 
-    }
+
+    /**
+     * Gets a station's object representation from its name.
+     *
+     * @param name station name
+     * @return station id or -1 if no such station exists
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtException
+     *     if arg is null;
+     */
+    native int stationNameToObject(long etId, String name)
+            throws EtDeadException, EtClosedException, EtException;
+
+
+}

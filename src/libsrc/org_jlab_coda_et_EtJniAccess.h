@@ -66,10 +66,18 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
 /*
  * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    createStation
- * Signature: (Lorg/jlab/coda/et/EtStationConfig;Ljava/lang/String;II)Lorg/jlab/coda/et/EtStation;
+ * Signature: (JLorg/jlab/coda/et/EtStationConfig;Ljava/lang/String;II)I
  */
 JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
   (JNIEnv *, jobject, jlong, jobject, jstring, jint, jint);
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    stationNameToObject
+ * Signature: (JLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
+  (JNIEnv *, jobject, jlong, jstring);
 
 #ifdef __cplusplus
 }

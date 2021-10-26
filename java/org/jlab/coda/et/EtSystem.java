@@ -706,7 +706,7 @@ public class EtSystem {
      *     if the maximum number of stations has been created already
      */
     synchronized public EtStation createStation(EtStationConfig config, String name,
-                                              int position, int parallelPosition)
+                                               int position, int parallelPosition)
             throws IOException, EtDeadException, EtClosedException, EtException,
                    EtExistsException, EtTooManyException {
 
@@ -1359,6 +1359,29 @@ public class EtSystem {
 
     /**
      * Gets a station's object representation from its name.
+     * Mainly used to get GrandCentral Station's object.
+     * This method uses JNI to call ET routines in the C library. Shared memory is
+     * directly accessed.
+     *
+     * @param name station name
+     * @return station id, or -1 if no such station exists
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead.
+     * @throws EtClosedException
+     *     if the ET system is closed.
+     * @throws EtException
+     *     if cannot find station for some other reason.
+     */
+    synchronized public int stationNameToObjectJNI(String name)
+            throws EtDeadException, EtClosedException, EtException {
+
+        return sys.getJni().stationNameToObject(sys.getJni().getLocalEtId(), name);
+    }
+
+
+    /**
+     * Gets a station's object representation from its name.
      *
      * @param name station name
      * @return station object, or null if no such station exists
@@ -1381,6 +1404,26 @@ public class EtSystem {
 
         if (name == null) {
             throw new EtException("Invalid station name");
+        }
+
+        if (sys.usingJniLibrary()) {
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+
+            int statId = stationNameToObjectJNI(name);
+            if (statId == -1) {
+                return null;
+            }
+
+            EtStation stat = new EtStation(name, statId, this);
+            stat.setUsable(true);
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("stationNameToObject for " + name + " thru JNI is done");
+            }
+            return stat;
         }
 
         out.writeInt(EtConstants.netStatEx);

@@ -473,13 +473,14 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
 /*
  * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    createStation
- * Signature: (Lorg/jlab/coda/et/EtStationConfig;Ljava/lang/String;II)Lorg/jlab/coda/et/EtStation;
+ * Signature: (JLorg/jlab/coda/et/EtStationConfig;Ljava/lang/String;II)I
  */
 JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
-        (JNIEnv *env, jobject thisObj, jlong etId, jobject stationConfig, jstring stationName, jint position, jint pPosition) {
+        (JNIEnv *env, jobject thisObj, jlong etId, jobject stationConfig, jstring stationName, jint position, jint pPosition)
+{
     et_id *etid = (et_id *) etId;
     et_stat_id my_stat;
-    printf("createStation (native) : will attempt to get create station\n");
+printf("createStation (native) : will attempt to get create station\n");
 
     jclass classStatConfigImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtStationConfig");
 
@@ -494,7 +495,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jfieldID fid_7 = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "Ljava/lang/String;");
     jfieldID fid_8 = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary", "Ljava/lang/String;");
     jfieldID fid_9 = (*env)->GetFieldID(env, classStatConfigImpl, "select", "[I");
-    printf("createStation (native) : 1\n");
 
 
     // Define station to create
@@ -521,34 +521,21 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 
     int selectMode = (int) ((*env)->GetIntField(env, stationConfig, fid_6));
     et_station_config_setselect(sconfig, selectMode);
-    printf("createStation (native) : 2\n");
 
     const char *lib = NULL;
     const char *func = NULL;
 
     jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
-    printf("createStation (native) : 2.1\n");
     if (!(*env)->IsSameObject(env, selectFunction, NULL)) {
-        printf("createStation (native) : selectFunction is NOT null in java\n");
         func = (*env)->GetStringUTFChars(env, selectFunction, 0);
-        printf("createStation (native) : 2.2\n");
         et_station_config_setfunction(sconfig, func);
     }
-    else {
-        printf("createStation (native) : selectFunction IS null in java\n");
-    }
-    printf("createStation (native) : 2.4\n");
 
     jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
     if (!(*env)->IsSameObject(env, selectLibrary, NULL)) {
-        printf("createStation (native) : selectLibrary is NOT null in java\n");
         lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
         et_station_config_setlib(sconfig, lib);
     }
-    else {
-        printf("createStation (native) : selectLibrary IS null in java\n");
-    }
-    printf("createStation (native) : 3\n");
 
     // Get int array of select ints
     jboolean isCopy;
@@ -565,16 +552,12 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     if (isCopy == JNI_TRUE) {
         (*env)->ReleaseIntArrayElements(env, selectInts, selectElements, 0);
     }
-    printf("createStation (native) : 4\n");
 
     // Convert stationName to C string
     const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
-    printf("createStation (native) : 5\n");
 
     // Create station
     int status = et_station_create_at((et_sys_id)etid, &my_stat, stName, sconfig, position, pPosition);
-    printf("createStation (native) : status = %d\n", status);
-    printf("createStation (native) : 6\n");
 
     et_station_config_destroy(sconfig);
     if (lib != NULL) {
@@ -584,7 +567,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
         (*env)->ReleaseStringUTFChars(env, selectFunction, func);
     }
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
-    printf("createStation (native) : 7\n");
 
     if (status != ET_OK) {
         jclass clazz = NULL;
@@ -598,13 +580,60 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         }
         (*env)->ThrowNew(env, clazz, "createStation (native): cannot create station");
-        printf("createStation (native) : 88\n");
 
         return status;
     }
-    printf("createStation (native) : ENDDDD\n");
 
     // Return station id
     return (jint)my_stat;
 }
+
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    stationNameToObject
+ * Signature: (JLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
+        (JNIEnv *env, jobject thisObj, jlong etId, jstring stationName)
+{
+
+    et_id *etid = (et_id *) etId;
+
+    // Convert stationName to C string
+    const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
+
+    // Find station
+    et_stat_id stat_id;
+    int status = et_station_name_to_id((et_sys_id)etid, &stat_id, stName);
+
+    (*env)->ReleaseStringUTFChars(env, stationName, stName);
+
+    if (status == 1) {
+        // Return station id
+        return (jint)stat_id;
+    }
+    else if (status == ET_ERROR) {
+        // Not found
+        return (jint)(-1);
+    }
+    else {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+            (*env)->ThrowNew(env, clazz, "stationNameToObject (native): ET system is dead");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
+            (*env)->ThrowNew(env, clazz, "stationNameToObject (native): close() already called");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+            (*env)->ThrowNew(env, clazz, "stationNameToObject (native): error finding station");
+        }
+        return status;
+    }
+}
+
+
 
