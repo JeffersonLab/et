@@ -103,6 +103,14 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_detach
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
   (JNIEnv *, jobject, jlong, jint);
 
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    setStationPosition
+ * Signature: (JIII)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_setStationPosition
+  (JNIEnv *, jobject, jlong, jint, jint, jint);
+
 #ifdef __cplusplus
 }
 #endif

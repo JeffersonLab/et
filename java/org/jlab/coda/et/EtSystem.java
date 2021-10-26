@@ -568,7 +568,7 @@ public class EtSystem {
      * @throws EtTooManyException if the maximum number of stations has been created already
      */
     private int createStationJNI(EtStationConfig config, String name,
-                                             int position, int parallelPosition)
+                                 int position, int parallelPosition)
             throws EtDeadException, EtClosedException, EtException,
             EtExistsException, EtTooManyException {
 
@@ -904,6 +904,33 @@ public class EtSystem {
      * @param station          station object
      * @param position         position in the main station list (starting at 0)
      * @param parallelPosition position in list of parallel stations (starting at 0)
+     *
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if the station does not exist;
+     *                           if trying to move GRAND_CENTRAL;
+     *                           if position is &lt; 1 (GRAND_CENTRAL is always first);
+     *                           if parallelPosition &lt; 0;
+     *                           if station object is invalid;
+     *                           if trying to move an incompatible parallel station to an existing group
+     *                           of parallel stations or to the head of an existing group of parallel
+     *                           stations.
+     */
+    private void setStationPositionJNI(EtStation station, int position, int parallelPosition)
+            throws IOException, EtDeadException, EtClosedException, EtException {
+
+        sys.getJni().setStationPosition(sys.getJni().getLocalEtId(), station.getId(), position, parallelPosition);
+    }
+
+
+    /**
+     * Changes the position of a station in the ordered list of stations.
+     *
+     * @param station          station object
+     * @param position         position in the main station list (starting at 0)
+     * @param parallelPosition position in list of parallel stations (starting at 0)
+     *
      * @throws IOException       if problems with network communications
      * @throws EtDeadException   if the ET system processes are dead
      * @throws EtClosedException if the ET system is closed
@@ -948,6 +975,16 @@ public class EtSystem {
 
         if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
+        }
+
+        if (sys.usingJniLibrary()) {
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            setStationPositionJNI(station, position, parallelPosition);
+            return;
         }
 
         out.writeInt(EtConstants.netStatSPos);
@@ -1094,7 +1131,7 @@ public class EtSystem {
      * @throws EtTooManyException
      *     if no more attachments are allowed to the station and/or ET system
      */
-    synchronized public int attachJNI(EtStation station)
+    private int attachJNI(EtStation station)
             throws EtDeadException, EtClosedException,
             EtException, EtTooManyException {
 
@@ -1211,7 +1248,7 @@ public class EtSystem {
      *     if not attached to station;
      *     if the attachment object is invalid
      */
-    synchronized public void detachJNI(EtAttachment att)
+    private void detachJNI(EtAttachment att)
             throws EtDeadException, EtClosedException, EtException {
 
         sys.getJni().detach(sys.getJni().getLocalEtId(), att.getId());
@@ -1405,7 +1442,7 @@ public class EtSystem {
      * @throws EtException
      *     if cannot find station for some other reason.
      */
-    synchronized public int stationNameToObjectJNI(String name)
+    private int stationNameToObjectJNI(String name)
             throws EtDeadException, EtClosedException, EtException {
 
         return sys.getJni().stationNameToObject(sys.getJni().getLocalEtId(), name);

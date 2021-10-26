@@ -584,6 +584,7 @@ printf("createStation (native) : will attempt to get create station\n");
         return status;
     }
 
+    printf("createStation (native) : DONE\n");
     // Return station id
     return (jint)my_stat;
 }
@@ -633,6 +634,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
         }
         return status;
     }
+    printf("stationNameToObject (native) : DONE\n");
 }
 
 
@@ -669,6 +671,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
 
         return status;
     }
+    printf("attach (native) : DONE\n");
 
     // Return attachment id
     return (jint)att;
@@ -702,6 +705,7 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_detach
         }
         (*env)->ThrowNew(env, clazz, "detach (native): cannot detach from station");
     }
+    printf("detach (native) : DONE\n");
 }
 
 
@@ -732,4 +736,36 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
         }
         (*env)->ThrowNew(env, clazz, "removeStation (native): cannot remove station");
     }
+    printf("removeStation (native) : DONE\n");
+}
+
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    setStationPosition
+ * Signature: (JIII)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_setStationPosition
+        (JNIEnv *env, jobject thisObj, jlong etId, jint stationId, jint pos, jint parallelPos)
+{
+    et_id *etid = (et_id *) etId;
+    et_stat_id stat_id = (int) stationId;
+
+    printf("setStationPosition (native) : will attempt to set station pos\n");
+    int status = et_station_setposition((et_sys_id)etid, stat_id, (int)pos, (int)parallelPos);
+
+    if (status != ET_OK) {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtCLosedException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "removeStation (native): cannot set station position");
+    }
+    printf("setStationPosition (native) : DONE\n");
 }

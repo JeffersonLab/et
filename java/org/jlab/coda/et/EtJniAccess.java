@@ -385,5 +385,27 @@ class EtJniAccess {
             throws EtDeadException, EtClosedException, EtException;
 
 
+    /**
+     * Changes the position of a station in the ordered list of stations.
+     *
+     * @param etId    ET system id
+     * @param stationId station id
+     * @param position         position in the main station list (starting at 0)
+     * @param parallelPosition position in list of parallel stations (starting at 0)
+     *
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if the station does not exist;
+     *                           if trying to move GRAND_CENTRAL;
+     *                           if position is &lt; 1 (GRAND_CENTRAL is always first);
+     *                           if parallelPosition &lt; 0;
+     *                           if station object is invalid;
+     *                           if trying to move an incompatible parallel station to an existing group
+     *                           of parallel stations or to the head of an existing group of parallel
+     *                           stations.
+     */
+    native void setStationPosition(long etId, int stationId, int position, int parallelPosition)
+            throws EtDeadException, EtClosedException, EtException;
 
 }
