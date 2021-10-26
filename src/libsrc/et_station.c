@@ -1501,6 +1501,7 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name) 
     }
 
     if (!et_alive(id)) {
+et_logmsg("ERROR", "et_station_exists, et is dead\n");
         return ET_ERROR_DEAD;
     }
 
@@ -1518,6 +1519,7 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name) 
 
     for (num=0; num < etid->sys->config.nstations ; num++) {
         if (ps->data.status != ET_STATION_UNUSED) {
+            et_logmsg("INFO", "et_station_exists, looking for station %s, this station is %s\n", stat_name, ps->name);
             if (strcmp(ps->name, stat_name) == 0) {
                 if (stat_id != NULL) {
                     *stat_id = num;
