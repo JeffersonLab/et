@@ -610,10 +610,12 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
 
     if (status == 1) {
+        et_logmsg("INFO", "stationNameToObject (native): FOUND station, status = %d, stat id = %d\n", status,  stat_id);
         // Return station id
         return (jint)stat_id;
     }
     else if (status == ET_ERROR) {
+        et_logmsg("INFO", "stationNameToObject (native): station NOT FOUND, status = %d, stat id = %d\n", status, stat_id);
         // Not found
         return (jint)(-1);
     }
@@ -628,6 +630,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
             (*env)->ThrowNew(env, clazz, "stationNameToObject (native): close() already called");
         }
         else {
+            et_logmsg("INFO", "stationNameToObject (native): station ERROR, status = %d, stat id = %d\n", status, stat_id);
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
             (*env)->ThrowNew(env, clazz, "stationNameToObject (native): error finding station");
         }
