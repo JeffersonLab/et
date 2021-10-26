@@ -1521,10 +1521,13 @@ et_logmsg("ERROR", "et_station_exists, et is dead\n");
         if (ps->data.status != ET_STATION_UNUSED) {
             et_logmsg("INFO", "et_station_exists, looking for station %s, this station is %s\n", stat_name, ps->name);
             if (strcmp(ps->name, stat_name) == 0) {
+                et_logmsg("INFO", "et_station_exists, MATCH!!!\n");
                 if (stat_id != NULL) {
+                    et_logmsg("INFO", "et_station_exists, put id = %d into %p\n", num, stat_id);
                     *stat_id = num;
                 }
                 et_mem_unlock(etid);
+                et_logmsg("INFO", "et_station_exists, return 1\n");
                 return 1;
             }
         }
