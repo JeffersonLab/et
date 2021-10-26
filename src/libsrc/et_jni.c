@@ -525,11 +525,17 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     printf("createStation (native) : 2\n");
 
     jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
+    printf("createStation (native) : 2.1\n");
+
     const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
+    printf("createStation (native) : 2.2\n");
+
     if (func != NULL) {
+        printf("createStation (native) : 2.3\n");
+
         et_station_config_setfunction(sconfig, func);
     }
-    printf("createStation (native) : 2.1\n");
+    printf("createStation (native) : 2.4\n");
 
     jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
     const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
