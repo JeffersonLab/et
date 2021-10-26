@@ -2,6 +2,7 @@ package org.jlab.coda.et;
 
 import org.jlab.coda.et.exception.*;
 
+import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.HashMap;
 
@@ -265,4 +266,43 @@ class EtJniAccess {
     native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
                    EtBusyException, EtTimeoutException, EtWakeUpException;
-}
+
+
+    /**
+     * Creates a new station at a specified position in the ordered list of
+     * stations and in a specified position in an ordered list of parallel
+     * stations if it is a parallel station.
+     *
+     * @param config     station configuration
+     * @param name       station name
+     * @param position   position in the main list to put the station.
+     * @param parallelPosition   position in the list of parallel
+     *                           stations to put the station.
+     *
+     * @return station id
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtException
+     *     if arg is null;
+     *     if the select method's class cannot be loaded;
+     *     if the position is less than 1 (GRAND_CENTRAL's spot);
+     *     if the name is GRAND_CENTRAL (already taken);
+     *     if the name is too long;
+     *     if the configuration's cue size is too big;
+     *     if the configuration needs a select class name;
+     *     if the configuration inconsistent
+     *     if trying to add incompatible parallel station;
+     *     if trying to add parallel station to head of existing parallel group;
+     * @throws EtExistsException
+     *     if the station already exists but with a different configuration
+     * @throws EtTooManyException
+     *     if the maximum number of stations has been created already
+     */
+    native int createStation(long etId, EtStationConfig config, String name, int position, int parallelPosition)
+            throws EtDeadException, EtClosedException, EtException,
+                   EtExistsException, EtTooManyException;
+
+    }

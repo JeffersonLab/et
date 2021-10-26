@@ -421,8 +421,6 @@ if (debug) printf("putEvents (native) : put 'em back\n");
         (*env)->ThrowNew(env, clazz, "putEvents (native): cannot put events");
         return;
     }
-
-    return;
 }
 
 
@@ -469,6 +467,111 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
         (*env)->ThrowNew(env, clazz, "dumpEvents (native): cannot dump events");
         return;
     }
-
-    return;
 }
+
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    createStation
+ * Signature: (Lorg/jlab/coda/et/EtStationConfig;Ljava/lang/String;II)Lorg/jlab/coda/et/EtStation;
+ */
+JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
+        (JNIEnv *env, jobject thisObj, jlong etId, jobject stationConfig, jstring stationName, jint position, jint pPosition)
+{
+    et_id *etid = (et_id *) etId;
+    et_stat_id my_stat;
+
+    jclass classStatConfigImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtStationConfig");
+
+    // Find id's of all the fields of EtStationConfig that we'll read/write directly from/to
+    jfieldID fid_0  = (*env)->GetFieldID(env, classStatConfigImpl, "cue",         "I");
+    jfieldID fid_1  = (*env)->GetFieldID(env, classStatConfigImpl, "prescale",    "I");
+    jfieldID fid_2  = (*env)->GetFieldID(env, classStatConfigImpl, "flowMode",    "I");
+    jfieldID fid_3  = (*env)->GetFieldID(env, classStatConfigImpl, "userMode",    "I");
+    jfieldID fid_4  = (*env)->GetFieldID(env, classStatConfigImpl, "restoreMode", "I");
+    jfieldID fid_5  = (*env)->GetFieldID(env, classStatConfigImpl, "blockMode",   "I");
+    jfieldID fid_6  = (*env)->GetFieldID(env, classStatConfigImpl, "selectMode",  "I");
+    jfieldID fid_7  = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "S");
+    jfieldID fid_8  = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary",  "S");
+    jfieldID fid_9  = (*env)->GetFieldID(env, classStatConfigImpl, "select",      "[I");
+
+
+    // Define station to create
+    et_statconfig   sconfig;
+    et_station_config_init(&sconfig);
+
+    int qSize = (int) ((*env)->GetIntField(env, stationConfig, fid_0));
+    et_station_config_setcue(sconfig, qSize);
+
+    int pre = (int) ((*env)->GetIntField(env, stationConfig, fid_1));
+    et_station_config_setprescale(sconfig, pre);
+
+    int flowMode = (int) ((*env)->GetIntField(env, stationConfig, fid_2));
+    et_station_config_setflow(sconfig, flowMode);
+
+    int userMode = (int) ((*env)->GetIntField(env, stationConfig, fid_3));
+    et_station_config_setuser(sconfig, userMode);
+
+    int restoreMode = (int) ((*env)->GetIntField(env, stationConfig, fid_4));
+    et_station_config_setrestore(sconfig, restoreMode);
+
+    int blockMode = (int) ((*env)->GetIntField(env, stationConfig, fid_5));
+    et_station_config_setblock(sconfig, blockMode);
+
+    int selectMode = (int) ((*env)->GetIntField(env, stationConfig, fid_6));
+    et_station_config_setselect(sconfig, selectMode);
+
+    jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
+    const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
+    et_station_config_setfunction(sconfig, func);
+
+    jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
+    const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
+    et_station_config_setlib(sconfig, lib);
+
+    // Get int array of select ints
+    jboolean isCopy;
+    jintArray selectInts = (*env)->GetObjectField(env, stationConfig, fid_9);
+    jint *selectElements = (*env)->GetIntArrayElements(env, selectInts, &isCopy);
+    int selects[ET_STATION_SELECT_INTS];
+    for (int j=0; j < ET_STATION_SELECT_INTS; j++) {
+        selects[j] = (int) selectElements[j];
+    }
+    et_station_config_setselectwords(sconfig, selects);
+
+    // Clean up
+    if (isCopy == JNI_TRUE) {
+        (*env)->ReleaseIntArrayElements(env, selectInts, selectElements, 0);
+    }
+
+    // Convert stationName to C string
+    const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
+
+    // Create station
+    int status = et_station_create_at((et_sys_id)etid, &my_stat, stName, sconfig, position, pPosition);
+
+    et_station_config_destroy(sconfig);
+    (*env)->ReleaseStringUTFChars(env, selectLibrary, lib);
+    (*env)->ReleaseStringUTFChars(env, selectFunction, func);
+    (*env)->ReleaseStringUTFChars(env, stationName, stName);
+
+    if (status != ET_OK) {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_EXISTS) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtExistsException");
+        }
+        else if (status == ET_ERROR_TOOMANY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTooManyException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "createStation (native): cannot create station");
+
+        return status;
+    }
+
+    // Return station id
+    return (jint)my_stat;
+}
+

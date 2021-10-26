@@ -548,28 +548,32 @@ public class EtSystem {
 
 
     /**
-     * Creates a new station placed at the end of the ordered list of stations.
-     * If the station is added to a group of parallel stations,
-     * it is placed at the end of the list of parallel stations.
+     * Creates a new station at a specified position in the ordered list of
+     * stations and in a specified position in an ordered list of parallel
+     * stations if it is a parallel station.
+     * This method uses JNI to call ET routines in the C library. Shared memory is
+     * directly accessed.
      *
-     * @param config  station configuration
-     * @param name    station name
+     * @param config     station configuration
+     * @param name       station name
+     * @param position   position in the main list to put the station.
+     * @param parallelPosition   position in the list of parallel
+     *                           stations to put the station.
      *
-     * @return new station object
+     * @return new station id
      *
-     * @throws IOException
-     *     if problems with network communications
      * @throws EtDeadException
      *     if the ET system processes are dead
      * @throws EtClosedException
      *     if the ET system is closed
      * @throws EtException
-     *     if not connected to ET system;
+     *     if arg is null;
      *     if the select method's class cannot be loaded;
      *     if the position is less than 1 (GRAND_CENTRAL's spot);
      *     if the name is GRAND_CENTRAL (already taken);
+     *     if the name is too long;
      *     if the configuration's cue size is too big;
-     *     if the configuration needs a select class name
+     *     if the configuration needs a select class name;
      *     if the configuration inconsistent
      *     if trying to add incompatible parallel station;
      *     if trying to add parallel station to head of existing parallel group;
@@ -578,6 +582,47 @@ public class EtSystem {
      * @throws EtTooManyException
      *     if the maximum number of stations has been created already
      */
+    synchronized public int createStationJNI(EtStationConfig config, String name,
+                                                int position, int parallelPosition)
+            throws EtDeadException, EtClosedException, EtException,
+            EtExistsException, EtTooManyException {
+
+        return sys.getJni().createStation(sys.getJni().getLocalEtId(), config,
+                                          name, position, parallelPosition);
+    }
+
+
+        /**
+         * Creates a new station placed at the end of the ordered list of stations.
+         * If the station is added to a group of parallel stations,
+         * it is placed at the end of the list of parallel stations.
+         *
+         * @param config  station configuration
+         * @param name    station name
+         *
+         * @return new station object
+         *
+         * @throws IOException
+         *     if problems with network communications
+         * @throws EtDeadException
+         *     if the ET system processes are dead
+         * @throws EtClosedException
+         *     if the ET system is closed
+         * @throws EtException
+         *     if not connected to ET system;
+         *     if the select method's class cannot be loaded;
+         *     if the position is less than 1 (GRAND_CENTRAL's spot);
+         *     if the name is GRAND_CENTRAL (already taken);
+         *     if the configuration's cue size is too big;
+         *     if the configuration needs a select class name
+         *     if the configuration inconsistent
+         *     if trying to add incompatible parallel station;
+         *     if trying to add parallel station to head of existing parallel group;
+         * @throws EtExistsException
+         *     if the station already exists but with a different configuration
+         * @throws EtTooManyException
+         *     if the maximum number of stations has been created already
+         */
     public EtStation createStation(EtStationConfig config, String name)
             throws IOException, EtDeadException, EtClosedException, EtException,
                    EtExistsException, EtTooManyException {
@@ -697,6 +742,24 @@ public class EtSystem {
 
         // check station configuration for self consistency
         configCheck(config);
+
+        // Do we get things locally through JNI?
+        if (sys.usingJniLibrary()) {
+            // Value of "open" valid if synchronized
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            int statId = createStationJNI(config, name, position, parallelPosition);
+
+            EtStation station = new EtStation(name, statId, this);
+            station.setUsable(true);
+            if (debug >= EtConstants.debugInfo) {
+                System.out.println("Creating station " + name + " thru JNI is done");
+            }
+            return station;
+        }
 
         // command
         out.writeInt(EtConstants.netStatCrAt);

@@ -949,7 +949,7 @@ static void *et_sys_heartmonitor(void *arg)
            */
           et_station_detach((et_sys_id) id, j);
         }
-        
+
         /* clean up process info */
         if (id->debug >= ET_DEBUG_INFO) {
           et_logmsg("INFO", "et_sys_heartmonitor, cleanup process %d\n", i);
