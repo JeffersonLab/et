@@ -567,7 +567,7 @@ public class EtSystem {
      * @throws EtExistsException  if the station already exists but with a different configuration
      * @throws EtTooManyException if the maximum number of stations has been created already
      */
-    synchronized public int createStationJNI(EtStationConfig config, String name,
+    private int createStationJNI(EtStationConfig config, String name,
                                              int position, int parallelPosition)
             throws EtDeadException, EtClosedException, EtException,
             EtExistsException, EtTooManyException {
@@ -816,6 +816,27 @@ public class EtSystem {
      * Removes an existing station.
      *
      * @param station station object
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if attachments to the station still exist;
+     *                           if the station is GRAND_CENTRAL (which must always exist);
+     *                           if the station does not exist;
+     *                           if the station object is invalid
+     */
+    private void removeStationJNI(EtStation station)
+            throws EtDeadException, EtClosedException, EtException {
+
+        sys.getJni().removeStation(sys.getJni().getLocalEtId(), station.getId());
+    }
+
+
+    /**
+     * Removes an existing station.
+     * This method uses JNI to call ET routines in the C library. Shared memory is
+     * directly accessed.
+     *
+     * @param station station object
      * @throws IOException       if problems with network communications
      * @throws EtDeadException   if the ET system processes are dead
      * @throws EtClosedException if the ET system is closed
@@ -844,6 +865,17 @@ public class EtSystem {
         // station object invalid
         if (!station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
+        }
+
+        if (sys.usingJniLibrary()) {
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            removeStationJNI(station);
+            station.setUsable(false);
+            return;
         }
 
         out.writeInt(EtConstants.netStatRm);
@@ -1163,6 +1195,28 @@ public class EtSystem {
     }
 
 
+    /**
+     * Remove an attachment from a station.
+     * This method uses JNI to call ET routines in the C library.
+     * Shared memory is directly accessed.
+     *
+     * @param att attachment object
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtException
+     *     if arg is null;
+     *     if not attached to station;
+     *     if the attachment object is invalid
+     */
+    synchronized public void detachJNI(EtAttachment att)
+            throws EtDeadException, EtClosedException, EtException {
+
+        sys.getJni().detach(sys.getJni().getLocalEtId(), att.getId());
+    }
+
 
     /**
      * Remove an attachment from a station.
@@ -1189,6 +1243,17 @@ public class EtSystem {
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
+        }
+
+        if (sys.usingJniLibrary()) {
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            detachJNI(att);
+            att.setUsable(false);
+            return;
         }
 
         out.writeInt(EtConstants.netStatDet);

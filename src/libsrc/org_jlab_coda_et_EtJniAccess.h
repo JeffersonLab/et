@@ -81,10 +81,26 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
 
 /*
  * Class:     org_jlab_coda_et_EtJniAccess
- * Method:    attachJNI
+ * Method:    attach
  * Signature: (JI)I
  */
 JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    detach
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_detach
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    removeStation
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
   (JNIEnv *, jobject, jlong, jint);
 
 #ifdef __cplusplus

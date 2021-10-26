@@ -273,6 +273,7 @@ class EtJniAccess {
      * stations and in a specified position in an ordered list of parallel
      * stations if it is a parallel station.
      *
+     * @param etId       ET system id
      * @param config     station configuration
      * @param name       station name
      * @param position   position in the main list to put the station.
@@ -309,6 +310,7 @@ class EtJniAccess {
     /**
      * Gets a station's object representation from its name.
      *
+     * @param etId ET system id
      * @param name station name
      * @return station id or -1 if no such station exists
      *
@@ -327,6 +329,7 @@ class EtJniAccess {
     /**
      * Create an attachment to a station.
      *
+     * @param etId       ET system id
      * @param stationId  station id
      * @return an attachment id
      *
@@ -341,8 +344,46 @@ class EtJniAccess {
      * @throws EtTooManyException
      *     if no more attachments are allowed to the station and/or ET system
      */
-    native int attach(long etid, int stationId)
+    native int attach(long etId, int stationId)
             throws EtDeadException, EtClosedException, EtException, EtTooManyException;
+
+
+
+    /**
+     * Remove an attachment from a station.
+     *
+     * @param etId  ET system id
+     * @param attId attachment id
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtException
+     *     if arg is null;
+     *     if not attached to station;
+     *     if the attachment object is invalid
+     */
+    native void detach(long etId, int attId)
+            throws EtDeadException, EtClosedException, EtException;
+
+
+    /**
+     * Removes an existing station.
+     *
+     * @param etId    ET system id
+     * @param stationId station id
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if attachments to the station still exist;
+     *                           if the station is GRAND_CENTRAL (which must always exist);
+     *                           if the station does not exist;
+     *                           if the station object is invalid
+     */
+    native void removeStation(long etId, int stationId)
+            throws EtDeadException, EtClosedException, EtException;
+
 
 
 }

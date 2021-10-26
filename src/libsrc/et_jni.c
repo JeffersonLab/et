@@ -656,8 +656,8 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
         if (status == ET_ERROR_DEAD) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
         }
-        if (status == ET_ERROR_CLOSED) {
-            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtExistsException");
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtClosedException");
         }
         else if (status == ET_ERROR_TOOMANY) {
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTooManyException");
@@ -675,4 +675,61 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
 }
 
 
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    detach
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_detach
+        (JNIEnv *env, jobject thisObj, jlong etId, jint attId)
+{
+    et_id *etid = (et_id *) etId;
+    et_att_id att_id = (int) attId;
 
+    printf("detach (native) : will attempt to detach from station\n");
+    int status = et_station_detach((et_sys_id)etid, att_id);
+
+    if (status != ET_OK) {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtCLosedException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "detach (native): cannot detach from station");
+    }
+}
+
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    removeStation
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
+        (JNIEnv *env, jobject thisObj, jlong etId, jint stationId)
+{
+    et_id *etid = (et_id *) etId;
+    et_stat_id stat_id = (int) stationId;
+
+    printf("removeStation (native) : will attempt to remove station\n");
+    int status = et_station_remove((et_sys_id)etid, stat_id);
+
+    if (status != ET_OK) {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        else if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtCLosedException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "removeStation (native): cannot remove station");
+    }
+}
