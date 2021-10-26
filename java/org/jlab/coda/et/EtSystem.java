@@ -40,32 +40,47 @@ import org.jlab.coda.et.enums.DataStatus;
 
 public class EtSystem {
 
-    /** Object to specify how to open the ET system of interest. */
+    /**
+     * Object to specify how to open the ET system of interest.
+     */
     private EtSystemOpenConfig openConfig;
 
-    /** Object used to connect to a real ET system. */
+    /**
+     * Object used to connect to a real ET system.
+     */
     private EtSystemOpen sys;
 
-    /** Flag telling whether the real ET system is currently opened or not. */
+    /**
+     * Flag telling whether the real ET system is currently opened or not.
+     */
     private boolean open;
 
-    /** Debug level. */
+    /**
+     * Debug level.
+     */
     private int debug;
 
-    /** Tcp socket connected to ET system's server. */
+    /**
+     * Tcp socket connected to ET system's server.
+     */
     private Socket sock;
 
-    /** Flag specifying whether the ET system process is Java based or not. */
+    /**
+     * Flag specifying whether the ET system process is Java based or not.
+     */
     private boolean isJava;
 
-    /** Data input stream built on top of the socket's input stream (with an
-     *  intervening buffered input stream). */
+    /**
+     * Data input stream built on top of the socket's input stream (with an
+     * intervening buffered input stream).
+     */
     private DataInputStream in;
 
-    /** Data output stream built on top of the socket's output stream (with an
-     *  intervening buffered output stream). */
+    /**
+     * Data output stream built on top of the socket's output stream (with an
+     * intervening buffered output stream).
+     */
     private DataOutputStream out;
-
 
 
     /**
@@ -90,22 +105,20 @@ public class EtSystem {
 
         sys = new EtSystemOpen(openConfig);
 
-        if ((debug != EtConstants.debugNone)   &&
-            (debug != EtConstants.debugSevere) &&
-            (debug != EtConstants.debugError)  &&
-            (debug != EtConstants.debugWarn)   &&
-            (debug != EtConstants.debugInfo))    {
+        if ((debug != EtConstants.debugNone) &&
+                (debug != EtConstants.debugSevere) &&
+                (debug != EtConstants.debugError) &&
+                (debug != EtConstants.debugWarn) &&
+                (debug != EtConstants.debugInfo)) {
 
             this.debug = EtConstants.debugError;
-        }
-        else {
+        } else {
             this.debug = debug;
         }
 
         try {
             sys.setDebug(debug);
-        }
-        catch (EtException e) { /* never happen */ }
+        } catch (EtException e) { /* never happen */ }
 
         //open();
     }
@@ -129,66 +142,59 @@ public class EtSystem {
      * @param sys   EtSystemOpen object to specify a connection to the ET
      *              system of interest
      * @param debug debug level (e.g. {@link EtConstants#debugInfo})
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws UnknownHostException
-     *     if the host address(es) is(are) unknown
-     * @throws EtException
-     *     if arg is null;
-     *     if the responding ET system has the wrong name, runs a different
-     *     version of ET, or has a different value for
-     *     {@link EtConstants#stationSelectInts}
-     * @throws EtTooManyException
-     *     if there were more than one valid response when policy is set to
-     *     {@link EtConstants#policyError} and we are looking either
-     *     remotely or anywhere for the ET system.
+     * @throws IOException          if problems with network communications
+     * @throws UnknownHostException if the host address(es) is(are) unknown
+     * @throws EtException          if arg is null;
+     *                              if the responding ET system has the wrong name, runs a different
+     *                              version of ET, or has a different value for
+     *                              {@link EtConstants#stationSelectInts}
+     * @throws EtTooManyException   if there were more than one valid response when policy is set to
+     *                              {@link EtConstants#policyError} and we are looking either
+     *                              remotely or anywhere for the ET system.
      */
-    public EtSystem(EtSystemOpen sys, int debug)  throws
+    public EtSystem(EtSystemOpen sys, int debug) throws
             IOException, EtException, EtTooManyException {
 
         if (sys == null) {
             throw new EtException("Invalid arg");
         }
 
-        this.sys   = sys;
+        this.sys = sys;
         openConfig = sys.getConfig();
 
-        if ((debug != EtConstants.debugNone)   &&
-            (debug != EtConstants.debugSevere) &&
-            (debug != EtConstants.debugError)  &&
-            (debug != EtConstants.debugWarn)   &&
-            (debug != EtConstants.debugInfo))    {
+        if ((debug != EtConstants.debugNone) &&
+                (debug != EtConstants.debugSevere) &&
+                (debug != EtConstants.debugError) &&
+                (debug != EtConstants.debugWarn) &&
+                (debug != EtConstants.debugInfo)) {
 
             this.debug = EtConstants.debugError;
-        }
-        else {
+        } else {
             this.debug = debug;
         }
 
         if (sys.isConnected()) {
-            if (sys.getLanguage() == EtConstants.langJava) {isJava = true;}
+            if (sys.getLanguage() == EtConstants.langJava) {
+                isJava = true;
+            }
 
             // buffer communication streams for efficiency
             sock = sys.getSocket();
 
             if (openConfig.getTcpRecvBufSize() > 0) {
                 in = new DataInputStream(new BufferedInputStream(sock.getInputStream(), openConfig.getTcpRecvBufSize()));
-            }
-            else {
-                in = new DataInputStream( new BufferedInputStream( sock.getInputStream(), sock.getReceiveBufferSize()));
+            } else {
+                in = new DataInputStream(new BufferedInputStream(sock.getInputStream(), sock.getReceiveBufferSize()));
             }
 
             if (openConfig.getTcpSendBufSize() > 0) {
-                out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), openConfig.getTcpSendBufSize()));
-            }
-            else {
-                out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
+                out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), openConfig.getTcpSendBufSize()));
+            } else {
+                out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
             }
 
             open = true;
-        }
-        else {
+        } else {
             open();
         }
 
@@ -197,9 +203,10 @@ public class EtSystem {
 
     // Local getters & setters
 
-    
+
     /**
      * Get the data input stream to talk to ET system server.
+     *
      * @return data input stream to talk to ET system server
      */
     public DataInputStream getInputStream() {
@@ -208,6 +215,7 @@ public class EtSystem {
 
     /**
      * Get the data output stream to receive from the ET system server.
+     *
      * @return data output stream to receive from the ET system server
      */
     public DataOutputStream getOutputStream() {
@@ -216,6 +224,7 @@ public class EtSystem {
 
     /**
      * Gets whether the jni library is being used for local access to ET file.
+     *
      * @return whether the jni library is being used for local access to ET file.
      */
     public boolean usingJniLibrary() {
@@ -224,6 +233,7 @@ public class EtSystem {
 
     /**
      * Gets the debug output level.
+     *
      * @return debug output level
      */
     public int getDebug() {
@@ -239,22 +249,22 @@ public class EtSystem {
      * @throws EtException if bad argument value
      */
     public void setDebug(int val) throws EtException {
-        if ((val != EtConstants.debugNone)   &&
-            (val != EtConstants.debugSevere) &&
-            (val != EtConstants.debugError)  &&
-            (val != EtConstants.debugWarn)   &&
-            (val != EtConstants.debugInfo)) {
+        if ((val != EtConstants.debugNone) &&
+                (val != EtConstants.debugSevere) &&
+                (val != EtConstants.debugError) &&
+                (val != EtConstants.debugWarn) &&
+                (val != EtConstants.debugInfo)) {
             throw new EtException("bad debug argument");
         }
         debug = val;
         try {
             sys.setDebug(debug);
-        }
-        catch (EtException e) { /* never happen */ }
+        } catch (EtException e) { /* never happen */ }
     }
 
     /**
      * Gets a copy of the configuration object used to specify how to open the ET system.
+     *
      * @return copy of the configuration object used to specify how to open the ET system.
      */
     public EtSystemOpenConfig getConfig() {
@@ -265,18 +275,14 @@ public class EtSystem {
     /**
      * Open the ET system and set up buffered communication.
      *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws UnknownHostException
-     *     if the host address(es) is(are) unknown
-     * @throws EtException
-     *     if the responding ET system has the wrong name, runs a different
-     *     version of ET, or has a different value for
-     *     {@link EtConstants#stationSelectInts}
-     * @throws EtTooManyException
-     *     if there were more than one valid response when policy is set to
-     *     {@link EtConstants#policyError} and we are looking either
-     *     remotely or anywhere for the ET system.
+     * @throws IOException          if problems with network communications
+     * @throws UnknownHostException if the host address(es) is(are) unknown
+     * @throws EtException          if the responding ET system has the wrong name, runs a different
+     *                              version of ET, or has a different value for
+     *                              {@link EtConstants#stationSelectInts}
+     * @throws EtTooManyException   if there were more than one valid response when policy is set to
+     *                              {@link EtConstants#policyError} and we are looking either
+     *                              remotely or anywhere for the ET system.
      */
     synchronized public void open() throws IOException, EtException, EtTooManyException {
 
@@ -286,12 +292,11 @@ public class EtSystem {
 
         try {
             sys.connect();
-        }
-        catch (EtTooManyException ex) {
+        } catch (EtTooManyException ex) {
             if (debug >= EtConstants.debugError) {
                 int count = 1;
                 System.out.println("The following hosts responded:");
-                for (Map.Entry<ArrayList<String>[],Integer> entry : sys.getResponders().entrySet()) {
+                for (Map.Entry<ArrayList<String>[], Integer> entry : sys.getResponders().entrySet()) {
                     System.out.println("  host #" + (count++) + " at port " + entry.getValue());
                     ArrayList<String> addrList = entry.getKey()[0];
                     for (String s : addrList) {
@@ -303,30 +308,32 @@ public class EtSystem {
             throw ex;
         }
 
-        if (sys.getLanguage() == EtConstants.langJava) {isJava = true;}
+        if (sys.getLanguage() == EtConstants.langJava) {
+            isJava = true;
+        }
 
         sock = sys.getSocket();
 
         // buffer communication streams for efficiency
         if (openConfig.getTcpRecvBufSize() > 0) {
             in = new DataInputStream(new BufferedInputStream(sock.getInputStream(), openConfig.getTcpRecvBufSize()));
-        }
-        else {
-            in = new DataInputStream( new BufferedInputStream( sock.getInputStream(),  sock.getReceiveBufferSize()));
+        } else {
+            in = new DataInputStream(new BufferedInputStream(sock.getInputStream(), sock.getReceiveBufferSize()));
         }
 
         if (openConfig.getTcpSendBufSize() > 0) {
-            out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), openConfig.getTcpSendBufSize()));
-        }
-        else {
-            out  = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
+            out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), openConfig.getTcpSendBufSize()));
+        } else {
+            out = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream(), sock.getSendBufferSize()));
         }
 
         open = true;
     }
 
 
-    /** Close the ET system. */
+    /**
+     * Close the ET system.
+     */
     synchronized public void close() {
 
         if (!open) {
@@ -345,19 +352,16 @@ public class EtSystem {
 
             out.writeInt(EtConstants.netClose);  // close and forcedclose do the same thing in java
             out.flush();
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             if (debug >= EtConstants.debugError) {
                 System.out.println("network communication error");
             }
-        }
-        finally {
+        } finally {
             try {
                 in.close();
                 out.close();
                 sys.disconnect(); // does sock.close()
-            }
-            catch (IOException ex) {/* ignore exception */}
+            } catch (IOException ex) {/* ignore exception */}
         }
 
         open = false;
@@ -366,7 +370,8 @@ public class EtSystem {
 
     /**
      * Kill the ET system.
-     * @throws IOException if problems with network communications
+     *
+     * @throws IOException       if problems with network communications
      * @throws EtClosedException if the ET system is closed
      */
     synchronized public void kill() throws IOException, EtClosedException {
@@ -393,14 +398,12 @@ public class EtSystem {
 
             out.writeInt(EtConstants.netKill);
             out.flush();
-        }
-        finally {
+        } finally {
             try {
                 in.close();
                 out.close();
                 sys.disconnect(); // does sock.close()
-            }
-            catch (IOException ex) { /* ignore exception */ }
+            } catch (IOException ex) { /* ignore exception */ }
         }
 
         open = false;
@@ -410,8 +413,8 @@ public class EtSystem {
     /**
      * Is the ET system alive and are we connected to it?
      *
-     *  @return <code>true</code> if the ET system is alive and we're connected to it,
-     *          otherwise  <code>false</code>
+     * @return <code>true</code> if the ET system is alive and we're connected to it,
+     * otherwise  <code>false</code>
      */
     synchronized public boolean alive() {
         if (!open) {
@@ -425,8 +428,7 @@ public class EtSystem {
             out.writeInt(EtConstants.netAlive);
             out.flush();
             alive = in.readInt();
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             if (debug >= EtConstants.debugError) {
                 System.out.println("network communication error");
             }
@@ -441,19 +443,15 @@ public class EtSystem {
      * Wake up an attachment that is waiting to read events from a station's empty input list.
      *
      * @param att attachment to wake up
-     *
-     * @throws IOException
-     *      if problems with network communications
-     * @throws EtException
-     *      if arg is null;
-     *      if the attachment object is invalid
-     * @throws EtClosedException
-     *     if the ET system is closed
+     * @throws IOException       if problems with network communications
+     * @throws EtException       if arg is null;
+     *                           if the attachment object is invalid
+     * @throws EtClosedException if the ET system is closed
      */
     synchronized public void wakeUpAttachment(EtAttachment att)
             throws IOException, EtException, EtClosedException {
         if (!open) {
-            throw new EtClosedException ("Not connected to ET system");
+            throw new EtClosedException("Not connected to ET system");
         }
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
@@ -471,14 +469,10 @@ public class EtSystem {
      * empty input list.
      *
      * @param station station whose attachments are to wake up
-     *
-     * @throws IOException
-     *      if problems with network communications
-     * @throws EtException
-     *      if arg is null;
-     *      if the station object is invalid
-     * @throws EtClosedException
-     *     if the ET system is closed
+     * @throws IOException       if problems with network communications
+     * @throws EtException       if arg is null;
+     *                           if the station object is invalid
+     * @throws EtClosedException if the ET system is closed
      */
     synchronized public void wakeUpAll(EtStation station)
             throws IOException, EtException, EtClosedException {
@@ -500,15 +494,13 @@ public class EtSystem {
     //                      STATIONS                     *
     //****************************************************
 
-    
+
     /**
      * Checks a station configuration for self-consistency.
      *
      * @param config station configuration
-     *
-     * @throws EtException
-     *     if arg is null;
-     *     if the station configuration is not self-consistent
+     * @throws EtException if arg is null;
+     *                     if the station configuration is not self-consistent
      */
     private void configCheck(EtStationConfig config) throws EtException {
 
@@ -517,26 +509,26 @@ public class EtSystem {
         }
 
         // USER mode means specifing a class
-        if ((config.getSelectMode()  == EtConstants.stationSelectUser) &&
-            (config.getSelectClass() == null)) {
+        if ((config.getSelectMode() == EtConstants.stationSelectUser) &&
+                (config.getSelectClass() == null)) {
 
             throw new EtException("station config needs a select class name");
         }
 
         // Must be parallel, block, not prescale, and not restore to input list if rrobin or equal cue
-        if (((config.getSelectMode()  == EtConstants.stationSelectRRobin) ||
-             (config.getSelectMode()  == EtConstants.stationSelectEqualCue)) &&
-            ((config.getFlowMode()    == EtConstants.stationSerial) ||
-             (config.getBlockMode()   == EtConstants.stationNonBlocking) ||
-             (config.getRestoreMode() == EtConstants.stationRestoreIn)  ||
-             (config.getPrescale()    != 1))) {
+        if (((config.getSelectMode() == EtConstants.stationSelectRRobin) ||
+                (config.getSelectMode() == EtConstants.stationSelectEqualCue)) &&
+                ((config.getFlowMode() == EtConstants.stationSerial) ||
+                        (config.getBlockMode() == EtConstants.stationNonBlocking) ||
+                        (config.getRestoreMode() == EtConstants.stationRestoreIn) ||
+                        (config.getPrescale() != 1))) {
 
             throw new EtException("if flowMode = rrobin/equalcue, station must be parallel, blocking, prescale=1, & not restoreIn");
         }
 
         // If redistributing restored events, must be a parallel station
         if ((config.getRestoreMode() == EtConstants.stationRestoreRedist) &&
-            (config.getFlowMode()    != EtConstants.stationParallel)) {
+                (config.getFlowMode() != EtConstants.stationParallel)) {
 
             throw new EtException("if restoreMode = restoreRedist, station must be parallel");
         }
@@ -554,78 +546,63 @@ public class EtSystem {
      * This method uses JNI to call ET routines in the C library. Shared memory is
      * directly accessed.
      *
-     * @param config     station configuration
-     * @param name       station name
-     * @param position   position in the main list to put the station.
-     * @param parallelPosition   position in the list of parallel
-     *                           stations to put the station.
-     *
+     * @param config           station configuration
+     * @param name             station name
+     * @param position         position in the main list to put the station.
+     * @param parallelPosition position in the list of parallel
+     *                         stations to put the station.
      * @return new station id
-     *
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if the select method's class cannot be loaded;
-     *     if the position is less than 1 (GRAND_CENTRAL's spot);
-     *     if the name is GRAND_CENTRAL (already taken);
-     *     if the name is too long;
-     *     if the configuration's cue size is too big;
-     *     if the configuration needs a select class name;
-     *     if the configuration inconsistent
-     *     if trying to add incompatible parallel station;
-     *     if trying to add parallel station to head of existing parallel group;
-     * @throws EtExistsException
-     *     if the station already exists but with a different configuration
-     * @throws EtTooManyException
-     *     if the maximum number of stations has been created already
+     * @throws EtDeadException    if the ET system processes are dead
+     * @throws EtClosedException  if the ET system is closed
+     * @throws EtException        if arg is null;
+     *                            if the select method's class cannot be loaded;
+     *                            if the position is less than 1 (GRAND_CENTRAL's spot);
+     *                            if the name is GRAND_CENTRAL (already taken);
+     *                            if the name is too long;
+     *                            if the configuration's cue size is too big;
+     *                            if the configuration needs a select class name;
+     *                            if the configuration inconsistent
+     *                            if trying to add incompatible parallel station;
+     *                            if trying to add parallel station to head of existing parallel group;
+     * @throws EtExistsException  if the station already exists but with a different configuration
+     * @throws EtTooManyException if the maximum number of stations has been created already
      */
     synchronized public int createStationJNI(EtStationConfig config, String name,
-                                                int position, int parallelPosition)
+                                             int position, int parallelPosition)
             throws EtDeadException, EtClosedException, EtException,
             EtExistsException, EtTooManyException {
 
         return sys.getJni().createStation(sys.getJni().getLocalEtId(), config,
-                                          name, position, parallelPosition);
+                name, position, parallelPosition);
     }
 
 
-        /**
-         * Creates a new station placed at the end of the ordered list of stations.
-         * If the station is added to a group of parallel stations,
-         * it is placed at the end of the list of parallel stations.
-         *
-         * @param config  station configuration
-         * @param name    station name
-         *
-         * @return new station object
-         *
-         * @throws IOException
-         *     if problems with network communications
-         * @throws EtDeadException
-         *     if the ET system processes are dead
-         * @throws EtClosedException
-         *     if the ET system is closed
-         * @throws EtException
-         *     if not connected to ET system;
-         *     if the select method's class cannot be loaded;
-         *     if the position is less than 1 (GRAND_CENTRAL's spot);
-         *     if the name is GRAND_CENTRAL (already taken);
-         *     if the configuration's cue size is too big;
-         *     if the configuration needs a select class name
-         *     if the configuration inconsistent
-         *     if trying to add incompatible parallel station;
-         *     if trying to add parallel station to head of existing parallel group;
-         * @throws EtExistsException
-         *     if the station already exists but with a different configuration
-         * @throws EtTooManyException
-         *     if the maximum number of stations has been created already
-         */
+    /**
+     * Creates a new station placed at the end of the ordered list of stations.
+     * If the station is added to a group of parallel stations,
+     * it is placed at the end of the list of parallel stations.
+     *
+     * @param config station configuration
+     * @param name   station name
+     * @return new station object
+     * @throws IOException        if problems with network communications
+     * @throws EtDeadException    if the ET system processes are dead
+     * @throws EtClosedException  if the ET system is closed
+     * @throws EtException        if not connected to ET system;
+     *                            if the select method's class cannot be loaded;
+     *                            if the position is less than 1 (GRAND_CENTRAL's spot);
+     *                            if the name is GRAND_CENTRAL (already taken);
+     *                            if the configuration's cue size is too big;
+     *                            if the configuration needs a select class name
+     *                            if the configuration inconsistent
+     *                            if trying to add incompatible parallel station;
+     *                            if trying to add parallel station to head of existing parallel group;
+     * @throws EtExistsException  if the station already exists but with a different configuration
+     * @throws EtTooManyException if the maximum number of stations has been created already
+     */
     public EtStation createStation(EtStationConfig config, String name)
             throws IOException, EtDeadException, EtClosedException, EtException,
-                   EtExistsException, EtTooManyException {
+            EtExistsException, EtTooManyException {
 
         return createStation(config, name, EtConstants.end, EtConstants.end);
     }
@@ -639,33 +616,25 @@ public class EtSystem {
      * @param config   station configuration
      * @param name     station name
      * @param position position in the linked list to put the station.
-     *
      * @return new station object
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if not connected to ET system;
-     *     if the select method's class cannot be loaded;
-     *     if the position is less than 1 (GRAND_CENTRAL's spot);
-     *     if the name is GRAND_CENTRAL (already taken);
-     *     if the configuration's cue size is too big;
-     *     if the configuration needs a select class name
-     *     if the configuration inconsistent
-     *     if trying to add incompatible parallel station;
-     *     if trying to add parallel station to head of existing parallel group;
-     * @throws EtExistsException
-     *     if the station already exists but with a different configuration
-     * @throws EtTooManyException
-     *     if the maximum number of stations has been created already
+     * @throws IOException        if problems with network communications
+     * @throws EtDeadException    if the ET system processes are dead
+     * @throws EtClosedException  if the ET system is closed
+     * @throws EtException        if not connected to ET system;
+     *                            if the select method's class cannot be loaded;
+     *                            if the position is less than 1 (GRAND_CENTRAL's spot);
+     *                            if the name is GRAND_CENTRAL (already taken);
+     *                            if the configuration's cue size is too big;
+     *                            if the configuration needs a select class name
+     *                            if the configuration inconsistent
+     *                            if trying to add incompatible parallel station;
+     *                            if trying to add parallel station to head of existing parallel group;
+     * @throws EtExistsException  if the station already exists but with a different configuration
+     * @throws EtTooManyException if the maximum number of stations has been created already
      */
     public EtStation createStation(EtStationConfig config, String name, int position)
             throws IOException, EtDeadException, EtClosedException, EtException,
-                   EtExistsException, EtTooManyException {
+            EtExistsException, EtTooManyException {
         return createStation(config, name, position, EtConstants.end);
     }
 
@@ -675,40 +644,32 @@ public class EtSystem {
      * stations and in a specified position in an ordered list of parallel
      * stations if it is a parallel station.
      *
-     * @param config     station configuration
-     * @param name       station name
-     * @param position   position in the main list to put the station.
-     * @param parallelPosition   position in the list of parallel
-     *                           stations to put the station.
-     *
+     * @param config           station configuration
+     * @param name             station name
+     * @param position         position in the main list to put the station.
+     * @param parallelPosition position in the list of parallel
+     *                         stations to put the station.
      * @return new station object
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if the select method's class cannot be loaded;
-     *     if the position is less than 1 (GRAND_CENTRAL's spot);
-     *     if the name is GRAND_CENTRAL (already taken);
-     *     if the name is too long;
-     *     if the configuration's cue size is too big;
-     *     if the configuration needs a select class name;
-     *     if the configuration inconsistent
-     *     if trying to add incompatible parallel station;
-     *     if trying to add parallel station to head of existing parallel group;
-     * @throws EtExistsException
-     *     if the station already exists but with a different configuration
-     * @throws EtTooManyException
-     *     if the maximum number of stations has been created already
+     * @throws IOException        if problems with network communications
+     * @throws EtDeadException    if the ET system processes are dead
+     * @throws EtClosedException  if the ET system is closed
+     * @throws EtException        if arg is null;
+     *                            if the select method's class cannot be loaded;
+     *                            if the position is less than 1 (GRAND_CENTRAL's spot);
+     *                            if the name is GRAND_CENTRAL (already taken);
+     *                            if the name is too long;
+     *                            if the configuration's cue size is too big;
+     *                            if the configuration needs a select class name;
+     *                            if the configuration inconsistent
+     *                            if trying to add incompatible parallel station;
+     *                            if trying to add parallel station to head of existing parallel group;
+     * @throws EtExistsException  if the station already exists but with a different configuration
+     * @throws EtTooManyException if the maximum number of stations has been created already
      */
     synchronized public EtStation createStation(EtStationConfig config, String name,
-                                               int position, int parallelPosition)
+                                                int position, int parallelPosition)
             throws IOException, EtDeadException, EtClosedException, EtException,
-                   EtExistsException, EtTooManyException {
+            EtExistsException, EtTooManyException {
 
         if (!open) {
             throw new EtClosedException("Not connected to ET system");
@@ -735,8 +696,8 @@ public class EtSystem {
 
         // check value of parallel position
         if ((parallelPosition != EtConstants.end) &&
-            (parallelPosition != EtConstants.newHead) &&
-            (parallelPosition  < 0)) {
+                (parallelPosition != EtConstants.newHead) &&
+                (parallelPosition < 0)) {
             throw new EtException("Bad value for parallel position");
         }
 
@@ -775,7 +736,7 @@ public class EtSystem {
         out.writeInt(config.getCue());
         out.writeInt(config.getSelectMode());
         int[] select = config.getSelect();
-        for (int i=0; i < EtConstants.stationSelectInts; i++) {
+        for (int i = 0; i < EtConstants.stationSelectInts; i++) {
             out.writeInt(select[i]);
         }
 
@@ -819,8 +780,7 @@ public class EtSystem {
             }
             out.write(name.getBytes("ASCII"));
             out.writeByte(0);
-        }
-        catch (UnsupportedEncodingException ex) { /* never happen */ }
+        } catch (UnsupportedEncodingException ex) { /* never happen */ }
 
         out.flush();
 
@@ -829,17 +789,13 @@ public class EtSystem {
 
         if (err == EtConstants.errorDead) {
             throw new EtDeadException("ET is dead");
-        }
-        else if (err == EtConstants.errorClosed) {
+        } else if (err == EtConstants.errorClosed) {
             throw new EtClosedException("ET is closed");
-        }
-        else if (err ==  EtConstants.errorTooMany) {
+        } else if (err == EtConstants.errorTooMany) {
             throw new EtTooManyException("Maximum number of stations already created");
-        }
-        else if (err == EtConstants.errorExists) {
+        } else if (err == EtConstants.errorExists) {
             throw new EtExistsException("Station already exists with different definition");
-        }
-        else if (err < EtConstants.ok) {
+        } else if (err < EtConstants.ok) {
             throw new EtException("Trying to add incompatible parallel station, or\n" +
                     "trying to add parallel station to head of existing parallel group, or\n" +
                     "cannot load select class");
@@ -851,7 +807,7 @@ public class EtSystem {
         if (debug >= EtConstants.debugInfo) {
             System.out.println("Creating station " + name + " is done");
         }
-        
+
         return station;
     }
 
@@ -860,19 +816,14 @@ public class EtSystem {
      * Removes an existing station.
      *
      * @param station station object
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if attachments to the station still exist;
-     *     if the station is GRAND_CENTRAL (which must always exist);
-     *     if the station does not exist;
-     *     if the station object is invalid
+     * @throws IOException       if problems with network communications
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if attachments to the station still exist;
+     *                           if the station is GRAND_CENTRAL (which must always exist);
+     *                           if the station does not exist;
+     *                           if the station object is invalid
      */
     synchronized public void removeStation(EtStation station)
             throws IOException, EtDeadException, EtClosedException, EtException {
@@ -903,98 +854,88 @@ public class EtSystem {
         if (err == EtConstants.errorDead) {
             station.setUsable(false);
             throw new EtDeadException("ET is dead");
-        }
-        else if (err == EtConstants.errorClosed) {
+        } else if (err == EtConstants.errorClosed) {
             station.setUsable(false);
             throw new EtClosedException("ET is closed");
-        }
-        else if (err < EtConstants.ok) {
+        } else if (err < EtConstants.ok) {
             throw new EtException("Either no such station exists " +
-                                  "or remove all attachments before removing station");
+                    "or remove all attachments before removing station");
         }
 
         station.setUsable(false);
     }
 
 
-  /**
-   * Changes the position of a station in the ordered list of stations.
-   *
-   * @param station   station object
-   * @param position  position in the main station list (starting at 0)
-   * @param parallelPosition  position in list of parallel stations (starting at 0)
-   *
-   * @throws IOException
-   *     if problems with network communications
-   * @throws EtDeadException
-   *     if the ET system processes are dead
-   * @throws EtClosedException
-   *     if the ET system is closed
-   * @throws EtException
-   *     if arg is null;
-   *     if the station does not exist;
-   *     if trying to move GRAND_CENTRAL;
-   *     if position is &lt; 1 (GRAND_CENTRAL is always first);
-   *     if parallelPosition &lt; 0;
-   *     if station object is invalid;
-   *     if trying to move an incompatible parallel station to an existing group
-   *        of parallel stations or to the head of an existing group of parallel
-   *        stations.
-   */
-  synchronized public void setStationPosition(EtStation station, int position,
-                                              int parallelPosition)
-      throws IOException, EtDeadException, EtClosedException, EtException {
+    /**
+     * Changes the position of a station in the ordered list of stations.
+     *
+     * @param station          station object
+     * @param position         position in the main station list (starting at 0)
+     * @param parallelPosition position in list of parallel stations (starting at 0)
+     * @throws IOException       if problems with network communications
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if the station does not exist;
+     *                           if trying to move GRAND_CENTRAL;
+     *                           if position is &lt; 1 (GRAND_CENTRAL is always first);
+     *                           if parallelPosition &lt; 0;
+     *                           if station object is invalid;
+     *                           if trying to move an incompatible parallel station to an existing group
+     *                           of parallel stations or to the head of an existing group of parallel
+     *                           stations.
+     */
+    synchronized public void setStationPosition(EtStation station, int position,
+                                                int parallelPosition)
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
-      if (!open) {
-          throw new EtClosedException("Not connected to ET system");
-      }
+        if (!open) {
+            throw new EtClosedException("Not connected to ET system");
+        }
 
-      if (station == null) {
-          throw new EtException("Invalid station");
-      }
+        if (station == null) {
+            throw new EtException("Invalid station");
+        }
 
-      // cannot move GrandCentral
-      if (station.getId() == 0) {
-          throw new EtException("Cannot move GRAND_CENTRAL station");
-      }
+        // cannot move GrandCentral
+        if (station.getId() == 0) {
+            throw new EtException("Cannot move GRAND_CENTRAL station");
+        }
 
-      if ((position != EtConstants.end) && (position < 0)) {
-          throw new EtException("bad value for position");
-      }
-      else if (position == 0) {
-          throw new EtException("GRAND_CENTRAL station is always first");
-      }
+        if ((position != EtConstants.end) && (position < 0)) {
+            throw new EtException("bad value for position");
+        } else if (position == 0) {
+            throw new EtException("GRAND_CENTRAL station is always first");
+        }
 
-      if ((parallelPosition != EtConstants.end) &&
-          (parallelPosition != EtConstants.newHead) &&
-          (parallelPosition < 0)) {
-          throw new EtException("bad value for parallelPosition");
-      }
+        if ((parallelPosition != EtConstants.end) &&
+                (parallelPosition != EtConstants.newHead) &&
+                (parallelPosition < 0)) {
+            throw new EtException("bad value for parallelPosition");
+        }
 
-      if (!station.isUsable() || station.getSys() != this) {
-          throw new EtException("Invalid station");
-      }
+        if (!station.isUsable() || station.getSys() != this) {
+            throw new EtException("Invalid station");
+        }
 
-      out.writeInt(EtConstants.netStatSPos);
-      out.writeInt(station.getId());
-      out.writeInt(position);
-      out.writeInt(parallelPosition);
-      out.flush();
+        out.writeInt(EtConstants.netStatSPos);
+        out.writeInt(station.getId());
+        out.writeInt(position);
+        out.writeInt(parallelPosition);
+        out.flush();
 
-      int err = in.readInt();
-      if (err == EtConstants.errorDead) {
-          station.setUsable(false);
-          throw new EtDeadException("ET is dead");
-      }
-      else if (err == EtConstants.errorClosed) {
-          station.setUsable(false);
-          throw new EtClosedException("ET is closed");
-      }
-      else if (err < EtConstants.ok) {
-          station.setUsable(false);
-          throw new EtException("station does not exist");
-      }
-  }
+        int err = in.readInt();
+        if (err == EtConstants.errorDead) {
+            station.setUsable(false);
+            throw new EtDeadException("ET is dead");
+        } else if (err == EtConstants.errorClosed) {
+            station.setUsable(false);
+            throw new EtClosedException("ET is closed");
+        } else if (err < EtConstants.ok) {
+            station.setUsable(false);
+            throw new EtException("station does not exist");
+        }
+    }
 
 
     /**
@@ -1002,17 +943,12 @@ public class EtSystem {
      *
      * @param station station object
      * @return position of a station in the main linked list of stations
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if the station does not exist;
-     *     if station object is invalid
+     * @throws IOException       if problems with network communications
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if the station does not exist;
+     *                           if station object is invalid
      */
     synchronized public int getStationPosition(EtStation station)
             throws IOException, EtDeadException, EtClosedException, EtException {
@@ -1042,12 +978,10 @@ public class EtSystem {
         if (err == EtConstants.errorDead) {
             station.setUsable(false);
             throw new EtDeadException("ET is dead");
-        }
-        else if (err == EtConstants.errorClosed) {
+        } else if (err == EtConstants.errorClosed) {
             station.setUsable(false);
             throw new EtClosedException("ET is closed");
-        }
-        else if (err < EtConstants.ok) {
+        } else if (err < EtConstants.ok) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
@@ -1062,20 +996,15 @@ public class EtSystem {
      *
      * @param station station object
      * @return position of a station in the linked list of stations
-     *
-     * @throws IOException
-     *     if problems with network communications
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if the station does not exist;
-     *     if station object is invalid
+     * @throws IOException       if problems with network communications
+     * @throws EtDeadException   if the ET system processes are dead
+     * @throws EtClosedException if the ET system is closed
+     * @throws EtException       if arg is null;
+     *                           if the station does not exist;
+     *                           if station object is invalid
      */
     synchronized public int getStationParallelPosition(EtStation station)
-        throws IOException, EtDeadException, EtClosedException, EtException {
+            throws IOException, EtDeadException, EtClosedException, EtException {
 
         if (!open) {
             throw new EtClosedException("Not connected to ET system");
@@ -1102,17 +1031,42 @@ public class EtSystem {
         if (err == EtConstants.errorDead) {
             station.setUsable(false);
             throw new EtDeadException("ET is dead");
-        }
-        else if (err == EtConstants.errorClosed) {
+        } else if (err == EtConstants.errorClosed) {
             station.setUsable(false);
             throw new EtClosedException("ET is closed");
-        }
-        else if (err < EtConstants.ok) {
+        } else if (err < EtConstants.ok) {
             station.setUsable(false);
             throw new EtException("station does not exist");
         }
 
         return pPosition;
+    }
+
+
+    /**
+     * Create an attachment to a station.
+     * This method uses JNI to call ET routines in the C library.
+     * Shared memory is directly accessed.
+     *
+     * @param station station object
+     * @return an attachment object
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtException
+     *     if arg is null;
+     *     if the station does not exist or is not in active/idle state;
+     *     if station object is invalid
+     * @throws EtTooManyException
+     *     if no more attachments are allowed to the station and/or ET system
+     */
+    synchronized public int attachJNI(EtStation station)
+            throws EtDeadException, EtClosedException,
+            EtException, EtTooManyException {
+
+        return sys.getJni().attach(sys.getJni().getLocalEtId(), station.getId());
     }
 
 
@@ -1145,6 +1099,19 @@ public class EtSystem {
 
         if (station == null || !station.isUsable() || station.getSys() != this) {
             throw new EtException("Invalid station");
+        }
+
+        if (sys.usingJniLibrary()) {
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            int attId = attachJNI(station);
+
+            EtAttachment att = new EtAttachment(station, attId, this);
+            att.setUsable(true);
+            return att;
         }
 
         // find name of our host

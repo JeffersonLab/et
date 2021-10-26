@@ -1501,7 +1501,6 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name) 
     }
 
     if (!et_alive(id)) {
-et_logmsg("ERROR", "et_station_exists, et is dead\n");
         return ET_ERROR_DEAD;
     }
 
@@ -1519,15 +1518,11 @@ et_logmsg("ERROR", "et_station_exists, et is dead\n");
 
     for (num=0; num < etid->sys->config.nstations ; num++) {
         if (ps->data.status != ET_STATION_UNUSED) {
-            et_logmsg("INFO", "et_station_exists, looking for station %s, this station is %s\n", stat_name, ps->name);
             if (strcmp(ps->name, stat_name) == 0) {
-                et_logmsg("INFO", "et_station_exists, MATCH!!!\n");
                 if (stat_id != NULL) {
-                    et_logmsg("INFO", "et_station_exists, put id = %d into %p\n", num, stat_id);
                     *stat_id = num;
                 }
                 et_mem_unlock(etid);
-                et_logmsg("INFO", "et_station_exists, return 1\n");
                 return 1;
             }
         }
@@ -1560,17 +1555,13 @@ int et_station_name_to_id(et_sys_id id, et_stat_id *stat_id, const char *stat_na
     int status;
 
     status = et_station_exists(id, stat_id, stat_name);
-    et_logmsg("INFO", "et_station_name_to_id, return value from et_station_exists = %d\n", status);
     if (status < 0) {
-        et_logmsg("INFO", "et_station_name_to_id, return error status = %d\n", status);
         return status;
     }
     else if (status == 1) {
-        et_logmsg("INFO", "et_station_name_to_id, return FOUND STATION = %d\n", status);
         return ET_OK;
     }
 
-    et_logmsg("INFO", "et_station_name_to_id, return STATION NOT FOUND = %d\n", status);
     return ET_ERROR;
 }
 

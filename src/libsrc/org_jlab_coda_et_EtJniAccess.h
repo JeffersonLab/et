@@ -79,6 +79,14 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
   (JNIEnv *, jobject, jlong, jstring);
 
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    attachJNI
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
+  (JNIEnv *, jobject, jlong, jint);
+
 #ifdef __cplusplus
 }
 #endif

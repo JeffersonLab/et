@@ -323,4 +323,26 @@ class EtJniAccess {
             throws EtDeadException, EtClosedException, EtException;
 
 
+
+    /**
+     * Create an attachment to a station.
+     *
+     * @param stationId  station id
+     * @return an attachment id
+     *
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtException
+     *     if arg is null;
+     *     if the station does not exist or is not in active/idle state;
+     *     if station object is invalid
+     * @throws EtTooManyException
+     *     if no more attachments are allowed to the station and/or ET system
+     */
+    native int attach(long etid, int stationId)
+            throws EtDeadException, EtClosedException, EtException, EtTooManyException;
+
+
 }

@@ -597,7 +597,6 @@ printf("createStation (native) : will attempt to get create station\n");
 JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
         (JNIEnv *env, jobject thisObj, jlong etId, jstring stationName)
 {
-
     et_id *etid = (et_id *) etId;
 
     // Convert stationName to C string
@@ -610,12 +609,10 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
 
     if (status == ET_OK) {
-        et_logmsg("INFO", "stationNameToObject (native): FOUND station, status = %d, stat id = %d\n", status,  stat_id);
         // Return station id
         return (jint)stat_id;
     }
     else if (status == ET_ERROR) {
-        et_logmsg("INFO", "stationNameToObject (native): station NOT FOUND, status = %d, stat id = %d\n", status, stat_id);
         // Not found
         return (jint)(-1);
     }
@@ -630,12 +627,49 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
             (*env)->ThrowNew(env, clazz, "stationNameToObject (native): close() already called");
         }
         else {
-            et_logmsg("INFO", "stationNameToObject (native): station ERROR, status = %d, stat id = %d\n", status, stat_id);
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
             (*env)->ThrowNew(env, clazz, "stationNameToObject (native): error finding station");
         }
         return status;
     }
+}
+
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    attachJNI
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
+        (JNIEnv *env, jobject thisObj, jlong etId, jint stationId)
+{
+    et_id *etid = (et_id *) etId;
+    et_stat_id stat_id = (int) stationId;
+    et_att_id att;
+
+    int status = et_station_attach((et_sys_id)etid, stat_id, &att);
+
+    if (status != ET_OK) {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_DEAD) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtDeadException");
+        }
+        if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtExistsException");
+        }
+        else if (status == ET_ERROR_TOOMANY) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtTooManyException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "attach (native): cannot attach to station");
+
+        return status;
+    }
+
+    // Return attachment id
+    return (jint)att;
 }
 
 
