@@ -523,11 +523,14 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     et_station_config_setselect(sconfig, selectMode);
     printf("createStation (native) : 2\n");
 
+    const char *lib = NULL;
+    const char *func = NULL;
+
     jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
     printf("createStation (native) : 2.1\n");
     if (!(*env)->IsSameObject(env, selectFunction, NULL)) {
         printf("createStation (native) : selectFunction is NOT null in java\n");
-        const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
+        func = (*env)->GetStringUTFChars(env, selectFunction, 0);
         printf("createStation (native) : 2.2\n");
         et_station_config_setfunction(sconfig, func);
     }
@@ -539,7 +542,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
     if (!(*env)->IsSameObject(env, selectLibrary, NULL)) {
         printf("createStation (native) : selectLibrary is NOT null in java\n");
-        const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
+        lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
         et_station_config_setlib(sconfig, lib);
     }
     else {
@@ -574,8 +577,12 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     printf("createStation (native) : 6\n");
 
     et_station_config_destroy(sconfig);
-    (*env)->ReleaseStringUTFChars(env, selectLibrary, lib);
-    (*env)->ReleaseStringUTFChars(env, selectFunction, func);
+    if (lib != NULL) {
+        (*env)->ReleaseStringUTFChars(env, selectLibrary, lib);
+    }
+    if (func != NULL) {
+        (*env)->ReleaseStringUTFChars(env, selectFunction, func);
+    }
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
     printf("createStation (native) : 7\n");
 
