@@ -476,8 +476,7 @@ if (debug) printf("dumpEvents (native) : dump 'em\n");
  * Signature: (Lorg/jlab/coda/et/EtStationConfig;Ljava/lang/String;II)Lorg/jlab/coda/et/EtStation;
  */
 JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
-        (JNIEnv *env, jobject thisObj, jlong etId, jobject stationConfig, jstring stationName, jint position, jint pPosition)
-{
+        (JNIEnv *env, jobject thisObj, jlong etId, jobject stationConfig, jstring stationName, jint position, jint pPosition) {
     et_id *etid = (et_id *) etId;
     et_stat_id my_stat;
     printf("createStation (native) : will attempt to get create station\n");
@@ -485,21 +484,21 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jclass classStatConfigImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtStationConfig");
 
     // Find id's of all the fields of EtStationConfig that we'll read/write directly from/to
-    jfieldID fid_0  = (*env)->GetFieldID(env, classStatConfigImpl, "cue",         "I");
-    jfieldID fid_1  = (*env)->GetFieldID(env, classStatConfigImpl, "prescale",    "I");
-    jfieldID fid_2  = (*env)->GetFieldID(env, classStatConfigImpl, "flowMode",    "I");
-    jfieldID fid_3  = (*env)->GetFieldID(env, classStatConfigImpl, "userMode",    "I");
-    jfieldID fid_4  = (*env)->GetFieldID(env, classStatConfigImpl, "restoreMode", "I");
-    jfieldID fid_5  = (*env)->GetFieldID(env, classStatConfigImpl, "blockMode",   "I");
-    jfieldID fid_6  = (*env)->GetFieldID(env, classStatConfigImpl, "selectMode",  "I");
-    jfieldID fid_7  = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "Ljava/lang/String;");
-    jfieldID fid_8  = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary",  "Ljava/lang/String;");
-    jfieldID fid_9  = (*env)->GetFieldID(env, classStatConfigImpl, "select",      "[I");
+    jfieldID fid_0 = (*env)->GetFieldID(env, classStatConfigImpl, "cue", "I");
+    jfieldID fid_1 = (*env)->GetFieldID(env, classStatConfigImpl, "prescale", "I");
+    jfieldID fid_2 = (*env)->GetFieldID(env, classStatConfigImpl, "flowMode", "I");
+    jfieldID fid_3 = (*env)->GetFieldID(env, classStatConfigImpl, "userMode", "I");
+    jfieldID fid_4 = (*env)->GetFieldID(env, classStatConfigImpl, "restoreMode", "I");
+    jfieldID fid_5 = (*env)->GetFieldID(env, classStatConfigImpl, "blockMode", "I");
+    jfieldID fid_6 = (*env)->GetFieldID(env, classStatConfigImpl, "selectMode", "I");
+    jfieldID fid_7 = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "Ljava/lang/String;");
+    jfieldID fid_8 = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary", "Ljava/lang/String;");
+    jfieldID fid_9 = (*env)->GetFieldID(env, classStatConfigImpl, "select", "[I");
     printf("createStation (native) : 1\n");
 
 
     // Define station to create
-    et_statconfig   sconfig;
+    et_statconfig sconfig;
     et_station_config_init(&sconfig);
 
     int qSize = (int) ((*env)->GetIntField(env, stationConfig, fid_0));
@@ -526,21 +525,25 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 
     jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
     printf("createStation (native) : 2.1\n");
-
-    const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
-    printf("createStation (native) : 2.2\n");
-
-    if (func != NULL) {
-        printf("createStation (native) : 2.3\n");
-
+    if (!(*env)->IsSameObject(env, selectFunction, NULL)) {
+        printf("createStation (native) : selectFunction is NOT null in java\n");
+        const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
+        printf("createStation (native) : 2.2\n");
         et_station_config_setfunction(sconfig, func);
+    }
+    else {
+        printf("createStation (native) : selectFunction IS null in java\n");
     }
     printf("createStation (native) : 2.4\n");
 
     jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
-    const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
-    if (lib != NULL) {
+    if (!(*env)->IsSameObject(env, selectLibrary, NULL)) {
+        printf("createStation (native) : selectLibrary is NOT null in java\n");
+        const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
         et_station_config_setlib(sconfig, lib);
+    }
+    else {
+        printf("createStation (native) : selectLibrary IS null in java\n");
     }
     printf("createStation (native) : 3\n");
 
