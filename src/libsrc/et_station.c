@@ -1560,13 +1560,17 @@ int et_station_name_to_id(et_sys_id id, et_stat_id *stat_id, const char *stat_na
     int status;
 
     status = et_station_exists(id, stat_id, stat_name);
+    et_logmsg("INFO", "et_station_name_to_id, return value from et_station_exists = %d\n", status);
     if (status < 0) {
+        et_logmsg("INFO", "et_station_name_to_id, return error status = %d\n", status);
         return status;
     }
     else if (status == 1) {
+        et_logmsg("INFO", "et_station_name_to_id, return FOUND STATION = %d\n", status);
         return ET_OK;
     }
 
+    et_logmsg("INFO", "et_station_name_to_id, return STATION NOT FOUND = %d\n", status);
     return ET_ERROR;
 }
 
