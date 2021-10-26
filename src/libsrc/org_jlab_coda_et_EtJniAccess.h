@@ -111,6 +111,14 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
 JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_setStationPosition
   (JNIEnv *, jobject, jlong, jint, jint, jint);
 
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    wakeUpAttachment
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_wakeUpAttachment
+  (JNIEnv *, jobject, jlong, jint);
+
 #ifdef __cplusplus
 }
 #endif

@@ -443,6 +443,21 @@ public class EtSystem {
      * Wake up an attachment that is waiting to read events from a station's empty input list.
      *
      * @param att attachment to wake up
+     * @throws EtException       if arg is null;
+     *                           if the attachment object is invalid
+     * @throws EtClosedException if the ET system is closed
+     */
+    private void wakeUpAttachmentJNI(EtAttachment att)
+            throws EtException, EtClosedException {
+
+        sys.getJni().wakeUpAttachment(sys.getJni().getLocalEtId(), att.getId());
+    }
+
+
+    /**
+     * Wake up an attachment that is waiting to read events from a station's empty input list.
+     *
+     * @param att attachment to wake up
      * @throws IOException       if problems with network communications
      * @throws EtException       if arg is null;
      *                           if the attachment object is invalid
@@ -456,6 +471,18 @@ public class EtSystem {
 
         if (att == null || !att.isUsable() || att.getSys() != this) {
             throw new EtException("Invalid attachment");
+        }
+
+        // Do we get things locally through JNI?
+        if (sys.usingJniLibrary()) {
+            // Value of "open" valid if synchronized
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            wakeUpAttachmentJNI(att);
+            return;
         }
 
         out.writeInt(EtConstants.netWakeAtt);

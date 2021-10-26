@@ -769,3 +769,32 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_setStationPosition
     }
     printf("setStationPosition (native) : DONE\n");
 }
+
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    wakeUpAttachment
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_wakeUpAttachment
+        (JNIEnv *env, jobject thisObj, jlong etId, jint attId)
+{
+    et_id *etid = (et_id *) etId;
+    et_att_id att_id = (int) attId;
+
+    printf("wakeUpAttachment (native) : will attempt to wakeup attachment\n");
+    int status = et_wakeup_attachment((et_sys_id)etid, att_id);
+
+    if (status != ET_OK) {
+        jclass clazz = NULL;
+        if (status == ET_ERROR_CLOSED) {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtCLosedException");
+        }
+        else {
+            clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
+        }
+        (*env)->ThrowNew(env, clazz, "detach (native): cannot wake up attachment");
+    }
+    printf("wakeUpAttachment (native) : DONE\n");
+}
+

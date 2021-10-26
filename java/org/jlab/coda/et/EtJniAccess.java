@@ -408,4 +408,19 @@ class EtJniAccess {
     native void setStationPosition(long etId, int stationId, int position, int parallelPosition)
             throws EtDeadException, EtClosedException, EtException;
 
+
+    /**
+     * Wake up an attachment that is waiting to read events from a station's empty input list.
+     *
+     * @param etId   ET system id
+     * @param attId  attachment id
+     *
+     * @throws EtException       if arg is null;
+     *                           if the attachment object is invalid
+     * @throws EtClosedException if the ET system is closed
+     */
+    native void wakeUpAttachment(long etId, int attId)
+            throws EtException, EtClosedException;
+
+
 }
