@@ -480,6 +480,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 {
     et_id *etid = (et_id *) etId;
     et_stat_id my_stat;
+    printf("createStation (native) : will attempt to get create station\n");
 
     jclass classStatConfigImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtStationConfig");
 
@@ -550,6 +551,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 
     // Create station
     int status = et_station_create_at((et_sys_id)etid, &my_stat, stName, sconfig, position, pPosition);
+    printf("createStation (native) : status = %d\n", status);
 
     et_station_config_destroy(sconfig);
     (*env)->ReleaseStringUTFChars(env, selectLibrary, lib);
