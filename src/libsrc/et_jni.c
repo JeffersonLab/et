@@ -492,8 +492,8 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jfieldID fid_4  = (*env)->GetFieldID(env, classStatConfigImpl, "restoreMode", "I");
     jfieldID fid_5  = (*env)->GetFieldID(env, classStatConfigImpl, "blockMode",   "I");
     jfieldID fid_6  = (*env)->GetFieldID(env, classStatConfigImpl, "selectMode",  "I");
-    jfieldID fid_7  = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "S");
-    jfieldID fid_8  = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary",  "S");
+    jfieldID fid_7  = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "Ljava/lang/String;");
+    jfieldID fid_8  = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary",  "Ljava/lang/String;");
     jfieldID fid_9  = (*env)->GetFieldID(env, classStatConfigImpl, "select",      "[I");
     printf("createStation (native) : 1\n");
 
