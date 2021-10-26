@@ -495,6 +495,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jfieldID fid_7  = (*env)->GetFieldID(env, classStatConfigImpl, "selectFunction", "S");
     jfieldID fid_8  = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary",  "S");
     jfieldID fid_9  = (*env)->GetFieldID(env, classStatConfigImpl, "select",      "[I");
+    printf("createStation (native) : 1\n");
 
 
     // Define station to create
@@ -521,6 +522,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 
     int selectMode = (int) ((*env)->GetIntField(env, stationConfig, fid_6));
     et_station_config_setselect(sconfig, selectMode);
+    printf("createStation (native) : 2\n");
 
     jstring selectFunction = ((*env)->GetObjectField(env, stationConfig, fid_7));
     const char *func = (*env)->GetStringUTFChars(env, selectFunction, 0);
@@ -529,6 +531,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     jstring selectLibrary = ((*env)->GetObjectField(env, stationConfig, fid_8));
     const char *lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
     et_station_config_setlib(sconfig, lib);
+    printf("createStation (native) : 3\n");
 
     // Get int array of select ints
     jboolean isCopy;
@@ -545,18 +548,22 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
     if (isCopy == JNI_TRUE) {
         (*env)->ReleaseIntArrayElements(env, selectInts, selectElements, 0);
     }
+    printf("createStation (native) : 4\n");
 
     // Convert stationName to C string
     const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
+    printf("createStation (native) : 5\n");
 
     // Create station
     int status = et_station_create_at((et_sys_id)etid, &my_stat, stName, sconfig, position, pPosition);
     printf("createStation (native) : status = %d\n", status);
+    printf("createStation (native) : 6\n");
 
     et_station_config_destroy(sconfig);
     (*env)->ReleaseStringUTFChars(env, selectLibrary, lib);
     (*env)->ReleaseStringUTFChars(env, selectFunction, func);
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
+    printf("createStation (native) : 7\n");
 
     if (status != ET_OK) {
         jclass clazz = NULL;
@@ -570,9 +577,11 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         }
         (*env)->ThrowNew(env, clazz, "createStation (native): cannot create station");
+        printf("createStation (native) : 88\n");
 
         return status;
     }
+    printf("createStation (native) : ENDDDD\n");
 
     // Return station id
     return (jint)my_stat;
