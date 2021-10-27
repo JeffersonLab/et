@@ -480,7 +480,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 {
     et_id *etid = (et_id *) etId;
     et_stat_id my_stat;
-printf("createStation (native) : will attempt to get create station\n");
 
     jclass classStatConfigImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtStationConfig");
 
@@ -584,7 +583,6 @@ printf("createStation (native) : will attempt to get create station\n");
         return status;
     }
 
-    printf("createStation (native) : DONE\n");
     // Return station id
     return (jint)my_stat;
 }
@@ -600,7 +598,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
 {
     et_id *etid = (et_id *) etId;
 
-    printf("stationNameToObject (native) : will attempt to get existing station\n");
     // Convert stationName to C string
     const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
 
@@ -634,7 +631,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
         }
         return status;
     }
-    printf("stationNameToObject (native) : DONE\n");
 }
 
 
@@ -650,7 +646,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
     et_stat_id stat_id = (int) stationId;
     et_att_id att;
 
-    printf("attach (native) : will attempt to attach to station\n");
     int status = et_station_attach((et_sys_id)etid, stat_id, &att);
 
     if (status != ET_OK) {
@@ -671,7 +666,6 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
 
         return status;
     }
-    printf("attach (native) : DONE\n");
 
     // Return attachment id
     return (jint)att;
@@ -689,7 +683,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_detach
     et_id *etid = (et_id *) etId;
     et_att_id att_id = (int) attId;
 
-    printf("detach (native) : will attempt to detach from station\n");
     int status = et_station_detach((et_sys_id)etid, att_id);
 
     if (status != ET_OK) {
@@ -705,7 +698,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_detach
         }
         (*env)->ThrowNew(env, clazz, "detach (native): cannot detach from station");
     }
-    printf("detach (native) : DONE\n");
 }
 
 
@@ -720,7 +712,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
     et_id *etid = (et_id *) etId;
     et_stat_id stat_id = (int) stationId;
 
-    printf("removeStation (native) : will attempt to remove station\n");
     int status = et_station_remove((et_sys_id)etid, stat_id);
 
     if (status != ET_OK) {
@@ -736,7 +727,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_removeStation
         }
         (*env)->ThrowNew(env, clazz, "removeStation (native): cannot remove station");
     }
-    printf("removeStation (native) : DONE\n");
 }
 
 
@@ -751,7 +741,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_setStationPosition
     et_id *etid = (et_id *) etId;
     et_stat_id stat_id = (int) stationId;
 
-    printf("setStationPosition (native) : will attempt to set station pos\n");
     int status = et_station_setposition((et_sys_id)etid, stat_id, (int)pos, (int)parallelPos);
 
     if (status != ET_OK) {
@@ -767,7 +756,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_setStationPosition
         }
         (*env)->ThrowNew(env, clazz, "removeStation (native): cannot set station position");
     }
-    printf("setStationPosition (native) : DONE\n");
 }
 
 
@@ -782,7 +770,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_wakeUpAttachment
     et_id *etid = (et_id *) etId;
     et_att_id att_id = (int) attId;
 
-    printf("wakeUpAttachment (native) : will attempt to wakeup attachment\n");
     int status = et_wakeup_attachment((et_sys_id)etid, att_id);
 
     if (status != ET_OK) {
@@ -795,7 +782,6 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_wakeUpAttachment
         }
         (*env)->ThrowNew(env, clazz, "detach (native): cannot wake up attachment");
     }
-    printf("wakeUpAttachment (native) : DONE\n");
 }
 
 
@@ -809,10 +795,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_alive
 {
     et_id *etid = (et_id *) etId;
 
-    printf("alive (native) : will attempt to see if ET is alive\n");
     int status = et_alive((et_sys_id)etid);
-
-    printf("alive (native) : DONE\n");
 
     // Return status
     return (jint)status;
