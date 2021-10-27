@@ -27,6 +27,7 @@ import org.jlab.coda.et.enums.Modify;
 import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.et.enums.Priority;
 import org.jlab.coda.et.enums.DataStatus;
+import org.jlab.coda.et.system.AttachmentLocal;
 
 // TODO: if IO exception occurs, open is not set to false, must catch it and call close()
 // TODO: so open is set to false. Then try open again.
@@ -410,6 +411,7 @@ public class EtSystem {
     }
 
 
+
     /**
      * Is the ET system alive and are we connected to it?
      *
@@ -419,6 +421,18 @@ public class EtSystem {
     synchronized public boolean alive() {
         if (!open) {
             return false;
+        }
+
+        // Do we get things locally through JNI?
+        if (sys.usingJniLibrary()) {
+            // Value of "open" valid if synchronized
+            synchronized (this) {
+                if (!open) {
+                    return false;
+                }
+            }
+            int status = sys.getJni().alive(sys.getJni().getLocalEtId());
+            return status == 1;
         }
 
         int alive;
@@ -436,21 +450,6 @@ public class EtSystem {
         }
 
         return (alive == 1);
-    }
-
-
-    /**
-     * Wake up an attachment that is waiting to read events from a station's empty input list.
-     *
-     * @param att attachment to wake up
-     * @throws EtException       if arg is null;
-     *                           if the attachment object is invalid
-     * @throws EtClosedException if the ET system is closed
-     */
-    private void wakeUpAttachmentJNI(EtAttachment att)
-            throws EtException, EtClosedException {
-
-        sys.getJni().wakeUpAttachment(sys.getJni().getLocalEtId(), att.getId());
     }
 
 
@@ -481,7 +480,7 @@ public class EtSystem {
                     throw new EtClosedException("Not connected to ET system");
                 }
             }
-            wakeUpAttachmentJNI(att);
+            sys.getJni().wakeUpAttachment(sys.getJni().getLocalEtId(), att.getId());
             return;
         }
 
@@ -563,44 +562,6 @@ public class EtSystem {
         if (config.getCue() > sys.getNumEvents()) {
             config.setCue(sys.getNumEvents());
         }
-    }
-
-
-    /**
-     * Creates a new station at a specified position in the ordered list of
-     * stations and in a specified position in an ordered list of parallel
-     * stations if it is a parallel station.
-     * This method uses JNI to call ET routines in the C library. Shared memory is
-     * directly accessed.
-     *
-     * @param config           station configuration
-     * @param name             station name
-     * @param position         position in the main list to put the station.
-     * @param parallelPosition position in the list of parallel
-     *                         stations to put the station.
-     * @return new station id
-     * @throws EtDeadException    if the ET system processes are dead
-     * @throws EtClosedException  if the ET system is closed
-     * @throws EtException        if arg is null;
-     *                            if the select method's class cannot be loaded;
-     *                            if the position is less than 1 (GRAND_CENTRAL's spot);
-     *                            if the name is GRAND_CENTRAL (already taken);
-     *                            if the name is too long;
-     *                            if the configuration's cue size is too big;
-     *                            if the configuration needs a select class name;
-     *                            if the configuration inconsistent
-     *                            if trying to add incompatible parallel station;
-     *                            if trying to add parallel station to head of existing parallel group;
-     * @throws EtExistsException  if the station already exists but with a different configuration
-     * @throws EtTooManyException if the maximum number of stations has been created already
-     */
-    private int createStationJNI(EtStationConfig config, String name,
-                                 int position, int parallelPosition)
-            throws EtDeadException, EtClosedException, EtException,
-            EtExistsException, EtTooManyException {
-
-        return sys.getJni().createStation(sys.getJni().getLocalEtId(), config,
-                name, position, parallelPosition);
     }
 
 
@@ -740,8 +701,9 @@ public class EtSystem {
                     throw new EtClosedException("Not connected to ET system");
                 }
             }
-            int statId = createStationJNI(config, name, position, parallelPosition);
 
+            int statId = sys.getJni().createStation(sys.getJni().getLocalEtId(), config,
+                                                    name, position, parallelPosition);
             EtStation station = new EtStation(name, statId, this);
             station.setUsable(true);
             if (debug >= EtConstants.debugInfo) {
@@ -841,25 +803,6 @@ public class EtSystem {
 
     /**
      * Removes an existing station.
-     *
-     * @param station station object
-     * @throws EtDeadException   if the ET system processes are dead
-     * @throws EtClosedException if the ET system is closed
-     * @throws EtException       if arg is null;
-     *                           if attachments to the station still exist;
-     *                           if the station is GRAND_CENTRAL (which must always exist);
-     *                           if the station does not exist;
-     *                           if the station object is invalid
-     */
-    private void removeStationJNI(EtStation station)
-            throws EtDeadException, EtClosedException, EtException {
-
-        sys.getJni().removeStation(sys.getJni().getLocalEtId(), station.getId());
-    }
-
-
-    /**
-     * Removes an existing station.
      * This method uses JNI to call ET routines in the C library. Shared memory is
      * directly accessed.
      *
@@ -900,7 +843,7 @@ public class EtSystem {
                     throw new EtClosedException("Not connected to ET system");
                 }
             }
-            removeStationJNI(station);
+            sys.getJni().removeStation(sys.getJni().getLocalEtId(), station.getId());
             station.setUsable(false);
             return;
         }
@@ -922,32 +865,6 @@ public class EtSystem {
         }
 
         station.setUsable(false);
-    }
-
-
-    /**
-     * Changes the position of a station in the ordered list of stations.
-     *
-     * @param station          station object
-     * @param position         position in the main station list (starting at 0)
-     * @param parallelPosition position in list of parallel stations (starting at 0)
-     *
-     * @throws EtDeadException   if the ET system processes are dead
-     * @throws EtClosedException if the ET system is closed
-     * @throws EtException       if arg is null;
-     *                           if the station does not exist;
-     *                           if trying to move GRAND_CENTRAL;
-     *                           if position is &lt; 1 (GRAND_CENTRAL is always first);
-     *                           if parallelPosition &lt; 0;
-     *                           if station object is invalid;
-     *                           if trying to move an incompatible parallel station to an existing group
-     *                           of parallel stations or to the head of an existing group of parallel
-     *                           stations.
-     */
-    private void setStationPositionJNI(EtStation station, int position, int parallelPosition)
-            throws IOException, EtDeadException, EtClosedException, EtException {
-
-        sys.getJni().setStationPosition(sys.getJni().getLocalEtId(), station.getId(), position, parallelPosition);
     }
 
 
@@ -1010,7 +927,7 @@ public class EtSystem {
                     throw new EtClosedException("Not connected to ET system");
                 }
             }
-            setStationPositionJNI(station, position, parallelPosition);
+            sys.getJni().setStationPosition(sys.getJni().getLocalEtId(), station.getId(), position, parallelPosition);
             return;
         }
 
@@ -1141,33 +1058,6 @@ public class EtSystem {
 
     /**
      * Create an attachment to a station.
-     * This method uses JNI to call ET routines in the C library.
-     * Shared memory is directly accessed.
-     *
-     * @param station station object
-     * @return an attachment object
-     *
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if the station does not exist or is not in active/idle state;
-     *     if station object is invalid
-     * @throws EtTooManyException
-     *     if no more attachments are allowed to the station and/or ET system
-     */
-    private int attachJNI(EtStation station)
-            throws EtDeadException, EtClosedException,
-            EtException, EtTooManyException {
-
-        return sys.getJni().attach(sys.getJni().getLocalEtId(), station.getId());
-    }
-
-
-    /**
-     * Create an attachment to a station.
      *
      * @param station station object
      * @return an attachment object
@@ -1203,8 +1093,7 @@ public class EtSystem {
                     throw new EtClosedException("Not connected to ET system");
                 }
             }
-            int attId = attachJNI(station);
-
+            int attId =  sys.getJni().attach(sys.getJni().getLocalEtId(), station.getId());
             EtAttachment att = new EtAttachment(station, attId, this);
             att.setUsable(true);
             return att;
@@ -1261,29 +1150,6 @@ public class EtSystem {
 
     /**
      * Remove an attachment from a station.
-     * This method uses JNI to call ET routines in the C library.
-     * Shared memory is directly accessed.
-     *
-     * @param att attachment object
-     *
-     * @throws EtDeadException
-     *     if the ET system processes are dead
-     * @throws EtClosedException
-     *     if the ET system is closed
-     * @throws EtException
-     *     if arg is null;
-     *     if not attached to station;
-     *     if the attachment object is invalid
-     */
-    private void detachJNI(EtAttachment att)
-            throws EtDeadException, EtClosedException, EtException {
-
-        sys.getJni().detach(sys.getJni().getLocalEtId(), att.getId());
-    }
-
-
-    /**
-     * Remove an attachment from a station.
      *
      * @param att attachment object
      *
@@ -1315,7 +1181,7 @@ public class EtSystem {
                     throw new EtClosedException("Not connected to ET system");
                 }
             }
-            detachJNI(att);
+            sys.getJni().detach(sys.getJni().getLocalEtId(), att.getId());
             att.setUsable(false);
             return;
         }
@@ -1455,29 +1321,6 @@ public class EtSystem {
 
     /**
      * Gets a station's object representation from its name.
-     * Mainly used to get GrandCentral Station's object.
-     * This method uses JNI to call ET routines in the C library. Shared memory is
-     * directly accessed.
-     *
-     * @param name station name
-     * @return station id, or -1 if no such station exists
-     *
-     * @throws EtDeadException
-     *     if the ET system processes are dead.
-     * @throws EtClosedException
-     *     if the ET system is closed.
-     * @throws EtException
-     *     if cannot find station for some other reason.
-     */
-    private int stationNameToObjectJNI(String name)
-            throws EtDeadException, EtClosedException, EtException {
-
-        return sys.getJni().stationNameToObject(sys.getJni().getLocalEtId(), name);
-    }
-
-
-    /**
-     * Gets a station's object representation from its name.
      *
      * @param name station name
      * @return station object, or null if no such station exists
@@ -1509,7 +1352,7 @@ public class EtSystem {
                 }
             }
 
-            int statId = stationNameToObjectJNI(name);
+            int statId = sys.getJni().stationNameToObject(sys.getJni().getLocalEtId(), name);
             if (statId == -1) {
                 return null;
             }
@@ -1632,17 +1475,14 @@ public class EtSystem {
      * @throws EtTimeoutException
      *     if the mode is timed wait and the time has expired
      * @throws EtWakeUpException
-     *     if the attachment has been commanded to wakeup,
-     *     {@link org.jlab.coda.et.system.EventList#wakeUp(org.jlab.coda.et.system.AttachmentLocal)},
-     *     {@link org.jlab.coda.et.system.EventList#wakeUpAll}
+     *     if the attachment has been commanded to wakeup
      */
     private EtEvent[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
                    EtBusyException, EtTimeoutException, EtWakeUpException {
 
-        EtEventImpl[] events = sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
-                                                      mode, sec, nsec, count, size, group);
-        return events;
+        return sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
+                                      mode, sec, nsec, count, size, group);
     }
 
 
@@ -2123,9 +1963,8 @@ public class EtSystem {
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
                    EtBusyException, EtTimeoutException, EtWakeUpException {
 
-        EtEventImpl[] events = sys.getJni().getEvents(sys.getJni().getLocalEtId(),
-                                                      attId, mode, sec, nsec, count);
-        return events;
+        return sys.getJni().getEvents(sys.getJni().getLocalEtId(),
+                                      attId, mode, sec, nsec, count);
     }
 
 

@@ -423,4 +423,14 @@ class EtJniAccess {
             throws EtException, EtClosedException;
 
 
+    /**
+     * Is the ET system alive and are we connected to it?
+     *
+     * @param etId    ET system id
+     * @return <code>1</code> if the ET system is alive and we're connected to it,
+     * otherwise  <code>0</code>
+     */
+    native int alive(long etId);
+
+
 }

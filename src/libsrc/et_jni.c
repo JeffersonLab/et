@@ -798,3 +798,24 @@ JNIEXPORT void JNICALL Java_org_jlab_coda_et_EtJniAccess_wakeUpAttachment
     printf("wakeUpAttachment (native) : DONE\n");
 }
 
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    alive
+ * Signature: (J)Z
+ */
+JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_alive
+        (JNIEnv *env, jobject thisObj, jlong etId)
+{
+    et_id *etid = (et_id *) etId;
+
+    printf("alive (native) : will attempt to see if ET is alive\n");
+    int status = et_alive((et_sys_id)etid);
+
+    printf("alive (native) : DONE\n");
+
+    // Return status
+    return (jint)status;
+}
+
+
