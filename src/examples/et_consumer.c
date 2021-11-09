@@ -568,8 +568,14 @@ int main(int argc,char **argv) {
         }
         else {
             size_t len;
+//            unsigned int *data;
             for (j = 0; j < numRead; j++) {
                 et_event_getlength(pe[j], &len);
+
+//                et_event_getdata(pe[j], (void **) &data);
+//                printf(" Got an Event of total length %d bytes\n",len);
+//                printf(" 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",data[0],data[1],data[2],data[3],data[4],data[5],data[6]);
+
                 /* include ET overhead by adding commented out portions */
                 bytes += len /* +52 */;
                 totalBytes += len /* +52 */;
@@ -634,12 +640,12 @@ int main(int argc,char **argv) {
             avgRate = 1000.0 * ((double) totalCount) / totalT;
 
             /* Event rates */
-            printf("%s Events: %3.4g Hz,  %3.4g Avg.\n", argv[0], rate, avgRate);
+            printf("\n %s Events: %3.4g Hz,  %3.4g Avg.\n", argv[0], rate, avgRate);
 
             /* Data rates */
             rate    = ((double) bytes) / time;
             avgRate = ((double) totalBytes) / totalT;
-            printf("%s Data:   %3.4g kB/s,  %3.4g Avg.\n\n", argv[0], rate, avgRate);
+            printf(" %s Data:   %3.4g kB/s,  %3.4g Avg.\n\n", argv[0], rate, avgRate);
 
             bytes = count = 0;
 
