@@ -6,12 +6,13 @@ Import('env', 'libInstallDir', 'binInstallDir', 'archDir', 'execLibs', 'debugSuf
 allFileList = Glob('*.c', strings=True) + Glob('*.cc', strings=True)
 
 
-# List of files containing user-defined event selection routines.
+# List of files containing user-defined event selection routines, other non-executable, or separately compliled files.
 myUserSelectionFiles = ['et_userfunction.c']
+nonExecutableFiles = ['et_userfunction.c', 'etInsertEvent.c', 'etInsertEventR.c', 'fileToEvent.c']
 
 
-# Filter out all user-defined selection routines files.
-fileList = filter( (lambda a : (a not in  myUserSelectionFiles)), allFileList)
+# Filter out all non-executable files
+fileList = filter( (lambda a : (a not in  nonExecutableFiles)), allFileList)
 
 
 # For each file, create executable of the same name,
@@ -25,6 +26,14 @@ for fileName in fileList:
     if 'install' in COMMAND_LINE_TARGETS:
         env.Alias('install', env.Install(target = binInstallDir + '/examples', source = compiledFile))
 
+# Create file2Event executable separately
+file2event = env.Program(source  = ['fileToEvent.c', 'etInsertEventR.c'],
+                               LIBS    = ['et'+ debugSuffix] + execLibs,
+                               LIBPATH = ['#src/libsrc/' + archDir],
+                               CPPPATH = ['.','#src/libsrc'])
+
+if 'install' in COMMAND_LINE_TARGETS:
+        env.Alias('install', env.Install(target = binInstallDir + '/examples', source = file2event))
 
 ##################################################################
 # Example of how to compile a user-defined event selection routine

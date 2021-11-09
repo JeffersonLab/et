@@ -192,6 +192,18 @@ if(BUILD_EXAMPLES)
             install(TARGETS ${execName} RUNTIME DESTINATION bin/examples)
         endif()
     endforeach(fileName)
+
+
+    # fileToEvent done a little differently
+    get_filename_component(execName1 src/examples/fileToEvent.c NAME_WE)
+    add_executable(${execName1} src/examples/fileToEvent.c src/examples/etInsertEventR.c)
+    set_target_properties(${execName1} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+    include_directories(${execName1} PUBLIC src/libsrc)
+    target_link_libraries(${execName1} et pthread)
+    if (DEFINED INSTALL_DIR_DEFINED)
+        install(TARGETS ${execName1} RUNTIME DESTINATION bin/examples)
+    endif()
+
 endif()
 
 
