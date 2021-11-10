@@ -17,7 +17,11 @@ package org.jlab.coda.et.apps;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
+import org.jlab.coda.et.exception.EtClosedException;
+import org.jlab.coda.et.exception.EtDeadException;
+import org.jlab.coda.et.exception.EtException;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -31,13 +35,21 @@ import java.util.HashSet;
  */
 public class UserEventInjector {
 
+
+    static EtSystem sys;
+    static EtStation gc;
+    static EtAttachment att;
+    static EtSystemOpenConfig config;
+    static boolean verbose = true;
+
+
     public UserEventInjector() {
     }
 
 
     private static void usage() {
         System.out.println("\nUsage: java UserEventInjector -f <et name>\n" +
-                "                      [-h] [-v] [-n] [-r] [-m] [-b] [-nd]\n" +
+                "                      [-h] [-v] [-n] [-r] [-m] [-b] [-nd] [-dis]\n" +
                 "                      [-host <ET host>] [-w <big endian? 0/1>]\n" +
                 "                      [-g <group>]\n" +
                 "                      [-d <delay>] [-p <ET port>]\n" +
@@ -51,7 +63,8 @@ public class UserEventInjector {
                 "       -n     use new, non-garbage-generating new,get,put,dump methods\n\n" +
 
                 "       -g     group from which to get new events (1,2,...)\n" +
-                "       -d     delay in millisec between each round of getting and putting events\n\n" +
+                "       -d     delay in millisec between each round of getting and putting events\n" +
+                "       -dis   disconnect after each event insertion then reconnect for the next insertion\n\n" +
 
                 "       -p     ET port (TCP for direct, UDP for broad/multicast)\n" +
                 "       -r     act as remote (TCP) client even if ET system is local\n" +
@@ -75,11 +88,45 @@ public class UserEventInjector {
     }
 
 
+    static boolean connectToEt() {
+        try {
+            // create ET system object with verbose debugging output
+            sys = new EtSystem(config);
+            if (verbose) {
+                sys.setDebug(EtConstants.debugInfo);
+            }
+            sys.open();
+
+            // get GRAND_CENTRAL station object
+            gc = sys.stationNameToObject("GRAND_CENTRAL");
+
+            // attach to GRAND_CENTRAL
+            att = sys.attach(gc);
+
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+
+    static void disconnectFromEt() {
+        try {
+            sys.detach(att);
+            sys.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public static void main(String[] args) {
 
         int group=1, delay=0, size=32, port=0;
         int chunk=1, recvBufSize=0, sendBufSize=0;
-        boolean noDelay=false, verbose=false, newIF=false, remote=false;
+        boolean noDelay=false, newIF=false, remote=false;
+        boolean disconnect=false;
+        boolean disconnected=false;
         boolean bigEndian=true;
         boolean broadcast=false, multicast=false, broadAndMulticast=false;
         HashSet<String> multicastAddrs = new HashSet<String>();
@@ -127,6 +174,9 @@ System.out.println("Using NEW interface");
             }
             else if (args[i].equalsIgnoreCase("-b")) {
                 broadcast = true;
+            }
+            else if (args[i].equalsIgnoreCase("-dis")) {
+                disconnect = true;
             }
             else if (args[i].equalsIgnoreCase("-w")) {
                 try {
@@ -279,7 +329,7 @@ System.out.println("Using NEW interface");
 
 
         try {
-            EtSystemOpenConfig config = new EtSystemOpenConfig();
+            config = new EtSystemOpenConfig();
 
             if (broadcast && multicast) {
                 broadAndMulticast = true;
@@ -353,13 +403,8 @@ System.out.println("Using NEW interface");
                 config.setConnectRemotely(remote);
             }
 
-            // create ET system object with verbose debugging output
-            EtSystem sys = new EtSystem(config);
-            if (verbose) {
-                sys.setDebug(EtConstants.debugInfo);
-            }
-            sys.open();
-
+            connectToEt();
+            disconnected = false;
 
             // Find out if we have a remote connection to the ET system
             // so we know if we can use external data buffer for events
@@ -370,13 +415,6 @@ System.out.println("Using NEW interface");
             else {
                 System.out.println("ET is remote\n");
             }
-
-
-            // get GRAND_CENTRAL station object
-            EtStation gc = sys.stationNameToObject("GRAND_CENTRAL");
-
-            // attach to GRAND_CENTRAL
-            EtAttachment att = sys.attach(gc);
 
             // Stuff to use the new, garbage-minimizing, non-locking methods
             int validEvents;
@@ -394,6 +432,12 @@ System.out.println("Using NEW interface");
             t1 = System.currentTimeMillis();
 
             while (true) {
+
+                if (disconnect && disconnected) {
+                    connectToEt();
+                    disconnected = false;
+                }
+
                 // Get array of new events (don't allocate local mem if blasting)
                 if (newIF) {
                     container.newEvents(att, Mode.SLEEP, 0, 1, size, group);
@@ -432,6 +476,10 @@ System.out.println("Using NEW interface");
                     sys.putEvents(att, events);
                 }
 
+                if (disconnect) {
+                    disconnectFromEt();
+                    disconnected = true;
+                }
 
                 // calculate the event rate
                 t2 = System.currentTimeMillis();
@@ -463,7 +511,8 @@ System.out.println("Using NEW interface");
                     count = 0L;
                     t1 = System.currentTimeMillis();
                 }
-            }
+
+             }
         }
         catch (Exception ex) {
             System.out.println("Error using ET system as producer");
