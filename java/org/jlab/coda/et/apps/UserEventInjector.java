@@ -17,11 +17,7 @@ package org.jlab.coda.et.apps;
 
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
-import org.jlab.coda.et.exception.EtClosedException;
-import org.jlab.coda.et.exception.EtDeadException;
-import org.jlab.coda.et.exception.EtException;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -122,7 +118,7 @@ public class UserEventInjector {
 
     public static void main(String[] args) {
 
-        int group=1, delay=0, size=32, port=0;
+        int group=1, delay=0, size=2000, port=0;
         int chunk=1, recvBufSize=0, sendBufSize=0;
         boolean noDelay=false, newIF=false, remote=false;
         boolean disconnect=false;
