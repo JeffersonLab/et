@@ -711,6 +711,7 @@ public class EtSystem {
             }
             return station;
         }
+System.out.println("Creating station " + name + ": by talking to ET server");
 
         // command
         out.writeInt(EtConstants.netStatCrAt);
