@@ -1416,7 +1416,9 @@ static void *et_add_stations(void *arg)
     do {
       /* wait on condition var for adding stations */
       status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
-      if (status != 0) {
+        fprintf(stderr, "et_add_stations: 1, wake up statadd condition variable\n");
+
+        if (status != 0) {
         err_abort(status, "Wait et_add_stations thread");
       }
       if (sys->asthread == ET_THREAD_KILL) {
@@ -1432,7 +1434,8 @@ static void *et_add_stations(void *arg)
     /* Now that another station is added, add a "conductor"
      * thread to move events from that station to the next.
      */
-    status = pthread_create(&thread_id, &attr, et_conductor, arg);
+      fprintf(stderr, "et_add_stations: 2, create thread\n");
+      status = pthread_create(&thread_id, &attr, et_conductor, arg);
     if(status != 0) {
       err_abort(status, "Create et_conductor thd");
     }
@@ -1468,6 +1471,7 @@ static void *et_conductor(void *arg)
     int        eventsPerStation, nextHigherCue, eventsDoledOut, stationsWithSameCue;
 
     /* station mutex has already been locked by et_station_create */
+fprintf(stderr, "et_conductor: IN\n");
 
     /* find the station in act of being created */   
     ps = id->grandcentral;
@@ -1484,6 +1488,7 @@ static void *et_conductor(void *arg)
         if (id->debug >= ET_DEBUG_WARN) {
             et_logmsg("WARN", "et_conductor, all stations have their conductors already\n");
         }
+        fprintf(stderr, "et_conductor: ERROR 1\n");
         pthread_exit(NULL);
     }
 
@@ -1495,6 +1500,7 @@ static void *et_conductor(void *arg)
     /* my station's event list_out */
     pmylist = &pmystation->list_out;
 
+    fprintf(stderr, "et_conductor: 1\n");
     /* if using default event selection routine */
     if (ps->config.select_mode == ET_STATION_SELECT_MATCH) {
         ps->data.func = et_condition;
@@ -1529,6 +1535,7 @@ static void *et_conductor(void *arg)
         ps->data.func = (ET_SELECT_FUNCPTR) sym;
     }
 
+    fprintf(stderr, "et_conductor: 2\n");
     /* calloc arrays since we don't know how big they are at compile time */
 
     /* all events initially read in from the station's output list */
@@ -1541,6 +1548,7 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
+    fprintf(stderr, "et_conductor: 3\n");
     /* events to be "put" into the next station's input list */
     if ( (putevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
         pthread_cond_signal(&sys->statdone);
@@ -1550,6 +1558,7 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
+    fprintf(stderr, "et_conductor: 4\n");
     /* temporary (large, specially allocated) events */
     if ( (temps = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
         pthread_cond_signal(&sys->statdone);
@@ -1559,6 +1568,7 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
+    fprintf(stderr, "et_conductor: 5\n");
     /* events which have already been put into a previous station */
     if ( (event_put = (int *) calloc(event_depth, sizeof(int))) == NULL) {
         pthread_cond_signal(&sys->statdone);
@@ -1568,6 +1578,7 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
+    fprintf(stderr, "et_conductor: 6\n");
     /* For parallel stations, an array containing the numbers of events to be
      * placed in each of these stations.
      */
@@ -1579,9 +1590,10 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
+    fprintf(stderr, "et_conductor: 7\n");
     /* For parallel stations, an array containing the numbers of events currently
-     * in each of these stations' input lists.
-     */
+      * in each of these stations' input lists.
+      */
     if ( (inListCount = (int *) calloc((size_t)sys->config.nstations, sizeof(int))) == NULL) {
         pthread_cond_signal(&sys->statdone);
         if (id->debug >= ET_DEBUG_ERROR) {
@@ -1590,6 +1602,7 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
+    fprintf(stderr, "et_conductor: 8\n");
     /* For parallel stations, an array containing the original place of an active
      * station in the parallel linked list before they were ordered by the amount
      * of events in their input lists.
@@ -1601,6 +1614,7 @@ static void *et_conductor(void *arg)
         }
         pthread_exit(NULL);
     }
+    fprintf(stderr, "et_conductor: 9\n");
 
     /* tell et_station_create that we have successfully started */
     if (ps == id->grandcentral) {
@@ -1608,11 +1622,14 @@ static void *et_conductor(void *arg)
     } else {
         ps->data.status = ET_STATION_IDLE;
     }
+    fprintf(stderr, "et_conductor: 10, signal statdone\n");
     pthread_cond_signal(&sys->statdone);
 
+    fprintf(stderr, "et_conductor: 11, PAST signal statdone\n");
 
     while (forever) {
 
+        fprintf(stderr, "et_conductor: 12, lock list\n");
         /* wait on condition var for these events */
         et_llist_lock(pmylist);
         while (pmylist->cnt < 1) {
@@ -1637,6 +1654,7 @@ static void *et_conductor(void *arg)
             et_llist_unlock(pmylist);
             goto error;
         }
+        fprintf(stderr, "et_conductor: 13, unlock list\n");
         et_llist_unlock(pmylist);
         events_left = events_total;
 
@@ -1649,8 +1667,10 @@ static void *et_conductor(void *arg)
         firstimethruloop = 1;
         writeall = 0;
 
+        fprintf(stderr, "et_conductor: 14, before transfer lock\n");
         /* grabbing mutex allows no change to linked list of created stations */
         et_transfer_lock(pmystation);
+        fprintf(stderr, "et_conductor: 15, AFTER transfer lock\n");
 
         /* Send events downstream by going to the next active station
          * in the main linked list & putting events its list. */
@@ -2323,6 +2343,7 @@ static void *et_conductor(void *arg)
         } /* while(events_left > 0) */
 
         /* can now allow changes to station list */
+        fprintf(stderr, "et_conductor: 16, unlock transfer lock\n");
         et_transfer_unlock(pmystation);
 
         /* no events left to put, start from beginning */
@@ -2331,6 +2352,7 @@ static void *et_conductor(void *arg)
     } /* while(1) */
 
     error:
+    fprintf(stderr, "et_conductor: 17, unlock transfer lock due to error\n");
     et_transfer_unlock(pmystation);
     if (id->debug >= ET_DEBUG_SEVERE) {
         et_logmsg("SEVERE", "et_conductor %d, EXIT THREAD\n", me);
@@ -2339,6 +2361,7 @@ static void *et_conductor(void *arg)
     free(allevents); free(putevents); free(temps); free(event_put);
     free(numEvents); free(inListCount); free(place);
 
+    fprintf(stderr, "et_conductor: 18, END\n");
     pthread_exit(NULL);
 
     return (NULL);
