@@ -60,7 +60,8 @@ public class UserEventInjector {
 
                 "       -g     group from which to get new events (1,2,...)\n" +
                 "       -d     delay in millisec between each round of getting and putting events\n" +
-                "       -dis   disconnect after each event insertion then reconnect for the next insertion\n\n" +
+                "       -dis   disconnect after each event insertion then reconnect for the next insertion\n" +
+                "       -bor   inserted event is \"first event\" or beginning-of-run instead of user\n\n" +
 
                 "       -p     ET port (TCP for direct, UDP for broad/multicast)\n" +
                 "       -r     act as remote (TCP) client even if ET system is local\n" +
@@ -121,6 +122,7 @@ public class UserEventInjector {
         int group=1, delay=0, size=2000, port=0;
         int chunk=1, recvBufSize=0, sendBufSize=0;
         boolean noDelay=false, newIF=false, remote=false;
+        boolean userEvent = true;
         boolean disconnect=false;
         boolean disconnected=false;
         boolean bigEndian=true;
@@ -173,6 +175,9 @@ System.out.println("Using NEW interface");
             }
             else if (args[i].equalsIgnoreCase("-dis")) {
                 disconnect = true;
+            }
+            else if (args[i].equalsIgnoreCase("-bor")) {
+                userEvent = false;
             }
             else if (args[i].equalsIgnoreCase("-w")) {
                 try {
@@ -422,7 +427,6 @@ System.out.println("Using NEW interface");
             EtEvent[]   events;
             long        t1, t2, time, totalT=0L, totalCount=0L, count=0L;
             double      rate, avgRate;
-            boolean  sendFirstEvent = true;
 
             // keep track of time for event rate calculations
             t1 = System.currentTimeMillis();
@@ -449,13 +453,13 @@ System.out.println("Using NEW interface");
                 // Write data, set control values here
                 for (int j=0; j < validEvents; j++) {
                     ByteBuffer buf = events[j].getDataBuffer();
-                    if (sendFirstEvent) {
-                        buf.put(firstBuffer);
-                        firstBuffer.flip();
-                    }
-                    else {
+                    if (userEvent) {
                         buf.put(userBuffer);
                         userBuffer.flip();
+                    }
+                    else {
+                        buf.put(firstBuffer);
+                        firstBuffer.flip();
                     }
                     events[j].setByteOrder(ByteOrder.BIG_ENDIAN);
                     events[j].setLength(14*4);
