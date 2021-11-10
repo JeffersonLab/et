@@ -480,7 +480,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 {
     et_id *etid = (et_id *) etId;
     et_stat_id my_stat;
-fprintf(stderr, "createStation (C Lib, JNI): In");
+fprintf(stderr, "createStation (C Lib, JNI): In\n");
     jclass classStatConfigImpl = (*env)->FindClass(env, "org/jlab/coda/et/EtStationConfig");
 
     // Find id's of all the fields of EtStationConfig that we'll read/write directly from/to
@@ -495,12 +495,12 @@ fprintf(stderr, "createStation (C Lib, JNI): In");
     jfieldID fid_8 = (*env)->GetFieldID(env, classStatConfigImpl, "selectLibrary", "Ljava/lang/String;");
     jfieldID fid_9 = (*env)->GetFieldID(env, classStatConfigImpl, "select", "[I");
 
-    fprintf(stderr, "createStation (C Lib, JNI): 1");
+    fprintf(stderr, "createStation (C Lib, JNI): 1\n");
 
     // Define station to create
     et_statconfig sconfig;
     et_station_config_init(&sconfig);
-    fprintf(stderr, "createStation (C Lib, JNI): 2");
+    fprintf(stderr, "createStation (C Lib, JNI): 2\n");
 
     int qSize = (int) ((*env)->GetIntField(env, stationConfig, fid_0));
     et_station_config_setcue(sconfig, qSize);
@@ -537,7 +537,7 @@ fprintf(stderr, "createStation (C Lib, JNI): In");
         lib = (*env)->GetStringUTFChars(env, selectLibrary, 0);
         et_station_config_setlib(sconfig, lib);
     }
-    fprintf(stderr, "createStation (C Lib, JNI): 3");
+    fprintf(stderr, "createStation (C Lib, JNI): 3\n");
 
     // Get int array of select ints
     jboolean isCopy;
@@ -549,7 +549,7 @@ fprintf(stderr, "createStation (C Lib, JNI): In");
         selects[j] = (int) selectElements[j];
     }
     et_station_config_setselectwords(sconfig, selects);
-    fprintf(stderr, "createStation (C Lib, JNI): 4");
+    fprintf(stderr, "createStation (C Lib, JNI): 4\n");
 
     // Clean up
     if (isCopy == JNI_TRUE) {
@@ -558,11 +558,11 @@ fprintf(stderr, "createStation (C Lib, JNI): In");
 
     // Convert stationName to C string
     const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
-    fprintf(stderr, "createStation (C Lib, JNI): 5, before et_station_create_at");
+    fprintf(stderr, "createStation (C Lib, JNI): 5, before et_station_create_at\n");
 
     // Create station
     int status = et_station_create_at((et_sys_id)etid, &my_stat, stName, sconfig, position, pPosition);
-    fprintf(stderr, "createStation (C Lib, JNI): 6, AFTER et_station_create_at");
+    fprintf(stderr, "createStation (C Lib, JNI): 6, AFTER et_station_create_at\n");
 
     et_station_config_destroy(sconfig);
     if (lib != NULL) {
@@ -572,7 +572,7 @@ fprintf(stderr, "createStation (C Lib, JNI): In");
         (*env)->ReleaseStringUTFChars(env, selectFunction, func);
     }
     (*env)->ReleaseStringUTFChars(env, stationName, stName);
-    fprintf(stderr, "createStation (C Lib, JNI): 7");
+    fprintf(stderr, "createStation (C Lib, JNI): 7\n");
 
     if (status != ET_OK) {
         jclass clazz = NULL;
@@ -586,11 +586,11 @@ fprintf(stderr, "createStation (C Lib, JNI): In");
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
         }
         (*env)->ThrowNew(env, clazz, "createStation (native): cannot create station");
-        fprintf(stderr, "createStation (C Lib, JNI): 8, return error");
+        fprintf(stderr, "createStation (C Lib, JNI): 8, return error\n");
 
         return status;
     }
-    fprintf(stderr, "createStation (C Lib, JNI): 8, END");
+    fprintf(stderr, "createStation (C Lib, JNI): 8, END\n");
 
     // Return station id
     return (jint)my_stat;
