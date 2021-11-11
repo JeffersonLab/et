@@ -1390,7 +1390,7 @@ System.out.println("connect(): timed out, try again");
                     }
 
 //if (debug >= EtConstants.debugInfo) {
-                        System.out.println("connect(): SUCCESS creating socket to host " + connectionHost + " on port " + tcpPort);
+//                        System.out.println("connect(): SUCCESS creating socket to host " + connectionHost + " on port " + tcpPort);
 //                    }
                     break;
                 }
@@ -1539,7 +1539,7 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
                 // open the ET system locally with native method
                 jni = EtJniAccess.getInstance(config.getEtName());
 
-System.out.println("connect(): connect to local C-ET using memory map");
+//System.out.println("connect(): connect to local C-ET using memory map");
             }
             catch (EtTimeoutException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system

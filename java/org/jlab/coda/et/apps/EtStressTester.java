@@ -522,12 +522,12 @@ System.out.println("    Event Consumer DONE disconnecting\n");
                     }
 
                     do {
-                        System.out.println("Event Consumer get events\n");
+                        //System.out.println("Event Consumer get events\n");
                         // Get array of new events (don't allocate local mem if blasting)
                         events = sys.getEvents(att, Mode.SLEEP, Modify.NOTHING, 0, 1);
                         count += events.length;
 
-                        System.out.println("Event Consumer put events\n");
+                        //System.out.println("Event Consumer put events\n");
                         // put events back into ET system
                         sys.putEvents(att, events);
 
