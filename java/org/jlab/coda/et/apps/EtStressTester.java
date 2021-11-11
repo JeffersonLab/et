@@ -467,6 +467,7 @@ public class EtStressTester {
         void disconnectFromEt() {
             try {
                 sys.detach(att);
+                sys.removeStation(myStation);
                 sys.close();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -818,7 +819,7 @@ public class EtStressTester {
 
             while(true) {
                 Thread.sleep(2000);
-                System.out.print(".");
+//System.out.print(".");
             }
         }
         catch (Exception ex) {
