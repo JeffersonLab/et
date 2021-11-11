@@ -25,8 +25,7 @@ import java.nio.ByteOrder;
 import java.util.HashSet;
 
 /**
- * This class is an example of an event producer for an ET system.
- *
+ * This class is used to inject either a beginning-of-run or user event into an ET system.
  * @author Carl Timmer
  */
 public class UserEventInjector {
