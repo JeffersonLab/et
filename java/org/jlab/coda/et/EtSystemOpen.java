@@ -1460,7 +1460,7 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
 
         // try using JNI
         if (!useJniLibrary) {
-            System.out.println("connect(): NOT using local shared memory");
+//            System.out.println("connect(): NOT using local shared memory");
         }
         else {
             try {
