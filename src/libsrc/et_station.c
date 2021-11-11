@@ -606,6 +606,7 @@ fprintf(stderr, "et_station_create_at: IN\n");
 
     if (isGrandCentral) {
         /* sys->stat_head = sys->stat_tail = ET_GRANDCENTRAL; */
+        fprintf(stderr, "et_station_create_at: 15 created GC, END, release station & mem locks\n");
         et_station_unlock(sys);
         et_mem_unlock(etid);
         return ET_OK;
