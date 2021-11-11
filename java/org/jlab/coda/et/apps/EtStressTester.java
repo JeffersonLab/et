@@ -521,14 +521,23 @@ System.out.println("    Event Consumer DONE disconnecting\n");
                         connected = true;
                     }
 
-                    // Get array of new events (don't allocate local mem if blasting)
-                    events = sys.getEvents(att, Mode.SLEEP, Modify.NOTHING, 0, 1);
-                    count += events.length;
+                    do {
+                        // Get array of new events (don't allocate local mem if blasting)
+                        events = sys.getEvents(att, Mode.SLEEP, Modify.NOTHING, 0, 1);
+                        count += events.length;
 
-                    if (consumerDelay > 0) Thread.sleep(consumerDelay);
+                        if (consumerDelay > 0) Thread.sleep(consumerDelay);
 
-                    // put events back into ET system
-                    sys.putEvents(att, events);
+                        // put events back into ET system
+                        sys.putEvents(att, events);
+
+                        // Find lapsed time
+                        t2 = System.currentTimeMillis();
+                        time = t2 - t1;
+
+                    } while (time < consumerDelay);
+
+                    t1 = t2;
 
                     if (disconnect) {
                         disconnectFromEt();
