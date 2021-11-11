@@ -534,7 +534,7 @@ System.out.println("    Event Consumer DONE disconnecting\n");
                         // Find lapsed time
                         t2 = System.currentTimeMillis();
                         time = t2 - t1;
-                        System.out.println("Event Consumer tiem = \n" + time);
+                        //System.out.println("Event Consumer time = \n" + time);
 
                     } while (time < consumerDelay);
 
