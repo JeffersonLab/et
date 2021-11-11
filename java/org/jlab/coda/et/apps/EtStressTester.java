@@ -255,48 +255,48 @@ public class EtStressTester {
                         events[j].setLength(14*4);
                     }
 
-                    if (delay > 0) Thread.sleep(delay);
+                    if (delay > 0) Thread.sleep(delay + (100*id));
 
                     // put events back into ET system
                     sys.putEvents(att, events);
 
-                    System.out.print(id + " ");
+                    System.out.println(id);
 
                     if (disconnect) {
                         disconnectFromEt();
                         connected = false;
                     }
 
-                    // calculate the event rate
-                    t2 = System.currentTimeMillis();
-                    time = t2 - t1;
-
-                    if (time > 5000) {
-                        // reset things if necessary
-                        if ( (totalCount >= (Long.MAX_VALUE - count)) ||
-                                (totalT >= (Long.MAX_VALUE - time)) )  {
-                            totalT = totalCount = count = 0L;
-                            t1 = t2;
-                            continue;
-                        }
-
-                        rate = 1000.0 * ((double) count) / time;
-                        totalCount += count;
-                        totalT += time;
-                        avgRate = 1000.0 * ((double) totalCount) / totalT;
-                        // Event rates
-                        System.out.println("Events = " + String.format("%.3g", rate) +
-                                " Hz,    avg = " + String.format("%.3g", avgRate));
-
-                        // Data rates
-                        rate    = ((double) count) * size / time;
-                        avgRate = ((double) totalCount) * size / totalT;
-                        System.out.println("  Data = " + String.format("%.3g", rate) +
-                                " kB/s,  avg = " + String.format("%.3g", avgRate) + "\n");
-
-                        count = 0L;
-                        t1 = System.currentTimeMillis();
-                    }
+//                    // calculate the event rate
+//                    t2 = System.currentTimeMillis();
+//                    time = t2 - t1;
+//
+//                    if (time > 5000) {
+//                        // reset things if necessary
+//                        if ( (totalCount >= (Long.MAX_VALUE - count)) ||
+//                                (totalT >= (Long.MAX_VALUE - time)) )  {
+//                            totalT = totalCount = count = 0L;
+//                            t1 = t2;
+//                            continue;
+//                        }
+//
+//                        rate = 1000.0 * ((double) count) / time;
+//                        totalCount += count;
+//                        totalT += time;
+//                        avgRate = 1000.0 * ((double) totalCount) / totalT;
+//                        // Event rates
+//                        System.out.println("Events = " + String.format("%.3g", rate) +
+//                                " Hz,    avg = " + String.format("%.3g", avgRate));
+//
+//                        // Data rates
+//                        rate    = ((double) count) * size / time;
+//                        avgRate = ((double) totalCount) * size / totalT;
+//                        System.out.println("  Data = " + String.format("%.3g", rate) +
+//                                " kB/s,  avg = " + String.format("%.3g", avgRate) + "\n");
+//
+//                        count = 0L;
+//                        t1 = System.currentTimeMillis();
+//                    }
 
                 }
             }
@@ -505,7 +505,9 @@ public class EtStressTester {
                 while (true) {
 
                     if (disconnect && !connected) {
+                        System.out.println("Event Consumer reconnect\n");
                         connectToEt();
+                        System.out.println("Event Consumer CONNECTED\n");
                         connected = true;
                     }
 
@@ -523,36 +525,36 @@ public class EtStressTester {
                         connected = false;
                     }
 
-                    // calculate the event rate
-                    t2 = System.currentTimeMillis();
-                    time = t2 - t1;
-
-                    if (time > 5000) {
-                        // reset things if necessary
-                        if ( (totalCount >= (Long.MAX_VALUE - count)) ||
-                                (totalT >= (Long.MAX_VALUE - time)) )  {
-                            totalT = totalCount = count = 0L;
-                            t1 = t2;
-                            continue;
-                        }
-
-                        rate = 1000.0 * ((double) count) / time;
-                        totalCount += count;
-                        totalT += time;
-                        avgRate = 1000.0 * ((double) totalCount) / totalT;
-                        // Event rates
-                        System.out.println("Events = " + String.format("%.3g", rate) +
-                                           " Hz,    avg = " + String.format("%.3g", avgRate));
-
-                        // Data rates
-                        rate    = ((double) count) * size / time;
-                        avgRate = ((double) totalCount) * size / totalT;
-                        System.out.println("  Data = " + String.format("%.3g", rate) +
-                                " kB/s,  avg = " + String.format("%.3g", avgRate) + "\n");
-
-                        count = 0L;
-                        t1 = System.currentTimeMillis();
-                    }
+//                    // calculate the event rate
+//                    t2 = System.currentTimeMillis();
+//                    time = t2 - t1;
+//
+//                    if (time > 5000) {
+//                        // reset things if necessary
+//                        if ( (totalCount >= (Long.MAX_VALUE - count)) ||
+//                                (totalT >= (Long.MAX_VALUE - time)) )  {
+//                            totalT = totalCount = count = 0L;
+//                            t1 = t2;
+//                            continue;
+//                        }
+//
+//                        rate = 1000.0 * ((double) count) / time;
+//                        totalCount += count;
+//                        totalT += time;
+//                        avgRate = 1000.0 * ((double) totalCount) / totalT;
+//                        // Event rates
+//                        System.out.println("Events = " + String.format("%.3g", rate) +
+//                                           " Hz,    avg = " + String.format("%.3g", avgRate));
+//
+//                        // Data rates
+//                        rate    = ((double) count) * size / time;
+//                        avgRate = ((double) totalCount) * size / totalT;
+//                        System.out.println("  Data = " + String.format("%.3g", rate) +
+//                                " kB/s,  avg = " + String.format("%.3g", avgRate) + "\n");
+//
+//                        count = 0L;
+//                        t1 = System.currentTimeMillis();
+//                    }
 
                 }
             }
