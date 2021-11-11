@@ -448,17 +448,22 @@ public class EtStressTester {
                 if (verbose) {
                     sys.setDebug(EtConstants.debugInfo);
                 }
+System.out.println("\n    Event Consumer OPEN ET system");
                 sys.open();
 
                 // create station
+System.out.println("    Event Consumer create myStation");
                 myStation = sys.createStation(statConfig, "MyStation");
 
                 // attach to GRAND_CENTRAL
+System.out.println("    Event Consumer attach to myStation");
                 att = sys.attach(myStation);
 
             } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             }
+System.out.println("    Event Consumer DONE connecting\n");
             return true;
         }
 
@@ -466,12 +471,16 @@ public class EtStressTester {
         /** Disconnect from ET system. */
         void disconnectFromEt() {
             try {
+System.out.println("\n    Event Consumer detach");
                 sys.detach(att);
+System.out.println("    Event Consumer remove myStation");
                 sys.removeStation(myStation);
+System.out.println("    Event Consumer close");
                 sys.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
+System.out.println("    Event Consumer DONE disconnecting\n");
         }
 
 
