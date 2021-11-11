@@ -1629,7 +1629,7 @@ fprintf(stderr, "et_conductor: IN\n");
 
     while (forever) {
 
-        fprintf(stderr, "et_conductor: 12, lock list\n");
+//        fprintf(stderr, "et_conductor: 12, lock list\n");
         /* wait on condition var for these events */
         et_llist_lock(pmylist);
         while (pmylist->cnt < 1) {
@@ -1654,7 +1654,7 @@ fprintf(stderr, "et_conductor: IN\n");
             et_llist_unlock(pmylist);
             goto error;
         }
-        fprintf(stderr, "et_conductor: 13, unlock list\n");
+//        fprintf(stderr, "et_conductor: 13, unlock list\n");
         et_llist_unlock(pmylist);
         events_left = events_total;
 
@@ -1667,10 +1667,10 @@ fprintf(stderr, "et_conductor: IN\n");
         firstimethruloop = 1;
         writeall = 0;
 
-        fprintf(stderr, "et_conductor: 14, before transfer lock\n");
+//        fprintf(stderr, "et_conductor: 14, before transfer lock\n");
         /* grabbing mutex allows no change to linked list of created stations */
         et_transfer_lock(pmystation);
-        fprintf(stderr, "et_conductor: 15, AFTER transfer lock\n");
+//        fprintf(stderr, "et_conductor: 15, AFTER transfer lock\n");
 
         /* Send events downstream by going to the next active station
          * in the main linked list & putting events its list. */
@@ -2343,7 +2343,7 @@ fprintf(stderr, "et_conductor: IN\n");
         } /* while(events_left > 0) */
 
         /* can now allow changes to station list */
-        fprintf(stderr, "et_conductor: 16, unlock transfer lock\n");
+//        fprintf(stderr, "et_conductor: 16, unlock transfer lock\n");
         et_transfer_unlock(pmystation);
 
         /* no events left to put, start from beginning */
