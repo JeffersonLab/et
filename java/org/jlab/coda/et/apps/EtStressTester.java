@@ -206,6 +206,7 @@ public class EtStressTester {
 
             try {
 
+  System.out.println("event injector thread " + id + " about to CONNECT");
                 connected = connectToEt();
 
                 // Find out if we have a remote connection to the ET system
@@ -480,6 +481,7 @@ public class EtStressTester {
             boolean connected;
 
             try {
+                System.out.println("Event consumer about to CONNECT");
 
                 connected = connectToEt();
 
@@ -802,16 +804,19 @@ public class EtStressTester {
 
             // Start up consumer thread
             Thread cThd = new Thread(null, new EventConsumer(), "event consumer");
+            System.out.println("start event consumer thread");
             cThd.start();
 
             // Start up injector threads
             for (int i=0; i < injectorCount; i++) {
                 Thread inj = new Thread(null, new Injector(i), "injector" + i);
+                System.out.println("start event injector thread " + i);
                 inj.start();
             }
 
             while(true) {
                 Thread.sleep(2000);
+                System.out.print(".");
             }
         }
         catch (Exception ex) {
