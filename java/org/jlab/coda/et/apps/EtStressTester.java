@@ -146,7 +146,7 @@ public class EtStressTester {
 
 
         /** Start this thread. */
-        public void start() {
+        public void run() {
 
             int group=1, size=56;
             boolean connected;
@@ -475,7 +475,7 @@ public class EtStressTester {
 
 
         /** Start this thread. */
-        public void start() {
+        public void run() {
 
             int size=56;
             boolean connected;
