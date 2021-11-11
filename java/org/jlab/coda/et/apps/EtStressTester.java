@@ -525,9 +525,7 @@ System.out.println("    Event Consumer DONE disconnecting\n");
                         // Get array of new events (don't allocate local mem if blasting)
                         events = sys.getEvents(att, Mode.SLEEP, Modify.NOTHING, 0, 1);
                         count += events.length;
-
-                        if (consumerDelay > 0) Thread.sleep(consumerDelay);
-
+                        
                         // put events back into ET system
                         sys.putEvents(att, events);
 
