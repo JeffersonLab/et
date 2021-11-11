@@ -38,7 +38,7 @@ public class EtStressTester {
     static EtSystemOpenConfig openConfig;
     static EtSystemOpenConfig directConfig;
 
-    static boolean verbose = true;
+    static boolean verbose = false;
     static boolean userEvent = true;
     static boolean disconnect = false;
     static boolean remote = false;
