@@ -1630,7 +1630,7 @@ static void *et_conductor(void *arg)
     }
 
     sys->statAdd = 1;
-    pthread_cond_signal(&sys->statdone);
+    pthread_cond_broadcast(&sys->statdone);
 
     status = pthread_mutex_unlock(&sys->statadd_mutex);
     if (status != 0) {
