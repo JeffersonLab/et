@@ -373,7 +373,6 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
     et_stat_config *sc;
     et_statconfig  p_auto_station;
 
-fprintf(stderr, "et_station_create_at: IN\n");
     /* name check */
     if (stat_name == NULL) {
         if (etid->debug >= ET_DEBUG_ERROR) {
@@ -396,7 +395,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
         return ET_ERROR;
     }
 
-    fprintf(stderr, "et_station_create_at: 1\n");
     /* parallelposition check */
     if ((parallelposition != ET_END) && (parallelposition != ET_NEWHEAD) && (parallelposition < 0)) {
         if (etid->debug >= ET_DEBUG_ERROR) {
@@ -421,7 +419,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
     }
 
     sc = (et_stat_config *) sconfig;
-    fprintf(stderr, "et_station_create_at: 2\n");
 
     /* check to see if the configuration was properly initialized */
     if (sc->init != ET_STRUCT_OK) {
@@ -444,13 +441,11 @@ fprintf(stderr, "et_station_create_at: IN\n");
         }
         return ET_ERROR;
     }
-    fprintf(stderr, "et_station_create_at: 3\n");
 
     if (etid->locality != ET_LOCAL) {
         return etr_station_create_at(id, stat_id, stat_name, sconfig, position, parallelposition);
     }
 
-    fprintf(stderr, "et_station_create_at: 4\n");
     /*
     * Don't create station if ET is dead, but need to make an
     * exception for GRAND_CENTRAL as it must be created before
@@ -463,10 +458,10 @@ fprintf(stderr, "et_station_create_at: IN\n");
         return ET_ERROR_DEAD;
     }
 
-    fprintf(stderr, "et_station_create_at: 5, before et_memRead_lock\n");
+    fprintf(stderr, "et_station_create_at: before et_memRead_lock\n");
     /* Protection from (local) et_close() unmapping shared memory */
     et_memRead_lock(etid);
-    fprintf(stderr, "et_station_create_at: 6, AFTER et_memRead_lock\n");
+    fprintf(stderr, "et_station_create_at: AFTER et_memRead_lock\n");
 
     /* Has caller already called et_close()? */
     if (etid->closed) {
@@ -476,7 +471,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
         }
         return ET_ERROR_CLOSED;
     }
-    fprintf(stderr, "et_station_create_at: 7\n");
 
     /* Check configuration for self-consistancy. Do it after calling remote routine
      * since it's gotta look at shared memory. */
@@ -491,9 +485,9 @@ fprintf(stderr, "et_station_create_at: IN\n");
         return ET_ERROR;
     }
 
-    fprintf(stderr, "et_station_create_at: 8, before et_station_lock\n");
+    fprintf(stderr, "et_station_create_at: before et_station_lock\n");
     et_station_lock(sys);
-    fprintf(stderr, "et_station_create_at: 9, AFTER et_station_lock\n");
+    fprintf(stderr, "et_station_create_at: AFTER et_station_lock\n");
 
     /* see if station already exists, if so, stat_id = existing station */
     if (et_station_exists(id, stat_id, stat_name) == 1) {
@@ -532,7 +526,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
                 }
             }
         }
-        fprintf(stderr, "et_station_create_at: 10, before 2 unlocks\n");
         et_station_unlock(sys);
         et_mem_unlock(etid);
         if (etid->debug >= ET_DEBUG_ERROR) {
@@ -544,7 +537,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
         return ET_ERROR_EXISTS;
     }
 
-    fprintf(stderr, "et_station_create_at: 11\n");
     if (sys->nstations >= sys->config.nstations) {
         et_station_unlock(sys);
         et_mem_unlock(etid);
@@ -557,7 +549,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
         return ET_ERROR_TOOMANY;
     }
     sys->nstations++;
-    fprintf(stderr, "et_station_create_at: 12\n");
 
     ps = etid->grandcentral;
     for (i=0 ; i < sys->config.nstations ; i++) {
@@ -569,7 +560,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
         ps++;
     }
 
-    fprintf(stderr, "et_station_create_at: 13\n");
     if (this_station == -1) {
         /* this should never happen */
         sys->nstations--;
@@ -583,7 +573,6 @@ fprintf(stderr, "et_station_create_at: IN\n");
         }
         return ET_ERROR;
     }
-    fprintf(stderr, "et_station_create_at: 14\n");
 
     /* set station structure elements */
     et_init_station(ps);
@@ -606,7 +595,7 @@ fprintf(stderr, "et_station_create_at: IN\n");
 
     if (isGrandCentral) {
         /* sys->stat_head = sys->stat_tail = ET_GRANDCENTRAL; */
-        fprintf(stderr, "et_station_create_at: 15 created GC, END, release station & mem locks\n");
+fprintf(stderr, "et_station_create_at: created GC, END, release station & mem locks\n");
         et_station_unlock(sys);
         et_mem_unlock(etid);
         return ET_OK;
@@ -622,12 +611,12 @@ fprintf(stderr, "et_station_create_at: IN\n");
      * Grab mutex the station creation thread uses to wake up
      * so it cannot wake up yet.
      */
-    fprintf(stderr, "et_station_create_at: 15, before locking sys->statadd_mutex\n");
+fprintf(stderr, "et_station_create_at: before locking sys->statadd_mutex\n");
     status = pthread_mutex_lock(&sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Failed add station lock");
     }
-    fprintf(stderr, "et_station_create_at: 16, AFTER locking sys->statadd_mutex\n");
+fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now signal cond var\n");
 
     /* Signal station creation thread to add one more */
     status = pthread_cond_signal(&sys->statadd);
@@ -641,13 +630,13 @@ fprintf(stderr, "et_station_create_at: IN\n");
      * when the conductor thread is started, which in turn wakes us
      * up with the "statdone" condition variable.
      */
-    fprintf(stderr, "et_station_create_at: 17, before condition wait on sys->statadd_mutex\n");
+    fprintf(stderr, "et_station_create_at: condition wait on sys->statadd_mutex\n");
     status = pthread_cond_wait(&sys->statdone, &sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Wait for station addition");
     }
 
-    fprintf(stderr, "et_station_create_at: 18, before UNlocking sys->statadd_mutex\n");
+    fprintf(stderr, "et_station_create_at: past wait on sys->statadd_mutex\n");
     status = pthread_mutex_unlock(&sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Failed add station mutex unlock");
@@ -666,9 +655,9 @@ fprintf(stderr, "et_station_create_at: IN\n");
     }
 
     /* mutex protect changes to station linked list / turn off event transfers */
-    fprintf(stderr, "et_station_create_at: 19, before et_transfer_lock_all\n");
+    fprintf(stderr, "et_station_create_at: before et_transfer_lock_all\n");
     et_transfer_lock_all(etid);
-    fprintf(stderr, "et_station_create_at: 20, AFTER et_transfer_lock_all\n");
+    fprintf(stderr, "et_station_create_at: AFTER et_transfer_lock_all\n");
 
     /* insert station into linked list(s) */
     if (station_insert(etid, ps, position, parallelposition) != ET_OK) {
@@ -687,11 +676,8 @@ fprintf(stderr, "et_station_create_at: IN\n");
         return ET_ERROR;
     }
 
-    fprintf(stderr, "et_station_create_at: 21, unlock transfer\n");
     et_transfer_unlock_all(etid);
-    fprintf(stderr, "et_station_create_at: 22, unlock station\n");
     et_station_unlock(sys);
-    fprintf(stderr, "et_station_create_at: 23, unlock mem\n");
     et_mem_unlock(etid);
 
     /* set value to be returned */
@@ -700,7 +686,7 @@ fprintf(stderr, "et_station_create_at: IN\n");
     if (etid->debug >= ET_DEBUG_INFO) {
         et_logmsg("INFO", "et_station_create_at, created station %s\n",ps->name);
     }
-    fprintf(stderr, "et_station_create_at: 24, END\n");
+    fprintf(stderr, "et_station_create_at: END\n");
     return ET_OK;
 }
 

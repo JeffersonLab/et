@@ -1416,7 +1416,7 @@ static void *et_add_stations(void *arg)
     do {
       /* wait on condition var for adding stations */
       status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
-        fprintf(stderr, "et_add_stations: 1, wake up statadd condition variable\n");
+fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
 
         if (status != 0) {
         err_abort(status, "Wait et_add_stations thread");
@@ -1434,8 +1434,8 @@ static void *et_add_stations(void *arg)
     /* Now that another station is added, add a "conductor"
      * thread to move events from that station to the next.
      */
-      fprintf(stderr, "et_add_stations: 2, create thread\n");
-      status = pthread_create(&thread_id, &attr, et_conductor, arg);
+//fprintf(stderr, "et_add_stations: 2, create thread\n");
+    status = pthread_create(&thread_id, &attr, et_conductor, arg);
     if(status != 0) {
       err_abort(status, "Create et_conductor thd");
     }
@@ -1471,7 +1471,6 @@ static void *et_conductor(void *arg)
     int        eventsPerStation, nextHigherCue, eventsDoledOut, stationsWithSameCue;
 
     /* station mutex has already been locked by et_station_create */
-fprintf(stderr, "et_conductor: IN\n");
 
     /* find the station in act of being created */   
     ps = id->grandcentral;
@@ -1500,7 +1499,6 @@ fprintf(stderr, "et_conductor: IN\n");
     /* my station's event list_out */
     pmylist = &pmystation->list_out;
 
-    fprintf(stderr, "et_conductor: 1\n");
     /* if using default event selection routine */
     if (ps->config.select_mode == ET_STATION_SELECT_MATCH) {
         ps->data.func = et_condition;
@@ -1535,7 +1533,6 @@ fprintf(stderr, "et_conductor: IN\n");
         ps->data.func = (ET_SELECT_FUNCPTR) sym;
     }
 
-    fprintf(stderr, "et_conductor: 2\n");
     /* calloc arrays since we don't know how big they are at compile time */
 
     /* all events initially read in from the station's output list */
@@ -1548,7 +1545,6 @@ fprintf(stderr, "et_conductor: IN\n");
         pthread_exit(NULL);
     }
 
-    fprintf(stderr, "et_conductor: 3\n");
     /* events to be "put" into the next station's input list */
     if ( (putevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
         pthread_cond_signal(&sys->statdone);
@@ -1558,7 +1554,6 @@ fprintf(stderr, "et_conductor: IN\n");
         pthread_exit(NULL);
     }
 
-    fprintf(stderr, "et_conductor: 4\n");
     /* temporary (large, specially allocated) events */
     if ( (temps = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
         pthread_cond_signal(&sys->statdone);
@@ -1568,7 +1563,6 @@ fprintf(stderr, "et_conductor: IN\n");
         pthread_exit(NULL);
     }
 
-    fprintf(stderr, "et_conductor: 5\n");
     /* events which have already been put into a previous station */
     if ( (event_put = (int *) calloc(event_depth, sizeof(int))) == NULL) {
         pthread_cond_signal(&sys->statdone);
@@ -1578,7 +1572,6 @@ fprintf(stderr, "et_conductor: IN\n");
         pthread_exit(NULL);
     }
 
-    fprintf(stderr, "et_conductor: 6\n");
     /* For parallel stations, an array containing the numbers of events to be
      * placed in each of these stations.
      */
@@ -1590,7 +1583,6 @@ fprintf(stderr, "et_conductor: IN\n");
         pthread_exit(NULL);
     }
 
-    fprintf(stderr, "et_conductor: 7\n");
     /* For parallel stations, an array containing the numbers of events currently
       * in each of these stations' input lists.
       */
@@ -1602,7 +1594,6 @@ fprintf(stderr, "et_conductor: IN\n");
         pthread_exit(NULL);
     }
 
-    fprintf(stderr, "et_conductor: 8\n");
     /* For parallel stations, an array containing the original place of an active
      * station in the parallel linked list before they were ordered by the amount
      * of events in their input lists.
@@ -1614,7 +1605,6 @@ fprintf(stderr, "et_conductor: IN\n");
         }
         pthread_exit(NULL);
     }
-    fprintf(stderr, "et_conductor: 9\n");
 
     /* tell et_station_create that we have successfully started */
     if (ps == id->grandcentral) {
@@ -1622,10 +1612,10 @@ fprintf(stderr, "et_conductor: IN\n");
     } else {
         ps->data.status = ET_STATION_IDLE;
     }
-    fprintf(stderr, "et_conductor: 10, signal statdone\n");
+    fprintf(stderr, "et_conductor: 1, signal statdone\n");
     pthread_cond_signal(&sys->statdone);
 
-    fprintf(stderr, "et_conductor: 11, PAST signal statdone\n");
+    fprintf(stderr, "et_conductor: 2, PAST signal statdone\n");
 
     while (forever) {
 
