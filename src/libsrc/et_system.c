@@ -595,7 +595,9 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   sys->nattachments = 0;
   sys->tcpFd        = -1;
   sys->udpFd        = -1;
-  
+  sys->statAdd      = 0;
+  sys->statDone     = 0;
+
   sys->port         = 0;
  *sys->host         = '\0';
   if (etNetLocalHost(sys->host, ET_MAXHOSTNAMELEN) != ET_OK) {
@@ -1412,35 +1414,41 @@ static void *et_add_stations(void *arg)
     err_abort(status, "Failed add station lock");
   }
 
-  while (forever) {
-    do {
-      /* wait on condition var for adding stations */
-      status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
-//fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
+    while (forever) {
+        do {
+            /* wait on condition var for adding stations */
+            sys->statAdd = 0;
+            while (sys->statAdd != 1) {
+                status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
+                //fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
+            }
+            sys->statAdd = 0;
 
+            if (status != 0) {
+                err_abort(status, "Wait et_add_stations thread");
+            }
+
+            if (sys->asthread == ET_THREAD_KILL) {
+                pthread_exit(NULL);
+            }
+
+        } while (sys->nstations > sys->config.nstations);
+
+        if (id->debug >= ET_DEBUG_INFO) {
+            et_logmsg("INFO", "et_add_stations, nstations = %d, stats_max = %d\n",
+                      sys->nstations,sys->config.nstations);
+        }
+
+        /* Now that another station is added, add a "conductor"
+         * thread to move events from that station to the next.
+         */
+        //fprintf(stderr, "et_add_stations: 2, create thread\n");
+        status = pthread_create(&thread_id, &attr, et_conductor, arg);
         if (status != 0) {
-        err_abort(status, "Wait et_add_stations thread");
-      }
-      if (sys->asthread == ET_THREAD_KILL) {
-        pthread_exit(NULL);
-      }
-    } while (sys->nstations > sys->config.nstations);
-    
-    if (id->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_add_stations, nstations = %d, stats_max = %d\n",
-                sys->nstations,sys->config.nstations);
+            err_abort(status, "Create et_conductor thd");
+        }
     }
-    
-    /* Now that another station is added, add a "conductor"
-     * thread to move events from that station to the next.
-     */
-//fprintf(stderr, "et_add_stations: 2, create thread\n");
-    status = pthread_create(&thread_id, &attr, et_conductor, arg);
-    if(status != 0) {
-      err_abort(status, "Create et_conductor thd");
-    }
-  }
-  return (NULL);
+    return (NULL);
 }
 
 /************************************************
@@ -1612,10 +1620,25 @@ static void *et_conductor(void *arg)
     } else {
         ps->data.status = ET_STATION_IDLE;
     }
-//    fprintf(stderr, "et_conductor: 1, signal statdone\n");
+
+    fprintf(stderr, "et_conductor: signal statdone\n");
+
+    status = pthread_mutex_lock(&sys->statadd_mutex);
+    if (status != 0) {
+        et_logmsg("ERROR", "et_conductor %d, failed add station mutex lock\n", me);
+        pthread_exit(NULL);
+    }
+
+    sys->statAdd = 1;
     pthread_cond_signal(&sys->statdone);
 
-    fprintf(stderr, "et_conductor: 2, PAST signal statdone\n");
+    status = pthread_mutex_unlock(&sys->statadd_mutex);
+    if (status != 0) {
+        et_logmsg("ERROR", "et_conductor %d, failed add station mutex unlock\n", me);
+        pthread_exit(NULL);
+    }
+
+    fprintf(stderr, "et_conductor: PAST signal statdone\n");
 
     while (forever) {
 
