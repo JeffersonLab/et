@@ -1416,7 +1416,7 @@ static void *et_add_stations(void *arg)
     do {
       /* wait on condition var for adding stations */
       status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
-fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
+//fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
 
         if (status != 0) {
         err_abort(status, "Wait et_add_stations thread");
@@ -1612,7 +1612,7 @@ static void *et_conductor(void *arg)
     } else {
         ps->data.status = ET_STATION_IDLE;
     }
-    fprintf(stderr, "et_conductor: 1, signal statdone\n");
+//    fprintf(stderr, "et_conductor: 1, signal statdone\n");
     pthread_cond_signal(&sys->statdone);
 
     fprintf(stderr, "et_conductor: 2, PAST signal statdone\n");

@@ -458,10 +458,10 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
         return ET_ERROR_DEAD;
     }
 
-    fprintf(stderr, "et_station_create_at: before et_memRead_lock\n");
+//    fprintf(stderr, "et_station_create_at: before et_memRead_lock\n");
     /* Protection from (local) et_close() unmapping shared memory */
     et_memRead_lock(etid);
-    fprintf(stderr, "et_station_create_at: AFTER et_memRead_lock\n");
+//    fprintf(stderr, "et_station_create_at: AFTER et_memRead_lock\n");
 
     /* Has caller already called et_close()? */
     if (etid->closed) {
@@ -485,9 +485,9 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
         return ET_ERROR;
     }
 
-    fprintf(stderr, "et_station_create_at: before et_station_lock\n");
+//    fprintf(stderr, "et_station_create_at: before et_station_lock\n");
     et_station_lock(sys);
-    fprintf(stderr, "et_station_create_at: AFTER et_station_lock\n");
+//    fprintf(stderr, "et_station_create_at: AFTER et_station_lock\n");
 
     /* see if station already exists, if so, stat_id = existing station */
     if (et_station_exists(id, stat_id, stat_name) == 1) {
@@ -630,13 +630,13 @@ fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now sig
      * when the conductor thread is started, which in turn wakes us
      * up with the "statdone" condition variable.
      */
-    fprintf(stderr, "et_station_create_at: condition wait on sys->statadd_mutex\n");
+fprintf(stderr, "et_station_create_at: condition wait on sys->statadd_mutex\n");
     status = pthread_cond_wait(&sys->statdone, &sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Wait for station addition");
     }
 
-    fprintf(stderr, "et_station_create_at: past wait on sys->statadd_mutex\n");
+fprintf(stderr, "et_station_create_at: past wait on sys->statadd_mutex\n");
     status = pthread_mutex_unlock(&sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Failed add station mutex unlock");
@@ -655,9 +655,9 @@ fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now sig
     }
 
     /* mutex protect changes to station linked list / turn off event transfers */
-    fprintf(stderr, "et_station_create_at: before et_transfer_lock_all\n");
+//    fprintf(stderr, "et_station_create_at: before et_transfer_lock_all\n");
     et_transfer_lock_all(etid);
-    fprintf(stderr, "et_station_create_at: AFTER et_transfer_lock_all\n");
+//    fprintf(stderr, "et_station_create_at: AFTER et_transfer_lock_all\n");
 
     /* insert station into linked list(s) */
     if (station_insert(etid, ps, position, parallelposition) != ET_OK) {
@@ -686,7 +686,7 @@ fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now sig
     if (etid->debug >= ET_DEBUG_INFO) {
         et_logmsg("INFO", "et_station_create_at, created station %s\n",ps->name);
     }
-    fprintf(stderr, "et_station_create_at: END\n");
+//    fprintf(stderr, "et_station_create_at: END\n");
     return ET_OK;
 }
 
