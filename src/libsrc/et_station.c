@@ -611,7 +611,7 @@ fprintf(stderr, "et_station_create_at: created GC, END, release station & mem lo
      * Grab mutex the station creation thread uses to wake up
      * so it cannot wake up yet.
      */
-fprintf(stderr, "et_station_create_at: before locking sys->statadd_mutex\n");
+//fprintf(stderr, "et_station_create_at: before locking sys->statadd_mutex\n");
     status = pthread_mutex_lock(&sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Failed add station lock");
@@ -630,7 +630,7 @@ fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now sig
      * when the conductor thread is started, which in turn wakes us
      * up with the "statdone" condition variable.
      */
-fprintf(stderr, "et_station_create_at: condition wait on sys->statadd_mutex\n");
+//fprintf(stderr, "et_station_create_at: condition wait on sys->statadd_mutex\n");
     status = pthread_cond_wait(&sys->statdone, &sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Wait for station addition");
