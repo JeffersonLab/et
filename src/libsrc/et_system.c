@@ -1420,7 +1420,7 @@ static void *et_add_stations(void *arg)
             sys->statAdd = 0;
             while (sys->statAdd != 1) {
                 status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
-                //fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
+fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable, flag = %d\n", sys->statAdd);
             }
             sys->statAdd = 0;
 
@@ -1442,7 +1442,7 @@ static void *et_add_stations(void *arg)
         /* Now that another station is added, add a "conductor"
          * thread to move events from that station to the next.
          */
-        //fprintf(stderr, "et_add_stations: 2, create thread\n");
+ fprintf(stderr, "et_add_stations: create conductor\n");
         status = pthread_create(&thread_id, &attr, et_conductor, arg);
         if (status != 0) {
             err_abort(status, "Create et_conductor thd");
