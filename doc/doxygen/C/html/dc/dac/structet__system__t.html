@@ -135,12 +135,6 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a4951994db4ec9b28ccde9ef396a9d499"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/dac/structet__system__t.html#a4951994db4ec9b28ccde9ef396a9d499">udpFd</a></td></tr>
 <tr class="memdesc:a4951994db4ec9b28ccde9ef396a9d499"><td class="mdescLeft">&#160;</td><td class="mdescRight">UDP server's listening socket file descriptor.  <a href="../../dc/dac/structet__system__t.html#a4951994db4ec9b28ccde9ef396a9d499">More...</a><br /></td></tr>
 <tr class="separator:a4951994db4ec9b28ccde9ef396a9d499"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad25281df8332e96214017e0c9b0227c6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/dac/structet__system__t.html#ad25281df8332e96214017e0c9b0227c6">statAdd</a></td></tr>
-<tr class="memdesc:ad25281df8332e96214017e0c9b0227c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag to use with statadd condition variable.  <a href="../../dc/dac/structet__system__t.html#ad25281df8332e96214017e0c9b0227c6">More...</a><br /></td></tr>
-<tr class="separator:ad25281df8332e96214017e0c9b0227c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a716a9630211694917332df66508e0915"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/dac/structet__system__t.html#a716a9630211694917332df66508e0915">statDone</a></td></tr>
-<tr class="memdesc:a716a9630211694917332df66508e0915"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag to use with statdone condition variable.  <a href="../../dc/dac/structet__system__t.html#a716a9630211694917332df66508e0915">More...</a><br /></td></tr>
-<tr class="separator:a716a9630211694917332df66508e0915"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8d19f7da71bb00892d567a039d037ede"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d4/d12/et_8h.html#afa79983a1372c787beda97ca2b558fc1">et_stat_id</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/dac/structet__system__t.html#a8d19f7da71bb00892d567a039d037ede">stat_head</a></td></tr>
 <tr class="memdesc:a8d19f7da71bb00892d567a039d037ede"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index to head of linked list of used stations (not storing this as a pointer makes for an awkward linked list, but it survives mapping the shared memory to a different spot).  <a href="../../dc/dac/structet__system__t.html#a8d19f7da71bb00892d567a039d037ede">More...</a><br /></td></tr>
 <tr class="separator:a8d19f7da71bb00892d567a039d037ede"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -539,24 +533,6 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
-<a id="ad25281df8332e96214017e0c9b0227c6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad25281df8332e96214017e0c9b0227c6">&#9670;&nbsp;</a></span>statAdd</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int et_system_t::statAdd</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flag to use with statadd condition variable. </p>
-
-<p class="reference">Referenced by <a class="el" href="../../d2/d39/group__station.html#ga547b69786eb8e1ab8184338b6b60fc27">et_station_create_at()</a>.</p>
-
-</div>
-</div>
 <a id="aad0c9d2d58aaee301a925a4abd977c5a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aad0c9d2d58aaee301a925a4abd977c5a">&#9670;&nbsp;</a></span>statadd</h2>
 
@@ -588,24 +564,6 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Pthread mutex used to add stations one at a time. </p>
-
-<p class="reference">Referenced by <a class="el" href="../../d2/d39/group__station.html#ga547b69786eb8e1ab8184338b6b60fc27">et_station_create_at()</a>.</p>
-
-</div>
-</div>
-<a id="a716a9630211694917332df66508e0915"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a716a9630211694917332df66508e0915">&#9670;&nbsp;</a></span>statDone</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int et_system_t::statDone</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flag to use with statdone condition variable. </p>
 
 <p class="reference">Referenced by <a class="el" href="../../d2/d39/group__station.html#ga547b69786eb8e1ab8184338b6b60fc27">et_station_create_at()</a>.</p>
 
