@@ -403,8 +403,6 @@ typedef struct et_system_t {
   int              port;           /**< TCP server port. */
   int              tcpFd;          /**< TCP server's listening socket file descriptor. Used to close socket when killed. */
   int              udpFd;          /**< UDP server's listening socket file descriptor. Used to close socket when killed. */
-  int              statAdd;        /**< Flag to use with statadd condition variable. */
-  int              statDone;       /**< Flag to use with statdone condition variable. */
   et_stat_id       stat_head;      /**< Index to head of linked list of used stations (not storing this as a pointer
                                         makes for an awkward linked list, but it survives mapping the shared
                                         memory to a different spot). */
