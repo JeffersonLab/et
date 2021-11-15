@@ -164,11 +164,13 @@ int et_system_start (et_sys_id* id, et_sysconfig sconfig) {
     size_data     = config->event_size * config->nevents;
     size = size_system + size_stations + size_histo + size_events + size_data;
 
-/*printf("sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
-  size_system, size_stations, size_histo, size_events, size_data); */
+printf("et_system_start: sizes: system = %lu, stations = %lu, histo = %lu, events = %lu, data = %lu\n",
+  size_system, size_stations, size_histo, size_events, size_data);
 
     /* create the ET system memory */
+printf("et_system_start: try to create mem = %s\n", config->filename);
     status = et_mem_create(config->filename, size, (void **) &pSharedMem, &total_size);
+ printf("et_system_start: status = %d\n", status);
 
     /* general error trying to create mapped memory */
     if (status != ET_OK && status != ET_ERROR_EXISTS) {
