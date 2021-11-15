@@ -532,48 +532,78 @@ int et_system_close(et_sys_id id) {
 /*****************************************************/
 static void et_init_mem_sys(et_id *id, et_sys_config *config)
 {
-  int        i;
-  et_system  *sys = id->sys;
-  int status;
-  pthread_mutexattr_t mattr;
-  pthread_condattr_t  cattr;
-  
-  if (id->share == ET_MUTEX_SHARE) {
-    /* set attribute for mutex & condition variable multiprocess sharing */
-    status = pthread_mutexattr_init(&mattr);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
+    int        i;
+    et_system  *sys = id->sys;
+    int status;
+    pthread_mutexattr_t mattr;
+    pthread_condattr_t  cattr;
+    pthread_mutexattr_t recurAttr;
+
+
+    if (id->share == ET_MUTEX_SHARE) {
+        /* set attribute for mutex & condition variable multiprocess sharing */
+        status = pthread_mutexattr_init(&mattr);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        status = pthread_condattr_init(&cattr);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        status = pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        /* set attribute for mutex recursion & multiprocess sharing */
+        status = pthread_mutexattr_init(&recurAttr);
+        if (status != 0) {
+            err_abort(status, "et_init_mem_sys");
+        }
+        status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
+        if (status != 0) {
+            err_abort(status, "et_init_mem_sys");
+        }
+        status = pthread_mutexattr_setpshared(&recurAttr, PTHREAD_PROCESS_SHARED);
+        if(status != 0) {
+            err_abort(status, "et_init_mem_sys");
+        }
+
+
+        /* initialize mutex's & cv's in shared mem, ONLY ONCE! */
+        pthread_mutex_init(&sys->mutex, &mattr);
+        pthread_mutex_init(&sys->stat_mutex, &mattr);
+        /* make this mutex recursive too */
+        pthread_mutex_init(&sys->statadd_mutex, &recurAttr);
+        pthread_cond_init (&sys->statadd, &cattr);
+        pthread_cond_init (&sys->statdone,  &cattr);
+    }
+    else {
+        /* set attribute for mutex recursion */
+        status = pthread_mutexattr_init(&recurAttr);
+        if (status != 0) {
+            err_abort(status, "et_init_mem_sys");
+        }
+        status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
+        if (status != 0) {
+            err_abort(status, "et_init_mem_sys");
+        }
+
+        pthread_mutex_init(&sys->mutex, NULL);
+        pthread_mutex_init(&sys->stat_mutex, NULL);
+        pthread_mutex_init(&sys->statadd_mutex, &recurAttr);
+        pthread_cond_init (&sys->statadd, NULL);
+        pthread_cond_init (&sys->statdone,  NULL);
     }
 
-    status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
 
-    status = pthread_condattr_init(&cattr);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
-
-    status = pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
-
-    /* initialize mutex's & cv's in shared mem, ONLY ONCE! */
-    pthread_mutex_init(&sys->mutex, &mattr);
-    pthread_mutex_init(&sys->stat_mutex, &mattr);
-    pthread_mutex_init(&sys->statadd_mutex, &mattr);
-    pthread_cond_init (&sys->statadd, &cattr);
-    pthread_cond_init (&sys->statdone,  &cattr);
-  }
-  else {
-    pthread_mutex_init(&sys->mutex, NULL);
-    pthread_mutex_init(&sys->stat_mutex, NULL);
-    pthread_mutex_init(&sys->statadd_mutex, NULL);
-    pthread_cond_init (&sys->statadd, NULL);
-    pthread_cond_init (&sys->statdone,  NULL);
-  }
 
   sys->version      = ET_VERSION;
   sys->nselects     = ET_STATION_SELECT_INTS;
@@ -1001,22 +1031,38 @@ static void et_fix_mutexes(et_id *id)
 {
   int i, status;
   et_station *ps;
+
 #ifdef MUTEX_INIT
   pthread_mutexattr_t mattr;
+  pthread_mutexattr_t recurAttr;
 
   if (id->share == ET_MUTEX_SHARE) {
     /* set attribute for mutex multiprocess sharing */
     status = pthread_mutexattr_init(&mattr);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
+    if (status != 0) {
+      err_abort(status, "et_fix_mutexes");
+    }
+    status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+    if (status != 0) {
+      err_abort(status, "et_fix_mutexes");
     }
 
-    status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
+    /* set attribute for mutex recursion & multiprocess sharing */
+    status = pthread_mutexattr_init(&recurAttr);
+    if (status != 0) {
+      err_abort(status, "et_fix_mutexes");
     }
-  }  
+    status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
+    if (status != 0) {
+      err_abort(status, "et_fix_mutexes");
+    }
+    status = pthread_mutexattr_setpshared(&recurAttr, PTHREAD_PROCESS_SHARED);
+    if(status != 0) {
+      err_abort(status, "et_fix_mutexes");
+    }
+  }
 #endif
+
 /*
    * looking at system & station mutexes is a bit of a gamble
    * as other folks might be using it for other things ... but
@@ -1051,7 +1097,7 @@ static void et_fix_mutexes(et_id *id)
     status = pthread_mutex_unlock(&id->sys->statadd_mutex);
 #ifdef MUTEX_INIT
     if (id->share == ET_MUTEX_SHARE) {
-      pthread_mutex_init(&id->sys->statadd_mutex, &mattr);
+      pthread_mutex_init(&id->sys->statadd_mutex, &recurAttr);
     }
     else {
       pthread_mutex_init(&id->sys->statadd_mutex, NULL);
