@@ -639,6 +639,7 @@ fprintf(stderr, "et_station_create_at: do condition wait on sys->statadd_mutex, 
         if (status != 0) {
             err_abort(status, "Wait for station & conductor thread addition");
         }
+fprintf(stderr, "et_station_create_at: WAKE from condition wait on sys->statadd_mutex, flag = %d\n", sys->statDone);
     }
     sys->statDone = 0;
 
