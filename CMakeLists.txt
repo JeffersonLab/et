@@ -45,7 +45,7 @@ if (DEFINED CODA_INSTALL)
     set(CMAKE_INSTALL_PREFIX ${CODA_INSTALL}/${ARCH})
     set(CMAKE_INSTALL_INCLUDEDIR ${CODA_INSTALL}/common/include)
     message(STATUS "CMAKE_INSTALL_PREFIX reset to " ${CMAKE_INSTALL_PREFIX})
-# Install into $CODA directory
+    # Install into $CODA directory
 elseif (DEFINED ENV{CODA})
     message(STATUS "CODA = " $ENV{CODA})
     set(INSTALL_DIR_DEFINED 1)
@@ -217,11 +217,11 @@ endif()
 
 # Uninstall target
 if(NOT TARGET uninstall)
-  configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
 
-  add_custom_target(uninstall
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+    add_custom_target(uninstall
+            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 endif()
 
