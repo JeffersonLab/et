@@ -141,13 +141,15 @@ int et_mem_attach(const char *name, void **pmemory, et_mem *pInfo)
 {
   int        fd;
   char      *ptr;
+  char      filename[ET_FILENAME_LENGTH + 100];
   size_t     totalsize;
   void      *pmem;
   et_mem     info;
 
   /* open file */
   if ((fd = open(name, O_RDWR, S_IRWXU)) < 0) {
-    perror("et_mem_attach: open - ");
+    sprintf(filename, "%s%s", "et_mem_attach: open - cannot open ", name);
+    perror(filename);
     return ET_ERROR;
   }
    
