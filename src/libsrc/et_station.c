@@ -621,7 +621,7 @@ fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now sig
 
     /* Signal station creation thread to add one more */
     sys->statAdd = 1;
-    status = pthread_cond_signal(&sys->statadd);
+    status = pthread_cond_broadcast(&sys->statadd);
     if (status != 0) {
         err_abort(status, "Signal add station");
     }
