@@ -1674,7 +1674,7 @@ static void *et_conductor(void *arg)
         pthread_exit(NULL);
     }
 
-    sys->statAdd = 1;
+    sys->statDone = 1;
     pthread_cond_broadcast(&sys->statdone);
 
     status = pthread_mutex_unlock(&sys->statadd_mutex);
