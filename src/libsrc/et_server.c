@@ -337,6 +337,8 @@ printf("Listening on port %d\n", config->port);
  **************************************************************/
 void *et_netserver(void *arg)
 {
+    static int clientCount = 0;
+
     et_netthread    *threadarg = (et_netthread *) arg;
     et_sys_config   *config = threadarg->config;
     et_id           *etid   = threadarg->id;
@@ -2227,10 +2229,29 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           if (etid->debug >= ET_DEBUG_INFO) {
               et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
           }
 
           free(iov); free(header); free(histogram); free(events); free(ints32);
         }
+        pthread_exit(NULL);
         return;
 
         case  ET_NET_WAKE_ATT:
