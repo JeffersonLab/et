@@ -595,7 +595,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
 
     if (isGrandCentral) {
         /* sys->stat_head = sys->stat_tail = ET_GRANDCENTRAL; */
-fprintf(stderr, "et_station_create_at: created GC, END, release station & mem locks\n");
+//fprintf(stderr, "et_station_create_at: created GC, END, release station & mem locks\n");
         et_station_unlock(sys);
         et_mem_unlock(etid);
         return ET_OK;
@@ -616,8 +616,8 @@ fprintf(stderr, "et_station_create_at: created GC, END, release station & mem lo
     if (status != 0) {
         err_abort(status, "Failed add station lock");
     }
-    
-fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now signal cond var\n");
+
+//fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now signal cond var\n");
 
     /* Signal station creation thread to add one more */
     status = pthread_cond_signal(&sys->statadd);
@@ -631,13 +631,16 @@ fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now sig
      * when the conductor thread is started, which in turn wakes us
      * up with the "statdone" condition variable.
      */
-//fprintf(stderr, "et_station_create_at: condition wait on sys->statadd_mutex\n");
-    status = pthread_cond_wait(&sys->statdone, &sys->statadd_mutex);
-    if (status != 0) {
-        err_abort(status, "Wait for station addition");
+    sys->statDone = 0;
+    while (sys->statDone != 1) {
+//fprintf(stderr, "et_station_create_at: do condition wait on sys->statadd_mutex, flag = %d\n", sys->statDone);
+        status = pthread_cond_wait(&sys->statdone, &sys->statadd_mutex);
+        if (status != 0) {
+            err_abort(status, "Wait for station & conductor thread addition");
+        }
     }
 
-fprintf(stderr, "et_station_create_at: past wait on sys->statadd_mutex\n");
+//fprintf(stderr, "et_station_create_at: PAST wait on sys->statadd_mutex\n");
     status = pthread_mutex_unlock(&sys->statadd_mutex);
     if (status != 0) {
         err_abort(status, "Failed add station mutex unlock");

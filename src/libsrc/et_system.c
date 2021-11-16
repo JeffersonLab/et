@@ -532,48 +532,77 @@ int et_system_close(et_sys_id id) {
 /*****************************************************/
 static void et_init_mem_sys(et_id *id, et_sys_config *config)
 {
-  int        i;
-  et_system  *sys = id->sys;
-  int status;
-  pthread_mutexattr_t mattr;
-  pthread_condattr_t  cattr;
-  
-  if (id->share == ET_MUTEX_SHARE) {
-    /* set attribute for mutex & condition variable multiprocess sharing */
-    status = pthread_mutexattr_init(&mattr);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
+    int        i;
+    et_system  *sys = id->sys;
+    int status;
+    pthread_mutexattr_t mattr;
+    pthread_condattr_t  cattr;
+    pthread_mutexattr_t recurAttr;
+
+
+    if (id->share == ET_MUTEX_SHARE) {
+        /* set attribute for mutex & condition variable multiprocess sharing */
+        status = pthread_mutexattr_init(&mattr);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        status = pthread_condattr_init(&cattr);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+        status = pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
+        if(status != 0) {
+          err_abort(status, "et_init_mem_sys");
+        }
+
+//        /* set attribute for mutex recursion & multiprocess sharing */
+//        status = pthread_mutexattr_init(&recurAttr);
+//        if (status != 0) {
+//            err_abort(status, "et_init_mem_sys");
+//        }
+//        status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
+//        if (status != 0) {
+//            err_abort(status, "et_init_mem_sys");
+//        }
+//        status = pthread_mutexattr_setpshared(&recurAttr, PTHREAD_PROCESS_SHARED);
+//        if(status != 0) {
+//            err_abort(status, "et_init_mem_sys");
+//        }
+
+
+        /* initialize mutex's & cv's in shared mem, ONLY ONCE! */
+        pthread_mutex_init(&sys->mutex, &mattr);
+        pthread_mutex_init(&sys->stat_mutex, &mattr);
+        pthread_mutex_init(&sys->statadd_mutex, &mattr);
+        pthread_cond_init (&sys->statadd, &cattr);
+        pthread_cond_init (&sys->statdone,  &cattr);
+    }
+    else {
+//        /* set attribute for mutex recursion */
+//        status = pthread_mutexattr_init(&recurAttr);
+//        if (status != 0) {
+//            err_abort(status, "et_init_mem_sys");
+//        }
+//        status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
+//        if (status != 0) {
+//            err_abort(status, "et_init_mem_sys");
+//        }
+
+        pthread_mutex_init(&sys->mutex, NULL);
+        pthread_mutex_init(&sys->stat_mutex, NULL);
+        pthread_mutex_init(&sys->statadd_mutex, NULL);
+        pthread_cond_init (&sys->statadd, NULL);
+        pthread_cond_init (&sys->statdone,  NULL);
     }
 
-    status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
 
-    status = pthread_condattr_init(&cattr);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
-
-    status = pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
-
-    /* initialize mutex's & cv's in shared mem, ONLY ONCE! */
-    pthread_mutex_init(&sys->mutex, &mattr);
-    pthread_mutex_init(&sys->stat_mutex, &mattr);
-    pthread_mutex_init(&sys->statadd_mutex, &mattr);
-    pthread_cond_init (&sys->statadd, &cattr);
-    pthread_cond_init (&sys->statdone,  &cattr);
-  }
-  else {
-    pthread_mutex_init(&sys->mutex, NULL);
-    pthread_mutex_init(&sys->stat_mutex, NULL);
-    pthread_mutex_init(&sys->statadd_mutex, NULL);
-    pthread_cond_init (&sys->statadd, NULL);
-    pthread_cond_init (&sys->statdone,  NULL);
-  }
 
   sys->version      = ET_VERSION;
   sys->nselects     = ET_STATION_SELECT_INTS;
@@ -999,22 +1028,38 @@ static void et_fix_mutexes(et_id *id)
 {
   int i, status;
   et_station *ps;
+
 #ifdef MUTEX_INIT
   pthread_mutexattr_t mattr;
+  pthread_mutexattr_t recurAttr;
 
   if (id->share == ET_MUTEX_SHARE) {
     /* set attribute for mutex multiprocess sharing */
     status = pthread_mutexattr_init(&mattr);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
+    if (status != 0) {
+      err_abort(status, "et_fix_mutexes");
+    }
+    status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+    if (status != 0) {
+      err_abort(status, "et_fix_mutexes");
     }
 
-    status = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    if(status != 0) {
-      err_abort(status, "et_init_mem_sys");
-    }
-  }  
+//    /* set attribute for mutex recursion & multiprocess sharing */
+//    status = pthread_mutexattr_init(&recurAttr);
+//    if (status != 0) {
+//      err_abort(status, "et_fix_mutexes");
+//    }
+//    status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
+//    if (status != 0) {
+//      err_abort(status, "et_fix_mutexes");
+//    }
+//    status = pthread_mutexattr_setpshared(&recurAttr, PTHREAD_PROCESS_SHARED);
+//    if(status != 0) {
+//      err_abort(status, "et_fix_mutexes");
+//    }
+  }
 #endif
+
 /*
    * looking at system & station mutexes is a bit of a gamble
    * as other folks might be using it for other things ... but
@@ -1412,11 +1457,15 @@ static void *et_add_stations(void *arg)
     err_abort(status, "Failed add station lock");
   }
 
-  while (forever) {
-    do {
-      /* wait on condition var for adding stations */
-      status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
-//fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable\n");
+    while (forever) {
+        do {
+            /* wait on condition var for adding stations */
+            sys->statAdd = 0;
+            while (sys->statAdd != 1) {
+                status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
+//fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable, flag = %d\n", sys->statAdd);
+            }
+            sys->statAdd = 0;
 
         if (status != 0) {
         err_abort(status, "Wait et_add_stations thread");
@@ -1431,13 +1480,20 @@ static void *et_add_stations(void *arg)
                 sys->nstations,sys->config.nstations);
     }
 
-    /* Now that another station is added, add a "conductor"
-     * thread to move events from that station to the next.
-     */
-//fprintf(stderr, "et_add_stations: 2, create thread\n");
-    status = pthread_create(&thread_id, &attr, et_conductor, arg);
-    if(status != 0) {
-      err_abort(status, "Create et_conductor thd");
+        } while (sys->nstations > sys->config.nstations);
+
+        if (id->debug >= ET_DEBUG_INFO) {
+            et_logmsg("INFO", "et_add_stations, nstations = %d, stats_max = %d\n",
+                      sys->nstations,sys->config.nstations);
+        }
+
+        /* Now that another station is added, add a "conductor"
+         * thread to move events from that station to the next.
+         */
+        status = pthread_create(&thread_id, &attr, et_conductor, arg);
+        if (status != 0) {
+            err_abort(status, "Create et_conductor thd");
+        }
     }
   }
   return (NULL);
@@ -1487,7 +1543,6 @@ static void *et_conductor(void *arg)
         if (id->debug >= ET_DEBUG_WARN) {
             et_logmsg("WARN", "et_conductor, all stations have their conductors already\n");
         }
-        fprintf(stderr, "et_conductor: ERROR 1\n");
         pthread_exit(NULL);
     }
 
@@ -1508,7 +1563,13 @@ static void *et_conductor(void *arg)
         ps->data.lib_handle = dlopen(ps->config.lib, RTLD_NOW);
         if (ps->data.lib_handle == NULL) {
             /* tell et_station_create that we are done */
-            pthread_cond_signal(&sys->statdone);
+            status = pthread_mutex_trylock(&sys->statadd_mutex);
+            sys->statDone = 1;
+            pthread_cond_broadcast(&sys->statdone);
+            if (status == 0) {
+                pthread_mutex_unlock(&sys->statadd_mutex);
+            }
+
             if (id->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "et_conductor %d, %s\n", me, dlerror());
             }
@@ -1520,8 +1581,15 @@ static void *et_conductor(void *arg)
         sym = dlsym(ps->data.lib_handle, ps->config.fname);
         if (sym == NULL) {
             dlclose(ps->data.lib_handle);
+
             /* tell et_station_create that we are done */
-            pthread_cond_signal(&sys->statdone);
+            status = pthread_mutex_trylock(&sys->statadd_mutex);
+            sys->statDone = 1;
+            pthread_cond_broadcast(&sys->statdone);
+            if (status == 0) {
+                pthread_mutex_unlock(&sys->statadd_mutex);
+            }
+
             if (id->debug >= ET_DEBUG_ERROR) {
                 et_logmsg("ERROR", "et_conductor %d, %s\n", me, dlerror()) ;
             }
@@ -1538,7 +1606,13 @@ static void *et_conductor(void *arg)
     /* all events initially read in from the station's output list */
     if ( (allevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
         /* tell et_station_create that we are done */
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1547,7 +1621,13 @@ static void *et_conductor(void *arg)
 
     /* events to be "put" into the next station's input list */
     if ( (putevents = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1556,7 +1636,13 @@ static void *et_conductor(void *arg)
 
     /* temporary (large, specially allocated) events */
     if ( (temps = (et_event **) calloc(event_depth, sizeof(et_event *))) == NULL) {
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1565,7 +1651,13 @@ static void *et_conductor(void *arg)
 
     /* events which have already been put into a previous station */
     if ( (event_put = (int *) calloc(event_depth, sizeof(int))) == NULL) {
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1576,7 +1668,13 @@ static void *et_conductor(void *arg)
      * placed in each of these stations.
      */
     if ( (numEvents = (int *) calloc((size_t)sys->config.nstations, sizeof(int))) == NULL) {
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1587,7 +1685,13 @@ static void *et_conductor(void *arg)
       * in each of these stations' input lists.
       */
     if ( (inListCount = (int *) calloc((size_t)sys->config.nstations, sizeof(int))) == NULL) {
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1599,7 +1703,13 @@ static void *et_conductor(void *arg)
      * of events in their input lists.
      */
     if ( (place = (int *) calloc((size_t)sys->config.nstations, sizeof(int))) == NULL) {
-        pthread_cond_signal(&sys->statdone);
+        status = pthread_mutex_trylock(&sys->statadd_mutex);
+        sys->statDone = 1;
+        pthread_cond_broadcast(&sys->statdone);
+        if (status == 0) {
+            pthread_mutex_unlock(&sys->statadd_mutex);
+        }
+        
         if (id->debug >= ET_DEBUG_ERROR) {
             et_logmsg("ERROR", "et_conductor %d, no mem left\n", me) ;
         }
@@ -1613,7 +1723,20 @@ static void *et_conductor(void *arg)
         ps->data.status = ET_STATION_IDLE;
     }
 
-    pthread_cond_signal(&sys->statdone);
+    status = pthread_mutex_lock(&sys->statadd_mutex);
+    if (status != 0) {
+        et_logmsg("ERROR", "et_conductor %d, failed add station mutex lock\n", me);
+        pthread_exit(NULL);
+    }
+
+    sys->statAdd = 1;
+    pthread_cond_broadcast(&sys->statdone);
+
+    status = pthread_mutex_unlock(&sys->statadd_mutex);
+    if (status != 0) {
+        et_logmsg("ERROR", "et_conductor %d, failed add station mutex unlock\n", me);
+        pthread_exit(NULL);
+    }
 
     while (forever) {
 

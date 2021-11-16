@@ -553,11 +553,9 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
 
     // Convert stationName to C string
     const char *stName = (*env)->GetStringUTFChars(env, stationName, 0);
-    fprintf(stderr, "createStation (C Lib, JNI): before et_station_create_at\n");
 
     // Create station
     int status = et_station_create_at((et_sys_id)etid, &my_stat, stName, sconfig, position, pPosition);
-    fprintf(stderr, "createStation (C Lib, JNI): AFTER et_station_create_at\n");
 
     et_station_config_destroy(sconfig);
     if (lib != NULL) {
