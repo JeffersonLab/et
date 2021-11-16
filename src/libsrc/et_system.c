@@ -1423,7 +1423,6 @@ static void *et_add_stations(void *arg)
                 status = pthread_cond_wait(&sys->statadd, &sys->statadd_mutex);
 //fprintf(stderr, "et_add_stations: 1, woke up statadd condition variable, flag = %d\n", sys->statAdd);
             }
-            sys->statAdd = 0;
 
             if (status != 0) {
                 err_abort(status, "Wait et_add_stations thread");
