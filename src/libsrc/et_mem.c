@@ -61,16 +61,14 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
       return ET_ERROR;
     }
   }
-//printf("et_mem_create: opened %s\n",name);
 
-    /* map mem to process space */
+  /* map mem to process space */
   if ((pmem = mmap((caddr_t) 0, totalsize, PROT_READ|PROT_WRITE,
                    MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
     close(fd);
     unlink(name);
     return ET_ERROR;
   }
-//printf("et_mem_create: memory mapped file %s\n",name);
 
   /* close fd for mapped mem since no longer needed */
   err = fchmod(fd, mode);

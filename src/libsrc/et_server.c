@@ -337,8 +337,6 @@ printf("Listening on port %d\n", config->port);
  **************************************************************/
 void *et_netserver(void *arg)
 {
-    static int clientCount = 0;
-
     et_netthread    *threadarg = (et_netthread *) arg;
     et_sys_config   *config = threadarg->config;
     et_id           *etid   = threadarg->id;

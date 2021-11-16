@@ -458,10 +458,8 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
         return ET_ERROR_DEAD;
     }
 
-//    fprintf(stderr, "et_station_create_at: before et_memRead_lock\n");
     /* Protection from (local) et_close() unmapping shared memory */
     et_memRead_lock(etid);
-//    fprintf(stderr, "et_station_create_at: AFTER et_memRead_lock\n");
 
     /* Has caller already called et_close()? */
     if (etid->closed) {
@@ -485,9 +483,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
         return ET_ERROR;
     }
 
-//    fprintf(stderr, "et_station_create_at: before et_station_lock\n");
     et_station_lock(sys);
-//    fprintf(stderr, "et_station_create_at: AFTER et_station_lock\n");
 
     /* see if station already exists, if so, stat_id = existing station */
     if (et_station_exists(id, stat_id, stat_name) == 1) {
@@ -595,7 +591,6 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
 
     if (isGrandCentral) {
         /* sys->stat_head = sys->stat_tail = ET_GRANDCENTRAL; */
-//fprintf(stderr, "et_station_create_at: created GC, END, release station & mem locks\n");
         et_station_unlock(sys);
         et_mem_unlock(etid);
         return ET_OK;
@@ -620,6 +615,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
 //fprintf(stderr, "et_station_create_at: AFTER locking sys->statadd_mutex, now signal cond var\n");
 
     /* Signal station creation thread to add one more */
+    sys->statAdd = 1;
     status = pthread_cond_signal(&sys->statadd);
     if (status != 0) {
         err_abort(status, "Signal add station");
@@ -659,9 +655,7 @@ int et_station_create_at(et_sys_id id, et_stat_id *stat_id, const char *stat_nam
     }
 
     /* mutex protect changes to station linked list / turn off event transfers */
-//    fprintf(stderr, "et_station_create_at: before et_transfer_lock_all\n");
     et_transfer_lock_all(etid);
-//    fprintf(stderr, "et_station_create_at: AFTER et_transfer_lock_all\n");
 
     /* insert station into linked list(s) */
     if (station_insert(etid, ps, position, parallelposition) != ET_OK) {

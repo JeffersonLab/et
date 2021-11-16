@@ -537,8 +537,6 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
     int status;
     pthread_mutexattr_t mattr;
     pthread_condattr_t  cattr;
-    pthread_mutexattr_t recurAttr;
-
 
     if (id->share == ET_MUTEX_SHARE) {
         /* set attribute for mutex & condition variable multiprocess sharing */
@@ -562,21 +560,6 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
           err_abort(status, "et_init_mem_sys");
         }
 
-//        /* set attribute for mutex recursion & multiprocess sharing */
-//        status = pthread_mutexattr_init(&recurAttr);
-//        if (status != 0) {
-//            err_abort(status, "et_init_mem_sys");
-//        }
-//        status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
-//        if (status != 0) {
-//            err_abort(status, "et_init_mem_sys");
-//        }
-//        status = pthread_mutexattr_setpshared(&recurAttr, PTHREAD_PROCESS_SHARED);
-//        if(status != 0) {
-//            err_abort(status, "et_init_mem_sys");
-//        }
-
-
         /* initialize mutex's & cv's in shared mem, ONLY ONCE! */
         pthread_mutex_init(&sys->mutex, &mattr);
         pthread_mutex_init(&sys->stat_mutex, &mattr);
@@ -585,17 +568,7 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
         pthread_cond_init (&sys->statdone,  &cattr);
     }
     else {
-//        /* set attribute for mutex recursion */
-//        status = pthread_mutexattr_init(&recurAttr);
-//        if (status != 0) {
-//            err_abort(status, "et_init_mem_sys");
-//        }
-//        status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
-//        if (status != 0) {
-//            err_abort(status, "et_init_mem_sys");
-//        }
-
-        pthread_mutex_init(&sys->mutex, NULL);
+       pthread_mutex_init(&sys->mutex, NULL);
         pthread_mutex_init(&sys->stat_mutex, NULL);
         pthread_mutex_init(&sys->statadd_mutex, NULL);
         pthread_cond_init (&sys->statadd, NULL);
@@ -624,6 +597,8 @@ static void et_init_mem_sys(et_id *id, et_sys_config *config)
   sys->nattachments = 0;
   sys->tcpFd        = -1;
   sys->udpFd        = -1;
+  sys->statAdd      = 0;
+  sys->statDone     = 0;
 
   sys->port         = 0;
  *sys->host         = '\0';
@@ -1031,7 +1006,6 @@ static void et_fix_mutexes(et_id *id)
 
 #ifdef MUTEX_INIT
   pthread_mutexattr_t mattr;
-  pthread_mutexattr_t recurAttr;
 
   if (id->share == ET_MUTEX_SHARE) {
     /* set attribute for mutex multiprocess sharing */
@@ -1043,20 +1017,6 @@ static void et_fix_mutexes(et_id *id)
     if (status != 0) {
       err_abort(status, "et_fix_mutexes");
     }
-
-//    /* set attribute for mutex recursion & multiprocess sharing */
-//    status = pthread_mutexattr_init(&recurAttr);
-//    if (status != 0) {
-//      err_abort(status, "et_fix_mutexes");
-//    }
-//    status = pthread_mutexattr_settype(&recurAttr, PTHREAD_MUTEX_RECURSIVE);
-//    if (status != 0) {
-//      err_abort(status, "et_fix_mutexes");
-//    }
-//    status = pthread_mutexattr_setpshared(&recurAttr, PTHREAD_PROCESS_SHARED);
-//    if(status != 0) {
-//      err_abort(status, "et_fix_mutexes");
-//    }
   }
 #endif
 
@@ -1206,8 +1166,6 @@ static void et_fix_linkedlist(et_id *id)
     
   }
   sys->stat_tail = ps->num;
-    
-  return;
 }
 
 
@@ -1431,31 +1389,31 @@ static void et_fix_nprocs(et_id *id)
 
 static void *et_add_stations(void *arg)
 {
-  pthread_t      thread_id;
-  pthread_attr_t attr;
-  int            status;
-  et_id         *id = (et_id *) arg;
-  et_system     *sys = id->sys;
-  const int      forever = 1;
-  
-  /* make conductor thread detached */
-  status = pthread_attr_init(&attr);
-  if(status != 0) {
-    err_abort(status, "Init thd attr");
-  }
-  status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if(status != 0) {
-    err_abort(status, "Set thd detach");
-  }
-  
-  /* send signal that thread started */
-  id->race = -1;
-  
-  /* grab ET add station mutex */
-  status = pthread_mutex_lock(&sys->statadd_mutex);
-  if (status != 0) {
-    err_abort(status, "Failed add station lock");
-  }
+    pthread_t      thread_id;
+    pthread_attr_t attr;
+    int            status;
+    et_id         *id = (et_id *) arg;
+    et_system     *sys = id->sys;
+    const int      forever = 1;
+
+    /* make conductor thread detached */
+    status = pthread_attr_init(&attr);
+    if(status != 0) {
+        err_abort(status, "Init thd attr");
+    }
+    status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    if(status != 0) {
+        err_abort(status, "Set thd detach");
+    }
+
+    /* send signal that thread started */
+    id->race = -1;
+
+    /* grab ET add station mutex */
+    status = pthread_mutex_lock(&sys->statadd_mutex);
+    if (status != 0) {
+        err_abort(status, "Failed add station lock");
+    }
 
     while (forever) {
         do {
@@ -1467,18 +1425,13 @@ static void *et_add_stations(void *arg)
             }
             sys->statAdd = 0;
 
-        if (status != 0) {
-        err_abort(status, "Wait et_add_stations thread");
-      }
-      if (sys->asthread == ET_THREAD_KILL) {
-        pthread_exit(NULL);
-      }
-    } while (sys->nstations > sys->config.nstations);
+            if (status != 0) {
+                err_abort(status, "Wait et_add_stations thread");
+            }
 
-    if (id->debug >= ET_DEBUG_INFO) {
-      et_logmsg("INFO", "et_add_stations, nstations = %d, stats_max = %d\n",
-                sys->nstations,sys->config.nstations);
-    }
+            if (sys->asthread == ET_THREAD_KILL) {
+                pthread_exit(NULL);
+            }
 
         } while (sys->nstations > sys->config.nstations);
 
@@ -1488,15 +1441,13 @@ static void *et_add_stations(void *arg)
         }
 
         /* Now that another station is added, add a "conductor"
-         * thread to move events from that station to the next.
-         */
+        * thread to move events from that station to the next. */
         status = pthread_create(&thread_id, &attr, et_conductor, arg);
         if (status != 0) {
             err_abort(status, "Create et_conductor thd");
         }
     }
-  }
-  return (NULL);
+    return (NULL);
 }
 
 /************************************************
