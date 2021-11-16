@@ -501,8 +501,8 @@ void *et_netserver(void *arg)
 //            et_logmsg("INFO", "et_netserver: magic numbers do match, accept ET client\n");
 //        }
 
-        if (debug)
-            printf("TCP server got a connection so spawn thread\n");
+//        if (debug)
+//            printf("TCP server got a connection so spawn thread\n");
 
         /* create thread to deal with client */
         pthread_create(&tid, &attr, et_client_thread, (void *) pinfo);
@@ -2227,31 +2227,12 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           et_forcedclose(clientId);
 
-          if (etid->debug >= ET_DEBUG_INFO) {
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-          }
+//          if (etid->debug >= ET_DEBUG_INFO) {
+//              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+//          }
 
           free(iov); free(header); free(histogram); free(events); free(ints32);
         }
-        pthread_exit(NULL);
         return;
 
         case  ET_NET_WAKE_ATT:
@@ -2967,9 +2948,9 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
     et_forcedclose(clientId);
 
-    if (etid->debug >= ET_DEBUG_WARN) {
-        et_logmsg("WARN", "et_command_loop: remote client connection broken\n");
-    }
+//    if (etid->debug >= ET_DEBUG_WARN) {
+//        et_logmsg("WARN", "et_command_loop: remote client connection broken\n");
+//    }
 
     free(iov); free(header); free(histogram); free(events); free(ints32);
 }
@@ -4580,9 +4561,9 @@ static void et_command_loop_system(et_threadinfo *info)
                         }
                     }
 
-                    if (etid->debug >= ET_DEBUG_INFO) {
-                        et_logmsg("INFO", "et_command_loop: remote client closing\n");
-                    }
+//                    if (etid->debug >= ET_DEBUG_INFO) {
+//                        et_logmsg("INFO", "et_command_loop: remote client closing\n");
+//                    }
 
                     free(iov); free(header); free(histogram); free(events); free(ints32);
                 }
@@ -5299,10 +5280,9 @@ static void et_command_loop_system(et_threadinfo *info)
         }
     }
 
-    if (etid->debug >= ET_DEBUG_WARN) {
-        et_logmsg("WARN", "et_command_loop: remote client connection broken\n");
-    }
+//    if (etid->debug >= ET_DEBUG_WARN) {
+//        et_logmsg("WARN", "et_command_loop: remote client connection broken\n");
+//    }
 
     free(iov); free(header); free(histogram); free(events); free(ints32);
-    return;
 }
