@@ -82,9 +82,11 @@ var menudata={children:[
 {text:"h",url:"globals_h.html#index_h"},
 {text:"i",url:"globals_i.html#index_i"},
 {text:"n",url:"globals_n.html#index_n"},
+{text:"r",url:"globals_r.html#index_r"},
 {text:"s",url:"globals_s.html#index_s"}]},
 {text:"Functions",url:"globals_func.html",children:[
-{text:"e",url:"globals_func.html#index_e"}]},
+{text:"e",url:"globals_func.html#index_e"},
+{text:"r",url:"globals_func_r.html#index_r"}]},
 {text:"Typedefs",url:"globals_type.html"},
 {text:"Macros",url:"globals_defs.html",children:[
 {text:"e",url:"globals_defs.html#index_e"},
