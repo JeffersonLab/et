@@ -2227,9 +2227,19 @@ ET_HIGHINT((uintptr_t)events[i]), ET_LOWINT((uintptr_t)events[i]));
 
           et_forcedclose(clientId);
 
-//          if (etid->debug >= ET_DEBUG_INFO) {
-//              et_logmsg("INFO", "et_command_loop: remote client closing\n");
-//          }
+          if (etid->debug >= ET_DEBUG_INFO) {
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+              et_logmsg("INFO", "et_command_loop: remote client closing\n");
+          }
 
           free(iov); free(header); free(histogram); free(events); free(ints32);
         }
