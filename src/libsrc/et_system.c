@@ -1538,7 +1538,6 @@ static void *et_conductor(void *arg)
         if (id->debug >= ET_DEBUG_WARN) {
             et_logmsg("WARN", "et_conductor, all stations have their conductors already\n");
         }
-        fprintf(stderr, "et_conductor: ERROR 1\n");
         pthread_exit(NULL);
     }
 

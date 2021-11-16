@@ -46,7 +46,7 @@ int et_mem_create(const char *name, size_t memsize, void **pmemory, size_t *tota
   wantedsize = memsize + ET_INITIAL_SHARED_MEM_DATA_BYTES;
   num_pages  = (int) ceil( ((double) wantedsize)/pagesize );
   totalsize  = pagesize * num_pages;
-printf("et_mem_create: size = %zu bytes, requested size = %zu bytes\n",totalsize, memsize);
+//printf("et_mem_create: size = %zu bytes, requested size = %zu bytes\n",totalsize, memsize);
 
   mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH | S_IXUSR | S_IXGRP | S_IXOTH ;
   if ((fd = open(name, O_RDWR|O_CREAT|O_EXCL, mode)) < 0) {
@@ -61,7 +61,7 @@ printf("et_mem_create: size = %zu bytes, requested size = %zu bytes\n",totalsize
       return ET_ERROR;
     }
   }
-    printf("et_mem_create: opened %s\n",name);
+//printf("et_mem_create: opened %s\n",name);
 
     /* map mem to process space */
   if ((pmem = mmap((caddr_t) 0, totalsize, PROT_READ|PROT_WRITE,
@@ -70,7 +70,7 @@ printf("et_mem_create: size = %zu bytes, requested size = %zu bytes\n",totalsize
     unlink(name);
     return ET_ERROR;
   }
-    printf("et_mem_create: memory mapped file %s\n",name);
+//printf("et_mem_create: memory mapped file %s\n",name);
 
   /* close fd for mapped mem since no longer needed */
   err = fchmod(fd, mode);
