@@ -181,9 +181,8 @@ void et_init_event(et_event *pe)
   pe->group      = 0;
   pe->pointer    = 0L;
   pe->modify     = 0;
-  for (i=0 ; i < ET_STATION_SELECT_INTS ; i++) {
-    pe->control[i] = 0;
-  }
+
+  memset(pe->control, 0, sizeof(pe->control));
 }
 
 /*****************************************************/
