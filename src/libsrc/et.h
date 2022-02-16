@@ -17,8 +17,8 @@
  *
  *----------------------------------------------------------------------------*/
 
-#ifndef _ET_H_
-#define _ET_H_
+#ifndef ET_H_
+#define ET_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +57,7 @@ extern "C" {
 
 #define ET_MULTICAST_ADDR  "239.200.0.0"    /**< Default multicast address to use in finding ET system. */
     
-#define ET_EVENT_GROUPS_MAX 200 /**< Default max number of groups events are divided into. */
+#define ET_EVENT_GROUPS_MAX 1000 /**< Default max number of groups events are divided into. */
 
 /*********************************************************************/
 /*                              WARNING                              */
@@ -568,6 +568,7 @@ extern int et_system_config_gettcp(et_sysconfig sconfig, int *rBufSize, int *sBu
 /*************************************************************/
 extern int et_system_setgroup(et_sys_id id, int  group);
 extern int et_system_getgroup(et_sys_id id, int *group);
+extern int et_system_getgroupcount(et_sys_id id, int *grpCount);
 extern int et_system_setdebug(et_sys_id id, int  debug);
 extern int et_system_getdebug(et_sys_id id, int *debug);
 extern int et_system_getlocality(et_sys_id id, int *locality);

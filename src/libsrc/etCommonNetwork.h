@@ -17,8 +17,8 @@
  *
  *----------------------------------------------------------------------------*/
  
-#ifndef __etCommonNetwork_h
-#define __etCommonNetwork_h
+#ifndef ET_COMMON_NETWORK_H_
+#define ET_COMMON_NETWORK_H_
 
 
 /*#include <netinet/ip.h>*/  /* IPTOS_LOWDELAY defn */

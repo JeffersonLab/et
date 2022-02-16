@@ -18,8 +18,8 @@
  *
  *----------------------------------------------------------------------------*/
 
-#ifndef __et_data_h
-#define __et_data_h
+#ifndef ET_DATA_H_
+#define ET_DATA_H_
 
 #include <sys/uio.h>     /* iovec */
 #include "et_private.h"

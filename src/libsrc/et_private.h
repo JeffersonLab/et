@@ -17,8 +17,8 @@
  *
  *----------------------------------------------------------------------------*/
 
-#ifndef __et_private_h
-#define __et_private_h
+#ifndef ET_PRIVATE_H_
+#define ET_PRIVATE_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 #define ET_VERSION 16           /**< Major version number. */
-#define ET_VERSION_MINOR 4      /**< Minor version number. */
+#define ET_VERSION_MINOR 5      /**< Minor version number. */
 
 #define ET_LANG_C     0         /**< C language version of ET software. */
 #define ET_LANG_CPP   1         /**< C++ language version of ET software.  */

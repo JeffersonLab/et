@@ -17,8 +17,8 @@
  *
  *----------------------------------------------------------------------------*/
  
-#ifndef __et_network_h
-#define __et_network_h
+#ifndef ET_NETWORK_H_
+#define ET_NETWORK_H_
 
 #include <arpa/inet.h>	 /* htonl stuff */
 #include <sys/ioctl.h>   /* find broacast addr */
