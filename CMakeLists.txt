@@ -63,6 +63,8 @@ set(HEADER_FILES
         src/libsrc/et_private.h
         src/libsrc/et.h
         src/libsrc/etCommonNetwork.h
+
+        src/multiFifo/et_fifo.h
         )
 
 set(SOURCE_FILES
@@ -85,6 +87,8 @@ set(SOURCE_FILES
         src/libsrc/et_sysconfig.c
         src/libsrc/et_system.c
         src/libsrc/etCommonNetwork.c
+
+        src/multiFifo/et_fifo.c
         )
 
 set (REMOTE_SOURCE_FILES
@@ -105,32 +109,36 @@ set (EXEC_SOURCE_FILES
         src/execsrc/et_monitor.c
         src/execsrc/et_printIFinfo.c
         src/execsrc/et_start.c
+        src/multiFifo/et_start_fifo.c
         )
 
 set (EXAMPLE_FILES
         src/examples/et_blaster.c
         src/examples/et_consumer.c
         src/examples/et_producer.c
+        src/examples/et_fifoProducer.c
+        src/examples/et_fifoConsumer.c
         src/examples/et_producerTest.c
         )
 
 
+# documentation build is optional and set it to OFF by default
+option(BUILD_DOC "Build documentation" OFF)
+
 # Search for doxygen executable
 find_package(Doxygen)
-if( DOXYGEN_FOUND )
+if (DOXYGEN_FOUND AND BUILD_DOC)
     message(STATUS "Doxygen found")
 
-    # Change these values from cmake defaults in the Doxyfile
-    set(DOXYGEN_GENERATE_TREEVIEW YES)
-    set(DOXYGEN_REFERENCED_BY_RELATION YES)
-    set(DOXYGEN_EXCLUDE_PATTERNS */.* */CMakeFiles/* CMakeLists.txt CMakeCache.txt)
-    set(DOXYGEN_FILE_PATTERNS *.c *.h)
-    #set(DOXYGEN_WARN_LOGFILE doxyerrors.log)
-    set(DOXYGEN_JAVADOC_AUTOBRIEF YES)
-    set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxygen/C)
+    # set output file
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_SOURCE_DIR}/doc/doxygen/DoxyfileC)
 
-    # Add target of "docs"
-    doxygen_add_docs(docs src/libsrc)
+    # note the option ALL which allows to build the docs together with the application
+    add_custom_target( doc_doxygen ALL
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM )
 endif()
 
 
@@ -167,7 +175,7 @@ foreach(fileName ${EXEC_SOURCE_FILES})
     # Put debug extension on if applicable
     set_target_properties(${execName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
     # Include directories
-    include_directories(${execName} PUBLIC src/libsrc)
+    include_directories(${execName} PUBLIC src/libsrc src/multiFifo)
     # Needs these libs
     target_link_libraries(${execName} et)
 
