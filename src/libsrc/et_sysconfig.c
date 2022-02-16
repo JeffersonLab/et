@@ -916,7 +916,7 @@ int et_system_config_getfile(et_sysconfig sconfig, char *val) {
  * events of any group. When the group number is set to a positive number, the same
  * calls only get events from the given group.
  *
- * @param sconfig   system id.
+ * @param id        system id.
  * @param val       ET system file name.
  *
  * @returns @ref ET_OK           if successful.
@@ -964,8 +964,8 @@ int et_system_setgroup(et_sys_id id, int group) {
 /**
  * This routine gets the default group number of the ET client.
  *
- * @param sconfig   system id.
- * @param group     int pointer which gets filled with the default group number.
+ * @param id     system id.
+ * @param group  int pointer which gets filled with the default group number.
  *
  * @returns @ref ET_OK      if successful.
  * @returns @ref ET_ERROR   if either arg is NULL or id not initialized.
@@ -981,6 +981,30 @@ int et_system_getgroup(et_sys_id id, int *group) {
     }
 
     *group = etid->group;
+    return ET_OK;
+}
+
+
+/**
+ * This routine gets the number of event groups in ET system.
+ *
+ * @param id     system id.
+ * @param val    int pointer which gets filled with the number of event groups.
+ *
+ * @returns @ref ET_OK      if successful.
+ * @returns @ref ET_ERROR   if either arg is NULL or id not initialized.
+ *
+ * @see et_system_config_setport.
+ */
+int et_system_getgroupcount(et_sys_id id, int *grpCount) {
+
+    et_id *etid = (et_id *) id;
+
+    if (grpCount == NULL || etid == NULL || etid->init != ET_STRUCT_OK) {
+        return ET_ERROR;
+    }
+
+    *grpCount = etid->sys->config.groupCount;
     return ET_OK;
 }
 
