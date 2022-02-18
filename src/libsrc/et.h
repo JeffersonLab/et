@@ -149,25 +149,25 @@ extern "C" {
  */
 
 #define ET_OK              0   /**< No error. */
-#define ET_ERROR          -1   /**< General error. */
-#define ET_ERROR_TOOMANY  -2   /**< Too many somethings (stations, attachments, temp events, ET system responses) exist. */
-#define ET_ERROR_EXISTS   -3   /**< ET system file or station already exists. */
-#define ET_ERROR_WAKEUP   -4   /**< Sleeping routine woken up by {@link et_wakeup_attachment()} or {@link et_wakeup_all()}. */
-#define ET_ERROR_TIMEOUT  -5   /**< Timed out. */
-#define ET_ERROR_EMPTY    -6   /**< No events available in async mode. */
-#define ET_ERROR_BUSY     -7   /**< Resource is busy. */
-#define ET_ERROR_DEAD     -8   /**< ET system is dead. */
-#define ET_ERROR_READ     -9   /**< Network read error */
-#define ET_ERROR_WRITE    -10  /**< Network write error, */
-#define ET_ERROR_REMOTE   -11  /**< Cannot allocate memory in remote client. */
-#define ET_ERROR_NOREMOTE -12  /**< (Currently not used). */
-#define ET_ERROR_TOOBIG   -13  /**< Client is 32 bits & server is 64 (or vice versa) and event is too big for one. */
-#define ET_ERROR_NOMEM    -14  /**< Cannot allocate memory. */
-#define ET_ERROR_BADARG   -15  /**< Bad argument given to function. */
-#define ET_ERROR_SOCKET   -16  /**< Socket option could not be set. */
-#define ET_ERROR_NETWORK  -17  /**< Host name or address could not be resolved, or cannot connect. */
-#define ET_ERROR_CLOSED   -18  /**< ET system has been closed by client. */
-#define ET_ERROR_JAVASYS  -19  /**< C code trying to open Java-based ET system file locally. */
+#define ET_ERROR          (-1)   /**< General error. */
+#define ET_ERROR_TOOMANY  (-2)   /**< Too many somethings (stations, attachments, temp events, ET system responses) exist. */
+#define ET_ERROR_EXISTS   (-3)   /**< ET system file or station already exists. */
+#define ET_ERROR_WAKEUP   (-4)   /**< Sleeping routine woken up by {@link et_wakeup_attachment()} or {@link et_wakeup_all()}. */
+#define ET_ERROR_TIMEOUT  (-5)   /**< Timed out. */
+#define ET_ERROR_EMPTY    (-6)   /**< No events available in async mode. */
+#define ET_ERROR_BUSY     (-7)   /**< Resource is busy. */
+#define ET_ERROR_DEAD     (-8)   /**< ET system is dead. */
+#define ET_ERROR_READ     (-9)   /**< Network read error */
+#define ET_ERROR_WRITE    (-10)  /**< Network write error, */
+#define ET_ERROR_REMOTE   (-11)  /**< Cannot allocate memory in remote client. */
+#define ET_ERROR_NOREMOTE (-12)  /**< (Currently not used). */
+#define ET_ERROR_TOOBIG   (-13)  /**< Client is 32 bits & server is 64 (or vice versa) and event is too big for one. */
+#define ET_ERROR_NOMEM    (-14)  /**< Cannot allocate memory. */
+#define ET_ERROR_BADARG   (-15)  /**< Bad argument given to function. */
+#define ET_ERROR_SOCKET   (-16)  /**< Socket option could not be set. */
+#define ET_ERROR_NETWORK  (-17)  /**< Host name or address could not be resolved, or cannot connect. */
+#define ET_ERROR_CLOSED   (-18)  /**< ET system has been closed by client. */
+#define ET_ERROR_JAVASYS  (-19)  /**< C code trying to open Java-based ET system file locally. */
 /** @} */
 
 /* Debug levels */

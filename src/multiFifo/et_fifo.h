@@ -34,37 +34,50 @@ extern "C" {
 #endif
 
 
-/** Structure to hold the current state of a station. */
-typedef struct et_fifo_context_t {
-    size_t     evSize;    /**< Size in bytes of each ET buffer/event. */
-    int     evCount;   /**< Number of buffers/events in ET system. */
-    int     entries;   /**< Number of fifo entries in ET system. */
-    int     producer;   /**< True if producing fifo entries, false if consuming fifo entries. */
-    int        count;   /**< Width of this fifo element (number of buffers contained max). */
-    et_sys_id  openId;  /**< Id returned from et_open. */
-    et_att_id  attId;    /**< Attachment to GrandCentral Station for data producers
-                          * User for data consumers. */
-    et_event **bufs;
-} et_fifo_ctx;
-
-
 typedef void *et_fifo_id;        /**< ET fifo id. */
 
 
-extern int  et_fifo_open(et_sys_id id, et_fifo_id *fifoId, int isProducer);
-extern void et_fifo_close(et_fifo_id fifoId);
+/** Structure to hold the context of a fifo connection to ET. */
+typedef struct et_fifo_context_t {
+    size_t     evSize;     /**< Size in bytes of each ET buffer/event. */
+    int       evCount;     /**< Number of buffers/events in ET system. */
+    int       entries;     /**< Number of fifo entries in ET system. */
+    int      producer;     /**< True if producing fifo entries, false if consuming fifo entries. */
+    int         count;     /**< Width of this fifo element (number of buffers contained max). */
+    et_sys_id  openId;     /**< Id returned from et_open. */
+    et_att_id   attId;     /**< Attachment to GrandCentral Station for data producers
+                            * User for data consumers. */
+    int idCount;           /**< Number of elements in bufIds array. */
+    int *bufIds;           /**< Array to hold ids - one for each buffer of a fifo entry. */
+} et_fifo_ctx;
 
-extern int  et_fifo_newBufs(et_fifo_id id);
-extern int  et_fifo_newBufsTO(et_fifo_id id, struct timespec *deltatime);
 
-extern int  et_fifo_getBufs(et_fifo_id id);
-extern int  et_fifo_getBufsTO(et_fifo_id id, struct timespec *deltatime);
+/** Structure to hold the a fifo entry obtained from ET. */
+typedef struct et_fifo_entry_t {
+    et_event **bufs;   /**< array of ET events. */
+    et_fifo_id  fid;   /**< fifo id used to get these events from ET. */
+} et_fifo_entry;
 
-extern int  et_fifo_putBufs(et_fifo_id id);
 
-extern int  et_fifo_getBufSize(et_fifo_id id);
-extern int  et_fifo_getEntryCount(et_fifo_id id);
-extern et_event** et_fifo_getBufArray(et_fifo_id id);
+extern int  et_fifo_open(et_sys_id fid, et_fifo_id *fifoId, int isProducer, const int *bufIds, int bidCount);
+extern void et_fifo_close(et_fifo_id fid);
+
+extern int  et_fifo_newEntry(et_fifo_id fid, et_fifo_entry **entry);
+extern int  et_fifo_newEntryTO(et_fifo_id fid, et_fifo_entry **entry, struct timespec *deltatime);
+
+extern int  et_fifo_getEntry(et_fifo_id fid, et_fifo_entry **entry);
+extern int  et_fifo_getEntryTO(et_fifo_id fid, et_fifo_entry **entry, struct timespec *deltatime);
+
+extern int  et_fifo_putEntry(et_fifo_entry *entry);
+
+extern size_t  et_fifo_getBufSize(et_fifo_id fid);
+extern int     et_fifo_getEntryCount(et_fifo_id fid);
+
+extern et_event** et_fifo_getBufs(et_fifo_entry *entry);
+extern et_event*  et_fifo_getBuf(int id, et_fifo_entry *entry);
+
+extern void et_fifo_setId(et_event *ev, int id);
+extern  int et_fifo_getId(et_event *ev);
 
 
 

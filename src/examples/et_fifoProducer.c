@@ -49,6 +49,7 @@ int main(int argc,char **argv) {
 
     et_sys_id id;
     et_fifo_id fid;
+    et_fifo_entry *entry;
 
     et_openconfig openconfig;
     et_event **pe;
@@ -431,14 +432,14 @@ int main(int argc,char **argv) {
     while (1) {
 
         /* Grab new buffers */
-        status = et_fifo_newBufs(fid);
+        status = et_fifo_newEntry(fid, &entry);
         if (status != ET_OK) {
             printf("%s: et_fifo_newBufs error\n", argv[0]);
             goto error;
         }
 
         /* Access the new buffers */
-        pe = et_fifo_getBufArray(fid);
+        pe = et_fifo_getBufs(entry);
 
         /* if blasting data (and remote), don't write anything, just use what's in buffer when allocated */
         if (blast) {
@@ -472,7 +473,7 @@ int main(int argc,char **argv) {
         }
 
         /* put events back into the ET system */
-        status = et_fifo_putBufs(fid);
+        status = et_fifo_putEntry(entry);
         if (status != ET_OK) {
             printf("%s: et_fifo_putBufs error\n", argv[0]);
             goto error;

@@ -51,6 +51,7 @@ int main(int argc,char **argv) {
     pthread_t       tid;
     et_sys_id       id;
     et_fifo_id      fid;
+    et_fifo_entry   *entry;
 
     et_statconfig   sconfig;
     et_event        **pe;
@@ -417,14 +418,14 @@ int main(int argc,char **argv) {
         //}
 
         /* example of reading array of up to "chunk" events */
-        status = et_fifo_getBufs(fid);
+        status = et_fifo_getEntry(fid, &entry);
         if (status != ET_OK) {
             printf("%s: error getting events\n", argv[0]);
             goto error;
         }
 
         /* Access the new buffers */
-        pe = et_fifo_getBufArray(fid);
+        pe = et_fifo_getBufs(entry);
 
         /*******************/
         /* read/print data */
@@ -485,7 +486,7 @@ int main(int argc,char **argv) {
         /*******************/
 
         /* putting array of events */
-        status = et_fifo_putBufs(fid);
+        status = et_fifo_putEntry(entry);
         if (status != ET_OK) {
             printf("%s: error getting events\n", argv[0]);
             goto error;
