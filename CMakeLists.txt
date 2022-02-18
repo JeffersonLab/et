@@ -219,7 +219,7 @@ endif()
 if (DEFINED INSTALL_DIR_DEFINED)
     # Installation defaulting to ${CMAKE_INSTALL_PREFIX}/lib or include
     install(TARGETS et et_remote LIBRARY DESTINATION lib)
-    install(FILES ${HEADER_FILES} DESTINATION include)
+    install(FILES ${HEADER_FILES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
 
 
