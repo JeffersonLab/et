@@ -122,7 +122,7 @@
  *                                 to the station or system limit.
  * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user
  */
-int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int *bufIds, int bidCount) {
+static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int *bufIds, int bidCount) {
 
     et_stat_id statId;
     et_fifo_ctx *ctx;
@@ -134,7 +134,7 @@ int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int *bufId
     }
 
     ctx->producer  = isProducer;
-    ctx->count     = 0;
+    ctx->capacity  = 0;
     ctx->entries   = 0;
     ctx->openId    = id;
     ctx->attId     = -1;
@@ -169,7 +169,7 @@ int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int *bufId
         return ET_ERROR;
     }
 
-    ctx->count = ctx->evCount / ctx->entries;
+    ctx->capacity = ctx->evCount / ctx->entries;
 
     // Now the station attachments.
     // In an ET system started by et_start_fifo, there are 2 stations:
@@ -197,19 +197,95 @@ int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int *bufId
     }
 
     // Save ids if any provided
-    if (bufIds != NULL && bidCount > 0) {
-        bidCount = bidCount > ctx->count ? ctx->count : bidCount;
+    if (isProducer && (bufIds != NULL) && (bidCount > 0)) {
+        bidCount = bidCount > ctx->capacity ? ctx->capacity : bidCount;
         ctx->idCount = bidCount;
         ctx->bufIds  = (int *) malloc(bidCount * sizeof(int));
         memcpy(ctx->bufIds, bufIds, bidCount * sizeof(int));
     }
 
     et_logmsg("INFO", "et_fifo_open, ET events of size %lu, count %d, entry width %d, fifo entries %d\n",
-              ctx->evSize, ctx->evCount, ctx->count, ctx->entries);
+              ctx->evSize, ctx->evCount, ctx->capacity, ctx->entries);
 
 
     *fid = (et_fifo_id) ctx;
     return ET_OK;
+}
+
+
+/**
+ * <p>
+ * This routine creates a handle (et_fifo_id) with which to interact with an ET system
+ * by treating it as a FIFO in which each element has multiple buffers (events).
+ * The caller acts only as a data producer, with calls to {@link #et_fifo_newEntry}
+ * allowed, but calls to {@link #et_fifo_getEntry} forbidden.
+ * </p>
+ *
+ * <b>
+ * In order for this to work, the ET system being used must be started by
+ * et_start_fifo, NOT et_start.
+ * </b>
+ *
+ * @param id         id of an opened ET system.
+ * @param fid        pointer to fifo id which gets filled in if ET system successfully opened
+ *                   and defined in a fifo-consistent manner.
+ * @param bufIds     array of ids, assign one to each buffer of each fifo entry.
+ *                   If more provided than needed, only the first are used.
+ * @param bidCount   number of ints in bufIds array.
+ *
+ * @returns @ref ET_OK             if successful.
+ * @returns @ref ET_ERROR          if either id or fid is NULL,
+ *                                 or id not initialized,
+ *                                 or number of events not multiple of fifo entries.
+ * @returns @ref ET_ERROR_NOMEM    if memory cannot be allocated.
+ * @returns @ref ET_ERROR_CLOSED   if et_close already called.
+ * @returns @ref ET_ERROR_DEAD     if ET system is dead.
+ * @returns @ref ET_ERROR_READ     for a remote user's network read error.
+ * @returns @ref ET_ERROR_WRITE    for a remote user's network write error.
+ * @returns @ref ET_ERROR_TOOMANY  if the existing number of attachments to GC or Users is already equal
+ *                                 to the station or system limit.
+ * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user
+ */
+int et_fifo_openProducer(et_sys_id id, et_fifo_id *fid, const int *bufIds, int bidCount) {
+    return et_fifo_open(id, fid, 1, bufIds, bidCount);
+}
+
+
+/**
+ * <p>
+ * This routine creates a handle (et_fifo_id) with which to interact with an ET system
+ * by treating it as a FIFO in which each element has multiple buffers (events).
+ * The caller acts only as a data consumer , with calls to {@link #et_fifo_getEntry}
+ * allowed, but calls to {@link #et_fifo_newEntry} forbidden.
+ * </p>
+ *
+ * <b>
+ * In order for this to work, the ET system being used must be started by
+ * et_start_fifo, NOT et_start.
+ * </b>
+ *
+ * @param id         id of an opened ET system.
+ * @param fid        pointer to fifo id which gets filled in if ET system successfully opened
+ *                   and defined in a fifo-consistent manner.
+ * @param bufIds     array of ids, assign one to each buffer of each fifo entry.
+ *                   If more provided than needed, only the first are used.
+ * @param bidCount   number of ints in bufIds array.
+ *
+ * @returns @ref ET_OK             if successful.
+ * @returns @ref ET_ERROR          if either id or fid is NULL,
+ *                                 or id not initialized,
+ *                                 or number of events not multiple of fifo entries.
+ * @returns @ref ET_ERROR_NOMEM    if memory cannot be allocated.
+ * @returns @ref ET_ERROR_CLOSED   if et_close already called.
+ * @returns @ref ET_ERROR_DEAD     if ET system is dead.
+ * @returns @ref ET_ERROR_READ     for a remote user's network read error.
+ * @returns @ref ET_ERROR_WRITE    for a remote user's network write error.
+ * @returns @ref ET_ERROR_TOOMANY  if the existing number of attachments to GC or Users is already equal
+ *                                 to the station or system limit.
+ * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user
+ */
+int et_fifo_openConsumer(et_sys_id id, et_fifo_id *fid) {
+    return et_fifo_open(id, fid, 0, NULL, 0);
 }
 
 
@@ -248,7 +324,8 @@ static et_fifo_entry* et_fifo_entry_create(et_fifo_id fid) {
     et_fifo_entry* pentry = (et_fifo_entry*) malloc(sizeof(et_fifo_entry));
     if (pentry == NULL) return NULL;
     pentry->fid = fid;
-    pentry->bufs = (et_event **) malloc(ctx->count * sizeof(et_event *));
+    pentry->size = 0;
+    pentry->bufs = (et_event **) malloc(ctx->capacity * sizeof(et_event *));
     if (pentry->bufs == NULL) {
         free(pentry);
         return NULL;
@@ -309,17 +386,17 @@ int et_fifo_newEntry(et_fifo_id fid, et_fifo_entry **entry) {
 
     // When getting new events we forget about group # - not needed anymore
     int err = et_events_new(ctx->openId, ctx->attId, pentry->bufs,
-                            ET_SLEEP, NULL, ctx->evSize, ctx->count, &nread);
+                            ET_SLEEP, NULL, ctx->evSize, ctx->capacity, &nread);
     if (err != ET_OK) {
         et_fifo_free_entry(pentry);
         return err;
     }
 
-    if (nread != ctx->count) {
+    if (nread != ctx->capacity) {
         // System is designed to always get ctx->count buffers
         // with each read if there are bufs available
         et_fifo_free_entry(pentry);
-        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->count, nread);
+        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->capacity, nread);
         return ET_ERROR;
     }
 
@@ -328,7 +405,7 @@ int et_fifo_newEntry(et_fifo_id fid, et_fifo_entry **entry) {
     for (i = 0; i < ctx->idCount; i++) {
         pentry->bufs[i]->control[0] = ctx->bufIds[i];
     }
-    for (i = ctx->idCount; i < ctx->count; i++) {
+    for (i = ctx->idCount; i < ctx->capacity; i++) {
         pentry->bufs[i]->control[0] = -1;
     }
 
@@ -381,22 +458,22 @@ int et_fifo_newEntryTO(et_fifo_id fid, et_fifo_entry **entry, struct timespec *d
     }
 
     int err = et_events_new(ctx->openId, ctx->attId, pentry->bufs,
-                            ET_TIMED, deltatime, ctx->evSize, ctx->count, &nread);
+                            ET_TIMED, deltatime, ctx->evSize, ctx->capacity, &nread);
     if (err != ET_OK) {
         et_fifo_free_entry(pentry);
         return err;
     }
 
-    if (nread != ctx->count) {
+    if (nread != ctx->capacity) {
         et_fifo_free_entry(pentry);
-        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->count, nread);
+        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->capacity, nread);
         return ET_ERROR;
     }
 
     for (i = 0; i < ctx->idCount; i++) {
         pentry->bufs[i]->control[0] = ctx->bufIds[i];
     }
-    for (i = ctx->idCount; i < ctx->count; i++) {
+    for (i = ctx->idCount; i < ctx->capacity; i++) {
         pentry->bufs[i]->control[0] = -1;
     }
 
@@ -444,13 +521,13 @@ int et_fifo_getEntry(et_fifo_id fid, et_fifo_entry **entry) {
     }
 
     int err = et_events_get(ctx->openId, ctx->attId, pentry->bufs,
-                            ET_SLEEP, NULL, ctx->count, &nread);
+                            ET_SLEEP, NULL, ctx->capacity, &nread);
     if (err != ET_OK) {
         return err;
     }
 
-    if (nread != ctx->count) {
-        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->count, nread);
+    if (nread != ctx->capacity) {
+        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->capacity, nread);
         return ET_ERROR;
     }
 
@@ -500,13 +577,13 @@ int et_fifo_getEntryTO(et_fifo_id fid, et_fifo_entry **entry, struct timespec *d
     }
 
     int err = et_events_get(ctx->openId, ctx->attId, pentry->bufs,
-                            ET_TIMED, deltatime, ctx->count, &nread);
+                            ET_TIMED, deltatime, ctx->capacity, &nread);
     if (err != ET_OK) {
         return err;
     }
 
-    if (nread != ctx->count) {
-        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->count, nread);
+    if (nread != ctx->capacity) {
+        et_logmsg("ERROR", "Asked for %d but only got %d\n", ctx->capacity, nread);
         return ET_ERROR;
     }
 
@@ -541,7 +618,7 @@ int et_fifo_putEntry(et_fifo_entry *entry) {
     if (ctx == NULL) return ET_ERROR;
 
     // Put back into ET
-    int err = et_events_put(ctx->openId, ctx->attId, entry->bufs, ctx->count);
+    int err = et_events_put(ctx->openId, ctx->attId, entry->bufs, ctx->capacity);
     if (err != ET_OK) {
         return err;
     }
@@ -573,20 +650,89 @@ et_event** et_fifo_getBufs(et_fifo_entry *entry) {
  */
 size_t et_fifo_getBufSize(et_fifo_id id) {
     et_fifo_ctx *ctx = (et_fifo_ctx *)id;
-    if (ctx ==  NULL) return ET_ERROR;
+    if (ctx == NULL) return ET_ERROR;
     return ctx->evSize;
 };
 
 
 /**
- * This routine gets the number of buffers in each FIFO entry.
+ * This routine gets the max number of buffers in each FIFO entry.
  * @param id  ET fifo handle.
- * @return number of buffers in each FIFO entry, or ET_ERROR if bad arg.
+ * @return max number of buffers in each FIFO entry, or ET_ERROR if bad arg.
  */
-int et_fifo_getEntryCount(et_fifo_id id) {
+int et_fifo_getEntryCapacity(et_fifo_id id) {
     et_fifo_ctx *ctx = (et_fifo_ctx *)id;
-    if (ctx ==  NULL) return ET_ERROR;
-    return ctx->count;
+    if (ctx == NULL) return ET_ERROR;
+    return ctx->capacity;
+};
+
+
+/**
+ * This routine gets the number of buffers with data in this FIFO entry.
+ * This is only meaningful if the producer has faithfully called
+ * {@link #et_fifo_incrementEntrySize} when adding data to a buffer.
+ * One could look at buffer lengths to determine if there is data, but
+ * that will fail in the case that a user has sent zero length data.
+ *
+ * @param id  ET fifo handle.
+ * @return number of buffers with data in this FIFO entry, or ET_ERROR if bad arg.
+ */
+int et_fifo_getEntrySize(et_fifo_entry *entry) {
+    if (entry == NULL) return ET_ERROR;
+    return entry->size;
+};
+
+
+/**
+ * This routine gets the number of buffers with data in this FIFO entry.
+ * Not threadsafe.
+ * @param id  ET fifo handle.
+ * @return number of buffers with data in each FIFO entry, or ET_ERROR if bad arg
+ *         or already at capacity.
+ */
+int et_fifo_incrementEntrySize(et_fifo_entry *entry) {
+    if (entry == NULL) return ET_ERROR;
+    et_fifo_ctx *ctx = (et_fifo_ctx *)(entry->fid);
+    if (ctx == NULL) return ET_ERROR;
+    if (entry->size == ctx->capacity) return ET_ERROR;
+    return entry->size++;
+};
+
+
+/**
+ * This routine gets the number of buffers with data in each FIFO entry.
+ * Not threadsafe.
+ * @param id  ET fifo handle.
+ * @return number of buffers with data in each FIFO entry, or ET_ERROR if bad arg
+ *         or already at 0.
+ */
+int et_fifo_decrementEntrySize(et_fifo_entry *entry) {
+    if (entry == NULL || entry->size == 0) return ET_ERROR;
+    return entry->size--;
+};
+
+
+/**
+ * This routine gets the number of buffers assigned an id in each FIFO entry creation.
+ * @param id  ET fifo handle.
+ * @return number of buffers assigned an id in each FIFO entry, or ET_ERROR if bad arg.
+ */
+int et_fifo_getIdCount(et_fifo_id id) {
+    et_fifo_ctx *ctx = (et_fifo_ctx *)id;
+    if (ctx == NULL) return ET_ERROR;
+    return ctx->idCount;
+};
+
+
+/**
+ * This routine gets the number of buffers assigned an id in each FIFO entry.
+ * @param id  ET fifo handle.
+ * @return number of buffers assigned an id in each FIFO entry, or ET_ERROR if bad arg.
+ */
+int et_fifo_getBufIds(et_fifo_id id, int **bufIds) {
+    et_fifo_ctx *ctx = (et_fifo_ctx *)id;
+    if (ctx == NULL) return ET_ERROR;
+    return 0;
 };
 
 
@@ -628,7 +774,7 @@ et_event* et_fifo_getBuf(int id, et_fifo_entry *entry) {
     et_fifo_ctx *ctx = (et_fifo_ctx *)(entry->fid);
 
     int i, c0;
-    for (i=0; i < ctx->count; i++) {
+    for (i=0; i < ctx->capacity; i++) {
         c0 = entry->bufs[i]->control[0];
 
         if (c0 == id) {
