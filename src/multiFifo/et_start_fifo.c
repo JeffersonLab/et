@@ -30,9 +30,9 @@ void printHelp(char *program) {
     fprintf(stderr, "          -d     deletes any existing file first\n");
     fprintf(stderr, "          -f     memory-mapped file name\n\n");
 
-    fprintf(stderr, "          -s     buffer size in bytes\n");
-    fprintf(stderr, "          -n     number of buffers per fifo entry\n");
-    fprintf(stderr, "          -e     number of fifo entries (1000 max)\n\n");
+    fprintf(stderr, "          -s     buffer size in bytes (3000 default)\n");
+    fprintf(stderr, "          -n     number of buffers per fifo entry (10 default\n");
+    fprintf(stderr, "          -e     number of fifo entries (2000 max, 10 min, 100 default)\n\n");
 
     fprintf(stderr, "          -p     TCP server port #\n");
     fprintf(stderr, "          -u     UDP (broadcast &/or multicast) port #\n");
@@ -50,9 +50,6 @@ void printHelp(char *program) {
 int main(int argc, char **argv) {
 
     int c, i_tmp, errflg = 0;
-    extern char *optarg;
-    extern int optind;
-
     int mcastAddrCount = 0, mcastAddrMax = 10;
     char mcastAddr[mcastAddrMax][ET_IPADDRSTRLEN];
     int j, status, sig_num, serverPort = 0, udpPort = 0;
@@ -143,10 +140,10 @@ int main(int argc, char **argv) {
 
             case 'e':
                 i_tmp = atoi(optarg);
-                if (i_tmp > 0 && i_tmp < ET_EVENT_GROUPS_MAX+1) {
+                if (i_tmp > 9 && i_tmp < ET_EVENT_GROUPS_MAX+1) {
                     entries = i_tmp;
                 } else {
-                    printf("Invalid argument to -g. Must be 1001 > g > 0.\n");
+                    printf("Invalid argument to -e. Must be 2001 > e > 9.\n");
                     exit(-1);
                 }
                 break;
@@ -325,9 +322,20 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    /* Define station to create with default parameters
-     * (blocking & allowing multiple users) */
+    /*
+     * Define a station to create for consumers of data-filled fifo entries.
+     * It allows multiple users by default.
+     * Set it to be non-blocking and set the queue (cue) size to be
+     * 1 fifo-width shy of the full number of events. Why do this?
+     * For 2 reasons. First, so that the producer is always able to get a new
+     * entry at any time without being blocked. Second, when this station's input is
+     * full because of a slow consumer, it will essentially drop all the new data
+     * automatically with no special intervention necessary - default behavior.
+     */
     et_station_config_init(&sconfig);
+    et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
+    // TODO: might consider making this (nevents - 2*entryCount) ...
+    et_station_config_setcue(sconfig, nevents - entryCount);
     if ((status = et_station_create(id, &my_stat, "Users", sconfig)) != ET_OK) {
         printf("%s: error in creating station \"Users\"\n", argv[0]);
         exit(1);

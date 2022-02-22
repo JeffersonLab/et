@@ -121,6 +121,8 @@ set (EXAMPLE_FILES
         src/examples/et_producerTest.c
         )
 
+# ET build is optional and set it to ON by default
+option(BUILD_EXAMPLES "Build ET-related example programs" ON)
 
 # documentation build is optional and set it to OFF by default
 option(BUILD_DOC "Build documentation" OFF)

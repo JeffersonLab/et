@@ -39,7 +39,7 @@ int main(int argc,char **argv) {
     int             errflg=0, chunk=1, qSize=0, verbose=0, remote=0, blocking=1, dump=0, readData=0;
     int             multicast=0, broadcast=0, broadAndMulticast=0;
     int		        con[ET_STATION_SELECT_INTS];
-    int             sendBufSize=0, recvBufSize=0, noDelay=0;
+    int             sendBufSize=0, recvBufSize=0, noDelay=0, delay=0;
     int             debugLevel = ET_DEBUG_ERROR;
     unsigned short  port=0;
     char            stationName[ET_STATNAME_LENGTH], et_name[ET_FILENAME_LENGTH], host[256], interface[16];
@@ -57,12 +57,9 @@ int main(int argc,char **argv) {
     et_event        **pe;
     et_openconfig   openconfig;
     sigset_t        sigblock;
+    struct timespec getDelay;
     struct timespec timeout;
-#if defined __APPLE__
-    struct timeval  t1, t2;
-#else
     struct timespec t1, t2;
-#endif
 
     /* statistics variables */
     double          rate=0.0, avgRate=0.0;
@@ -83,9 +80,9 @@ int main(int argc,char **argv) {
     memset(interface, 0, 16);
     memset(mcastAddr, 0, (size_t) mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
-    memset(stationName, 0, ET_STATNAME_LENGTH);
+    strcpy(stationName, "Users");
 
-    while ((c = getopt_long_only(argc, argv, "vbmhrn:s:p:f:a:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vbmhrn:s:p:f:a:i:d:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -105,6 +102,16 @@ int main(int argc,char **argv) {
                     port = (unsigned short)i_tmp;
                 } else {
                     printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
+                    exit(-1);
+                }
+                break;
+
+            case 'd':
+                i_tmp = atoi(optarg);
+                if (i_tmp >= 0) {
+                    delay = i_tmp;
+                } else {
+                    printf("Invalid argument to -d. Must be >= 0 millisec\n");
                     exit(-1);
                 }
                 break;
@@ -214,9 +221,9 @@ int main(int argc,char **argv) {
     if (optind < argc || errflg || strlen(et_name) < 1) {
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n\n",
-                argv[0], "-f <ET name> -s <station name>",
+                argv[0], "-f <ET name>",
                 "                     [-h] [-v] [-nb] [-r] [-m] [-b] [-nd] [-read]",
-                "                     [-host <ET host>] [-p <ET port>]",
+                "                     [-host <ET host>] [-p <ET port>] [-d <delay ms>]",
                 "                     [-i <interface address>] [-a <mcast addr>]",
                 "                     [-rb <buf size>] [-sb <buf size>]");
 
@@ -229,7 +236,7 @@ int main(int argc,char **argv) {
         fprintf(stderr, "          -r    act as remote (TCP) client even if ET system is local\n");
         fprintf(stderr, "          -p    port, TCP if direct, else UDP\n\n");
 
-        fprintf(stderr, "          -nb   make station non-blocking\n");
+        fprintf(stderr, "          -d    delay between fifo gets in milliseconds\n");
 
         fprintf(stderr, "          -i    outgoing network interface address (dot-decimal)\n");
         fprintf(stderr, "          -a    multicast address(es) (dot-decimal), may use multiple times\n");
@@ -253,6 +260,12 @@ int main(int argc,char **argv) {
 
     timeout.tv_sec  = 2;
     timeout.tv_nsec = 0;
+
+    /* delay is in milliseconds */
+    if (delay > 0) {
+        getDelay.tv_sec = delay / 1000;
+        getDelay.tv_nsec = (delay - (delay / 1000) * 1000) * 1000000;
+    }
 
     /*************************/
     /* setup signal handling */
@@ -384,24 +397,25 @@ int main(int argc,char **argv) {
     /***********************/
     /* Use FIFO interface  */
     /***********************/
-    status = et_fifo_open(id, &fid, 0);
+    status = et_fifo_openConsumer(id, &fid);
     if (status != ET_OK) {
         printf("%s: et_fifo_open problems\n", argv[0]);
         exit(1);
     }
 
     /* no error here */
-    numRead = et_fifo_getEntryCount(fid);
+    numRead = et_fifo_getEntryCapacity(fid);
+
+    entry = et_fifo_entryCreate(fid);
+    if (entry == NULL) {
+        printf("%s: et_fifo_open out of mem\n", argv[0]);
+        exit(1);
+    }
 
 
     /* read time for future statistics calculations */
-#if defined __APPLE__
-    gettimeofday(&t1, NULL);
-    time1 = 1000L*t1.tv_sec + t1.tv_usec/1000L; /* milliseconds */
-#else
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L; /* milliseconds */
-#endif
 
 
     while (1) {
@@ -410,15 +424,15 @@ int main(int argc,char **argv) {
         /* get events */
         /**************/
 
-        /* example of single, timeout read */
-        //status = et_fifo_getBufsTO(fid, &timeout);
+        /* Example of single, timeout read */
+        //status = et_fifo_getEntryTO(fid, &timeout);
         //if (status == ET_ERROR_TIMEOUT) {
         //    printf("%s: got timeout\n", argv[0]);
         //    continue;
         //}
 
-        /* example of reading array of up to "chunk" events */
-        status = et_fifo_getEntry(fid, &entry);
+        /* Example of reading a fifo entry */
+        status = et_fifo_getEntry(fid, entry);
         if (status != ET_OK) {
             printf("%s: error getting events\n", argv[0]);
             goto error;
@@ -497,13 +511,8 @@ int main(int argc,char **argv) {
         end:
 
         /* statistics */
-#if defined __APPLE__
-        gettimeofday(&t2, NULL);
-        time2 = 1000L*t2.tv_sec + t2.tv_usec/1000L; /* milliseconds */
-#else
         clock_gettime(CLOCK_REALTIME, &t2);
         time2 = 1000L*t2.tv_sec + t2.tv_nsec/1000000L; /* milliseconds */
-#endif
         time = time2 - time1;
         if (time > 5000) {
             /* reset things if necessary */
@@ -529,18 +538,21 @@ int main(int argc,char **argv) {
 
             bytes = count = 0;
 
-#if defined __APPLE__
-            gettimeofday(&t1, NULL);
-            time1 = 1000L*t1.tv_sec + t1.tv_usec/1000L;
-#else
             clock_gettime(CLOCK_REALTIME, &t1);
             time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L;
-#endif
+        }
+
+        // Delay before calling et_fifo_getEntry again
+        if (delay > 0) {
+            nanosleep(&getDelay, NULL);
         }
 
     } /* while(1) */
 
     error:
+    // Although not necessary at this point
+    et_fifo_freeEntry(entry);
+
     printf("%s: ERROR\n", argv[0]);
     return 0;
 }

@@ -54,11 +54,8 @@ int main(int argc,char **argv) {
     et_openconfig openconfig;
     et_event **pe;
     struct timespec timeout;
-#if defined __APPLE__
-    struct timeval  t1, t2;
-#else
     struct timespec t1, t2;
-#endif
+
     sigset_t sigblock;
     pthread_t tid;
 
@@ -410,29 +407,29 @@ int main(int argc,char **argv) {
     /***********************/
     /* Use FIFO interface  */
     /***********************/
-    status = et_fifo_open(id, &fid, 1);
+    status = et_fifo_openProducer(id, &fid, NULL, 0);
     if (status != ET_OK) {
         printf("%s: et_fifo_open problems\n", argv[0]);
         exit(1);
     }
 
     /* no error here */
-    numRead = et_fifo_getEntryCount(fid);
+    numRead = et_fifo_getEntryCapacity(fid);
+
+    entry = et_fifo_entryCreate(fid);
+    if (entry == NULL) {
+        printf("%s: et_fifo_open out of mem\n", argv[0]);
+        exit(1);
+    }
 
     /* read time for future statistics calculations */
-#if defined __APPLE__
-    gettimeofday(&t1, NULL);
-    time1 = 1000L*t1.tv_sec + t1.tv_usec/1000L; /* milliseconds */
-#else
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L; /* milliseconds */
-#endif
-
 
     while (1) {
 
-        /* Grab new buffers */
-        status = et_fifo_newEntry(fid, &entry);
+        /* Grab new/empty buffers */
+        status = et_fifo_newEntry(fid, entry);
         if (status != ET_OK) {
             printf("%s: et_fifo_newBufs error\n", argv[0]);
             goto error;
@@ -479,7 +476,6 @@ int main(int argc,char **argv) {
             goto error;
         }
 
-
         count += numRead;
 
         if (delay > 0) {
@@ -487,13 +483,8 @@ int main(int argc,char **argv) {
         }
         
         /* statistics */
-#if defined __APPLE__
-        gettimeofday(&t2, NULL);
-        time2 = 1000L*t2.tv_sec + t2.tv_usec/1000L; /* milliseconds */
-#else
         clock_gettime(CLOCK_REALTIME, &t2);
         time2 = 1000L*t2.tv_sec + t2.tv_nsec/1000000L; /* milliseconds */
-#endif
         time = time2 - time1;
         if (time > 5000) {
             /* reset things if necessary */
@@ -521,19 +512,17 @@ int main(int argc,char **argv) {
 
             count = 0;
 
-#if defined __APPLE__
-            gettimeofday(&t1, NULL);
-            time1 = 1000L*t1.tv_sec + t1.tv_usec/1000L;
-#else
             clock_gettime(CLOCK_REALTIME, &t1);
             time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L;
-#endif
         }
 
     } /* while(1) */
     
   
     error:
+
+    // Although not necessary at this point
+    et_fifo_freeEntry(entry);
 
     printf("%s: ERROR\n", argv[0]);
     exit(0);

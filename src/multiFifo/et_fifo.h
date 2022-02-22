@@ -56,27 +56,23 @@ typedef struct et_fifo_context_t {
 typedef struct et_fifo_entry_t {
     et_event **bufs;   /**< array of ET events. */
     et_fifo_id  fid;   /**< fifo id used to get these events from ET. */
-    int        size;   /**< Number of buffers containing data. */
 } et_fifo_entry;
 
 
-extern int  et_fifo_openProducer(et_sys_id fid, et_fifo_id *fifoId, const int *bufIds, int bidCount);
+extern int  et_fifo_openProducer(et_sys_id fid, et_fifo_id *fifoId, const int *bufIds, int idCount);
 extern int  et_fifo_openConsumer(et_sys_id fid, et_fifo_id *fifoId);
 extern void et_fifo_close(et_fifo_id fid);
 
-extern int  et_fifo_newEntry(et_fifo_id fid, et_fifo_entry **entry);
-extern int  et_fifo_newEntryTO(et_fifo_id fid, et_fifo_entry **entry, struct timespec *deltatime);
+extern int  et_fifo_newEntry(et_fifo_id fid, et_fifo_entry *entry);
+extern int  et_fifo_newEntryTO(et_fifo_id fid, et_fifo_entry *entry, struct timespec *deltatime);
 
-extern int  et_fifo_getEntry(et_fifo_id fid, et_fifo_entry **entry);
-extern int  et_fifo_getEntryTO(et_fifo_id fid, et_fifo_entry **entry, struct timespec *deltatime);
+extern int  et_fifo_getEntry(et_fifo_id fid, et_fifo_entry *entry);
+extern int  et_fifo_getEntryTO(et_fifo_id fid, et_fifo_entry *entry, struct timespec *deltatime);
 
 extern int  et_fifo_putEntry(et_fifo_entry *entry);
 
 extern size_t et_fifo_getBufSize(et_fifo_id fid);
 extern int    et_fifo_getEntryCapacity(et_fifo_id fid);
-extern int    et_fifo_getEntrySize(et_fifo_entry *entry);
-extern int    et_fifo_incrementEntrySize(et_fifo_entry *entry);
-extern int    et_fifo_decrementEntrySize(et_fifo_entry *entry);
 
 extern et_event** et_fifo_getBufs(et_fifo_entry *entry);
 extern et_event*  et_fifo_getBuf(int id, et_fifo_entry *entry);
@@ -84,8 +80,14 @@ extern et_event*  et_fifo_getBuf(int id, et_fifo_entry *entry);
 extern void et_fifo_setId(et_event *ev, int id);
 extern  int et_fifo_getId(et_event *ev);
 
+extern void et_fifo_setHasData(et_event *ev, int hasData);
+extern  int et_fifo_hasData(et_event *ev);
+
 extern int et_fifo_getIdCount(et_fifo_id id);
-extern int et_fifo_getBufIds(et_fifo_id id, int **bufIds);
+extern int et_fifo_getBufIds(et_fifo_id id, int *bufIds);
+
+extern et_fifo_entry* et_fifo_entryCreate(et_fifo_id fid);
+extern void et_fifo_freeEntry(et_fifo_entry *entry);
 
 
 #ifdef	__cplusplus
