@@ -1,21 +1,12 @@
-/*----------------------------------------------------------------------------*
- *  Copyright (c) 1998        Southeastern Universities Research Association, *
- *                            Thomas Jefferson National Accelerator Facility  *
- *                                                                            *
- *    This software was developed under a United States Government license    *
- *    described in the NOTICE file included as part of this distribution.     *
- *                                                                            *
- *    Author:  Carl Timmer                                                    *
- *             timmer@jlab.org                   Jefferson Lab, MS-12H        *
- *             Phone: (757) 269-5130             12000 Jefferson Ave.         *
- *             Fax:   (757) 269-5800             Newport News, VA 23606       *
- *                                                                            *
- *----------------------------------------------------------------------------*
- *
- * Description:
- *      ET system sample event producer
- *
- *----------------------------------------------------------------------------*/
+//
+// Copyright 2022, Jefferson Science Associates, LLC.
+// Subject to the terms in the LICENSE file found in the top-level directory.
+//
+// EPSCI Group
+// Thomas Jefferson National Accelerator Facility
+// 12000, Jefferson Ave, Newport News, VA 23606
+// (757)-269-7100
+
 
 #include <stdio.h>
 #include <stdlib.h>
