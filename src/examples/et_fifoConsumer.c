@@ -408,6 +408,9 @@ int main(int argc,char **argv) {
     clock_gettime(CLOCK_REALTIME, &t1);
     time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L; /* milliseconds */
 
+    int bufId, hasData, swap;
+    size_t len;
+    int *data;
 
     while (1) {
 
@@ -435,56 +438,45 @@ int main(int argc,char **argv) {
         /*******************/
         /* read/print data */
         /*******************/
-        if (readData) {
-            size_t len;
-            int *data, endian, swap;
+        // All events in fifo entry
+        et_event** evts = et_fifo_getBufs(entry);
 
+        if (readData) {
+            // Look at each event/buffer
             for (j = 0; j < numRead; j++) {
-                et_event_getdata(pe[j], (void **) &data);
-                et_event_getlength(pe[j], &len);
-                et_event_getendian(pe[j], &endian);
+                // Data associated with this event
+                et_event_getdata(evts[j], (void **) &data);
+                // Length of data associated with this event
+                et_event_getlength(evts[j], &len);
+                // Id associated with this buffer in this fifo entry
+                bufId = et_fifo_getId(evts[j]);
+                // Id associated with this buffer in this fifo entry
+                hasData = et_fifo_hasData(evts[j]);
+                // Did this data originate on an opposite endian machine?
                 et_event_needtoswap(pe[j], &swap);
 
                 bytes += len;
                 totalBytes += len;
 
                 if (verbose) {
-                    printf("data byte order = %s\n", (endian == ET_ENDIAN_BIG ? "BIG" : "LITTLE"));
+                    printf("buf id = %d, has data = %s\n", bufId, hasData ? "true" : "false");
                     if (swap) {
-                        printf("    data (len = %d) needs swapping, swapped int = %d\n", (int) len, ET_SWAP32(data[0]));
+                        printf("    swapped int = %d\n", ET_SWAP32(data[0]));
                     }
                     else {
-                        printf("    data (len = %d) does NOT need swapping, int = %d\n", (int) len, data[0]);
+                        printf("    unswapped int = %d\n", data[0]);
                     }
-
-                    et_event_getcontrol(pe[j], con);
-                    printf("control array = {");
-                    for (i = 0; i < ET_STATION_SELECT_INTS; i++) {
-                        printf("%d ", con[i]);
-                    }
-                    printf("}\n");
                 }
             }
         }
         else {
-            size_t len;
-//            unsigned int *data;
             for (j = 0; j < numRead; j++) {
-                et_event_getlength(pe[j], &len);
-
-//                et_event_getdata(pe[j], (void **) &data);
-//                printf(" Got an Event of total length %d bytes\n",len);
-//                printf(" 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",data[0],data[1],data[2],data[3],data[4],data[5],data[6]);
-
-                /* include ET overhead by adding commented out portions */
-                bytes += len /* +52 */;
-                totalBytes += len /* +52 */;
+                et_event_getlength(evts[j], &len);
+                bytes += len;
+                totalBytes += len;
             }
-            /*
-            bytes += 20;
-            totalBytes += 20;
-             */
         }
+
 
         /*******************/
         /* put events */
