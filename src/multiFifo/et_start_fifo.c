@@ -20,7 +20,7 @@ void printHelp(char *program) {
     fprintf(stderr,
             "\nusage: %s  %s\n%s\n%s\n%s",
             program,
-            "[-h] [-v] [-d] [-f <file>]",
+            "[-h] [-v] [-d] [-b] [-f <file>]",
             "                 [-s <bytes/buf>] [-n <bufs/entry>] [-e <entries>]",
             "                 [-p <TCP server port>] [-u <UDP port>] [-a <multicast address>]",
             "                 [-rb <buf size>] [-sb <buf size>] [-nd]\n\n");
@@ -33,6 +33,7 @@ void printHelp(char *program) {
     fprintf(stderr, "          -s     buffer size in bytes (3000 default)\n");
     fprintf(stderr, "          -n     number of buffers per fifo entry (10 default\n");
     fprintf(stderr, "          -e     number of fifo entries (2000 max, 10 min, 100 default)\n\n");
+    fprintf(stderr, "          -b     make fifo blocking (nonblocking default)\n");
 
     fprintf(stderr, "          -p     TCP server port #\n");
     fprintf(stderr, "          -u     UDP (broadcast &/or multicast) port #\n");
@@ -55,6 +56,7 @@ int main(int argc, char **argv) {
     int j, status, sig_num, serverPort = 0, udpPort = 0;
     int et_verbose = ET_DEBUG_NONE, deleteFile = 0;
     int sendBufSize = 0, recvBufSize = 0, noDelay = 0;
+    int blockingFifo = 0;
 
     sigset_t sigblockset, sigwaitset;
     et_sysconfig config;
@@ -83,7 +85,7 @@ int main(int argc, char **argv) {
     /* Use default multicast address */
     memset(mcastAddr, 0, ET_IPADDRSTRLEN);
 
-    while ((c = getopt_long_only(argc, argv, "vhdn:s:p:u:m:a:f:e:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "bvhdn:s:p:u:m:a:f:e:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -155,6 +157,11 @@ int main(int argc, char **argv) {
                 }
                 strcpy(et_name, optarg);
                 et_filename = et_name;
+                break;
+
+                /* Make the User's station blocking so the whole fifo becomes blocking. */
+            case 'b':
+                blockingFifo = 1;
                 break;
 
                 /* Remove an existing memory-mapped file first, then recreate it. */
@@ -325,7 +332,7 @@ int main(int argc, char **argv) {
     /*
      * Define a station to create for consumers of data-filled fifo entries.
      * It allows multiple users by default.
-     * Set it to be non-blocking and set the queue (cue) size to be
+     * By default, set it to be non-blocking and set the queue (cue) size to be
      * 1 fifo-width shy of the full number of events. Why do this?
      * For 2 reasons. First, so that the producer is always able to get a new
      * entry at any time without being blocked. Second, when this station's input is
@@ -333,9 +340,11 @@ int main(int argc, char **argv) {
      * automatically with no special intervention necessary - default behavior.
      */
     et_station_config_init(&sconfig);
-    et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
-    // TODO: might consider making this (nevents - 2*entryCount) ...
-    et_station_config_setcue(sconfig, nevents - entryCount);
+    if (!blockingFifo) {
+        et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
+        // TODO: might consider making this (nevents - 2*entryCount) ...
+        et_station_config_setcue(sconfig, nevents - entryCount);
+    }
     if ((status = et_station_create(id, &my_stat, "Users", sconfig)) != ET_OK) {
         printf("%s: error in creating station \"Users\"\n", argv[0]);
         exit(1);
