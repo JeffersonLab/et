@@ -45,7 +45,6 @@ int main(int argc,char **argv) {
     et_fifo_entry   *entry;
 
     et_statconfig   sconfig;
-    et_event        **pe;
     et_openconfig   openconfig;
     sigset_t        sigblock;
     struct timespec getDelay;
@@ -79,13 +78,6 @@ int main(int argc,char **argv) {
             break;
 
         switch (c) {
-            case 's':
-                if (strlen(optarg) >= ET_STATNAME_LENGTH) {
-                    fprintf(stderr, "Station name is too long\n");
-                    exit(-1);
-                }
-                strcpy(stationName, optarg);
-                break;
 
             case 'p':
                 i_tmp = atoi(optarg);
@@ -433,14 +425,11 @@ int main(int argc,char **argv) {
         }
 
         /* Access the new buffers */
-        pe = et_fifo_getBufs(entry);
+        et_event** evts = et_fifo_getBufs(entry);
 
         /*******************/
         /* read/print data */
         /*******************/
-        // All events in fifo entry
-        et_event** evts = et_fifo_getBufs(entry);
-
         if (readData) {
             // Look at each event/buffer
             for (j = 0; j < numRead; j++) {
@@ -453,7 +442,7 @@ int main(int argc,char **argv) {
                 // Id associated with this buffer in this fifo entry
                 hasData = et_fifo_hasData(evts[j]);
                 // Did this data originate on an opposite endian machine?
-                et_event_needtoswap(pe[j], &swap);
+                et_event_needtoswap(evts[j], &swap);
 
                 bytes += len;
                 totalBytes += len;

@@ -395,9 +395,12 @@ int et_fifo_newEntry(et_fifo_id fid, et_fifo_entry *entry) {
     // Otherwise fill with -1, which allows a valid value of 0 for id.
     for (i = 0; i < ctx->idCount; i++) {
         entry->bufs[i]->control[0] = ctx->bufIds[i];
+        // By default a new event's length is total buffer size
+        entry->bufs[i]->length = 0;
     }
     for (i = ctx->idCount; i < ctx->capacity; i++) {
         entry->bufs[i]->control[0] = -1;
+        entry->bufs[i]->length = 0;
     }
 
     return ET_OK;
@@ -453,9 +456,11 @@ int et_fifo_newEntryTO(et_fifo_id fid, et_fifo_entry *entry, struct timespec *de
 
     for (i = 0; i < ctx->idCount; i++) {
         entry->bufs[i]->control[0] = ctx->bufIds[i];
+        entry->bufs[i]->length = 0;
     }
     for (i = ctx->idCount; i < ctx->capacity; i++) {
         entry->bufs[i]->control[0] = -1;
+        entry->bufs[i]->length = 0;
     }
 
     return ET_OK;
