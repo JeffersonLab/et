@@ -113,13 +113,16 @@
  *                                 or id not initialized,
  *                                 or number of events not multiple of fifo entries,
  *                                 or no Users station exists.
+ * @returns @ref ET_ERROR_BADARG   if bufId is NULL or bidCount = 0.
  * @returns @ref ET_ERROR_NOMEM    if memory cannot be allocated.
  * @returns @ref ET_ERROR_CLOSED   if et_close already called.
  * @returns @ref ET_ERROR_DEAD     if ET system is dead.
  * @returns @ref ET_ERROR_READ     for a remote user's network read error.
  * @returns @ref ET_ERROR_WRITE    for a remote user's network write error.
  * @returns @ref ET_ERROR_TOOMANY  if the existing number of attachments to GC or Users is already equal
- *                                 to the station or system limit.
+ *                                 to the station or system limit (unlikely as this is 100).
+ *                                 If the number of ids given (bidCount) is more that fifo entry capacity.
+ *                                 If there are more than 2 stations.
  * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user
  */
 static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int *bufIds, int bidCount) {
@@ -171,6 +174,23 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
 
     ctx->capacity = ctx->evCount / ctx->entries;
 
+    // Save ids if any provided, must be for producer
+    if (isProducer) {
+        if ((bufIds == NULL) || (bidCount < 1)) {
+            free(ctx);
+            return ET_ERROR_BADARG;
+        }
+
+        if (bidCount > ctx->capacity) {
+            free(ctx);
+            return ET_ERROR_TOOMANY;
+        }
+
+        ctx->idCount = bidCount;
+        ctx->bufIds  = (int *) malloc(bidCount * sizeof(int));
+        memcpy(ctx->bufIds, bufIds, bidCount * sizeof(int));
+    }
+
     // Now the station attachments.
     // In an ET system started by et_start_fifo, there are 2 stations:
     // GrandCentral and Users.
@@ -196,12 +216,12 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
         }
     }
 
-    // Save ids if any provided
-    if (isProducer && (bufIds != NULL) && (bidCount > 0)) {
-        bidCount = bidCount > ctx->capacity ? ctx->capacity : bidCount;
-        ctx->idCount = bidCount;
-        ctx->bufIds  = (int *) malloc(bidCount * sizeof(int));
-        memcpy(ctx->bufIds, bufIds, bidCount * sizeof(int));
+    int stationCount = 0;
+    et_system_getstations(id, &stationCount);
+    if (stationCount > 2) {
+        et_logmsg("ERROR", "ET has > 2 stations, improperly setup, use et_start_fifo to start it\n");
+        free(ctx);
+        return ET_ERROR_TOOMANY;
     }
 
     et_logmsg("INFO", "et_fifo_open, ET events of size %lu, count %d, entry width %d, fifo entries %d\n",
@@ -237,13 +257,16 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
  * @returns @ref ET_ERROR          if either id or fid is NULL,
  *                                 or id not initialized,
  *                                 or number of events not multiple of fifo entries.
+ * @returns @ref ET_ERROR_BADARG   if bufId is NULL or bidCount = 0.
  * @returns @ref ET_ERROR_NOMEM    if memory cannot be allocated.
  * @returns @ref ET_ERROR_CLOSED   if et_close already called.
  * @returns @ref ET_ERROR_DEAD     if ET system is dead.
  * @returns @ref ET_ERROR_READ     for a remote user's network read error.
  * @returns @ref ET_ERROR_WRITE    for a remote user's network write error.
  * @returns @ref ET_ERROR_TOOMANY  if the existing number of attachments to GC or Users is already equal
- *                                 to the station or system limit.
+ *                                 to the station or system limit (unlikely as this is 100).
+ *                                 If the number of ids given (bidCount) is more that fifo entry capacity.
+ *                                 If there are more than 2 stations.
  * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user
  */
 int et_fifo_openProducer(et_sys_id id, et_fifo_id *fid, const int *bufIds, int idCount) {
@@ -282,6 +305,7 @@ int et_fifo_openProducer(et_sys_id id, et_fifo_id *fid, const int *bufIds, int i
  * @returns @ref ET_ERROR_WRITE    for a remote user's network write error.
  * @returns @ref ET_ERROR_TOOMANY  if the existing number of attachments to GC or Users is already equal
  *                                 to the station or system limit.
+ *                                 If there are more than 2 stations.
  * @returns @ref ET_ERROR_REMOTE   for a memory allocation error of a remote user
  */
 int et_fifo_openConsumer(et_sys_id id, et_fifo_id *fid) {
@@ -347,8 +371,8 @@ void et_fifo_freeEntry(et_fifo_entry *entry) {
 /**
  * This routine is called when a user wants an array of related, empty buffers from the ET system
  * into which data can be placed. This routine will block until the buffers become available.
- * Access the buffers by calling {@link #et_fifo_getBufArray}.
- * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_put}!</b>
+ * Access the buffers by calling {@link #et_fifo_getBufs}.
+ * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_putEntry}!</b>
  *
  * @see For more insight, see the doxygen doc on {@link #et_events_new}.
  *
@@ -410,8 +434,8 @@ int et_fifo_newEntry(et_fifo_id fid, et_fifo_entry *entry) {
 /**
  * This routine is called when a user wants an array of related, empty buffers from the ET system
  * into which data can be placed. This routine will block until it times out.
- * Access the buffers by calling {@link #et_fifo_getBufArray}.
- * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_put}!</b>
+ * Access the buffers by calling {@link #et_fifo_getBufs}.
+ * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_putEntry}!</b>
  *
  * @see For more insight, see the doxygen doc on {@link #et_events_new}.
  *
@@ -470,8 +494,8 @@ int et_fifo_newEntryTO(et_fifo_id fid, et_fifo_entry *entry, struct timespec *de
 /**
  * This routine is called when a user wants an array of related, data-filled buffers from the
  * ET system. This routine will block until the buffers become available.
- * Access the buffers by calling {@link #et_fifo_getBufArray}.
- * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_put}!</b>
+ * Access the buffers by calling {@link #et_fifo_getBufs}.
+ * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_putEntry}!</b>
  *
  * @see For more insight, see the doxygen doc on {@link #et_events_get}.
  *
@@ -518,8 +542,8 @@ int et_fifo_getEntry(et_fifo_id fid, et_fifo_entry *entry) {
 /**
  * This routine is called when a user wants an array of related, data-filled buffers from the
  * ET system. This routine will block until it times out.
- * Access the buffers by calling {@link #et_fifo_getBufArray}.
- * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_put}!</b>
+ * Access the buffers by calling {@link #et_fifo_getBufs}.
+ * <b>Each call to this routine MUST be accompanied by a following call to {@link #et_fifo_putEntry}!</b>
  *
  * @see For more insight, see the doxygen doc on {@link #et_events_get}.
  *
@@ -568,8 +592,8 @@ int et_fifo_getEntryTO(et_fifo_id fid, et_fifo_entry *entry, struct timespec *de
 /**
  * This routine is called when a user wants to place an array of related, data-filled buffers
  * (single FIFO entry) back into the ET system. This must be called after calling either
- * {@link #et_fifo_getBufs}, {@link #et_fifo_getBufsTO},
- * {@link #et_fifo_newBufs}, or {@link #et_fifo_newBufsTO}.
+ * {@link #et_fifo_getEntry}, {@link #et_fifo_geEntryTO},
+ * {@link #et_fifo_newEntry}, or {@link #et_fifo_newEntryTO}.
  * This routine will never block.
  *
  * @see For more insight, see the doxygen doc on {@link #et_events_put}.
@@ -640,7 +664,7 @@ int et_fifo_getEntryCapacity(et_fifo_id id) {
 
 
 /**
- * This routine gets the number of buffers assigned an id in each FIFO entry creation.
+ * This routine gets the number of buffers assigned an id in each FIFO entry.
  * The same as the idCount argument of {@link #et_fifo_openProducer}.
  * @param id  ET fifo handle.
  * @return number of buffers assigned an id in each FIFO entry, or ET_ERROR if bad arg.
@@ -653,7 +677,7 @@ int et_fifo_getIdCount(et_fifo_id id) {
 
 
 /**
- * This routine gets the number of buffers assigned an id in each FIFO entry.
+ * This routine gets the array of ids assigned to buffers in each FIFO entry.
  * The same as the bufIds argument of {@link #et_fifo_openProducer}.
  * Assumes the user is passing in an array of length found by calling
  * {@link #et_fifo_getIdCount}.
@@ -706,7 +730,7 @@ void et_fifo_setHasData(et_event *ev, int hasData) {
 /**
  * This routine gets whether this ET event has data in it or not.
  * @param ev ET event.
- * @return id of this event, or ET_ERROR if ev = NULL.
+ * @return 1 if this event as data, 0 if it does not, ET_ERROR if arg is null.
  */
 int et_fifo_hasData(et_event *ev) {
     if (ev == NULL) return ET_ERROR;

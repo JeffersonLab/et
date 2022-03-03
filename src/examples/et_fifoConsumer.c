@@ -26,14 +26,12 @@ static void *signal_thread (void *arg);
 int main(int argc,char **argv) {
 
     int             i, j, c, i_tmp, status, numRead, locality;
-    int             flowMode=ET_STATION_SERIAL, position=ET_END, pposition=ET_END;
-    int             errflg=0, chunk=1, qSize=0, verbose=0, remote=0, blocking=1, dump=0, readData=0;
+    int             errflg=0, chunk=1, qSize=0, verbose=0, remote=0, readData=0;
     int             multicast=0, broadcast=0, broadAndMulticast=0;
-    int		        con[ET_STATION_SELECT_INTS];
-    int             sendBufSize=0, recvBufSize=0, noDelay=0, delay=0;
+    int             sendBufSize=0, recvBufSize=0, noDelay=0, delay=0, idCount=0;
     int             debugLevel = ET_DEBUG_ERROR;
     unsigned short  port=0;
-    char            stationName[ET_STATNAME_LENGTH], et_name[ET_FILENAME_LENGTH], host[256], interface[16];
+    char            et_name[ET_FILENAME_LENGTH], host[256], interface[16];
     char            localAddr[16];
 
     int             mcastAddrCount = 0, mcastAddrMax = 10;
@@ -44,7 +42,6 @@ int main(int argc,char **argv) {
     et_fifo_id      fid;
     et_fifo_entry   *entry;
 
-    et_statconfig   sconfig;
     et_openconfig   openconfig;
     sigset_t        sigblock;
     struct timespec getDelay;
@@ -59,7 +56,6 @@ int main(int argc,char **argv) {
     /* 4 multiple character command-line options */
     static struct option long_options[] =
             { {"host", 1, NULL, 1},
-              {"nb",   0, NULL, 2},
               {"rb",   1, NULL, 3},
               {"sb",   1, NULL, 4},
               {"nd",   0, NULL, 5},
@@ -70,7 +66,6 @@ int main(int argc,char **argv) {
     memset(interface, 0, 16);
     memset(mcastAddr, 0, (size_t) mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
-    strcpy(stationName, "Users");
 
     while ((c = getopt_long_only(argc, argv, "vbmhrn:s:p:f:a:i:d:", long_options, 0)) != EOF) {
 
@@ -132,11 +127,6 @@ int main(int argc,char **argv) {
                     exit(-1);
                 }
                 strcpy(host, optarg);
-                break;
-
-                /* case nb: */
-            case 2:
-                blocking = 0;
                 break;
 
                 /* case rb */
@@ -205,7 +195,7 @@ int main(int argc,char **argv) {
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n\n",
                 argv[0], "-f <ET name>",
-                "                     [-h] [-v] [-nb] [-r] [-m] [-b] [-nd] [-read]",
+                "                     [-h] [-v] [-r] [-m] [-b] [-nd] [-read]",
                 "                     [-host <ET host>] [-p <ET port>] [-d <delay ms>]",
                 "                     [-i <interface address>] [-a <mcast addr>]",
                 "                     [-rb <buf size>] [-sb <buf size>]");
@@ -235,7 +225,7 @@ int main(int argc,char **argv) {
         fprintf(stderr, "          is specified with -a, the -m option is used, or the -b option is used\n");
         fprintf(stderr, "          in which case multi/broadcasting used to find the ET system.\n");
         fprintf(stderr, "          If multi/broadcasting fails, look locally to find the ET system.\n");
-        fprintf(stderr, "          This program gets all events from the given station and puts them back.\n\n");
+        fprintf(stderr, "          This program gets events from the ET system as a fifo and puts them back.\n\n");
 
         exit(2);
     }
@@ -389,6 +379,9 @@ int main(int argc,char **argv) {
     /* no error here */
     numRead = et_fifo_getEntryCapacity(fid);
 
+    // The way this is setup, the consumer does not know how many id-labeled
+    // buffers will be in each fifo entry. Can figure that out after the first getEntry()
+
     entry = et_fifo_entryCreate(fid);
     if (entry == NULL) {
         printf("%s: et_fifo_open out of mem\n", argv[0]);
@@ -430,17 +423,25 @@ int main(int argc,char **argv) {
         /*******************/
         /* read/print data */
         /*******************/
+        idCount = 0;
+
         if (readData) {
             // Look at each event/buffer
             for (j = 0; j < numRead; j++) {
+                // Does this buffer have any data? (Set by producer)
+                if (!et_fifo_hasData(evts[j])) {
+                    // Once we hit a buffer with no data, there is no further data
+                    break;
+                }
+                idCount++;
+
+                // Id associated with this buffer in this fifo entry
+                bufId = et_fifo_getId(evts[j]);
+
                 // Data associated with this event
                 et_event_getdata(evts[j], (void **) &data);
                 // Length of data associated with this event
                 et_event_getlength(evts[j], &len);
-                // Id associated with this buffer in this fifo entry
-                bufId = et_fifo_getId(evts[j]);
-                // Id associated with this buffer in this fifo entry
-                hasData = et_fifo_hasData(evts[j]);
                 // Did this data originate on an opposite endian machine?
                 et_event_needtoswap(evts[j], &swap);
 
@@ -460,12 +461,16 @@ int main(int argc,char **argv) {
         }
         else {
             for (j = 0; j < numRead; j++) {
+                hasData = et_fifo_hasData(evts[j]);
+                if (!hasData) {
+                    break;
+                }
+                idCount++;
                 et_event_getlength(evts[j], &len);
                 bytes += len;
                 totalBytes += len;
             }
         }
-
 
         /*******************/
         /* put events */
@@ -478,7 +483,7 @@ int main(int argc,char **argv) {
             goto error;
         }
 
-        count += numRead;
+        count += idCount;
 
         end:
 

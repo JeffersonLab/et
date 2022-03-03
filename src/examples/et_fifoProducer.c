@@ -26,11 +26,15 @@ static void * signal_thread (void *arg);
 
 int main(int argc,char **argv) {
 
-    int i, j, c, i_tmp, status, junkData, numRead, locality;
-    int startingVal=0, errflg=0, chunk=1, size=32, writeData=0, localEndian=1;
+    int i, j, c, err, i_tmp, status, junkData, numRead, locality;
+    int startingVal=0, errflg=0, size=32, writeData=0, localEndian=1;
     int delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
     int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
     int debugLevel = ET_DEBUG_ERROR;
+
+    int ids[32];
+    int idCount = 0;
+
     unsigned short port=0;
     char et_name[ET_FILENAME_LENGTH], host[256], interface[16], localAddr[16];
     void *fakeData;
@@ -64,6 +68,7 @@ int main(int argc,char **argv) {
              {"sb",    1, NULL, 3},
              {"nd",    0, NULL, 4},
              {"blast", 0, NULL, 5},
+             {"ids",   1, NULL, 6},
              {0,       0, 0,    0}
             };
 
@@ -72,7 +77,7 @@ int main(int argc,char **argv) {
     memset(mcastAddr, 0, mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "vbmhrn:a:p:d:f:i:w:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "wvbmhrn:a:p:d:f:i:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -81,10 +86,6 @@ int main(int argc,char **argv) {
 
             case 'w':
                 writeData = 1;
-                i_tmp = atoi(optarg);
-                if (i_tmp != 1) {
-                    localEndian = 0;
-                }
                 break;
 
             case 'd':
@@ -131,6 +132,41 @@ int main(int argc,char **argv) {
                 multicast = 1;
                 break;
 
+                /* case ids */
+            case 6:
+                {   // Parse comma-separated list of data source ids
+                    // Returns first token
+                    char *token = strtok(optarg, ",");
+                    i_tmp = atoi(token);
+                    if (i_tmp < 0) {
+                        printf("Invalid argument to -ids, each id must be >= 0\n");
+                        exit(-1);
+                    }
+                    ids[0]  = i_tmp;
+                    idCount = 1;
+
+                    // Keep printing tokens while one of the
+                    // delimiters present in str[].
+                    while (token != NULL) {
+                        token = strtok(NULL, ",");
+                        if (token == NULL) break;
+                        i_tmp = atoi(token);
+                        if (i_tmp < 0) {
+                            printf("Invalid argument to -ids, each id must be >= 0\n");
+                            exit(-1);
+                        }
+
+                        if (idCount == 32) {
+                            printf("Invalid argument to -ids, too many ids, max of 32\n");
+                            exit(-1);
+                        }
+                        ids[idCount++] = i_tmp;
+                    }
+                }
+
+                break;
+
+                /* case rb */
             case 1:
                 if (strlen(optarg) >= 255) {
                     fprintf(stderr, "host name is too long\n");
@@ -200,27 +236,28 @@ int main(int argc,char **argv) {
         }
     }
 
-    if (optind < argc || errflg || strlen(et_name) < 1) {
+    if (optind < argc || errflg || strlen(et_name) < 1 || idCount < 1) {
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n%s\n\n",
-                argv[0], "-f <ET name>",
-                "                     [-h] [-v] [-r] [-m] [-b] [-nd] [-blast]",
-                "                     [-host <ET host>] [-w <local endian? 0/1>]",
+                argv[0], "-f <ET name> -ids <comma-separated source id list>",
+                "                     [-h] [-v] [-r] [-m] [-b] [-nd] [-w] [-blast]",
+                "                     [-host <ET host>]",
                 "                     [-d <delay>] [-p <ET port>]",
                 "                     [-i <interface address>] [-a <mcast addr>]",
                 "                     [-rb <buf size>] [-sb <buf size>]");
 
 
         fprintf(stderr, "          -f     ET system's (memory-mapped file) name\n");
+        fprintf(stderr, "          -ids   comma-separated list of incoming data ids (no white space)\n\n");
+
         fprintf(stderr, "          -host  ET system's host if direct connection (default to local)\n");
         fprintf(stderr, "          -h     help\n");
-        fprintf(stderr, "          -v     verbose output\n\n");
-
+        fprintf(stderr, "          -v     verbose output\n");
         fprintf(stderr, "          -d     delay in millisec between each round of getting and putting events\n\n");
 
         fprintf(stderr, "          -p     ET port (TCP for direct, UDP for broad/multicast)\n");
         fprintf(stderr, "          -r     act as remote (TCP) client even if ET system is local\n");
-        fprintf(stderr, "          -w     write data (1 sequential int per event), 1 local endian, 0 else\n");
+        fprintf(stderr, "          -w     write data\n");
         fprintf(stderr, "          -blast if remote, use external data buf (no mem allocation),\n");
         fprintf(stderr, "                 do not write data (overrides -w)\n\n");
 
@@ -238,7 +275,7 @@ int main(int argc,char **argv) {
         fprintf(stderr, "          is specified with -a, the -m option is used, or the -b option is used\n");
         fprintf(stderr, "          in which case multi/broadcasting used to find the ET system.\n");
         fprintf(stderr, "          If multi/broadcasting fails, look locally to find the ET system.\n");
-        fprintf(stderr, "          This program gets new events from the system and puts them back.\n\n");
+        fprintf(stderr, "          This program gets new events from the system as a fifo entry and puts them back.\n\n");
         exit(2);
     }
 
@@ -388,8 +425,8 @@ int main(int argc,char **argv) {
     }
     else {
         /* local blasting is just the same as local producing */
+        if (blast) printf("ET is local, don't blast\n");
         blast = 0;
-        printf("ET is local\n\n");
     }
 
     /* set level of debug output (everything) */
@@ -398,7 +435,7 @@ int main(int argc,char **argv) {
     /***********************/
     /* Use FIFO interface  */
     /***********************/
-    status = et_fifo_openProducer(id, &fid, NULL, 0);
+    status = et_fifo_openProducer(id, &fid, ids, idCount);
     if (status != ET_OK) {
         printf("%s: et_fifo_open problems\n", argv[0]);
         exit(1);
@@ -406,6 +443,8 @@ int main(int argc,char **argv) {
 
     /* no error here */
     numRead = et_fifo_getEntryCapacity(fid);
+
+    printf("%s: cap = %d, idCount = %d\n", argv[0], numRead, idCount);
 
     entry = et_fifo_entryCreate(fid);
     if (entry == NULL) {
@@ -431,32 +470,33 @@ int main(int argc,char **argv) {
 
         /* if blasting data (and remote), don't write anything, just use what's in buffer when allocated */
         if (blast) {
-            for (i=0; i < numRead; i++) {
+            for (i=0; i < idCount; i++) {
                 et_event_setlength(pe[i], size);
-                et_event_setdatabuffer(id, pe[i], fakeData);
+                err = et_event_setdatabuffer(id, pe[i], fakeData);
+                et_fifo_setId(pe[i], ids[i]);
+                et_fifo_setHasData(pe[i], 1);
             }
         }
         /* write data, set control values here */
         else if (writeData) {
             char *pdata;
-            for (i=0; i < numRead; i++) {
+            for (i=0; i < idCount; i++) {
                 junkData = i + startingVal;
-                if (!localEndian) {
-                    junkData = ET_SWAP32(junkData);
-                    et_event_setendian(pe[i], ET_ENDIAN_NOTLOCAL);
-                }
                 et_event_getdata(pe[i], (void **) &pdata);
                 memcpy((void *)pdata, (const void *) &junkData, sizeof(int));
 
                 /* Send all data even though we only wrote one int. */
                 et_event_setlength(pe[i], size);
-                et_event_setcontrol(pe[i], control, sizeof(control)/sizeof(int));
+                et_fifo_setId(pe[i], ids[i]);
+                et_fifo_setHasData(pe[i], 1);
             }
-            startingVal += numRead;
+            startingVal += idCount;
         }
         else {
-            for (i = 0; i < numRead; i++) {
+            for (i = 0; i < idCount; i++) {
                 et_event_setlength(pe[i], size);
+                et_fifo_setId(pe[i], ids[i]);
+                et_fifo_setHasData(pe[i], 1);
             }
         }
 
@@ -467,7 +507,7 @@ int main(int argc,char **argv) {
             goto error;
         }
 
-        count += numRead;
+        count += idCount;
 
         if (delay > 0) {
             nanosleep(&timeout, NULL);

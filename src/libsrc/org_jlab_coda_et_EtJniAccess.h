@@ -58,9 +58,17 @@ JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_getEvents
 /*
  * Class:     org_jlab_coda_et_EtJniAccess
  * Method:    newEvents
+ * Signature: (JIIIIII)[Lorg/jlab/coda/et/EtEventImpl;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents__JIIIIII
+  (JNIEnv *, jobject, jlong, jint, jint, jint, jint, jint, jint);
+
+/*
+ * Class:     org_jlab_coda_et_EtJniAccess
+ * Method:    newEvents
  * Signature: (JIIIIIII)[Lorg/jlab/coda/et/EtEventImpl;
  */
-JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents
+JNIEXPORT jobjectArray JNICALL Java_org_jlab_coda_et_EtJniAccess_newEvents__JIIIIIII
   (JNIEnv *, jobject, jlong, jint, jint, jint, jint, jint, jint, jint);
 
 /*
