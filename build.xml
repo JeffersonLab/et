@@ -15,7 +15,7 @@
 
     <!-- Directories -->
     <property name="src.dir"       value="java" />
-    <property name="build.dir"     value="build" />
+    <property name="build.dir"     value="jbuild" />
     <property name="build.classes" value="${build.dir}/classes" />
     <property name="build.lib"     value="${build.dir}/lib" />
     <property name="local.jars"    value="java/jars" />
