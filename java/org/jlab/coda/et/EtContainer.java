@@ -259,6 +259,151 @@ public class EtContainer {
     }
      
     //***********************************************
+
+    // There are 2 varieties of newEvents, one takes "group" as an arg, the other does not.
+    // First is the simpler form that does NOT
+
+    /**
+     * Set this container up for getting new (unused) events from an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att       attachment object.
+     * @param mode      if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                  to wait for a set time {@link Mode#TIMED},
+     *                  or to return immediately {@link Mode#ASYNC}.
+     * @param microSec  the number of microseconds to wait if a timed wait is specified.
+     * @param count     the number of events desired .
+     * @param size      the size of events in bytes.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     *     if attachment object is invalid;
+     */
+    public void newEvents(EtAttachment att, Mode mode,
+                          int microSec, int count, int size)
+            throws EtException {
+        newEvents(att, mode, microSec, count, size, false);
+    }
+
+    /**
+     * Set this container up for getting new (unused) events from an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att       attachment object.
+     * @param mode      if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                  to wait for a set time {@link Mode#TIMED},
+     *                  or to return immediately {@link Mode#ASYNC}.
+     * @param microSec  the number of microseconds to wait if a timed wait is specified.
+     * @param count     the number of events desired .
+     * @param size      the size of events in bytes.
+     * @param allocate  if true, allocate new objects in which to store the new events.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     *     if attachment object is invalid;
+     */
+    public void newEvents(EtAttachment att, Mode mode,
+                          int microSec, int count, int size, boolean allocate)
+            throws EtException {
+
+        if (mode == null) {
+            throw new EtException("mode arg null");
+        }
+        else if (att == null || !att.isUsable()) {
+            throw new EtException("Invalid attachment");
+        }
+        else if (count < 0) {
+            throw new EtException("count arg negative");
+        }
+        else if ((microSec < 0) && (mode == Mode.TIMED)) {
+            throw new EtException("microSec arg negative");
+        }
+        else if (size < 1) {
+            throw new EtException("size arg < 1");
+        }
+
+        this.att = att;
+        this.mode = mode;
+        this.microSec = microSec;
+        this.count = count;
+        this.size = size;
+
+        // We're setup to call the newEvents() method
+        method = NEW;
+        jniEvents = null;
+        lastIndex = -1;
+        hasEndEvent = false;
+
+        // Make sure there's room for the desired sized new events
+        adjustEventArraySize(count, size, allocate);
+
+        for (int i=0; i < eventArraySize; i++) {
+            realEvents[i].init();
+        }
+    }
+
+    /**
+     * This method is for expert use only!
+     * Set this container up for getting new (unused) events from an ET system.
+     * Will access local Java-based ET systems running in the same JVM.
+     *
+     * @param att       local attachment object.
+     * @param modeVal   if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link EtConstants#sleep},
+     *                  to wait for a set time {@link EtConstants#timed},
+     *                  or to return immediately {@link EtConstants#async}.
+     * @param microSec  the number of microseconds to wait if a timed wait is specified.
+     * @param count     the number of events desired .
+     * @param size      the size of events in bytes.
+     *
+     * @throws EtException
+     *     if arguments have bad values;
+     */
+    public void newEvents(AttachmentLocal att, int modeVal,
+                          int microSec, int count, int size)
+            throws EtException {
+
+        Mode mode = Mode.getMode(modeVal);
+
+        if (mode == null) {
+            throw new EtException("modeVal arg invalid");
+        }
+        else if (att == null) {
+            throw new EtException("Invalid attachment");
+        }
+        else if (count < 0) {
+            throw new EtException("count arg negative");
+        }
+        else if ((microSec < 0) && (mode == Mode.TIMED)) {
+            throw new EtException("microSec arg negative");
+        }
+        else if (size < 1) {
+            throw new EtException("size arg < 1");
+        }
+
+        this.attLocal = att;
+        this.mode = mode;
+        this.microSec = microSec;
+        this.count = count;
+        this.size = size;
+
+        // We're setup to call the local newEvents() method
+        method = NEW_LOCAL;
+        jniEvents = null;
+        lastIndex = -1;
+        hasEndEvent = false;
+
+        // Space for new events is created when SystemCreate.newEvents()
+        // calls holdLocalEvents().
+    }
+
+
+    // Second form specifies group
+
     /**
      * Set this container up for getting new (unused) events from a specified group
      * of such events in an ET system.

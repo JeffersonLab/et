@@ -230,6 +230,37 @@ public interface EtEvent {
     void setRawByteOrder(int byteOrder) throws EtException;
 
 
+    // FIFO - methods used to interact with ET as FIFO
+
+    /**
+     * Sets the id associated with this event when it's used as part of a fifo entry.
+     * Stored in event's first control word.
+     * @param id fifo id of this event.
+     */
+    void setFifoId(int id);
+
+    /**
+     * Gets the id associated with this event when it's used as part of a fifo entry.
+     * Stored in event's first control word.
+     * @return fifo id of this event.
+     */
+    int getFifoId();
+
+    /**
+     * Sets whether this event has data when it's used as part of a fifo entry.
+     * Stored in event's second control word.
+     * @param hasData true if this event has data in it, else false.
+     */
+    void hasFifoData(boolean hasData);
+
+    /**
+     * Gets whether this event has data when it's used as part of a fifo entry.
+     * Stored in event's second control word.
+     * @return true if this event has data in it, else false.
+     */
+    boolean hasFifoData();
+
+
     // miscellaneous
 
     

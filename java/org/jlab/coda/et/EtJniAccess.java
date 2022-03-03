@@ -229,6 +229,43 @@ class EtJniAccess {
 
 
     /**
+     * Get new (unused) events from the local, C-based ET system.
+     *
+     * @param etId   ET system id
+     * @param attId  attachment id
+     * @param mode   if there are no new events available, this parameter specifies
+     *               whether to wait for some by sleeping {@link EtConstants#sleep},
+     *               to wait for a set time {@link EtConstants#timed},
+     *               or to return immediately {@link EtConstants#async}.
+     * @param sec    the number of seconds to wait if a timed wait is specified
+     * @param nsec   the number of nanoseconds to wait if a timed wait is specified
+     * @param count  number of events desired
+     * @param size   the size in bytes of the events desired
+     *
+     * @return array of unused events obtained from ET system. Count may be different from that requested.
+     *
+     * @throws EtException
+     *     if general errors
+     * @throws EtDeadException
+     *     if the ET system process is dead
+     * @throws EtClosedException
+     *     if ET system is closed
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup
+     */
+    native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size)
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+                   EtBusyException, EtTimeoutException, EtWakeUpException;
+
+
+    /**
      * Get new (unused) events from a specified group of such events from the local, C-based ET system.
      *
      * @param etId   ET system id
@@ -265,7 +302,7 @@ class EtJniAccess {
      */
     native EtEventImpl[] newEvents(long etId, int attId, int mode, int sec, int nsec, int count, int size, int group)
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
-                   EtBusyException, EtTimeoutException, EtWakeUpException;
+            EtBusyException, EtTimeoutException, EtWakeUpException;
 
 
     /**

@@ -17,7 +17,6 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.enums.Age;
@@ -345,6 +344,7 @@ public class EtEventImpl implements EtEvent {
         this.dataBuffer = ByteBuffer.wrap(data);
         this.dataBuffer.limit(ev.dataBuffer.limit());
         this.dataBuffer.position(ev.dataBuffer.position());
+
         // Cannot copy the mark, oh well.
     }
 
@@ -674,6 +674,22 @@ public class EtEventImpl implements EtEvent {
     public void setDataBuffer(ByteBuffer dataBuffer) {
         this.dataBuffer = dataBuffer;
     }
+
+
+    // FIFO - methods used to interact with ET as FIFO
+
+
+    /** {@inheritDoc} */
+    public void setFifoId(int id) {control[0] = id;}
+
+    /** {@inheritDoc} */
+    public int getFifoId() {return control[0];}
+
+    /** {@inheritDoc} */
+    public void hasFifoData(boolean hasData) {control[1] = hasData ? 1 : 0;}
+
+    /** {@inheritDoc} */
+    public boolean hasFifoData() {return control[1] != 0;}
 
 
     // miscellaneous

@@ -27,7 +27,6 @@ import org.jlab.coda.et.enums.Modify;
 import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.et.enums.Priority;
 import org.jlab.coda.et.enums.DataStatus;
-import org.jlab.coda.et.system.AttachmentLocal;
 
 // TODO: if IO exception occurs, open is not set to false, must catch it and call close()
 // TODO: so open is set to false. Then try open again.
@@ -1398,6 +1397,8 @@ public class EtSystem {
     //                       EVENTS
     //*****************************************************
 
+    // There are 2 varieties of newEvents, one takes "group" as an arg, the other does not.
+    // First is the simpler form that does NOT
 
     /**
      * Get new (unused) events from an ET system.
@@ -1438,8 +1439,482 @@ public class EtSystem {
             throws EtException, EtDeadException, EtClosedException, EtEmptyException,
                    EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
 
-        return newEvents(att, mode, false, microSec, count, size, 1);
+        return newEvents(att, mode, false, microSec, count, size);
     }
+
+
+
+    /**
+     * Get new (unused) events from an ET system.
+     * This method uses JNI to call ET routines in the C library. Event memory is
+     * directly accessed shared memory.
+     *
+     * @param attId    attachment id number
+     * @param mode     if there are no new events available, this parameter specifies
+     *                 whether to wait for some by sleeping {@link EtConstants#sleep},
+     *                 to wait for a set time {@link EtConstants#timed},
+     *                 or to return immediately {@link EtConstants#async}.
+     * @param sec      the number of seconds to wait if a timed wait is specified
+     * @param nsec     the number of nanoseconds to wait if a timed wait is specified
+     * @param count    the number of events desired
+     * @param size     the size of events in bytes
+     *
+     * @return an array of new events obtained from ET system. Count may be different from that requested.
+     *
+     * @throws EtException
+     *     if arguments have bad values, attachment object is invalid, or other general errors
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if ET system is closed
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup
+     */
+    private EtEvent[] newEventsJNI(int attId, int mode, int sec, int nsec, int count, int size)
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+            EtBusyException, EtTimeoutException, EtWakeUpException {
+
+        return sys.getJni().newEvents(sys.getJni().getLocalEtId(), attId,
+                                      mode, sec, nsec, count, size);
+    }
+
+
+
+
+    /**
+     * Get new (unused) events from an ET system.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets.
+     *
+     * @param att       attachment object
+     * @param mode      if there are no new events available, this parameter specifies
+     *                  whether to wait for some by sleeping {@link Mode#SLEEP},
+     *                  to wait for a set time {@link Mode#TIMED},
+     *                  or to return immediately {@link Mode#ASYNC}.
+     * @param noBuffer  if <code>true</code>, the new events are to have no byte array and
+     *                  no associated ByteBuffer created. Also the user must supply the
+     *                  ByteBuffer using {@link EtEventImpl#setDataBuffer(java.nio.ByteBuffer)}.
+     *                  Only used if connecting remotely.
+     * @param microSec  the number of microseconds to wait if a timed wait is specified
+     * @param count     the number of events desired
+     * @param size      the size of events in bytes
+     *
+     * @return an array of new events obtained from ET system. Count may be different from that requested.
+     *
+     * @throws IOException
+     *     if problems with network communications
+     * @throws EtException
+     *     if arguments have bad values;
+     *     if attachment object is invalid;
+     *     for other general errors
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup
+     */
+    public EtEvent[] newEvents(EtAttachment att, Mode mode, boolean noBuffer,
+                               int microSec, int count, int size)
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+            EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
+
+        if (mode == null) {
+            throw new EtException("Invalid mode");
+        }
+
+        if (att == null || !att.isUsable() || att.getSys() != this) {
+            throw new EtException("Invalid attachment");
+        }
+
+        if (count == 0) {
+            return new EtEvent[0];
+        }
+        else if (count < 0) {
+            throw new EtException("bad count argument");
+        }
+
+        if ((microSec < 0) && (mode == Mode.TIMED)) {
+            throw new EtException("bad microSec argument");
+        }
+        else if (size < 1) {
+            throw new EtException("bad size argument");
+        }
+
+        int sec  = 0;
+        int nsec = 0;
+        if (microSec > 0) {
+            sec = microSec/1000000;
+            nsec = (microSec - sec*1000000) * 1000;
+        }
+
+        // Do we get things locally through JNI?
+        if (sys.usingJniLibrary()) {
+            // Value of "open" valid if synchronized
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+            }
+            return newEventsJNI(att.getId(), mode.getValue(), sec, nsec, count, size);
+        }
+
+        // When using the network, do NOT use SLEEP mode because that
+        // may block all usage of this API's synchronized methods.
+        // Use repeated calls in TIMED mode. In between those calls,
+        // allow other synchronized code to run (such as wakeUpAll).
+        int iterations = 1;
+        int newTimeInterval = 200000;  // (in microsec) wait .2 second intervals for each get
+        Mode netMode = mode;
+        if (mode == Mode.SLEEP) {
+            netMode = Mode.TIMED;
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+        }
+        // Also, if there is a long time designated for TIMED mode,
+        // break it up into repeated smaller time chunks for the
+        // reason mentioned above. Don't break it up if timeout <= 1 sec.
+        else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+            // How many times do we call getEvents() with this new timeout value?
+            // It will be an over estimate unless timeout is evenly divisible by .2 seconds.
+            iterations = microSec/newTimeInterval;
+            if (microSec % newTimeInterval > 0) iterations++;
+        }
+
+        byte[] buffer = new byte[32];
+        EtUtils.intToBytes(EtConstants.netEvsNewGrp, buffer, 0);
+        EtUtils.intToBytes(att.getId(),        buffer, 4);
+        EtUtils.intToBytes(netMode.getValue(), buffer, 8);
+        EtUtils.longToBytes((long)size,        buffer, 12);
+        EtUtils.intToBytes(count,              buffer, 20);
+        EtUtils.intToBytes(sec,                buffer, 24);
+        EtUtils.intToBytes(nsec,               buffer, 28);
+
+        int numEvents;
+        EtEventImpl[] evs;
+
+        boolean wait = false;
+
+        while (true) {
+
+            // Allow other synchronized methods to be called here
+            if (wait) {
+                try {Thread.sleep(10);}
+                catch (InterruptedException e) { }
+            }
+
+            synchronized (this) {
+                if (!open) {
+                    throw new EtClosedException("Not connected to ET system");
+                }
+
+                out.write(buffer);
+                out.flush();
+
+                // ET system clients are liable to get stuck here if the ET
+                // system crashes. So use the 2 second socket timeout to try
+                // to read again. If the socket connection has been broken,
+                // an IOException will be generated.
+                int err;
+                while (true) {
+                    try {
+                        err = in.readInt();
+                        break;
+                    }
+                    // If there's an interrupted ex, socket is OK, try again.
+                    catch (InterruptedIOException ex) {
+                    }
+                }
+
+                if (err < EtConstants.ok) {
+                    if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
+                        System.out.println("error in ET system (newEvents), err = " + err);
+                    }
+
+                    // throw some exceptions
+                    if (err == EtConstants.error) {
+                        throw new EtException("bad mode value" );
+                    }
+                    else if (err == EtConstants.errorBusy) {
+                        throw new EtBusyException("input list is busy");
+                    }
+                    else if (err == EtConstants.errorEmpty) {
+                        throw new EtEmptyException("no events in list");
+                    }
+                    else if (err == EtConstants.errorWakeUp) {
+                        throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                    }
+                    else if (err == EtConstants.errorTimeout) {
+                        // Only get here if using SLEEP or TIMED modes
+                        if (mode == Mode.SLEEP || iterations-- > 0) {
+                            // Give other synchronized methods a chance to run
+                            wait = true;
+// System.out.println("implement sleep with another timed mode call (newEvents)");
+                            continue;
+                        }
+//                        if (debug >= EtConstants.debugError) {
+//                            System.out.println("newEvents timeout");
+//                        }
+                        throw new EtTimeoutException("no events within timeout");
+                    }
+                }
+
+                // number of events to expect
+                numEvents = err;
+
+                // list of events to return
+                evs = new EtEventImpl[numEvents];
+                buffer = new byte[4*numEvents];
+                in.readFully(buffer, 0, 4*numEvents);
+            }
+            break;
+        }
+
+        int index=-4;
+        long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
+
+        // Java limits array sizes to an integer. Thus we're limited to
+        // 2G byte arrays. Essentially Java is a 32 bit system in this
+        // regard even though the JVM might be 64 bits.
+        // So set limits on the size accordingly.
+
+        // if C ET system we are connected to is 64 bits ...
+        if (!isJava && sys.isBit64()) {
+            // if events size > ~1G, only allocate what's asked for
+            if ((long)numEvents*sys.getEventSize() > Integer.MAX_VALUE/2) {
+                sizeLimit = size;
+            }
+        }
+
+        for (int j=0; j < numEvents; j++) {
+            evs[j] = new EtEventImpl(size, (int)sizeLimit, isJava, noBuffer);
+            evs[j].setId(EtUtils.bytesToInt(buffer, index+=4));
+            evs[j].setModify(Modify.ANYTHING);
+            evs[j].setOwner(att.getId());
+        }
+
+        return evs;
+    }
+
+
+    /**
+     * Get new (unused) events from an ET system without specifying a group.
+     * Will access local C-based ET systems through JNI/shared memory, but other ET
+     * systems through sockets. No check to see if connected to ET.<p>
+     *
+     * <b>Warning:</b> a call to this method must be
+     * followed by a call to {@link #putEvents(EtContainer)} or {@link #dumpEvents(EtContainer)}
+     * with the same container argument.
+     * If that does not occur, and this method is called twice or more in succession,
+     * then the previously obtained new events (in the EtContainer) will be overwritten
+     * by the newly obtained events.<p>
+     *
+     * This method is only useful for callers who are trying to minimize generated JVM garbage
+     * and familiar with the limitations of its use.
+     *
+     * @param container helping object used to set/get parameters for getting new event.
+     *
+     *
+     * @throws IOException
+     *     if problems with network communications
+     * @throws EtException
+     *     if container arg null or container.newEvents not previously called;
+     *     if thread calling this is interrupted while reading from socket;
+     *     for other general errors
+     * @throws EtDeadException
+     *     if the ET system processes are dead
+     * @throws EtClosedException
+     *     if the ET system is closed
+     * @throws EtEmptyException
+     *     if the mode is asynchronous and the station's input list is empty
+     * @throws EtBusyException
+     *     if the mode is asynchronous and the station's input list is being used
+     *     (the mutex is locked)
+     * @throws EtTimeoutException
+     *     if the mode is timed wait and the time has expired
+     * @throws EtWakeUpException
+     *     if the attachment has been commanded to wakeup
+     */
+    public void newEventsNoGroup(EtContainer container)
+            throws EtException, EtDeadException, EtClosedException, EtEmptyException,
+            EtBusyException, EtTimeoutException, EtWakeUpException, IOException {
+
+        if (container == null || container.method != EtContainer.MethodType.NEW) {
+            throw new EtException("arg null or not setup for newEvents");
+        }
+
+        EtAttachment att = container.att;
+        Mode mode = container.mode;
+        int microSec = container.microSec;
+        int count = container.count;
+        int size = container.size;
+
+        if (count == 0) {
+            container.eventCount = 0;
+            return;
+        }
+
+        int sec  = 0;
+        int nsec = 0;
+        if (microSec > 0) {
+            sec = microSec/1000000;
+            nsec = (microSec - sec*1000000) * 1000;
+        }
+
+        // Do we get things locally through JNI?
+        if (sys.usingJniLibrary()) {
+            container.holdNewEvents(sys.getJni().newEvents(sys.getJni().getLocalEtId(),
+                    att.getId(), mode.getValue(),
+                    sec, nsec, count, size));
+            return;
+        }
+
+        // When using the network, do NOT use SLEEP mode because that
+        // may block all usage of this API's synchronized methods.
+        // Use repeated calls in TIMED mode. In between those calls,
+        // allow other synchronized code to run (such as wakeUpAll).
+        int iterations = 1;
+        int newTimeInterval = 200000;  // (in microsec) wait .2 second intervals for each get
+        Mode netMode = mode;
+        if (mode == Mode.SLEEP) {
+            netMode = Mode.TIMED;
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+        }
+        // Also, if there is a long time designated for TIMED mode,
+        // break it up into repeated smaller time chunks for the
+        // reason mentioned above. Don't break it up if timeout <= 1 sec.
+        else if (mode == Mode.TIMED && (microSec > 1000000))  {
+            sec  =  newTimeInterval/1000000;
+            nsec = (newTimeInterval - sec*1000000) * 1000;
+            // How many times do we call getEvents() with this new timeout value?
+            // It will be an over estimate unless timeout is evenly divisible by .2 seconds.
+            iterations = microSec/newTimeInterval;
+            if (microSec % newTimeInterval > 0) iterations++;
+        }
+
+        byte[] buffer = container.byteArray;
+        EtUtils.intToBytes(EtConstants.netEvsNewGrp, buffer, 0);
+        EtUtils.intToBytes(att.getId(),        buffer, 4);
+        EtUtils.intToBytes(netMode.getValue(), buffer, 8);
+        EtUtils.longToBytes((long)size,        buffer, 12);
+        EtUtils.intToBytes(count,              buffer, 20);
+        EtUtils.intToBytes(sec,                buffer, 24);
+        EtUtils.intToBytes(nsec,               buffer, 28);
+
+        int err, numEvents;
+        EtEventImpl[] evs;
+
+        try {
+
+            while (true) {
+
+                synchronized (this) {
+                    out.write(buffer, 0, 32);
+                    out.flush();
+
+                    // ET system clients are liable to get stuck here if the ET
+                    // system crashes. If the socket connection has been broken,
+                    // an IOException will be generated.
+                    err = in.readInt();
+
+                    if (err < EtConstants.ok) {
+                        if (debug >= EtConstants.debugError && err != EtConstants.errorTimeout) {
+                            System.out.println("error in ET system (newEvents), err = " + err);
+                        }
+
+                        // throw some exceptions
+                        if (err == EtConstants.error) {
+                            throw new EtException("bad mode value");
+                        }
+                        else if (err == EtConstants.errorBusy) {
+                            throw new EtBusyException("input list is busy");
+                        }
+                        else if (err == EtConstants.errorEmpty) {
+                            throw new EtEmptyException("no events in list");
+                        }
+                        else if (err == EtConstants.errorWakeUp) {
+                            throw new EtWakeUpException("attachment " + att.getId() + " woken up");
+                        }
+                        else if (err == EtConstants.errorTimeout) {
+                            // Only get here if using SLEEP or TIMED modes
+                            if (mode == Mode.SLEEP || iterations-- > 0) {
+// System.out.println("implement sleep with another timed mode call (newEvents)");
+                                continue;
+                            }
+//                            if (debug >= EtConstants.debugError) {
+//                                System.out.println("newEvents timeout");
+//                            }
+                            throw new EtTimeoutException("no events within timeout");
+                        }
+                    }
+
+                    // number of events to expect
+                    numEvents = err;
+                    int numBytes = 4 * numEvents;
+
+                    // list of events to return
+                    evs = container.realEvents;
+                    container.adjustByteArraySize(numBytes);
+                    buffer = container.byteArray;
+                    in.readFully(buffer, 0, numBytes);
+                }
+
+                break;
+            }
+        }
+        // If there's an interrupted ex, then the thread running this
+        // has been interrupted, time to return by throwing an exception
+        catch (InterruptedIOException ex) {
+            throw new EtException("thread interrupted while reading socket", ex);
+        }
+
+        int index=-4;
+        long sizeLimit = (size > sys.getEventSize()) ? (long)size : sys.getEventSize();
+
+        // Java limits array sizes to an integer. Thus we're limited to
+        // 2G byte arrays. Essentially Java is a 32 bit system in this
+        // regard even though the JVM might be 64 bits.
+        // So set limits on the size accordingly.
+
+        // if C ET system we are connected to is 64 bits ...
+        if (!isJava && sys.isBit64()) {
+            // if events size > ~1G, only allocate what's asked for
+            if ((long)numEvents*sys.getEventSize() > Integer.MAX_VALUE/2) {
+                sizeLimit = size;
+            }
+        }
+
+        for (int j=0; j < numEvents; j++) {
+            evs[j].setSizeLimit((int)sizeLimit);
+            evs[j].setJava(isJava);
+            evs[j].setId(EtUtils.bytesToInt(buffer, index+=4));
+            evs[j].setModify(Modify.ANYTHING);
+            evs[j].setOwner(att.getId());
+        }
+
+        container.holdNewEvents(evs, numEvents);
+    }
+
+
+
+    //  Second, these newEvent methods take the group arg
 
 
     /**
