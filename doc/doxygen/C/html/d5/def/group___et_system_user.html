@@ -100,6 +100,9 @@ Functions</h2></td></tr>
 <tr class="memitem:gaaf4f74a7ea3ed8cb0fa75888a3d1e93f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/def/group___et_system_user.html#gaaf4f74a7ea3ed8cb0fa75888a3d1e93f">et_system_getgroup</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, int *group)</td></tr>
 <tr class="memdesc:gaaf4f74a7ea3ed8cb0fa75888a3d1e93f"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the default group number of the ET client.  <a href="../../d5/def/group___et_system_user.html#gaaf4f74a7ea3ed8cb0fa75888a3d1e93f">More...</a><br /></td></tr>
 <tr class="separator:gaaf4f74a7ea3ed8cb0fa75888a3d1e93f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga231ed0640262d7e6a47cdc9b836a7dd8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/def/group___et_system_user.html#ga231ed0640262d7e6a47cdc9b836a7dd8">et_system_getgroupcount</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, int *grpCount)</td></tr>
+<tr class="memdesc:ga231ed0640262d7e6a47cdc9b836a7dd8"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of event groups in ET system.  <a href="../../d5/def/group___et_system_user.html#ga231ed0640262d7e6a47cdc9b836a7dd8">More...</a><br /></td></tr>
+<tr class="separator:ga231ed0640262d7e6a47cdc9b836a7dd8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga541c83d7861b0ee78fc202a43962b94a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/def/group___et_system_user.html#ga541c83d7861b0ee78fc202a43962b94a">et_system_setdebug</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, int debug)</td></tr>
 <tr class="memdesc:ga541c83d7861b0ee78fc202a43962b94a"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine sets the level of debug output for the ET client.  <a href="../../d5/def/group___et_system_user.html#ga541c83d7861b0ee78fc202a43962b94a">More...</a><br /></td></tr>
 <tr class="separator:ga541c83d7861b0ee78fc202a43962b94a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -364,7 +367,7 @@ Functions</h2></td></tr>
 <p>This routine gets the default group number of the ET client. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">sconfig</td><td>system id. </td></tr>
+    <tr><td class="paramname">id</td><td>system id. </td></tr>
     <tr><td class="paramname">group</td><td>int pointer which gets filled with the default group number.</td></tr>
   </table>
   </dd>
@@ -375,6 +378,49 @@ Functions</h2></td></tr>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d5/def/group___et_system_user.html#gaebd1ba15e8709f4f44bbc3db6448a3fc" title="This routine sets the default group number of the ET client.">et_system_setgroup</a>. </dd></dl>
 
 <p class="reference">References <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a>, <a class="el" href="../../dd/d57/et__private_8h.html#aff60c205b89e2ebf098234492593be66">ET_STRUCT_OK</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a51bb75d47842243f98caf8f23c3a88d2">et_id_t::group</a>, and <a class="el" href="../../d4/d84/structet__id__t.html#a1a390a89ce512da92ed88eeb60d3e20b">et_id_t::init</a>.</p>
+
+</div>
+</div>
+<a id="ga231ed0640262d7e6a47cdc9b836a7dd8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga231ed0640262d7e6a47cdc9b836a7dd8">&#9670;&nbsp;</a></span>et_system_getgroupcount()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int et_system_getgroupcount </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a>&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>grpCount</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This routine gets the number of event groups in ET system. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>system id. </td></tr>
+    <tr><td class="paramname">val</td><td>int pointer which gets filled with the number of event groups.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a> if successful. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a> if either arg is NULL or id not initialized.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../da/d33/group__system_config.html#ga504f83e3ae5576fb282353f8f68d90ee" title="This routine sets the configuration&#39;s UDP listening port used by remote users trying to find the ET s...">et_system_config_setport</a>. </dd></dl>
+
+<p class="reference">References <a class="el" href="../../dc/dac/structet__system__t.html#a89b6e6c080bb240685a7d554f38624b8">et_system_t::config</a>, <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a>, <a class="el" href="../../dd/d57/et__private_8h.html#aff60c205b89e2ebf098234492593be66">ET_STRUCT_OK</a>, <a class="el" href="../../dd/d68/structet__sys__config__t.html#a3ee572c6648b03ec7c4a3ac6fbeccc7c">et_sys_config_t::groupCount</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a1a390a89ce512da92ed88eeb60d3e20b">et_id_t::init</a>, and <a class="el" href="../../d4/d84/structet__id__t.html#a99fcb0269480b3bfca1bf7763fc0cf19">et_id_t::sys</a>.</p>
 
 </div>
 </div>
@@ -1051,7 +1097,7 @@ Functions</h2></td></tr>
 <p>When the group is set to 0, calls to <a class="el" href="../../d1/ddf/group__events.html#ga305c40d32d8014069e93a36a726b25cf">et_event_new</a> or <a class="el" href="../../d1/ddf/group__events.html#ga2f04fea027a239e4213ca98011898ab6">et_events_new</a> gets events of any group. When the group number is set to a positive number, the same calls only get events from the given group.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">sconfig</td><td>system id. </td></tr>
+    <tr><td class="paramname">id</td><td>system id. </td></tr>
     <tr><td class="paramname">val</td><td>ET system file name.</td></tr>
   </table>
   </dd>

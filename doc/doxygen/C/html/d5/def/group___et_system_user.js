@@ -5,6 +5,7 @@ var group___et_system_user =
     [ "et_system_getdebug", "d5/def/group___et_system_user.html#ga0af8d06fa4bea3347205b1fa980a8ddb", null ],
     [ "et_system_geteventsize", "d5/def/group___et_system_user.html#ga017d999cffb856a3d4b8433b54f5e25e", null ],
     [ "et_system_getgroup", "d5/def/group___et_system_user.html#gaaf4f74a7ea3ed8cb0fa75888a3d1e93f", null ],
+    [ "et_system_getgroupcount", "d5/def/group___et_system_user.html#ga231ed0640262d7e6a47cdc9b836a7dd8", null ],
     [ "et_system_getheartbeat", "d5/def/group___et_system_user.html#gac52449147686016ec60493b0026aeb4a", null ],
     [ "et_system_gethost", "d5/def/group___et_system_user.html#ga9a17ea0cec5d0e088639178cdd520b7d", null ],
     [ "et_system_getlocaladdress", "d5/def/group___et_system_user.html#gaa171882a80ca3f3c4139a7d147e4e5a6", null ],
