@@ -1,6 +1,6 @@
 ----------------------------
 
-# **ET 16.4 SOFTWARE PACKAGE**
+# **ET 16.5 SOFTWARE PACKAGE**
 
 ----------------------------
 
@@ -197,15 +197,15 @@ $JAVA_HOME/include/darwin.
 
 ----------------------------
 
-One can download the Java 8, pre-built et-16.4.jar file from either:
+One can download the Java 8, pre-built et-16.5.jar file from either:
 
   [Jar File @ Home Page](https://coda.jlab.org/drupal/content/et-164)
  
 or
 
-  [Jar File @ GitHub](https://github.com/JeffersonLab/et/blob/master/java/jars/java8/et-16.4.jar)
+  [Jar File @ GitHub](https://github.com/JeffersonLab/et/blob/master/java/jars/java8/et-16.5.jar)
 
-One can find the pre-built et-16.4.jar file in the repository in the java/jars/java8
+One can find the pre-built et-16.5.jar file in the repository in the java/jars/java8
 directory built with Java 8, or in the java/jars/java15 directory built with Java 15,
 or it can be generated. The generated jar file is placed in build/lib.
 In any case, put the jar file into your classpath and run your java application.
