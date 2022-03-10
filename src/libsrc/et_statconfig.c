@@ -22,6 +22,13 @@
 
 #include "et_private.h"
 
+
+
+/*---------------------------------------------------*/
+/*            STATION CONFIGURATION                  */
+/*---------------------------------------------------*/
+
+
 /**
  * @defgroup statConfig Station config
  *
@@ -30,10 +37,6 @@
  * @{
  */
 
-
-/*****************************************************/
-/*            STATION CONFIGURATION                  */
-/*****************************************************/
 
 /**
  * This routine initializes a configuration used to create a station in the ET system.
