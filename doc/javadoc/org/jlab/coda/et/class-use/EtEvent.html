@@ -106,8 +106,8 @@
 <tbody>
 <tr class="altColor">
 <td class="colFirst"><code>static <a href="../../../../../org/jlab/coda/et/EtEvent.html" title="interface in org.jlab.coda.et">EtEvent</a></code></td>
-<td class="colLast"><span class="typeNameLabel">EtFifo.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtFifo.html#getBuffer-int-org.jlab.coda.et.EtEvent:A-">getBuffer</a></span>(int&nbsp;id,
-         <a href="../../../../../org/jlab/coda/et/EtEvent.html" title="interface in org.jlab.coda.et">EtEvent</a>[]&nbsp;events)</code>
+<td class="colLast"><span class="typeNameLabel">EtFifo.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtFifo.html#getBuffer-int-org.jlab.coda.et.EtFifoEntry-">getBuffer</a></span>(int&nbsp;id,
+         <a href="../../../../../org/jlab/coda/et/EtFifoEntry.html" title="class in org.jlab.coda.et">EtFifoEntry</a>&nbsp;entry)</code>
 <div class="block">Find the event/buffer in the fifo entry corresponding to the given id.</div>
 </td>
 </tr>
@@ -194,20 +194,13 @@
 </td>
 </tr>
 <tr class="altColor">
-<td class="colFirst"><code>static <a href="../../../../../org/jlab/coda/et/EtEvent.html" title="interface in org.jlab.coda.et">EtEvent</a></code></td>
-<td class="colLast"><span class="typeNameLabel">EtFifo.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtFifo.html#getBuffer-int-org.jlab.coda.et.EtEvent:A-">getBuffer</a></span>(int&nbsp;id,
-         <a href="../../../../../org/jlab/coda/et/EtEvent.html" title="interface in org.jlab.coda.et">EtEvent</a>[]&nbsp;events)</code>
-<div class="block">Find the event/buffer in the fifo entry corresponding to the given id.</div>
-</td>
-</tr>
-<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><span class="typeNameLabel">EtSystem.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtSystem.html#putEvents-org.jlab.coda.et.EtAttachment-org.jlab.coda.et.EtEvent:A-">putEvents</a></span>(<a href="../../../../../org/jlab/coda/et/EtAttachment.html" title="class in org.jlab.coda.et">EtAttachment</a>&nbsp;att,
          <a href="../../../../../org/jlab/coda/et/EtEvent.html" title="interface in org.jlab.coda.et">EtEvent</a>[]&nbsp;evs)</code>
 <div class="block">Put events into an ET system.</div>
 </td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><span class="typeNameLabel">EtSystem.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtSystem.html#putEvents-org.jlab.coda.et.EtAttachment-org.jlab.coda.et.EtEvent:A-int-int-">putEvents</a></span>(<a href="../../../../../org/jlab/coda/et/EtAttachment.html" title="class in org.jlab.coda.et">EtAttachment</a>&nbsp;att,
          <a href="../../../../../org/jlab/coda/et/EtEvent.html" title="interface in org.jlab.coda.et">EtEvent</a>[]&nbsp;evs,
@@ -216,7 +209,7 @@
 <div class="block">Put events into an ET system.</div>
 </td>
 </tr>
-<tr class="rowColor">
+<tr class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><span class="typeNameLabel">EtEventSelectable.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtEventSelectable.html#select-org.jlab.coda.et.system.SystemCreate-org.jlab.coda.et.system.StationLocal-org.jlab.coda.et.EtEvent-">select</a></span>(org.jlab.coda.et.system.SystemCreate&nbsp;sys,
       org.jlab.coda.et.system.StationLocal&nbsp;st,
@@ -224,7 +217,7 @@
 <div class="block">An event selection method must follow this form.</div>
 </td>
 </tr>
-<tr class="altColor">
+<tr class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><span class="typeNameLabel">EtStationSelection.</span><code><span class="memberNameLink"><a href="../../../../../org/jlab/coda/et/EtStationSelection.html#select-org.jlab.coda.et.system.SystemCreate-org.jlab.coda.et.system.StationLocal-org.jlab.coda.et.EtEvent-">select</a></span>(org.jlab.coda.et.system.SystemCreate&nbsp;sys,
       org.jlab.coda.et.system.StationLocal&nbsp;st,
