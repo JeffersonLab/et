@@ -362,7 +362,7 @@ public class EtStation {
      * @return station's block mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see EtStationConfig#getBlockMode().
+     * @see EtStationConfig#getBlockMode()
      */
     public int getBlockMode() throws IOException, EtException {
         if (!usable) {
@@ -378,7 +378,7 @@ public class EtStation {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad mode value, or
      *                     the station is GRAND_CENTRAL
-     * @see EtStationConfig#setBlockMode(int).
+     * @see EtStationConfig#setBlockMode(int)
      */
     public void setBlockMode(int mode) throws IOException, EtException {
         if (!usable) {
@@ -402,7 +402,7 @@ public class EtStation {
      * @return station's user mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see EtStationConfig#getUserMode().
+     * @see EtStationConfig#getUserMode()
      */
     public int getUserMode() throws IOException, EtException {
         if (!usable) {
@@ -418,7 +418,7 @@ public class EtStation {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad mode value, or
      *                     the station is GRAND_CENTRAL
-     * @see EtStationConfig#setUserMode(int).
+     * @see EtStationConfig#setUserMode(int)
      */
     public void setUserMode(int mode) throws IOException, EtException {
         if (!usable) {
@@ -442,7 +442,7 @@ public class EtStation {
      * @return station's restore mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see EtStationConfig#getRestoreMode().
+     * @see EtStationConfig#getRestoreMode()
      */
     public int getRestoreMode() throws IOException, EtException {
         if (!usable) {
@@ -458,7 +458,7 @@ public class EtStation {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad mode value, or
      *                     the station is GRAND_CENTRAL
-     * @see EtStationConfig#setRestoreMode(int).
+     * @see EtStationConfig#setRestoreMode(int)
      */
     public void setRestoreMode(int mode) throws IOException, EtException {
         if (!usable) {
@@ -484,7 +484,7 @@ public class EtStation {
      * @return station's select mode
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see EtStationConfig#getSelectMode().
+     * @see EtStationConfig#getSelectMode()
      */
     public int getSelectMode() throws IOException, EtException {
         if (!usable) {
@@ -499,7 +499,7 @@ public class EtStation {
      * @return station's cue
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see EtStationConfig#getCue().
+     * @see EtStationConfig#getCue()
      */
     public int getCue() throws IOException, EtException {
         if (!usable) {
@@ -515,7 +515,7 @@ public class EtStation {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad cue value, or
      *                     the station is GRAND_CENTRAL
-     * @see EtStationConfig#setCue(int).
+     * @see EtStationConfig#setCue(int)
      */
     public void setCue(int cue) throws IOException, EtException {
         if (!usable) {
@@ -539,7 +539,7 @@ public class EtStation {
      * @return station's prescale
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed
-     * @see EtStationConfig#getPrescale().
+     * @see EtStationConfig#getPrescale()
      */
     public int getPrescale() throws IOException, EtException {
         if (!usable) {
@@ -555,7 +555,7 @@ public class EtStation {
      * @throws IOException if there are problems with network communication
      * @throws EtException if the station has been removed, bad prescale value, or
      *                     the station is GRAND_CENTRAL
-     * @see EtStationConfig#setPrescale(int).
+     * @see EtStationConfig#setPrescale(int)
      */
     public void setPrescale(int prescale) throws IOException, EtException {
         if (!usable) {

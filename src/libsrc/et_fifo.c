@@ -41,13 +41,14 @@
  * These routines are designed to work as follows:
  * <ol>
  *  <li>Call {@link #et_open} and get id</li>
- *  <li>Call {@link #et_fifo_openProducer} or {@link #et_fifo_openConsumer} and get fifo id as either a producer or consumer of entries</li>
+ *  <li>Call {@link #et_fifo_openProducer} or {@link #et_fifo_openConsumer} and get fifo id as either a producer or consumer of entries
  *      <ul>
  *          <li>Makes sure ET is setup properly</li>
  *          <li>Attaches to GrandCentral station if producing entries</li>
  *          <li>Attaches to Users station if consuming entries</li>
  *      </ul>
- *  <li>Call {@link #et_fifo_newEntry} and get pointer to {@link #et_fifo_entry} if producing fifo entry</li>
+ *  </li>
+ *  <li>Call {@link #et_fifo_newEntry} and get pointer to {@link #et_fifo_entry} if producing fifo entry
  *      <ul>
  *          <li>Call {@link #et_fifo_getBufs} to get access to all the events of a single fifo entry</li>
  *          <li>Call {@link #et_fifo_getEntryCapacity} to get the number of events in array. Need only be done once.</li>
@@ -55,7 +56,8 @@
  *          <li>Call {@link #et_fifo_setId} to set an id for a particular event</li>
  *          <li>Call {@link #et_event_setlength} to set the size of valid data for a particular event</li>
  *      </ul>
- *  <li>Call {@link #et_fifo_getEntry} and get pointer to {@link #et_fifo_entry} if consuming fifo entry</li>
+ *  </li>
+ *  <li>Call {@link #et_fifo_getEntry} and get pointer to {@link #et_fifo_entry} if consuming fifo entry
  *      <ul>
  *          <li>Call {@link #et_fifo_getBufs} to get access to all the events of a single fifo entry</li>
  *          <li>Call {@link #et_fifo_getEntryCapacity} to get the number of events in array. Need only be done once.</li>
@@ -63,6 +65,7 @@
  *          <li>Call {@link #et_fifo_getId} to get an id for a particular event</li>
  *          <li>Call {@link #et_event_getlength} to get the size of valid data for a particular event</li>
  *      </ul>
+ *  </li>
  *  <li>Call {@link #et_fifo_putEntry} when finished with fifo entry</li>
  *  <li>Call {@link #et_fifo_close} when finished with fifo interface</li>
  *  <li>Call {@link #et_close} when finished with ET system</li>

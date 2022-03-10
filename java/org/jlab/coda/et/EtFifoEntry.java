@@ -38,7 +38,8 @@ public class EtFifoEntry {
      * Create a fifo representation of the ET system and
      * interact with it as a consumer of fifo entries.
      *
-     * @param sys object representing an open ET system.
+     * @param sys  object representing an open ET system.
+     * @param fifo object representing an ET system as a fifo.
      *
      * @throws EtException if
      */

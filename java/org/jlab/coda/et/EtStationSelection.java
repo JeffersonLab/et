@@ -27,8 +27,10 @@ import org.jlab.coda.et.system.SystemCreate;
 
 public class EtStationSelection implements EtEventSelectable {
 
-    public EtStationSelection() {
-    }
+    /**
+     * Constructor.
+     */
+    public EtStationSelection() {}
 
     public boolean select(SystemCreate sys, StationLocal st, EtEvent ev) {
         int[] select  = st.getConfig().getSelect();

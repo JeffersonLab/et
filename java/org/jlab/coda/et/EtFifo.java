@@ -16,7 +16,6 @@ import org.jlab.coda.et.enums.Modify;
 import org.jlab.coda.et.exception.*;
 
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 
 /**
  * <p>
@@ -41,20 +40,21 @@ import java.util.concurrent.TimeoutException;
  * </p>
  *
  * <p>
- * These routines are threadsafe with the exception of {@link #getBuffer(int, EtEvent[])},
+ * These routines are threadsafe with the exception of {@link #getBuffer(int, EtFifoEntry)},
  * but that should never be called on the same arg with different threads.
- * These routines are designed to work as follows:
+ * These routines are designed to work as follows:</p>
  * <ol>
  *  <li>Create an {@link EtSystem} object</li>
  *  <li>Call {@link EtSystem#open()} to open ET system</li>
  *  <li>Create an {@link EtFifo} object as either an entry producer or consumer</li>
- *  <li>Create an {@link EtFifoEntry} object</li>
+ *  <li>Create an {@link EtFifoEntry} object
  *      <ul>
  *          <li>Makes sure ET is setup properly</li>
  *          <li>Attaches to GrandCentral station if producing entries</li>
  *          <li>Attaches to Users station if consuming entries</li>
  *      </ul>
- *  <li>Call {@link #newEntry(EtFifoEntry)} or {@link #newEntry(EtFifoEntry, int)} if producing fifo entry</li>
+ *  </li>
+ *  <li>Call {@link #newEntry(EtFifoEntry)} or {@link #newEntry(EtFifoEntry, int)} if producing fifo entry
  *      <ul>
  *          <li>Call {@link EtFifoEntry#getBuffers()} to get access to all the events of a single fifo entry</li>
  *          <li>Call {@link #getEntryCapacity()} to get the number of events in array. Need only be done once.</li>
@@ -62,7 +62,8 @@ import java.util.concurrent.TimeoutException;
  *          <li>Call {@link EtEvent#setFifoId(int)} to set an id for a particular event</li>
  *          <li>Call {@link EtEvent#setLength(int)} to set the size of valid data for a particular event</li>
  *      </ul>
- *  <li>Call {@link #getEntry(EtFifoEntry)} or {@link #getEntry(EtFifoEntry, int)} if consuming fifo entry</li>
+ *  </li>
+ *  <li>Call {@link #getEntry(EtFifoEntry)} or {@link #getEntry(EtFifoEntry, int)} if consuming fifo entry
  *      <ul>
  *          <li>Call {@link EtFifoEntry#getBuffers()} to get access to all the events of a single fifo entry</li>
  *          <li>Call {@link #getEntryCapacity()} to get the number of events in array. Need only be done once.</li>
@@ -70,11 +71,11 @@ import java.util.concurrent.TimeoutException;
  *          <li>Call {@link EtEvent#setFifoId(int)} to set an id for a particular event</li>
  *          <li>Call {@link EtEvent#setLength(int)} to set the size of valid data for a particular event</li>
  *      </ul>
+ *  </li>
  *  <li>Call {@link #putEntry(EtFifoEntry)} when finished with fifo entry</li>
  *  <li>Call {@link #close()} when finished with fifo interface</li>
  *  <li>Call {@link EtSystem#close()} when finished with ET system</li>
  * </ol>
- * </p>
  *
  * <p>
  * The first integer of an event's control array is reserved to hold an id
@@ -261,6 +262,8 @@ public class EtFifo {
      *
      * @see EtSystem#newEvents(EtContainer)
      *
+     * @param entry fifo entry to be filled with new events.
+     *
      * @throws IOException  if problems with network communications.
      * @throws EtException
      *     if called by consumer,
@@ -328,6 +331,7 @@ public class EtFifo {
      *
      * @see EtSystem#newEvents(EtContainer)
      *
+     * @param entry fifo entry to be filled with new events.
      * @param microSec  time to wait before returning.
      *
      * @throws IOException  if problems with network communications.
@@ -396,7 +400,9 @@ public class EtFifo {
      * Access the buffers by calling {@link EtFifoEntry#getBuffers()}.
      * <b>Each call to this routine MUST be accompanied by a following call to {@link #putEntry}!</b>
      *
-     * @see EtSystem#getEvents(EtContainer).
+     * @see EtSystem#getEvents(EtContainer)
+     *
+     * @param entry fifo entry to be filled with events.
      *
      * @throws IOException  if problems with network communications.
      * @throws EtException
@@ -446,8 +452,9 @@ public class EtFifo {
      * Access the buffers by calling {@link EtFifoEntry#getBuffers()}.
      * <b>Each call to this routine MUST be accompanied by a following call to {@link #putEntry}!</b>
      *
-     * @see EtSystem#getEvents(EtContainer).
+     * @see EtSystem#getEvents(EtContainer)
      *
+     * @param entry fifo entry to be filled with events.
      * @param microSec  time to wait before returning.
      *
      * @throws IOException  if problems with network communications.
@@ -499,7 +506,9 @@ public class EtFifo {
      * {@link #newEntry(EtFifoEntry)} , or {@link #newEntry(EtFifoEntry, int)} .
      * This routine will never block.
      *
-     * @see EtSystem#putEvents(EtContainer).
+     * @see EtSystem#putEvents(EtContainer)
+     *
+     * @param entry fifo entry with events to be returned to ET.
      *
      * @throws IOException  if problems with network communications.
      * @throws EtException
@@ -562,14 +571,18 @@ public class EtFifo {
      * control integer. NOT threadsafe.
      *
      * @param id    id.
+     * @param entry fifo entry with events to be searched.
+     *
      * @return buffer labelled with id or first one that's unused.
      *         NULL if no bufs are available.
      */
-    public static EtEvent getBuffer(int id, EtEvent[] events) {
-        if (events == null) return null;
+    public static EtEvent getBuffer(int id, EtFifoEntry entry) {
+        if (entry == null) return null;
 
         int c0;
-        for (EtEvent event : events) {
+        EtEvent[] evs = entry.getBuffers();
+
+        for (EtEvent event : evs) {
             if (event == null) continue;
 
             c0 = event.getControl()[0];
