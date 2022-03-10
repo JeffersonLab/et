@@ -5,7 +5,8 @@ headerList = ['et.h',
               'et_private.h',
               'et_network.h',
               'etCommonNetwork.h',
-              'et_data.h']
+              'et_data.h',
+              'et_fifo.h']
 
 jniFileList = ['et_jni.c']
 
@@ -27,7 +28,8 @@ fileList = ['et_attachment.c',
             'et_statconfig.c',
             'et_station.c',
             'et_sysconfig.c',
-            'et_system.c']
+            'et_system.c',
+            'et_fifo.c']
 
 remoteFileList = ['et_init.c',
                   'et_network.c',

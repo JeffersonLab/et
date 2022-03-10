@@ -63,8 +63,7 @@ set(HEADER_FILES
         src/libsrc/et_private.h
         src/libsrc/et.h
         src/libsrc/etCommonNetwork.h
-
-        src/multiFifo/et_fifo.h
+        src/libsrc/et_fifo.h
         )
 
 set(SOURCE_FILES
@@ -87,8 +86,7 @@ set(SOURCE_FILES
         src/libsrc/et_sysconfig.c
         src/libsrc/et_system.c
         src/libsrc/etCommonNetwork.c
-
-        src/multiFifo/et_fifo.c
+        src/libsrc/et_fifo.c
         )
 
 set (REMOTE_SOURCE_FILES
@@ -109,7 +107,7 @@ set (EXEC_SOURCE_FILES
         src/execsrc/et_monitor.c
         src/execsrc/et_printIFinfo.c
         src/execsrc/et_start.c
-        src/multiFifo/et_start_fifo.c
+        src/execsrc/et_start_fifo.c
         )
 
 set (EXAMPLE_FILES
