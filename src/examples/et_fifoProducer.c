@@ -448,7 +448,7 @@ int main(int argc,char **argv) {
 
     entry = et_fifo_entryCreate(fid);
     if (entry == NULL) {
-        printf("%s: et_fifo_open out of mem\n", argv[0]);
+        printf("%s: et_fifo_entryCreate: out of mem\n", argv[0]);
         exit(1);
     }
 
