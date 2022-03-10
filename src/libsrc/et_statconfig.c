@@ -408,7 +408,7 @@ int et_station_config_getrestore(et_statconfig sconfig, int *val) {
  * If the size of the queue exceeds the total number of events in the system,
  * it is set to that limit when the station is created. Take notice that setting the
  * size of the queue to the total # of events will, in essence, change the station
- * into one which blocks (block mode of @refET_STATION_BLOCKING). The reason for
+ * into one which blocks (block mode of @ref ET_STATION_BLOCKING). The reason for
  * this is that all events will now pass through this station.
  *
  * @param sconfig   station configuration.

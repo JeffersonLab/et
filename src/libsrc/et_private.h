@@ -364,7 +364,7 @@ typedef struct  et_sys_config_t {
   int               port;             /**< Broad/multicast port # for UDP communication. */
   int               serverport;       /**< Port # for ET system TCP server thread. */
   int               tcpSendBufSize;   /**< TCP send buffer size in bytes of socket connecting to ET client. */
-  int               tcpRecvBufSize;   /**< TCP receive buffer size in bytes of socket connecting to ET client.. */
+  int               tcpRecvBufSize;   /**< TCP receive buffer size in bytes of socket connecting to ET client. */
   int               tcpNoDelay;       /**< If 0, sockets to clients have TCP_NODELAY option off, else on. */
   codaNetInfo       netinfo;          /**< All local network info. */
   codaDotDecIpAddrs bcastaddrs;       /**< All local subnet broadcast addresses (dot-decimal). */

@@ -115,9 +115,10 @@ int et_wakeup_attachment(et_sys_id id, et_att_id att) {
  
 
 /**
- * This routine wakes up all attachments waiting to read events.
+ * This routine wakes up all attachments waiting to read events on a station.
  *
- * @param id    ET system id.
+ * @param id         ET system id.
+ * @param stat_id    station id.
  *
  * @returns @ref ET_OK            if successful.
  * @returns @ref ET_ERROR         if bad arg.

@@ -917,7 +917,7 @@ int et_system_config_getfile(et_sysconfig sconfig, char *val) {
  * calls only get events from the given group.
  *
  * @param id        system id.
- * @param val       ET system file name.
+ * @param group     default group number.
  *
  * @returns @ref ET_OK           if successful.
  * @returns @ref ET_ERROR        if id is NULL or not initialized;
@@ -988,8 +988,8 @@ int et_system_getgroup(et_sys_id id, int *group) {
 /**
  * This routine gets the number of event groups in ET system.
  *
- * @param id     system id.
- * @param val    int pointer which gets filled with the number of event groups.
+ * @param id          system id.
+ * @param grpCount    int pointer which gets filled with the number of event groups.
  *
  * @returns @ref ET_OK      if successful.
  * @returns @ref ET_ERROR   if either arg is NULL or id not initialized.
@@ -1441,7 +1441,7 @@ int et_system_gettemps(et_sys_id id, int *temps) {
 /**
  * This routine gets the TCP listening port number of the ET system.
  *
- * @param sconfig   system configuration.
+ * @param id        ET system id.
  * @param port      int pointer which gets filled with the system's TCP listening port.
  *
  * @returns @ref ET_OK      if successful.
@@ -1464,7 +1464,7 @@ int et_system_getserverport(et_sys_id id, int *port) {
  * This routine gets the host of the ET system.
  * To be safe the array should be at least {@ref ET_MAXHOSTNAMELEN} characters long.
  *
- * @param sconfig   system configuration.
+ * @param id        ET system id.
  * @param host      pointer which gets filled with the system's host.
  *
  * @returns @ref ET_OK      if successful.
@@ -1487,7 +1487,7 @@ int et_system_gethost(et_sys_id id, char *host) {
  * This routine gets the local IP address, if any, used to connect remotely to the ET system.
  * The array must be at least {@ref ET_IPADDRSTRLEN} characters long.
  *
- * @param sconfig   system configuration.
+ * @param id        ET system id.
  * @param address   pointer which gets filled with the local IP address used to connect remotely to the ET system.
  *
  * @returns @ref ET_OK      if successful.
@@ -1506,5 +1506,4 @@ int et_system_getlocaladdress(et_sys_id id, char *address) {
 }
 
 
-/** @} */
 /** @} */

@@ -1339,7 +1339,7 @@ int et_events_get(et_sys_id id, et_att_id att, et_event *pe[],
 /**
  * This routine is called when a user wants to return a single, previously read or new event
  * into the ET system so processes downstream can use it or so it can be returned to
- * @ref @ref ET_GRANDCENTRAL station. This will never block.
+ * @ref ET_GRANDCENTRAL station. This will never block.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -1446,7 +1446,7 @@ int et_event_put(et_sys_id id, et_att_id att, et_event *pe) {
 /**
  * This routine is called when a user wants to return an array of previously read or new events
  * into the ET system so processes downstream can use it or so it can be returned to
- * @ref @ref ET_GRANDCENTRAL station. This will never block.
+ * @ref ET_GRANDCENTRAL station. This will never block.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -1570,7 +1570,7 @@ int et_events_put(et_sys_id id, et_att_id att, et_event *pe[], int num) {
 /**
  * This routine is called when a user wants to get rid of a single, previously read or new event
  * so that no user processes downstream will ever see it. It is placed directly into the ET system's
- * @ref @ref ET_GRANDCENTRAL station which recycles it. This will never block.
+ * @ref ET_GRANDCENTRAL station which recycles it. This will never block.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -1672,7 +1672,7 @@ int et_event_dump(et_sys_id id, et_att_id att, et_event *pe) {
 /**
  * This routine is called when a user wants to get rid of an array of previously read or new events
  * so that no user processes downstream will ever see them. They are placed directly into the ET system's
- * @ref @ref ET_GRANDCENTRAL station which recycles them. This will never block.
+ * @ref ET_GRANDCENTRAL station which recycles them. This will never block.
  *
  * @param id    id of the ET system of interest.
  * @param att   the attachment id. This is obtained by attaching the user process to a station with et_station_attach.
@@ -1808,7 +1808,7 @@ int et_events_dump(et_sys_id id, et_att_id att, et_event *pe[], int num)
  * helps to evenly distribute events between multiple producers.
  *
  * @param pe    pointer to event.
- * @param pri   event's group (starts at 1)..
+ * @param grp   event's group (starts at 1)..
  *
  * @returns @ref ET_OK     if successful.
  * @returns @ref ET_ERROR  if either arg is NULL,

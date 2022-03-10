@@ -561,8 +561,7 @@ int et_open_config_gettimeout(et_openconfig sconfig, struct timespec *val) {
  *
  * The broadcast address must be in dot-decimal form. If this routine is never called,
  * the list of addresses is automatically set to all the local subnet broadcast addresses.
- * However, if finding these addresses fails, then the list is set to a single entry of
- * @ref ET_BROADCAST_ADDR. This argument may also be set to @ref ET_SUBNET_ALL which
+ * This argument may also be set to @ref ET_SUBNET_ALL which
  * specifies all the local subnet broadcast addresses.
  *
  * @param sconfig   open configuration.

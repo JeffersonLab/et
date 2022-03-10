@@ -2973,7 +2973,7 @@ int et_station_getclass(et_sys_id id, et_stat_id stat_id, char *classs) {
  *
  * @param id         ET system id.
  * @param stat_id    station id.
- * @param lib        pointer which gets filled with the selection function name.
+ * @param function   pointer which gets filled with the selection function name.
  *
  * @returns @ref ET_OK            if successful.
  * @returns @ref ET_ERROR         if station is unused, bad stat_id argument, or select mode

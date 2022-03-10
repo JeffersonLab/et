@@ -1673,9 +1673,9 @@ int etr_attach_geteventsmake(et_sys_id id, et_att_id att_id,
  * If the user does a "put" of an event having called this routine to set its buffer,
  * that user-supplied buffer is not freed.
  *
- * @param id
- * @param pe
- * @parem data
+ * @param id    ET system id.
+ * @param pe    event pointer.
+ * @param data  data pointer.
  *
  * @returns @ref ET_OK      if successful.
  * @returns @ref ET_ERROR   if user is not remote or data arg is NULL.

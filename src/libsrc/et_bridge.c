@@ -96,14 +96,14 @@ int et_bridge_config_init(et_bridgeconfig *config) {
  * This routine frees the memory allocated when a bridge configuration is initialized
  * by @ref et_bridge_config_init.
  *
- * @param sconfig   bridge configuration.
+ * @param config   bridge configuration.
  *
  * @returns @ref ET_OK.
  */
-int et_bridge_config_destroy(et_bridgeconfig sconfig) {
+int et_bridge_config_destroy(et_bridgeconfig config) {
 
-    if (sconfig == NULL) return ET_OK;
-    free((et_bridge_config *) sconfig);
+    if (config == NULL) return ET_OK;
+    free((et_bridge_config *) config);
     return ET_OK;
 }
 
@@ -111,7 +111,7 @@ int et_bridge_config_destroy(et_bridgeconfig sconfig) {
 /**
  * This routine sets the mode of getting events from the "from" ET system.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        is set to either @ref ET_SLEEP, @ref ET_TIMED, or @ref ET_ASYNC and determines
  *                   the mode of getting events from the "from" ET system.
  *                   The default is ET_SLEEP.
@@ -142,7 +142,7 @@ int et_bridge_config_setmodefrom(et_bridgeconfig config, int val) {
 /**
  * This routine gets the mode of getting events from the "from" ET system.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        int pointer that gets filled with either @ref ET_SLEEP, @ref ET_TIMED,
  *                   or @ref ET_ASYNC.
  *
@@ -165,7 +165,7 @@ int et_bridge_config_getmodefrom(et_bridgeconfig config, int *val) {
 /**
  * This routine sets the mode of getting new events from the "to" ET system.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        is set to either @ref ET_SLEEP, @ref ET_TIMED, or @ref ET_ASYNC and determines
  *                   the mode of getting new events from the "to" ET system.
  *                   The default is ET_SLEEP.
@@ -196,7 +196,7 @@ int et_bridge_config_setmodeto(et_bridgeconfig config, int val) {
 /**
  * This routine gets the mode of getting new events from the "to" ET system.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        int pointer that gets filled with either @ref ET_SLEEP, @ref ET_TIMED,
  *                   or @ref ET_ASYNC.
  *
@@ -220,7 +220,7 @@ int et_bridge_config_getmodeto(et_bridgeconfig config, int *val) {
  * This routine sets the maximum number of events to get from the "from" ET system
  * in a single call to @ref et_events_get - the number of events to get in one chunk.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        chunk size is any int > 0 with default being 100.
  *
  * @returns @ref ET_OK      if successful.
@@ -244,7 +244,7 @@ int et_bridge_config_setchunkfrom(et_bridgeconfig config, int val) {
  * This routine gets the maximum number of events to get from the "from" ET system
  * in a single call to @ref et_events_get - the number of events to get in one chunk.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        int pointer that gets filled with chunk size.
  *
  * @returns @ref ET_OK      if successful.
@@ -267,7 +267,7 @@ int et_bridge_config_getchunkfrom(et_bridgeconfig config, int *val) {
  * This routine sets the maximum number of new events to get from the "to" ET system
  * in a single call to @ref et_events_new - the number of events to get in one chunk.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        chunk size is any int > 0 with default being 100.
  *
  * @returns @ref ET_OK      if successful.
@@ -291,7 +291,7 @@ int et_bridge_config_setchunkto(et_bridgeconfig config, int val) {
  * This routine gets the maximum number of new events to get from the "to" ET system
  * in a single call to @ref et_events_new - the number of events to get in one chunk.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        int pointer that gets filled with chunk size.
  *
  * @returns @ref ET_OK      if successful.
@@ -314,7 +314,7 @@ int et_bridge_config_getchunkto(et_bridgeconfig config, int *val) {
  * This routine sets the time to wait for the "from" ET system during all @ref et_events_get
  * calls when the mode is set to ET_TIMED.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        time to wait for events from the "from" ET system (default = 0 sec).
  *
  * @returns @ref ET_OK      if successful.
@@ -337,7 +337,7 @@ int et_bridge_config_settimeoutfrom(et_bridgeconfig config, struct timespec val)
  * This routine gets the time to wait for the "from" ET system during all @ref et_events_get
  * calls when the mode is set to ET_TIMED.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        pointer that gets filled with time to wait for events from the "from" ET system.
  *
  * @returns @ref ET_OK      if successful.
@@ -360,7 +360,7 @@ int et_bridge_config_gettimeoutfrom(et_bridgeconfig config, struct timespec *val
  * This routine sets the time to wait for the "to" ET system during all @ref et_events_new
  * calls when the mode is set to ET_TIMED.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        time to wait for new events from the "to" ET system (default = 0 sec).
  *
  * @returns @ref ET_OK      if successful.
@@ -383,7 +383,7 @@ int et_bridge_config_settimeoutto(et_bridgeconfig config, struct timespec val) {
  * This routine gets the time to wait for the "to" ET system during all @ref et_events_new
  * calls when the mode is set to ET_TIMED.
  *
- * @param sconfig    bridge configuration.
+ * @param config    bridge configuration.
  * @param val        pointer that gets filled with time to wait for new events from the "to" ET system.
  *
  * @returns @ref ET_OK      if successful.
@@ -418,8 +418,8 @@ int et_bridge_config_gettimeoutto(et_bridgeconfig config, struct timespec *val) 
  * @ref et_event_setendian in order to change the registered endian value of the data. This is already
  * taken care of in @ref et_events_bridge.
  *
- * @param sconfig    bridge configuration.
- * @param val        swapping function pointer.
+ * @param config    bridge configuration.
+ * @param func      swapping function pointer.
  *
  * @returns @ref ET_OK      if successful.
  * @returns @ref ET_ERROR   if config is NULL or not initialized.
