@@ -5,6 +5,8 @@ var files_dup =
     [ "et_bridge.c", "d9/d18/et__bridge_8c.html", "d9/d18/et__bridge_8c" ],
     [ "et_common.c", "de/d04/et__common_8c.html", "de/d04/et__common_8c" ],
     [ "et_event.c", "d3/d66/et__event_8c.html", "d3/d66/et__event_8c" ],
+    [ "et_fifo.c", "dd/d56/et__fifo_8c.html", "dd/d56/et__fifo_8c" ],
+    [ "et_fifo.h", "d0/d2f/et__fifo_8h.html", "d0/d2f/et__fifo_8h" ],
     [ "et_network.h", "d7/d58/et__network_8h.html", "d7/d58/et__network_8h" ],
     [ "et_openconfig.c", "d4/d59/et__openconfig_8c.html", "d4/d59/et__openconfig_8c" ],
     [ "et_private.h", "dd/d57/et__private_8h.html", "dd/d57/et__private_8h" ],

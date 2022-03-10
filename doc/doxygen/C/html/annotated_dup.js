@@ -3,6 +3,8 @@ var annotated_dup =
     [ "et_attach", "d7/d85/structet__attach.html", "d7/d85/structet__attach" ],
     [ "et_bridge_config_t", "d6/d84/structet__bridge__config__t.html", "d6/d84/structet__bridge__config__t" ],
     [ "et_event_t", "d3/d4d/structet__event__t.html", "d3/d4d/structet__event__t" ],
+    [ "et_fifo_context_t", "df/db6/structet__fifo__context__t.html", "df/db6/structet__fifo__context__t" ],
+    [ "et_fifo_entry_t", "db/dbc/structet__fifo__entry__t.html", "db/dbc/structet__fifo__entry__t" ],
     [ "et_fix", "dd/d94/structet__fix.html", "dd/d94/structet__fix" ],
     [ "et_fixin", "d5/d41/structet__fixin.html", "d5/d41/structet__fixin" ],
     [ "et_fixout", "d0/dfb/structet__fixout.html", "d0/dfb/structet__fixout" ],

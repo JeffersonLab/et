@@ -1,6 +1,6 @@
 var group__events =
 [
-    [ "Single event", "d2/db6/group__event_fields.html", "d2/db6/group__event_fields" ],
+    [ "Single event", "db/d85/group__eventFields.html", "db/d85/group__eventFields" ],
     [ "et_event_dump", "d1/ddf/group__events.html#ga436a27f8a82b246dbf612278b857aefe", null ],
     [ "et_event_get", "d1/ddf/group__events.html#ga1ca3b9d57244f9e593b77eaf834b6490", null ],
     [ "et_event_new", "d1/ddf/group__events.html#ga305c40d32d8014069e93a36a726b25cf", null ],

@@ -26,7 +26,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">ET System
-   &#160;<span id="projectnumber">16.4</span>
+   &#160;<span id="projectnumber">16.5</span>
    </div>
   </td>
  </tr>
@@ -98,7 +98,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:ga36b19be3e49eabfd3583f546812a6179"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine wakes up a specific attachment waiting to read events.  <a href="../../dc/df6/group__attach.html#ga36b19be3e49eabfd3583f546812a6179">More...</a><br /></td></tr>
 <tr class="separator:ga36b19be3e49eabfd3583f546812a6179"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf5d81bbdefe65937a6908c76be6030aa"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/df6/group__attach.html#gaf5d81bbdefe65937a6908c76be6030aa">et_wakeup_all</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, <a class="el" href="../../d4/d12/et_8h.html#afa79983a1372c787beda97ca2b558fc1">et_stat_id</a> stat_id)</td></tr>
-<tr class="memdesc:gaf5d81bbdefe65937a6908c76be6030aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine wakes up all attachments waiting to read events.  <a href="../../dc/df6/group__attach.html#gaf5d81bbdefe65937a6908c76be6030aa">More...</a><br /></td></tr>
+<tr class="memdesc:gaf5d81bbdefe65937a6908c76be6030aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine wakes up all attachments waiting to read events on a station.  <a href="../../dc/df6/group__attach.html#gaf5d81bbdefe65937a6908c76be6030aa">More...</a><br /></td></tr>
 <tr class="separator:gaf5d81bbdefe65937a6908c76be6030aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga27ffba9d8432eebc92f541022f7db59d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/df6/group__attach.html#ga27ffba9d8432eebc92f541022f7db59d">et_attach_geteventsput</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, <a class="el" href="../../d4/d12/et_8h.html#aa01c1a1779604cc16cb60c805e50e7e6">et_att_id</a> att_id, uint64_t *events)</td></tr>
 <tr class="memdesc:ga27ffba9d8432eebc92f541022f7db59d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of events an attachment put by calling <a class="el" href="../../d1/ddf/group__events.html#ga528f5654f472b9cc93a2f384e293e251">et_event_put</a> or <a class="el" href="../../d1/ddf/group__events.html#ga79ad29180ee621e4620d36ae3b7f0500">et_events_put</a>.  <a href="../../dc/df6/group__attach.html#ga27ffba9d8432eebc92f541022f7db59d">More...</a><br /></td></tr>
@@ -370,10 +370,11 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>This routine wakes up all attachments waiting to read events. </p>
+<p>This routine wakes up all attachments waiting to read events on a station. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">id</td><td>ET system id.</td></tr>
+    <tr><td class="paramname">id</td><td>ET system id. </td></tr>
+    <tr><td class="paramname">stat_id</td><td>station id.</td></tr>
   </table>
   </dd>
 </dl>

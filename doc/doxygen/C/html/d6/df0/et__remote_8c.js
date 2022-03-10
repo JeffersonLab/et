@@ -1,6 +1,6 @@
 var et__remote_8c =
 [
-    [ "et_event_setdatabuffer", "d2/db6/group__event_fields.html#gab4f5202dd202a5a755227be42d74e520", null ],
+    [ "et_event_setdatabuffer", "db/d85/group__eventFields.html#gab4f5202dd202a5a755227be42d74e520", null ],
     [ "etr_alive", "d6/df0/et__remote_8c.html#ac3de8af047c71742eac9d0a5ad185d87", null ],
     [ "etr_attach_geteventsdump", "d6/df0/et__remote_8c.html#a95c28ea07564f5443cd1db660c8f2cc3", null ],
     [ "etr_attach_geteventsget", "d6/df0/et__remote_8c.html#a9f51d39b83717dfe93fc7d96ca0311a9", null ],

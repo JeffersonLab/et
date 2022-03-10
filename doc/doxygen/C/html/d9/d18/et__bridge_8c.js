@@ -1,6 +1,6 @@
 var et__bridge_8c =
 [
-    [ "et_bridge_config_destroy", "d3/d2d/group__bridge.html#ga47298f7a12a80457458c28a99cc66afa", null ],
+    [ "et_bridge_config_destroy", "d3/d2d/group__bridge.html#ga1971fbc34ff5b84bfa8ccc80774c974d", null ],
     [ "et_bridge_config_getchunkfrom", "d3/d2d/group__bridge.html#gacff1c3c0769bafb30ebdcebbe38626c3", null ],
     [ "et_bridge_config_getchunkto", "d3/d2d/group__bridge.html#ga7495a18de35ddc64b2022c6172292f4c", null ],
     [ "et_bridge_config_getmodefrom", "d3/d2d/group__bridge.html#gafde1c20e9440a59815f05ff4ef0abe86", null ],
