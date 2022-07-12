@@ -322,6 +322,7 @@ int main(int argc,char **argv) {
             if (etdead) {
                 printf("ET SYSTEM is DEAD!\n");
                 printf("*****************************************\n\n");
+                break;
             }
         }
         /*  wait for "period" before looking at another round of data */
