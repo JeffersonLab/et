@@ -1197,6 +1197,9 @@ public class EtSystemOpen {
     synchronized public void connect() throws IOException,
                                               EtException, EtTooManyException {
 
+        String os = System.getProperty("os.name");
+        System.out.println("\n\n\nJAVA RUNNING ON: " + os + "\n\n");
+
         // In Java, all clients make a connection the the ET system server through sockets.
         // However, in cases where there is a local C-based, ET system, an attempt is also
         // made to access events through JNI.
