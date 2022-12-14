@@ -699,10 +699,12 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
 
     if (status == ET_OK) {
         // Return station id
+        printf("JNI stationNameToObject: found station %s, id = %d\n", stName, stat_id);
         return (jint)stat_id;
     }
     else if (status == ET_ERROR) {
         // Not found
+        printf("JNI stationNameToObject: CANNOT find station %s\n", stName);
         return (jint)(-1);
     }
     else {
