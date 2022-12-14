@@ -670,7 +670,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_createStation
         }
         (*env)->ThrowNew(env, clazz, "createStation (native): cannot create station");
 
-        return status;
+        return (jint)status;
     }
 
     // Return station id
@@ -719,7 +719,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_stationNameToObject
             clazz = (*env)->FindClass(env, "org/jlab/coda/et/exception/EtException");
             (*env)->ThrowNew(env, clazz, "stationNameToObject (native): error finding station");
         }
-        return status;
+        return (jint)status;
     }
 }
 
@@ -754,7 +754,7 @@ JNIEXPORT jint JNICALL Java_org_jlab_coda_et_EtJniAccess_attach
         }
         (*env)->ThrowNew(env, clazz, "attach (native): cannot attach to station");
 
-        return status;
+        return (jint)status;
     }
 
     // Return attachment id
