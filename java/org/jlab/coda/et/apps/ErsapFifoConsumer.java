@@ -79,6 +79,7 @@ public class ErsapFifoConsumer {
 
         try {
             EtSystemOpenConfig config = new EtSystemOpenConfig();
+            config.setNetworkContactMethod(EtConstants.direct);
             config.setHost(EtConstants.hostLocal);
             config.setWaitTime(0);
             config.setEtName(etName);
