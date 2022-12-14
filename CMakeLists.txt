@@ -117,6 +117,7 @@ set (EXAMPLE_FILES
         src/examples/et_fifoProducer.c
         src/examples/et_fifoConsumer.c
         src/examples/et_producerTest.c
+        src/examples/et_connectionTest.c
         )
 
 # ET build is optional and set it to ON by default
