@@ -1354,6 +1354,7 @@ public class EtSystem {
 
             int statId = sys.getJni().stationNameToObject(sys.getJni().getLocalEtId(), name);
             if (statId == -1) {
+                System.out.println("stationNameToObject for " + name + " thru JNI is done, returned statId = " + statId);
                 return null;
             }
 
