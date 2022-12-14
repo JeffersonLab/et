@@ -434,6 +434,14 @@ int main(int argc,char **argv) {
             exit(1);
         }
 
+        et_stat_id statId;
+        status = et_station_name_to_id(id, &statId, "Users");
+        if (status != ET_OK) {
+            printf("%s: error in et_station_name_to_id\n", argv[0]);
+        }
+        else {
+            printf("%s: id of \"Users\" station is %d\n", argv[0], statId);
+        }
 
 
         status = et_events_new_group(id, attach1, pe, ET_SLEEP | noAllocFlag,
