@@ -1562,7 +1562,7 @@ int et_station_exists(et_sys_id id, et_stat_id *stat_id, const char *stat_name) 
 int et_station_name_to_id(et_sys_id id, et_stat_id *stat_id, const char *stat_name) {
 
     int status;
-fprintf(stderr, "I'm in et_station_name_to_id!!\n");
+
     status = et_station_exists(id, stat_id, stat_name);
     if (status < 0) {
         return status;
