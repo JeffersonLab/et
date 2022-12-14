@@ -260,7 +260,7 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
  * @returns @ref ET_ERROR          if either id or fid is NULL,
  *                                 or id not initialized,
  *                                 or number of events not multiple of fifo entries.
- * @returns @ref ET_ERROR_BADARG   if bufId is NULL or bidCount = 0.
+ * @returns @ref ET_ERROR_BADARG   if bufId is NULL or idCount = 0.
  * @returns @ref ET_ERROR_NOMEM    if memory cannot be allocated.
  * @returns @ref ET_ERROR_CLOSED   if et_close already called.
  * @returns @ref ET_ERROR_DEAD     if ET system is dead.
