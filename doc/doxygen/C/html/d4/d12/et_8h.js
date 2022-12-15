@@ -245,6 +245,7 @@ var et_8h =
     [ "et_station_getcue", "d2/d39/group__station.html#ga2a76644745e700576190b1822f438bf6", null ],
     [ "et_station_getfunction", "d2/d39/group__station.html#ga54731a2fea27763cf0ff43df503e97ee", null ],
     [ "et_station_getinputcount", "d2/d39/group__station.html#gaa32d7c1892071afdc64650d96aa0e384", null ],
+    [ "et_station_getinputcount_rt", "d2/d39/group__station.html#ga01bdc54a33d38e498a26a07aec56d7c0", null ],
     [ "et_station_getlib", "d2/d39/group__station.html#ga443530238b51885977a98b0787915958", null ],
     [ "et_station_getoutputcount", "d2/d39/group__station.html#ga3830209d5372eee6c8058dbb8f7b4353", null ],
     [ "et_station_getposition", "d2/d39/group__station.html#ga0b063cb7cd4f82b10e61f52117a97199", null ],

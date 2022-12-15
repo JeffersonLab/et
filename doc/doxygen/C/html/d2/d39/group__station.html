@@ -133,6 +133,9 @@ Functions</h2></td></tr>
 <tr class="memitem:gaa32d7c1892071afdc64650d96aa0e384"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d39/group__station.html#gaa32d7c1892071afdc64650d96aa0e384">et_station_getinputcount</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, <a class="el" href="../../d4/d12/et_8h.html#afa79983a1372c787beda97ca2b558fc1">et_stat_id</a> stat_id, int *cnt)</td></tr>
 <tr class="memdesc:gaa32d7c1892071afdc64650d96aa0e384"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of events in a station's input list.  <a href="../../d2/d39/group__station.html#gaa32d7c1892071afdc64650d96aa0e384">More...</a><br /></td></tr>
 <tr class="separator:gaa32d7c1892071afdc64650d96aa0e384"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga01bdc54a33d38e498a26a07aec56d7c0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d39/group__station.html#ga01bdc54a33d38e498a26a07aec56d7c0">et_station_getinputcount_rt</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, <a class="el" href="../../d4/d12/et_8h.html#afa79983a1372c787beda97ca2b558fc1">et_stat_id</a> stat_id, int *cnt)</td></tr>
+<tr class="memdesc:ga01bdc54a33d38e498a26a07aec56d7c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of events in a station's input list IN REALTIME.  <a href="../../d2/d39/group__station.html#ga01bdc54a33d38e498a26a07aec56d7c0">More...</a><br /></td></tr>
+<tr class="separator:ga01bdc54a33d38e498a26a07aec56d7c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3830209d5372eee6c8058dbb8f7b4353"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d39/group__station.html#ga3830209d5372eee6c8058dbb8f7b4353">et_station_getoutputcount</a> (<a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a> id, <a class="el" href="../../d4/d12/et_8h.html#afa79983a1372c787beda97ca2b558fc1">et_stat_id</a> stat_id, int *cnt)</td></tr>
 <tr class="memdesc:ga3830209d5372eee6c8058dbb8f7b4353"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of events in a station's output list.  <a href="../../d2/d39/group__station.html#ga3830209d5372eee6c8058dbb8f7b4353">More...</a><br /></td></tr>
 <tr class="separator:ga3830209d5372eee6c8058dbb8f7b4353"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -869,6 +872,64 @@ Functions</h2></td></tr>
 <a class="el" href="../../d6/d87/group__errors.html#ga908826e7f029821887b52c334473755c">ET_ERROR_WRITE</a> for a remote user's network write error. </dd></dl>
 
 <p class="reference">References <a class="el" href="../../d4/d84/structet__id__t.html#a03305ebc8996df2b7e470e75d4c3aa43">et_id_t::closed</a>, <a class="el" href="../../d1/da8/structet__list__t.html#ad23fc577f928f59699dbcb0d52e4fd86">et_list_t::cnt</a>, <a class="el" href="../../dc/dac/structet__system__t.html#a89b6e6c080bb240685a7d554f38624b8">et_system_t::config</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a9d3bbfa4f8e8dae5f60983a5b1c4b8f3">et_id_t::debug</a>, <a class="el" href="../../d1/da8/group__general.html#ga136c0caab2ce11e42cf3d12aec49c40c">et_alive()</a>, <a class="el" href="../../d4/d12/et_8h.html#a6d24bd950fd343e3ed7e7f7db12ee97c">ET_DEBUG_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga1a8ed2ddac748f77949b7270ce3e8a7d">ET_ERROR_CLOSED</a>, <a class="el" href="../../d6/d87/group__errors.html#ga61606a7988e4d76df7d3a31d920fb55f">ET_ERROR_DEAD</a>, <a class="el" href="../../de/d04/et__common_8c.html#abfa02a4ce848807fc079786b07b5addc">et_logmsg()</a>, <a class="el" href="../../dd/d57/et__private_8h.html#ab072c09c6a4d48dacdfdeebf7ded8d44">et_mem_unlock()</a>, <a class="el" href="../../dd/d57/et__private_8h.html#a60e1fc3989ba59a0bf2e9ffb838e4521">et_memRead_lock()</a>, <a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a>, <a class="el" href="../../d4/d12/et_8h.html#a11fb39ad9239198713ac16cbc996087b">ET_REMOTE</a>, <a class="el" href="../../d6/df0/et__remote_8c.html#a29fd7b69a83382214280de9e34c0e2cd">etr_station_getinputcount()</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a323f7078b9af09dbc34d685f3b9059ef">et_id_t::grandcentral</a>, <a class="el" href="../../dc/de2/structet__station__t.html#abb2ac3ed2c64cdcbe8efbb012d657cef">et_station_t::list_in</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a119354d0412e7abdcafa1871adb13f12">et_id_t::locality</a>, <a class="el" href="../../dd/d68/structet__sys__config__t.html#a8ee4a09d64f98de40a526deaf8f120b6">et_sys_config_t::nstations</a>, and <a class="el" href="../../d4/d84/structet__id__t.html#a99fcb0269480b3bfca1bf7763fc0cf19">et_id_t::sys</a>.</p>
+
+</div>
+</div>
+<a id="ga01bdc54a33d38e498a26a07aec56d7c0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga01bdc54a33d38e498a26a07aec56d7c0">&#9670;&nbsp;</a></span>et_station_getinputcount_rt()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int et_station_getinputcount_rt </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d4/d12/et_8h.html#a7798c5f7c9010460f455b66faa1b5366">et_sys_id</a>&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d4/d12/et_8h.html#afa79983a1372c787beda97ca2b558fc1">et_stat_id</a>&#160;</td>
+          <td class="paramname"><em>stat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>cnt</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This routine gets the number of events in a station's input list IN REALTIME. </p>
+<p>This number changes rapidly and is likely to be out-of-date immediately, but this gets an accurate instantaneous value. This comes at the expense of possible slowing down the ET system.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>ET system id. </td></tr>
+    <tr><td class="paramname">stat_id</td><td>station id. </td></tr>
+    <tr><td class="paramname">cnt</td><td>int pointer which gets filled with the number of events in the input list.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a> if successful. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a> if station is unused or bad stat_id argument. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga1a8ed2ddac748f77949b7270ce3e8a7d">ET_ERROR_CLOSED</a> if et_close already called. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga61606a7988e4d76df7d3a31d920fb55f">ET_ERROR_DEAD</a> if ET system is dead. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#gac71afb5c8d1ca5879e0cf93466ce0909">ET_ERROR_READ</a> for a remote user's network read error. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga908826e7f029821887b52c334473755c">ET_ERROR_WRITE</a> for a remote user's network write error. </dd></dl>
+
+<p class="reference">References <a class="el" href="../../d4/d84/structet__id__t.html#a03305ebc8996df2b7e470e75d4c3aa43">et_id_t::closed</a>, <a class="el" href="../../d1/da8/structet__list__t.html#ad23fc577f928f59699dbcb0d52e4fd86">et_list_t::cnt</a>, <a class="el" href="../../dc/dac/structet__system__t.html#a89b6e6c080bb240685a7d554f38624b8">et_system_t::config</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a9d3bbfa4f8e8dae5f60983a5b1c4b8f3">et_id_t::debug</a>, <a class="el" href="../../d1/da8/group__general.html#ga136c0caab2ce11e42cf3d12aec49c40c">et_alive()</a>, <a class="el" href="../../d4/d12/et_8h.html#a6d24bd950fd343e3ed7e7f7db12ee97c">ET_DEBUG_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga1a8ed2ddac748f77949b7270ce3e8a7d">ET_ERROR_CLOSED</a>, <a class="el" href="../../d6/d87/group__errors.html#ga61606a7988e4d76df7d3a31d920fb55f">ET_ERROR_DEAD</a>, <a class="el" href="../../dd/d57/et__private_8h.html#a0cff8f0c0f4990a6387aaea47a87b963">et_llist_lock()</a>, <a class="el" href="../../dd/d57/et__private_8h.html#a548b8c267073bc806f214fb6d54860b0">et_llist_unlock()</a>, <a class="el" href="../../de/d04/et__common_8c.html#abfa02a4ce848807fc079786b07b5addc">et_logmsg()</a>, <a class="el" href="../../dd/d57/et__private_8h.html#ab072c09c6a4d48dacdfdeebf7ded8d44">et_mem_unlock()</a>, <a class="el" href="../../dd/d57/et__private_8h.html#a60e1fc3989ba59a0bf2e9ffb838e4521">et_memRead_lock()</a>, <a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a>, <a class="el" href="../../d4/d12/et_8h.html#a11fb39ad9239198713ac16cbc996087b">ET_REMOTE</a>, <a class="el" href="../../d6/df0/et__remote_8c.html#a29fd7b69a83382214280de9e34c0e2cd">etr_station_getinputcount()</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a323f7078b9af09dbc34d685f3b9059ef">et_id_t::grandcentral</a>, <a class="el" href="../../dc/de2/structet__station__t.html#abb2ac3ed2c64cdcbe8efbb012d657cef">et_station_t::list_in</a>, <a class="el" href="../../d4/d84/structet__id__t.html#a119354d0412e7abdcafa1871adb13f12">et_id_t::locality</a>, <a class="el" href="../../dd/d68/structet__sys__config__t.html#a8ee4a09d64f98de40a526deaf8f120b6">et_sys_config_t::nstations</a>, and <a class="el" href="../../d4/d84/structet__id__t.html#a99fcb0269480b3bfca1bf7763fc0cf19">et_id_t::sys</a>.</p>
 
 </div>
 </div>
