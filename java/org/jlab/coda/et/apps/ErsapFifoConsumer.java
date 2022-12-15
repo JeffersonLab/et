@@ -197,7 +197,7 @@ public class ErsapFifoConsumer {
 
                 int randomInt = rng.nextInt(100);
 
-                if (delay > 0 && randomInt % 32 == 0) {
+                if (delay > 0 && randomInt % 64 == 0) {
                     Thread.sleep(delay);
                 }
             }
