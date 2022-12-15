@@ -195,9 +195,9 @@ public class ErsapFifoConsumer {
                     t1 = System.currentTimeMillis();
                 }
 
-                int randomInt = rng.nextInt(10);
+                int randomInt = rng.nextInt(100);
 
-                if (delay > 0 && randomInt % 3 == 0) {
+                if (delay > 0 && randomInt % 2 == 0) {
                     Thread.sleep(delay);
                 }
             }
