@@ -12,10 +12,7 @@ package org.jlab.coda.et.apps;
 
 import org.jlab.coda.et.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 
 
 /**
@@ -45,32 +42,14 @@ public class ErsapFifoConsumer {
 
         int port=0, delay=0;
         boolean verbose=false;
-        String etName=null, host=null;
+        String etName=null;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equalsIgnoreCase("-f")) {
                 etName = args[++i];
             }
-            else if (args[i].equalsIgnoreCase("-host")) {
-                host = args[++i];
-            }
             else if (args[i].equalsIgnoreCase("-v")) {
                 verbose = true;
-            }
-            else if (args[i].equalsIgnoreCase("-p")) {
-                try {
-                    port = Integer.parseInt(args[++i]);
-                    if ((port < 1024) || (port > 65535)) {
-                        System.out.println("Port number must be between 1024 and 65535.");
-                        usage();
-                        return;
-                    }
-                }
-                catch (NumberFormatException ex) {
-                    System.out.println("Did not specify a proper port number.");
-                    usage();
-                    return;
-                }
             }
             else if (args[i].equalsIgnoreCase("-d")) {
                 try {
@@ -100,19 +79,8 @@ public class ErsapFifoConsumer {
 
         try {
             EtSystemOpenConfig config = new EtSystemOpenConfig();
-
-            if (port == 0) {
-                port = EtConstants.serverPort;
-            }
-            config.setTcpPort(port);
             config.setNetworkContactMethod(EtConstants.direct);
-            if (host == null) {
-                host = EtConstants.hostLocal;
-            }
-            config.setHost(host);
-            System.out.println("Direct connection to " + host);
-
-            // Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY
+            config.setHost(EtConstants.hostLocal);
             config.setWaitTime(0);
             config.setEtName(etName);
 
@@ -122,7 +90,7 @@ public class ErsapFifoConsumer {
                 sys.setDebug(EtConstants.debugInfo);
             }
             sys.open();
-            System.out.println("Connect to ET using local IP addr = " + sys.getLocalAddress());
+            System.out.println("Connect to local ET");
 
             //***********************/
             //* Use FIFO interface  */
@@ -138,7 +106,7 @@ public class ErsapFifoConsumer {
             // array of events
             EtEvent[] mevs;
 
-            int    len, num, bufId;
+            int    len, bufId;
             long   t1=0L, t2=0L, time, totalT=0L, count=0L, totalCount=0L, bytes=0L, totalBytes=0L;
             double rate, avgRate;
 
@@ -153,7 +121,7 @@ public class ErsapFifoConsumer {
 
                 idCount = 0;
 
-                // example of reading & printing event data
+                // reading event data, iterate thru each event in a single fifo entry (1 in this case)
                 for (int i=0; i < entryCap; i++) {
                     // Does this buffer have any data? (Set by producer)
                     if (!mevs[i].hasFifoData()) {
@@ -162,35 +130,28 @@ public class ErsapFifoConsumer {
                     }
                     idCount++;
 
-                    // Id associated with this buffer in this fifo entry
+                    // Id associated with this buffer in this fifo entry.
+                    // Not useful if only 1 buffer in each fifo entry as is the case here.
                     bufId = mevs[i].getFifoId();
 
                     // Get event's data buffer
                     ByteBuffer buf = mevs[i].getDataBuffer();
-                    num = buf.getInt(0);
+                    // Data length in bytes
                     len = mevs[i].getLength();
                     bytes += len;
                     totalBytes += len;
 
-                    if (verbose) {
-                        System.out.println("    data (len = " + mevs[i].getLength() + ") = " + num);
+                    // When using a local C-based ET system with JNI, each ET event has data in
+                    // a ByteBuffer. In this case, a MappedByteBuffer is used, so it has
+                    // NO BACKING ARRAY!! Access data thru ByteBuffer object only!
 
-                        if (buf.hasArray()) {
-                            // If using byte array you need to watch out for endianness
-                            byte[] data = mevs[i].getData();
-                            System.out.println("data byte order = " + mevs[i].getByteOrder());
-                            if (mevs[i].needToSwap()) {
-                                System.out.println("    data (len = " + len + ") needs swapping");
-                            }
-                            else {
-                                System.out.println("    data (len = " + len + ") does NOT need swapping");
-                            }
-                        }
-                        else {
-                            // Access data thru ByteBuffer and not underlying array
-                            System.out.println("    data (len = " + len + ") accessed thru ByteBuffer");
-                        }
+                    if (!buf.hasArray()) {
+                        // Access data only thru ByteBuffer
+                        //System.out.println("    data (len = " + len + ") accessed thru ByteBuffer");
                     }
+//                    else {
+//                        // Data CANNOT be accessed thru backing array
+//                    }
                 }
 
                 // put events back into ET system
