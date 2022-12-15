@@ -13,6 +13,7 @@ package org.jlab.coda.et.apps;
 import org.jlab.coda.et.*;
 
 import java.nio.ByteBuffer;
+import java.util.Random;
 
 
 /**
@@ -78,6 +79,10 @@ public class ErsapFifoConsumer {
         }
 
         try {
+
+            // To get more random behavior, skip delay every now & then
+            Random rng = new Random();
+
             EtSystemOpenConfig config = new EtSystemOpenConfig();
             config.setNetworkContactMethod(EtConstants.direct);
             config.setHost(EtConstants.hostLocal);
@@ -190,7 +195,9 @@ public class ErsapFifoConsumer {
                     t1 = System.currentTimeMillis();
                 }
 
-                if (delay > 0) {
+                int randomInt = rng.nextInt(10);
+
+                if (delay > 0 && randomInt % 3 == 0) {
                     Thread.sleep(delay);
                 }
             }
