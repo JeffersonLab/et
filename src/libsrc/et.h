@@ -57,7 +57,7 @@ extern "C" {
 
 #define ET_MULTICAST_ADDR  "239.200.0.0"    /**< Default multicast address to use in finding ET system. */
     
-#define ET_EVENT_GROUPS_MAX 2000 /**< Default max number of groups events are divided into. */
+#define ET_EVENT_GROUPS_MAX 5000 /**< Default max number of groups events are divided into. */
 
 /*********************************************************************/
 /*                              WARNING                              */
