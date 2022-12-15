@@ -1760,6 +1760,69 @@ int et_station_getinputcount(et_sys_id id, et_stat_id stat_id, int *cnt) {
 
 
 /**
+ * This routine gets the number of events in a station's input list IN REALTIME.
+ * This number changes rapidly and is likely to be out-of-date immediately,
+ * but this gets an accurate instantaneous value. This comes at the expense of
+ * possible slowing down the ET system.
+ *
+ * @param id         ET system id.
+ * @param stat_id    station id.
+ * @param cnt        int pointer which gets filled with the number of events in the input list.
+ *
+ * @returns @ref ET_OK            if successful.
+ * @returns @ref ET_ERROR         if station is unused or bad stat_id argument.
+ * @returns @ref ET_ERROR_CLOSED  if et_close already called.
+ * @returns @ref ET_ERROR_DEAD    if ET system is dead.
+ * @returns @ref ET_ERROR_READ    for a remote user's network read error.
+ * @returns @ref ET_ERROR_WRITE   for a remote user's network write error.
+ */
+int et_station_getinputcount_rt(et_sys_id id, et_stat_id stat_id, int *cnt) {
+
+    et_id *etid = (et_id *) id;
+    et_station *ps = etid->grandcentral + stat_id;
+    et_list    *pl  = &ps->list_in;
+
+    if (etid->locality == ET_REMOTE) {
+        return etr_station_getinputcount(id, stat_id, cnt);
+    }
+
+    if (!et_alive(id)) {
+        return ET_ERROR_DEAD;
+    }
+
+    /* Protection from (local) et_close() unmapping shared memory */
+    et_memRead_lock(etid);
+
+    /* Has caller already called et_close()? */
+    if (etid->closed) {
+        et_mem_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_station_getinputcount, et id is closed\n");
+        }
+        return ET_ERROR_CLOSED;
+    }
+
+    if ((stat_id < 0) || (stat_id >= etid->sys->config.nstations)) {
+        et_mem_unlock(etid);
+        if (etid->debug >= ET_DEBUG_ERROR) {
+            et_logmsg("ERROR", "et_station_getinputcount, bad station id\n");
+        }
+        return ET_ERROR;
+    }
+
+    if (cnt != NULL) {
+        // Need realtime info so use the mutex
+        et_llist_lock(pl);
+        *cnt = ps->list_in.cnt;
+        et_llist_unlock(pl);
+    }
+
+    et_mem_unlock(etid);
+    return ET_OK;
+}
+
+
+/**
  * This routine gets the number of events in a station's output list.
  * This number changes rapidly and is likely to be out-of-date immediately.
  *

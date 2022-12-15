@@ -485,6 +485,7 @@ extern int et_station_name_to_id(et_sys_id id, et_stat_id *stat_id, const char *
 extern int et_station_getattachments(et_sys_id id, et_stat_id stat_id, int *numatts);
 extern int et_station_getstatus(et_sys_id id, et_stat_id stat_id, int *status);
 extern int et_station_getinputcount(et_sys_id id, et_stat_id stat_id, int *cnt);
+extern int et_station_getinputcount_rt(et_sys_id id, et_stat_id stat_id, int *cnt);
 extern int et_station_getoutputcount(et_sys_id id, et_stat_id stat_id, int *cnt);
 extern int et_station_getselect(et_sys_id id, et_stat_id stat_id, int *select);
 extern int et_station_getlib(et_sys_id id, et_stat_id stat_id, char *lib);
