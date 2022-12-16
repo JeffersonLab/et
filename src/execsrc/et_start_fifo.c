@@ -332,8 +332,8 @@ int main(int argc, char **argv) {
     /*
      * Define a station to create for consumers of data-filled fifo entries.
      * It allows multiple users by default.
-     * By default, set it to be non-blocking and set the queue (cue) size to be
-     * 10% shy of the full number of events (modulo fifo-width). Why do this?
+     * By default, set it to be non-blocking and set the stations input queue size
+     * to be 5% shy (2 min) of the full number of fifo entries. Why do this?
      * For 2 reasons. First, so that the producer is always able to get a new
      * entry at any time without being blocked. Second, when this station's input is
      * full because of a slow consumer, it will essentially drop all the new data
@@ -342,9 +342,12 @@ int main(int argc, char **argv) {
     et_station_config_init(&sconfig);
     if (!blockingFifo) {
         et_station_config_setblock(sconfig, ET_STATION_NONBLOCKING);
-        // Cue contains 90% of entries ...
-        et_station_config_setcue(sconfig, nevents - (entries/10)*entryCount);
+        // Cue contains 95% of entries => 5% free with minimum of 2 ...
+        int freeEntries = entries/20;
+        freeEntries = freeEntries < 2 ? 2 : freeEntries;
+        et_station_config_setcue(sconfig, nevents - freeEntries*entryCount);
     }
+    
     if ((status = et_station_create(id, &my_stat, "Users", sconfig)) != ET_OK) {
         printf("%s: error in creating station \"Users\"\n", argv[0]);
         exit(1);
