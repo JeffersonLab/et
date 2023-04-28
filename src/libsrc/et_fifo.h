@@ -61,6 +61,8 @@ extern int  et_fifo_getEntry(et_fifo_id fid, et_fifo_entry *entry);
 extern int  et_fifo_getEntryTO(et_fifo_id fid, et_fifo_entry *entry, struct timespec *deltatime);
 
 extern int  et_fifo_putEntry(et_fifo_entry *entry);
+extern int  et_fifo_allHaveData(et_fifo_id id, et_fifo_entry *entry,
+                                int *incompleteBufs, size_t *incompleteBytes);
 
 extern size_t et_fifo_getBufSize(et_fifo_id fid);
 extern int    et_fifo_getEntryCapacity(et_fifo_id fid);

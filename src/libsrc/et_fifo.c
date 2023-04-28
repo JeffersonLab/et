@@ -741,6 +741,49 @@ int et_fifo_hasData(et_event *ev) {
 
 
 /**
+ * This routine gets whether all events (associated with an id)
+ * in the given ET fifo entry have data in it or not.
+ * This routine is geared towards ejfat and the reassembly of UDP packets into buffers.
+ * It returns, in its args, how many buffers and bytes are associated with
+ * incompletely reassembled data.
+ *
+ * @param id     ET fifo handle.
+ * @param entry  ET fifo entry.
+ * @param incompleteBufs   filled with # of bufs not listed has having data
+ *                         (having incomplete data).
+ * @param incompleteBytes  filled with # of bytes contained in events
+ *                         not listed has having data (having incomplete data).
+ * @return 1 if all events have data, 0 if not, ET_ERROR if bad arg(s).
+ */
+int et_fifo_allHaveData(et_fifo_id id, et_fifo_entry *entry,
+                        int *incompleteBufs, size_t *incompleteBytes) {
+    et_fifo_ctx *ctx = (et_fifo_ctx *)id;
+    if (ctx == NULL || entry == NULL) return ET_ERROR;
+
+    int haveData = 1, iBufs = 0;
+    size_t len, iBytes = 0;
+
+    // Loop thru events in fifo entry
+    et_event **events = entry->bufs;
+    for (int i=0; i < ctx->idCount; i++) {
+        int hData = events[i]->control[1];
+        // if this event has incomplete data ...
+        if (hData == 0) {
+            iBufs++;
+            et_event_getlength(events[i], &len);
+            iBytes += len;
+        }
+        haveData = haveData && hData;
+    }
+
+    if (incompleteBufs  != NULL) *incompleteBufs  = iBufs;
+    if (incompleteBytes != NULL) *incompleteBytes = iBytes;
+
+    return haveData;
+};
+
+
+/**
  * Find the event/buffer in the fifo entry corresponding to the given id.
  * If none, get the first unused buffer, assign it that id,
  * and return it. The id value for an event is stored in its first
