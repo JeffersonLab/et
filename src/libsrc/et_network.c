@@ -318,10 +318,12 @@ int et_responds(const char *etname)
     /* send only 1 broadcast with a default maximum .01 sec wait */
     if (et_findserver2(etname, ethost, &port, &inetaddr, NULL, config, 1, NULL, ET_DEBUG_NONE) == ET_OK) {
         /* got a response */
+        et_open_config_destroy(config);
         return 1;
     }
   
     /* no response */
+    et_open_config_destroy(config);
     return 0;
 }
 
