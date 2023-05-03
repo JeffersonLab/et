@@ -640,7 +640,7 @@ et_event** et_fifo_getBufs(et_fifo_entry *entry) {
 
 
 /**
- * This routine gets the size of each buffer in bytes.
+ * This routine gets the max size of each buffer in bytes.
  * @param id  ET fifo handle.
  * @return size of each buffer in bytes, or ET_ERROR if bad arg.
  */
@@ -697,6 +697,7 @@ int et_fifo_getBufIds(et_fifo_id id, int *bufIds) {
 /**
  * This routine sets an id value associated with this ET event/buffer.
  * Stored in event's first control word.
+ * This should never be used.
  * @param ev ET event.
  * @param id id of this event.
  */
@@ -789,7 +790,7 @@ int et_fifo_allHaveData(et_fifo_id id, et_fifo_entry *entry,
  * and return it. The id value for an event is stored in its first
  * control integer. NOT threadsafe.
  *
- * @param id    id.
+ * @param id    data source id.
  * @param entry fifo entry.
  * @return buffer labelled with id or first one that's unused.
  *         NULL if no bufs are available.
