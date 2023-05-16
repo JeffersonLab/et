@@ -125,6 +125,12 @@ Functions</h2></td></tr>
 <tr class="memitem:gabd1b32b38c46a24c4c5e1b64736398a1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d4/d12/et_8h.html#a0265011b21aed180ea0fdb8d47e7903f">et_event</a> **&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#gabd1b32b38c46a24c4c5e1b64736398a1">et_fifo_getBufs</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adb0fd7284b6de234cdfcf376ec078384">et_fifo_entry</a> *entry)</td></tr>
 <tr class="memdesc:gabd1b32b38c46a24c4c5e1b64736398a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gives access to the ET events or buffers in a fifo entry obtained by calling either <a class="el" href="../../d9/d45/group__fifo.html#ga8c3e4b37ff3257eeb67d808e1b46369d">et_fifo_getEntry</a>, <a class="el" href="../../d9/d45/group__fifo.html#ga3c807aa1be6ee8ca9500205f20aeb735">et_fifo_getEntryTO</a>, <a class="el" href="../../d9/d45/group__fifo.html#gaa9438372c392e1fe7d5d65accb6b9963">et_fifo_newEntry</a>, or <a class="el" href="../../d9/d45/group__fifo.html#ga4505ca188774ba11a4bcb0cc529bd95b">et_fifo_newEntryTO</a>.  <a href="../../d9/d45/group__fifo.html#gabd1b32b38c46a24c4c5e1b64736398a1">More...</a><br /></td></tr>
 <tr class="separator:gabd1b32b38c46a24c4c5e1b64736398a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">et_fifo_getEntryCount</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a> id)</td></tr>
+<tr class="memdesc:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the total number of entries existing in the fifo.  <a href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">More...</a><br /></td></tr>
+<tr class="separator:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga90fae7c857cae0c1dd55c0f650cd5ff3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#ga90fae7c857cae0c1dd55c0f650cd5ff3">et_fifo_getFillLevel</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a> id)</td></tr>
+<tr class="memdesc:ga90fae7c857cae0c1dd55c0f650cd5ff3"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of fifo entries containing unconsumed data, which is the fill level of the fifo.  <a href="../../d9/d45/group__fifo.html#ga90fae7c857cae0c1dd55c0f650cd5ff3">More...</a><br /></td></tr>
+<tr class="separator:ga90fae7c857cae0c1dd55c0f650cd5ff3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9cb34e07026c10afa8c342c02fc451e7"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#ga9cb34e07026c10afa8c342c02fc451e7">et_fifo_getBufSize</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a> id)</td></tr>
 <tr class="memdesc:ga9cb34e07026c10afa8c342c02fc451e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the max size of each buffer in bytes.  <a href="../../d9/d45/group__fifo.html#ga9cb34e07026c10afa8c342c02fc451e7">More...</a><br /></td></tr>
 <tr class="separator:ga9cb34e07026c10afa8c342c02fc451e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -529,6 +535,37 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ga5836c7f5e54e71e7af7ac834b4e9fc2d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5836c7f5e54e71e7af7ac834b4e9fc2d">&#9670;&nbsp;</a></span>et_fifo_getEntryCount()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int et_fifo_getEntryCount </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a>&#160;</td>
+          <td class="paramname"><em>id</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This routine gets the total number of entries existing in the fifo. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>ET fifo handle. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the total number of entries existing in the fifo. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a> if bad arg. </dd></dl>
+
+<p class="reference">References <a class="el" href="../../df/db6/structet__fifo__context__t.html#a0048136f0935a45e5136e3f338d8c67b">et_fifo_context_t::entries</a>, and <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>.</p>
+
+</div>
+</div>
 <a id="ga3c807aa1be6ee8ca9500205f20aeb735"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga3c807aa1be6ee8ca9500205f20aeb735">&#9670;&nbsp;</a></span>et_fifo_getEntryTO()</h2>
 
@@ -593,6 +630,46 @@ Functions</h2></td></tr>
 <a class="el" href="../../d6/d87/group__errors.html#ga1f45a25346bb88202fb64af4ea26a970">ET_ERROR_TIMEOUT</a> if timeout. </dd></dl>
 
 <p class="reference">References <a class="el" href="../../df/db6/structet__fifo__context__t.html#acc710b1e7017df03ad0f64fa19dce7a5">et_fifo_context_t::attId</a>, <a class="el" href="../../db/dbc/structet__fifo__entry__t.html#afd44d4394f0ff51acf79bb21a3bf3a3d">et_fifo_entry_t::bufs</a>, <a class="el" href="../../df/db6/structet__fifo__context__t.html#a462e6de68a6cee1fd5e35db4e0247eeb">et_fifo_context_t::capacity</a>, <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, <a class="el" href="../../d1/ddf/group__events.html#ga45c004603c100afe81bd8fe807d2bf2f">et_events_get()</a>, <a class="el" href="../../de/d04/et__common_8c.html#abfa02a4ce848807fc079786b07b5addc">et_logmsg()</a>, <a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a>, <a class="el" href="../../d4/d12/et_8h.html#a73a8a273d9ca1d4bee9ecea333eac7d4">ET_TIMED</a>, <a class="el" href="../../df/db6/structet__fifo__context__t.html#a98458192420f977899fa3d3c20c87d9f">et_fifo_context_t::openId</a>, and <a class="el" href="../../df/db6/structet__fifo__context__t.html#a33816223e34a5a8c87eb87d9fce1d45d">et_fifo_context_t::producer</a>.</p>
+
+</div>
+</div>
+<a id="ga90fae7c857cae0c1dd55c0f650cd5ff3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga90fae7c857cae0c1dd55c0f650cd5ff3">&#9670;&nbsp;</a></span>et_fifo_getFillLevel()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int et_fifo_getFillLevel </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a>&#160;</td>
+          <td class="paramname"><em>id</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This routine gets the number of fifo entries containing unconsumed data, which is the fill level of the fifo. </p>
+<p>This should be compared to the total number of fifo entries obtained by calling <a class="el" href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">et_fifo_getEntryCount</a>. Can only be called by data consumers.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>ET fifo handle.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>number of fifo entries filled with unconsumed data. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a> if bad arg or is a data producer. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga1a8ed2ddac748f77949b7270ce3e8a7d">ET_ERROR_CLOSED</a> if et_close already called. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga61606a7988e4d76df7d3a31d920fb55f">ET_ERROR_DEAD</a> if ET system is dead. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#gac71afb5c8d1ca5879e0cf93466ce0909">ET_ERROR_READ</a> for a remote user's network read error. </dd>
+<dd>
+<a class="el" href="../../d6/d87/group__errors.html#ga908826e7f029821887b52c334473755c">ET_ERROR_WRITE</a> for a remote user's network write error. </dd></dl>
+
+<p class="reference">References <a class="el" href="../../df/db6/structet__fifo__context__t.html#acc710b1e7017df03ad0f64fa19dce7a5">et_fifo_context_t::attId</a>, <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, <a class="el" href="../../d6/d87/group__errors.html#ga65aa453101cfc6992a6dff75deaf8638">ET_OK</a>, <a class="el" href="../../d2/d39/group__station.html#ga01bdc54a33d38e498a26a07aec56d7c0">et_station_getinputcount_rt()</a>, <a class="el" href="../../df/db6/structet__fifo__context__t.html#a98458192420f977899fa3d3c20c87d9f">et_fifo_context_t::openId</a>, and <a class="el" href="../../df/db6/structet__fifo__context__t.html#a33816223e34a5a8c87eb87d9fce1d45d">et_fifo_context_t::producer</a>.</p>
 
 </div>
 </div>
@@ -1043,7 +1120,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>This routine sets an id value associated with this ET event/buffer. </p>
-<p>Stored in event's first control word. This should never be used. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Stored in event's first control word. <b>This should never be used.</b> </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ev</td><td>ET event. </td></tr>
     <tr><td class="paramname">id</td><td>id of this event. </td></tr>
