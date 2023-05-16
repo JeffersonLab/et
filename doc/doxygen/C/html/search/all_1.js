@@ -8,6 +8,6 @@ var searchData=
   ['bridge_14',['Bridge',['../d3/d2d/group__bridge.html',1,'']]],
   ['bufids_15',['bufIds',['../df/db6/structet__fifo__context__t.html#aecd37ef9f1fb07edaa651d653c187ab1',1,'et_fifo_context_t']]],
   ['bufs_16',['bufs',['../db/dbc/structet__fifo__entry__t.html#afd44d4394f0ff51acf79bb21a3bf3a3d',1,'et_fifo_entry_t']]],
-  ['byteorder_17',['byteorder',['../d3/d4d/structet__event__t.html#acf9a926fe864f0519d4f1e3032e86a84',1,'et_event_t']]],
-  ['byteorder_18',['byteOrder',['../df/d7a/structet__mem__t.html#a4d0e66084bdfd42d7ad05ac48d257c6c',1,'et_mem_t']]]
+  ['byteorder_17',['byteOrder',['../df/d7a/structet__mem__t.html#a4d0e66084bdfd42d7ad05ac48d257c6c',1,'et_mem_t']]],
+  ['byteorder_18',['byteorder',['../d3/d4d/structet__event__t.html#acf9a926fe864f0519d4f1e3032e86a84',1,'et_event_t']]]
 ];

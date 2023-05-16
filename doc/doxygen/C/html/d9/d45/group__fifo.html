@@ -126,10 +126,9 @@ Functions</h2></td></tr>
 <tr class="memdesc:gabd1b32b38c46a24c4c5e1b64736398a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gives access to the ET events or buffers in a fifo entry obtained by calling either <a class="el" href="../../d9/d45/group__fifo.html#ga8c3e4b37ff3257eeb67d808e1b46369d">et_fifo_getEntry</a>, <a class="el" href="../../d9/d45/group__fifo.html#ga3c807aa1be6ee8ca9500205f20aeb735">et_fifo_getEntryTO</a>, <a class="el" href="../../d9/d45/group__fifo.html#gaa9438372c392e1fe7d5d65accb6b9963">et_fifo_newEntry</a>, or <a class="el" href="../../d9/d45/group__fifo.html#ga4505ca188774ba11a4bcb0cc529bd95b">et_fifo_newEntryTO</a>.  <a href="../../d9/d45/group__fifo.html#gabd1b32b38c46a24c4c5e1b64736398a1">More...</a><br /></td></tr>
 <tr class="separator:gabd1b32b38c46a24c4c5e1b64736398a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">et_fifo_getEntryCount</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a> id)</td></tr>
-<tr class="memdesc:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the total number of entries existing in the fifo.  <a href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">More...</a><br /></td></tr>
+<tr class="memdesc:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the max number of fifo entries possibly available to consumer.  <a href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">More...</a><br /></td></tr>
 <tr class="separator:ga5836c7f5e54e71e7af7ac834b4e9fc2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga90fae7c857cae0c1dd55c0f650cd5ff3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#ga90fae7c857cae0c1dd55c0f650cd5ff3">et_fifo_getFillLevel</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a> id)</td></tr>
-<tr class="memdesc:ga90fae7c857cae0c1dd55c0f650cd5ff3"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the number of fifo entries containing unconsumed data, which is the fill level of the fifo.  <a href="../../d9/d45/group__fifo.html#ga90fae7c857cae0c1dd55c0f650cd5ff3">More...</a><br /></td></tr>
 <tr class="separator:ga90fae7c857cae0c1dd55c0f650cd5ff3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9cb34e07026c10afa8c342c02fc451e7"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d45/group__fifo.html#ga9cb34e07026c10afa8c342c02fc451e7">et_fifo_getBufSize</a> (<a class="el" href="../../d0/d2f/et__fifo_8h.html#adde30a80fa1722e04ac518d60b8a7afe">et_fifo_id</a> id)</td></tr>
 <tr class="memdesc:ga9cb34e07026c10afa8c342c02fc451e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine gets the max size of each buffer in bytes.  <a href="../../d9/d45/group__fifo.html#ga9cb34e07026c10afa8c342c02fc451e7">More...</a><br /></td></tr>
@@ -551,8 +550,8 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>This routine gets the total number of entries existing in the fifo. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>This routine gets the max number of fifo entries possibly available to consumer. </p>
+<p>Only meaningful when called by data consumers. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">id</td><td>ET fifo handle. </td></tr>
   </table>
@@ -562,7 +561,7 @@ Functions</h2></td></tr>
 <dd>
 <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a> if bad arg. </dd></dl>
 
-<p class="reference">References <a class="el" href="../../df/db6/structet__fifo__context__t.html#a0048136f0935a45e5136e3f338d8c67b">et_fifo_context_t::entries</a>, and <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>.</p>
+<p class="reference">References <a class="el" href="../../d6/d87/group__errors.html#ga8cc5b8905e28f2d7e363c15ff8a3c4ec">ET_ERROR</a>, and <a class="el" href="../../df/db6/structet__fifo__context__t.html#a994b6d448c93f55035fa09cb9b4d6278">et_fifo_context_t::userEntries</a>.</p>
 
 </div>
 </div>
@@ -648,9 +647,8 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>This routine gets the number of fifo entries containing unconsumed data, which is the fill level of the fifo. </p>
-<p>This should be compared to the total number of fifo entries obtained by calling <a class="el" href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">et_fifo_getEntryCount</a>. Can only be called by data consumers.</p>
+<p>This routine gets the number of fifo entries containing unconsumed data available to the consumer. This is the fill level of the fifo. This should be compared to the max number of fifo entries obtained by calling <a class="el" href="../../d9/d45/group__fifo.html#ga5836c7f5e54e71e7af7ac834b4e9fc2d">et_fifo_getEntryCount</a>.</p>
+<p>Note: there are actually more entries in the ET system, 5% with at least 2, that exist but cannot be placed in the Users station input list due to its nonblocking nature. Can only be called by data consumers.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">id</td><td>ET fifo handle.</td></tr>

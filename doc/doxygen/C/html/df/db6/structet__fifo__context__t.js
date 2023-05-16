@@ -8,5 +8,6 @@ var structet__fifo__context__t =
     [ "evSize", "df/db6/structet__fifo__context__t.html#ac05f9bb7d123d40905ff11bebc82f776", null ],
     [ "idCount", "df/db6/structet__fifo__context__t.html#a69818115bd65ec0cba48c062e277dbbf", null ],
     [ "openId", "df/db6/structet__fifo__context__t.html#a98458192420f977899fa3d3c20c87d9f", null ],
-    [ "producer", "df/db6/structet__fifo__context__t.html#a33816223e34a5a8c87eb87d9fce1d45d", null ]
+    [ "producer", "df/db6/structet__fifo__context__t.html#a33816223e34a5a8c87eb87d9fce1d45d", null ],
+    [ "userEntries", "df/db6/structet__fifo__context__t.html#a994b6d448c93f55035fa09cb9b4d6278", null ]
 ];
