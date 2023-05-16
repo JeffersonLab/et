@@ -64,6 +64,9 @@ extern int  et_fifo_putEntry(et_fifo_entry *entry);
 extern int  et_fifo_allHaveData(et_fifo_id id, et_fifo_entry *entry,
                                 int *incompleteBufs, size_t *incompleteBytes);
 
+extern int et_fifo_getEntryCount(et_fifo_id id);
+extern int et_fifo_getFillLevel(et_fifo_id id);
+
 extern size_t et_fifo_getBufSize(et_fifo_id fid);
 extern int    et_fifo_getEntryCapacity(et_fifo_id fid);
 

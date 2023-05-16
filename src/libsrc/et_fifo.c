@@ -39,37 +39,49 @@
  * These routines are threadsafe with the exception of {@link #et_fifo_getBuf},
  * but that should never be called on the same arg with different threads.
  * These routines are designed to work as follows:
- * <ol>
- *  <li>Call {@link #et_open} and get id</li>
- *  <li>Call {@link #et_fifo_openProducer} or {@link #et_fifo_openConsumer} and get fifo id as either a producer or consumer of entries
+ * <ul>
+ *  <li>{@link #et_open} to open ET system and get id</li>
+ *  <li>{@link #et_fifo_openProducer} or {@link #et_fifo_openConsumer} to get fifo id as either a producer or consumer of entries
  *      <ul>
  *          <li>Makes sure ET is setup properly</li>
  *          <li>Attaches to GrandCentral station if producing entries</li>
  *          <li>Attaches to Users station if consuming entries</li>
  *      </ul>
  *  </li>
- *  <li>Call {@link #et_fifo_newEntry} and get pointer to {@link #et_fifo_entry} if producing fifo entry
+ *  <li>{@link #et_fifo_newEntry} to get pointer to {@link #et_fifo_entry} if producing fifo entry</li>
+ *  <li>{@link #et_fifo_newEntryTO} to get pointer to {@link #et_fifo_entry} if producing fifo entry</li>
+ *  <li>{@link #et_fifo_getEntry} to get pointer to {@link #et_fifo_entry} if consuming fifo entry</li>
+ *  <li>{@link #et_fifo_getEntryTO} to get pointer to {@link #et_fifo_entry} if consuming fifo entry</li>
+ *  <li>{@link #et_fifo_putEntry} when finished with fifo entry</li>
+ *  <li>{@link #et_fifo_close} when finished with fifo interface</li>
+ *  <li>{@link #et_close} when finished with ET system</li>
+ *  <li>For operations on a fifo entry:
  *      <ul>
- *          <li>Call {@link #et_fifo_getBufs} to get access to all the events of a single fifo entry</li>
- *          <li>Call {@link #et_fifo_getEntryCapacity} to get the number of events in array. Need only be done once.</li>
- *          <li>Call {@link #et_fifo_getBufSize} to get available size of each event. Need only be done once.</li>
- *          <li>Call {@link #et_fifo_setId} to set an id for a particular event</li>
- *          <li>Call {@link #et_event_setlength} to set the size of valid data for a particular event</li>
+ *          <li>{@link #et_fifo_getBufs} to get access to all the events of a single fifo entry</li>
+ *          <li>{@link #et_fifo_getBuf} to get access to a single event of a single fifo entry</li>
  *      </ul>
  *  </li>
- *  <li>Call {@link #et_fifo_getEntry} and get pointer to {@link #et_fifo_entry} if consuming fifo entry
+ *  <li>For operations on fifo in general:
  *      <ul>
- *          <li>Call {@link #et_fifo_getBufs} to get access to all the events of a single fifo entry</li>
- *          <li>Call {@link #et_fifo_getEntryCapacity} to get the number of events in array. Need only be done once.</li>
- *          <li>Call {@link #et_fifo_getBufSize} to get available size of each event. Need only be done once.</li>
- *          <li>Call {@link #et_fifo_getId} to get an id for a particular event</li>
- *          <li>Call {@link #et_event_getlength} to get the size of valid data for a particular event</li>
+ *          <li>{@link #et_fifo_getEntryCapacity} to get the number of events in array. Need only be done once.</li>
+ *          <li>{@link #et_fifo_getBufSize} to get available size of each event. Need only be done once.</li>
+ *          <li>{@link #et_fifo_getIdCount} to get the number of buffers assigned an id in each entry.</li>
+ *          <li>{@link #et_fifo_getBufIds} to get the array of ids assigned to buffers in each entry.</li>
+ *          <li>{@link #et_fifo_getEntryCount} to get the total number of entries existing in the fifo.</li>
+ *          <li>{@link #et_fifo_getFillLevel} to get the number of fifo entries containing unconsumed data,
+ *                                            which is the fill level of the fifo.</li>
  *      </ul>
  *  </li>
- *  <li>Call {@link #et_fifo_putEntry} when finished with fifo entry</li>
- *  <li>Call {@link #et_fifo_close} when finished with fifo interface</li>
- *  <li>Call {@link #et_close} when finished with ET system</li>
- * </ol>
+ *  <li>For operations on a specific event/buffer in an entry:
+ *      <ul>
+ *          <li>{@link #et_fifo_getId} to get an id for a particular event</li>
+ *          <li>{@link #et_fifo_setId} to set an id for a particular event</li>
+ *          <li>{@link #et_fifo_setHasData} to set whether this event has data in it or not.</li>
+ *          <li>{@link #et_fifo_hasData} to get whether this ET event has data in it or not.</li>
+ *          <li>{@link #et_event_getlength} to get the size of valid data for a particular event</li>
+ *      </ul>
+ *  </li>
+ * </ul>
  * </p>
  *
  * <p>
@@ -640,6 +652,47 @@ et_event** et_fifo_getBufs(et_fifo_entry *entry) {
 
 
 /**
+ * This routine gets the total number of entries existing in the fifo.
+ * @param id  ET fifo handle.
+ * @return the total number of entries existing in the fifo.
+ * @returns @ref ET_ERROR if bad arg.
+ */
+int et_fifo_getEntryCount(et_fifo_id id) {
+    et_fifo_ctx *ctx = (et_fifo_ctx *)id;
+    if (ctx == NULL) return ET_ERROR;
+    return ctx->entries;
+};
+
+
+/**
+ * This routine gets the number of fifo entries containing unconsumed data,
+ * which is the fill level of the fifo.
+ * This should be compared to the total number of fifo entries obtained by
+ * calling {@link #et_fifo_getEntryCount}.
+ * Can only be called by data consumers.
+ *
+ * @param id  ET fifo handle.
+ *
+ * @returns number of fifo entries filled with unconsumed data.
+ * @returns @ref ET_ERROR         if bad arg or is a data producer.
+ * @returns @ref ET_ERROR_CLOSED  if et_close already called.
+ * @returns @ref ET_ERROR_DEAD    if ET system is dead.
+ * @returns @ref ET_ERROR_READ    for a remote user's network read error.
+ * @returns @ref ET_ERROR_WRITE   for a remote user's network write error.
+ */
+int et_fifo_getFillLevel(et_fifo_id id) {
+    et_fifo_ctx *ctx = (et_fifo_ctx *)id;
+    if (ctx == NULL || ctx->producer) return ET_ERROR;
+    int inputListCount = 0;
+    int status = et_station_getinputcount_rt(ctx->openId, ctx->attId, &inputListCount);
+    if (status != ET_OK) {
+        return status;
+    }
+    return inputListCount;
+};
+
+
+/**
  * This routine gets the max size of each buffer in bytes.
  * @param id  ET fifo handle.
  * @return size of each buffer in bytes, or ET_ERROR if bad arg.
@@ -697,7 +750,7 @@ int et_fifo_getBufIds(et_fifo_id id, int *bufIds) {
 /**
  * This routine sets an id value associated with this ET event/buffer.
  * Stored in event's first control word.
- * This should never be used.
+ * <b>This should never be used.</b>
  * @param ev ET event.
  * @param id id of this event.
  */
