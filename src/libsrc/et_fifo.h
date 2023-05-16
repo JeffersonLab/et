@@ -37,6 +37,7 @@ typedef struct et_fifo_context_t {
     int      producer;     /**< True if producing fifo entries, false if consuming fifo entries. */
     int      capacity;     /**< Total number of buffer contained in this fifo element. */
     et_sys_id  openId;     /**< Id returned from et_open. */
+    et_stat_id userStatId; /**< User station id for both producers & consumers. */
     et_att_id   attId;     /**< Attachment to GrandCentral Station for data producers
                             * User for data consumers. */
     int idCount;           /**< Number of elements in bufIds array (if is producer). */

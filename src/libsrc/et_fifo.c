@@ -67,7 +67,7 @@
  *          <li>{@link #et_fifo_getBufSize} to get available size of each event. Need only be done once.</li>
  *          <li>{@link #et_fifo_getIdCount} to get the number of buffers assigned an id in each entry.</li>
  *          <li>{@link #et_fifo_getBufIds} to get the array of ids assigned to buffers in each entry.</li>
- *          <li>{@link #et_fifo_getEntryCount} to get the total number of entries existing in the fifo.</li>
+ *          <li>{@link #et_fifo_getEntryCount} to get the total number of entries existing in the fifo available to consumer.</li>
  *          <li>{@link #et_fifo_getFillLevel} to get the number of fifo entries containing unconsumed data,
  *                                            which is the fill level of the fifo.</li>
  *      </ul>
@@ -157,6 +157,7 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
     ctx->userEntries = 0;
     ctx->openId      = id;
     ctx->attId       = -1;
+    ctx->userStatId  = -1;
     ctx->evCount     = 0;
     ctx->evSize      = 0;
     ctx->idCount     = 0;
@@ -207,9 +208,28 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
         memcpy(ctx->bufIds, bufIds, bidCount * sizeof(int));
     }
 
-    // Now the station attachments.
     // In an ET system started by et_start_fifo, there are 2 stations:
     // GrandCentral and Users.
+
+    // First of all, get id of and info from Users station whether we're going to be
+    // a producer or a consumer.
+    if ((err = et_station_name_to_id(id, &statId, "Users")) < 0) {
+        et_logmsg("ERROR", "Cannot find \"Users\" station\n");
+        free(ctx);
+        return err;
+    }
+    ctx->userStatId = statId;
+
+    // Max # of fifo entries in Users station (use to find fill level)
+    int cue;
+    if ((err = et_station_getcue(id, statId, &cue)) < 0) {
+        et_logmsg("ERROR", "Error getting \"Users\" station cue size\n");
+        free(ctx);
+        return err;
+    }
+    ctx->userEntries = cue;
+
+    // Now the station attachments
     if (isProducer) {
         // Attach to GC
         if ((err = et_station_attach(id, ET_GRANDCENTRAL, &ctx->attId)) < 0) {
@@ -219,26 +239,12 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
         }
     }
     else {
-        // Attach to "Users" station
-        if ((err = et_station_name_to_id(id, &statId, "Users")) < 0) {
-            et_logmsg("ERROR", "Cannot find \"Users\" station\n");
-            free(ctx);
-            return err;
-        }
+        // Attach to "Users" station in order to get and put events
         if ((err = et_station_attach(id, statId, &ctx->attId)) < 0) {
             et_logmsg("ERROR", "Error in attaching to \"Users\"\n");
             free(ctx);
             return err;
         }
-
-        // Max # of fifo entries in Users station (use to find fill level)
-        int cue;
-        if ((err = et_station_getcue(id, statId, &cue)) < 0) {
-            et_logmsg("ERROR", "Error getting \"Users\" station cue size\n");
-            free(ctx);
-            return err;
-        }
-        ctx->userEntries = cue;
     }
 
     int stationCount = 0;
@@ -663,7 +669,6 @@ et_event** et_fifo_getBufs(et_fifo_entry *entry) {
 
 /**
  * This routine gets the max number of fifo entries possibly available to consumer.
- * Only meaningful when called by data consumers.
  * @param id  ET fifo handle.
  * @return the total number of entries existing in the fifo.
  * @returns @ref ET_ERROR if bad arg.
@@ -683,12 +688,11 @@ int et_fifo_getEntryCount(et_fifo_id id) {
  * Note: there are actually more entries in the ET system, 5% with at least 2,
  * that exist but cannot be placed in the Users station input
  * list due to its nonblocking nature.
- * Can only be called by data consumers.
  *
  * @param id  ET fifo handle.
  *
  * @returns number of fifo entries filled with unconsumed data.
- * @returns @ref ET_ERROR         if bad arg or is a data producer.
+ * @returns @ref ET_ERROR         if bad arg.
  * @returns @ref ET_ERROR_CLOSED  if et_close already called.
  * @returns @ref ET_ERROR_DEAD    if ET system is dead.
  * @returns @ref ET_ERROR_READ    for a remote user's network read error.
@@ -696,9 +700,9 @@ int et_fifo_getEntryCount(et_fifo_id id) {
  */
 int et_fifo_getFillLevel(et_fifo_id id) {
     et_fifo_ctx *ctx = (et_fifo_ctx *)id;
-    if (ctx == NULL || ctx->producer) return ET_ERROR;
+    if (ctx == NULL) return ET_ERROR;
     int inputListCount = 0;
-    int status = et_station_getinputcount_rt(ctx->openId, ctx->attId, &inputListCount);
+    int status = et_station_getinputcount_rt(ctx->openId, ctx->userStatId, &inputListCount);
     if (status != ET_OK) {
         return status;
     }
