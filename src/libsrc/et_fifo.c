@@ -151,15 +151,16 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
         return ET_ERROR_NOMEM;
     }
 
-    ctx->producer  = isProducer;
-    ctx->capacity  = 0;
-    ctx->entries   = 0;
-    ctx->openId    = id;
-    ctx->attId     = -1;
-    ctx->evCount   = 0;
-    ctx->evSize    = 0;
-    ctx->idCount   = 0;
-    ctx->bufIds    = NULL;
+    ctx->producer    = isProducer;
+    ctx->capacity    = 0;
+    ctx->entries     = 0;
+    ctx->userEntries = 0;
+    ctx->openId      = id;
+    ctx->attId       = -1;
+    ctx->evCount     = 0;
+    ctx->evSize      = 0;
+    ctx->idCount     = 0;
+    ctx->bufIds      = NULL;
 
     // Look into ET system
     int err = et_system_geteventsize(id, &ctx->evSize);
@@ -229,6 +230,15 @@ static int et_fifo_open(et_sys_id id, et_fifo_id *fid, int isProducer, const int
             free(ctx);
             return err;
         }
+
+        // Max # of fifo entries in Users station (use to find fill level)
+        int cue;
+        if ((err = et_station_getcue(id, statId, &cue)) < 0) {
+            et_logmsg("ERROR", "Error getting \"Users\" station cue size\n");
+            free(ctx);
+            return err;
+        }
+        ctx->userEntries = cue;
     }
 
     int stationCount = 0;
@@ -652,7 +662,8 @@ et_event** et_fifo_getBufs(et_fifo_entry *entry) {
 
 
 /**
- * This routine gets the total number of entries existing in the fifo.
+ * This routine gets the max number of fifo entries possibly available to consumer.
+ * Only meaningful when called by data consumers.
  * @param id  ET fifo handle.
  * @return the total number of entries existing in the fifo.
  * @returns @ref ET_ERROR if bad arg.
@@ -660,15 +671,18 @@ et_event** et_fifo_getBufs(et_fifo_entry *entry) {
 int et_fifo_getEntryCount(et_fifo_id id) {
     et_fifo_ctx *ctx = (et_fifo_ctx *)id;
     if (ctx == NULL) return ET_ERROR;
-    return ctx->entries;
+    return ctx->userEntries;
 };
 
 
 /**
- * This routine gets the number of fifo entries containing unconsumed data,
- * which is the fill level of the fifo.
- * This should be compared to the total number of fifo entries obtained by
- * calling {@link #et_fifo_getEntryCount}.
+ * <p>This routine gets the number of fifo entries containing unconsumed data
+ * available to the consumer. This is the fill level of the fifo.
+ * This should be compared to the max number of fifo entries obtained by
+ * calling {@link #et_fifo_getEntryCount}.</p>
+ * Note: there are actually more entries in the ET system, 5% with at least 2,
+ * that exist but cannot be placed in the Users station input
+ * list due to its nonblocking nature.
  * Can only be called by data consumers.
  *
  * @param id  ET fifo handle.

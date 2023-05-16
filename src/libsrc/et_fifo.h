@@ -32,7 +32,8 @@ typedef void *et_fifo_id;        /**< ET fifo id. */
 typedef struct et_fifo_context_t {
     size_t     evSize;     /**< Size in bytes of each ET buffer/event. */
     int       evCount;     /**< Number of buffers/events in ET system. */
-    int       entries;     /**< Number of fifo entries in ET system. */
+    int       entries;     /**< Total number of fifo entries in ET system. */
+    int   userEntries;     /**< For consumers, max number of fifo entries in Users station (&lt;= entries). */
     int      producer;     /**< True if producing fifo entries, false if consuming fifo entries. */
     int      capacity;     /**< Total number of buffer contained in this fifo element. */
     et_sys_id  openId;     /**< Id returned from et_open. */
