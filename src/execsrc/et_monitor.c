@@ -387,7 +387,7 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
   }
 
   printf("  STATIC INFO - maximum of:\n");
-  printf("    events(%d), event size(%llu), temps(%d)\n    stations(%d), attaches(%d), procs(%d)",
+  printf("    events(%d), event size(%" PRIu64 "), temps(%d)\n    stations(%d), attaches(%d), procs(%d)",
 	      data.sysdata->nevents,
 	      data.sysdata->event_size,
 	      data.sysdata->ntemps_max,
@@ -506,18 +506,18 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
     }
     printf(")\n");
 
-    printf("        input  list: cnt = %5d, events in  = %llu", data.statdata[i].inlist_cnt, 
+    printf("        input  list: cnt = %5d, events in  = %" PRIu64 , data.statdata[i].inlist_cnt,
     data.statdata[i].inlist_in);
 
     /* if blocking station and not grandcentral ... */
     if (blocking && (data.statdata[i].num != 0)) {
-      printf(", events try = %llu\n", data.statdata[i].inlist_try);
+      printf(", events try = %" PRIu64 "\n", data.statdata[i].inlist_try);
     }
     else {
       printf("\n");
     }
 
-    printf("        output list: cnt = %5d, events out = %llu\n\n", data.statdata[i].outlist_cnt,
+    printf("        output list: cnt = %5d, events out = %" PRIu64 "\n\n", data.statdata[i].outlist_cnt,
     data.statdata[i].outlist_out);
 
     /* keep track of grandcentral data rate */
@@ -567,7 +567,7 @@ static int display_remotedata(et_sys_id sys_id, double tperiod,
       printf(", (told to quit)");
     }
     printf("\n             ");
-    printf("events:  make(%llu), get(%llu), put(%llu), dump(%llu)\n",
+    printf("events:  make(%" PRIu64 "), get(%" PRIu64 "), put(%" PRIu64 "), dump(%" PRIu64 ")\n",
               data.attdata[i].events_make,
               data.attdata[i].events_get,
               data.attdata[i].events_put,
@@ -695,7 +695,7 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
   }
 
   printf("  STATIC INFO - maximum of:\n");
-  printf("    events(%d), event size(%llu), temps(%d)\n    stations(%d), attaches(%d), procs(%d)",
+  printf("    events(%d), event size(%" PRIu64 "), temps(%d)\n    stations(%d), attaches(%d), procs(%d)",
 	      sys->config.nevents,
 	      sys->config.event_size,
 	      sys->config.ntemps,
@@ -821,18 +821,18 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
     }
     printf(")\n");
 
-    printf("        input  list: cnt = %5d, events in  = %llu", ps->list_in.cnt,
+    printf("        input  list: cnt = %5d, events in  = %" PRIu64 , ps->list_in.cnt,
            ps->list_in.events_in);
 
     /* if blocking station and not grandcentral ... */
     if (blocking && (ps->num != 0)) {
-      printf(", events try = %llu\n", ps->list_in.events_try);
+      printf(", events try = %" PRIu64 "\n", ps->list_in.events_try);
     }
     else {
       printf("\n");
     }
 
-    printf("        output list: cnt = %5d, events out = %llu\n\n", ps->list_out.cnt,
+    printf("        output list: cnt = %5d, events out = %" PRIu64 "\n\n", ps->list_out.cnt,
            ps->list_out.events_out);
 
     /* keep track of grandcentral data rate */
@@ -895,7 +895,7 @@ static int display_localdata(et_sys_id sys_id, double tperiod, uint64_t *prev_ou
     }
     printf("\n             ");
 
-    printf("events:  make(%llu), get(%llu), put(%llu), dump(%llu)\n",
+    printf("events:  make(%" PRIu64 "), get(%" PRIu64 "), put(%" PRIu64 "), dump(%" PRIu64 ")\n",
               sys->attach[i].events_make,
               sys->attach[i].events_get,
               sys->attach[i].events_put,
