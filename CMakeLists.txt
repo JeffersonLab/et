@@ -37,19 +37,6 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 set(ARCH ${CMAKE_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "ARCH = " ${ARCH})
 
-if (DEFINED INSTALL_DIR)
-    message(STATUS "Found the variable INSTALL_DIR = " ${INSTALL_DIR})
-else()
-    message(STATUS "Did NOT find the variable INSTALL_DIR")
-endif()
-
-if (DEFINED BLAH)
-    message(STATUS "Found the variable BLAH = " ${BLAH})
-else()
-    message(STATUS "Did NOT find the variable BLAH")
-
-endif()
-
 # Install into $INSTALL_DIR directory (general installation)
 if (DEFINED INSTALL_DIR)
     message(STATUS "INSTALL_DIR = " ${INSTALL_DIR})
