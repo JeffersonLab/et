@@ -148,7 +148,7 @@ To build the libraries and executables on the Mac:
     cd <et dir>
     mkdir build
     cd build
-    cmake .. –DCMAKE_BUILD_TYPE=Release
+    cmake –DCMAKE_BUILD_TYPE=Release ..
     make
 
 In order to compile all the examples as well, place –DMAKE_EXAMPLES=1 on the cmake command line.
@@ -158,7 +158,7 @@ files from mixing with the source and config files.
 In addition to a having a copy in the build directory, installing the library, binary and include
 files can be done by calling cmake in 3 ways:
 
-    cmake –DCMAKE_BUILD_TYPE=Release –D$INSTALL_DIR=<install dir> ..
+    cmake –DCMAKE_BUILD_TYPE=Release –DINSTALL_DIR=<install dir> ..
     make install
 
 This 1st option explicitly sets the installation directory as $INSTALL_DIR/ and under that in the include, lib, and bin dirs.
