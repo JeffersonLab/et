@@ -43,6 +43,13 @@ else()
     message(STATUS "Did NOT find the variable INSTALL_DIR")
 endif()
 
+if (DEFINED BLAH)
+    message(STATUS "Found the variable BLAH = " ${BLAH})
+else()
+    message(STATUS "Did NOT find the variable BLAH")
+    
+endif()
+
 # Install into $INSTALL_DIR directory (general installation)
 if (DEFINED INSTALL_DIR)
     message(STATUS "INSTALL_DIR = " ${INSTALL_DIR})
