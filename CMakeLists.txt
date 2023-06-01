@@ -38,12 +38,12 @@ set(ARCH ${CMAKE_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "ARCH = " ${ARCH})
 
 
-# Install into $ET_INSTALL directory (general installation)
-if (DEFINED ET_INSTALL)
-    message(STATUS "DIS_INSTALL = " ${ET_INSTALL})
+# Install into $INSTALL_DIR directory (general installation)
+if (DEFINED INSTALL_DIR)
+    message(STATUS "INSTALL_DIR = " ${INSTALL_DIR})
     set(INSTALL_DIR_DEFINED 1)
-    set(CMAKE_INSTALL_PREFIX ${ET_INSTALL}/${ARCH})
-    set(CMAKE_INSTALL_INCLUDEDIR ${ET_INSTALL}/include)
+    set(CMAKE_INSTALL_PREFIX ${INSTALL_DIR}/${ARCH})
+    set(CMAKE_INSTALL_INCLUDEDIR ${INSTALL_DIR}/include)
     message(STATUS "CMAKE_INSTALL_PREFIX reset to " ${CMAKE_INSTALL_PREFIX})
 else()
     # Install into $CODA_INSTALL directory if using as part of CODA
