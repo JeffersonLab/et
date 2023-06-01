@@ -40,7 +40,7 @@ message(STATUS "ARCH = " ${ARCH})
 if (DEFINED INSTALL_DIR)
     message(STATUS "Found the variable INSTALL_DIR = " ${INSTALL_DIR})
 else()
-    message(STATUS "Did NOT find the variable INSTALL_DIR)
+    message(STATUS "Did NOT find the variable INSTALL_DIR")
 endif()
 
 # Install into $INSTALL_DIR directory (general installation)
