@@ -47,7 +47,7 @@ if (DEFINED BLAH)
     message(STATUS "Found the variable BLAH = " ${BLAH})
 else()
     message(STATUS "Did NOT find the variable BLAH")
-    
+
 endif()
 
 # Install into $INSTALL_DIR directory (general installation)
@@ -73,7 +73,7 @@ else()
         set(CMAKE_INSTALL_INCLUDEDIR $ENV{CODA}/common/include)
         message(STATUS "CMAKE_INSTALL_PREFIX reset to " ${CMAKE_INSTALL_PREFIX})
     else()
-        message(STATUS "Use -DNSTALL_DIR= or -DCODA_INSTALL <dir> on cmd line, set \"CODA\" env var, or it'll be installed in /usr/local")
+        message(STATUS "Use -DINSTALL_DIR= or -DCODA_INSTALL=<dir> on cmd line, set \"CODA\" env var, or it'll be installed in /usr/local")
     endif()
 endif()
 
