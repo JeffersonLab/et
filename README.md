@@ -158,23 +158,27 @@ files from mixing with the source and config files.
 In addition to a having a copy in the build directory, installing the library, binary and include
 files can be done by calling cmake in 3 ways:
 
-    cmake .. –DCMAKE_BUILD_TYPE=Release –D$INSTALL_DIR=<install dir>
+    cmake –DCMAKE_BUILD_TYPE=Release –D$INSTALL_DIR=<install dir> ..
     make install
+
+This 1st option explicitly sets the installation directory as $INSTALL_DIR/ and under that in the include, lib, and bin dirs.
 
 or
 
-    cmake .. –DCMAKE_BUILD_TYPE=Release –DCODA_INSTALL=<install dir>
+    cmake –DCMAKE_BUILD_TYPE=Release –DCODA_INSTALL=<install dir> ..
     make install
+
+This 2nd option explicitly sets the installation include directory as $CODA_INSTALL/ and under that
+in the common/include, &lt;arch&gt;/lib, and &lt;arch&gt;/bin dirs.
 
 or
 
-    cmake .. –DCMAKE_BUILD_TYPE=Release
+    cmake –DCMAKE_BUILD_TYPE=Release ..
     make install
 
-The 1st option explicitly sets the installation include directory as "$INSTALL_DIR/include".
-The 2nd option explicitly sets the installation include directory as "$CODA_INSTALL/common/include".
-The 3rd option installs includes in the directory, using the CODA environmental variable, as
-"$CODA/common/include".
+This 3rd option installs includes in the directory, using the CODA environmental variable, in
+$CODA/ and under that in the common/include, &lt;arch&gt;/lib, and &lt;arch&gt;/bin dirs.
+
 If cmake was run previously, remove the CMakeCache.txt file so
 new values are generated and used.
 
