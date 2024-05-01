@@ -1555,6 +1555,7 @@ System.out.println("connect(): FAILED creating connection to " + connectionHost)
             catch (EtException e) {
                 // cannot open an ET system through JNI, so use sockets only to connect to ET system
                 useJniLibrary = false;
+                e.printStackTrace();
 System.out.println("Error in opening ET with jni, Et exception, use sockets only to talk to ET system");
             }
             catch (IOException e) {
