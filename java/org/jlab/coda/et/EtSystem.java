@@ -1599,7 +1599,7 @@ public class EtSystem {
         }
 
         byte[] buffer = new byte[32];
-        EtUtils.intToBytes(EtConstants.netEvsNewGrp, buffer, 0);
+        EtUtils.intToBytes(EtConstants.netEvsNew, buffer, 0);
         EtUtils.intToBytes(att.getId(),        buffer, 4);
         EtUtils.intToBytes(netMode.getValue(), buffer, 8);
         EtUtils.longToBytes((long)size,        buffer, 12);
@@ -1811,7 +1811,7 @@ public class EtSystem {
         }
 
         byte[] buffer = container.byteArray;
-        EtUtils.intToBytes(EtConstants.netEvsNewGrp, buffer, 0);
+        EtUtils.intToBytes(EtConstants.netEvsNew, buffer, 0);
         EtUtils.intToBytes(att.getId(),        buffer, 4);
         EtUtils.intToBytes(netMode.getValue(), buffer, 8);
         EtUtils.longToBytes((long)size,        buffer, 12);
