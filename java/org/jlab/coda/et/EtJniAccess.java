@@ -47,7 +47,9 @@ class EtJniAccess {
                     // If the library cannot be found, we can still
                     // continue to use the ET system with sockets -
                     // just not locally with the C library.
-//System.out.println("\nERROR LOADIN JNI LIB !!!!\n");
+System.out.println("\nERROR LOADING JNI LIB !!!!\n");
+e.printStackTrace();
+System.out.println("\n\n\n\n");
                     throw new EtException("Error loading libet_jni.so");
                 }
             }
@@ -59,7 +61,7 @@ class EtJniAccess {
 //System.out.println("USE ALREADY EXISTING ET JNI OBJECT for et -> " + etName);
                 EtJniAccess jni = classMap.get(etName);
                 jni.numberOpens++;
-//System.out.println("numberOpens = " + jni.numberOpens);
+//System.out.println("number of opens = " + jni.numberOpens);
                 return jni;
             }
 
@@ -68,7 +70,7 @@ class EtJniAccess {
             jni.etSystemName = etName;
             jni.numberOpens = 1;
 //System.out.println("CREATING ET JNI OBJECT for et -> " + etName);
-//System.out.println("numberOpens = " + jni.numberOpens);
+//System.out.println("number of opens = " + jni.numberOpens);
             classMap.put(etName, jni);
 
             return jni;
