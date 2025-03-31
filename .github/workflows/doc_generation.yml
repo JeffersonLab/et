@@ -41,7 +41,7 @@ jobs:
 
       # store the doc files
       - name: Upload Output Directory
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: doc-files
           path: doc
@@ -60,7 +60,7 @@ jobs:
 
       # download the doc files, most of which are generated above
       - name: Download Output Directory
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: doc-files
           path: doc
