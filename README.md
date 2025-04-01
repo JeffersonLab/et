@@ -309,6 +309,24 @@ for developer-level documentation. To remove it:
 
     ant undoc
 
+
+----------------------------
+
+# **Gui showing the state of an ET system**
+
+----------------------------
+
+
+<img src="doc/images/etGui.jpg" alt="Description" width="750" height="600">
+
+
+There is a java-based GUI to monitor ET systems graphically.
+It can be run by executing a script:
+
+    scripts/etmonitor
+
+----------------------------
+
 ----------------------------
 
 # **Copyright**
