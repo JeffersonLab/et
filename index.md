@@ -22,3 +22,8 @@ ___________________________
 * [Javadoc for Java Library](https://jeffersonlab.github.io/et/doc/javadoc/index.html)
 * [Doxygen for C Library](https://jeffersonlab.github.io/et/doc/doxygen/C/html/index.html)
 
+* ___________________________
+## **Old Docs**
+
+* [ET Web Manual](https://jeffersonlab.github.io/et/doc/htm/et_manual.htm)
+
