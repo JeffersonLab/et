@@ -27,6 +27,12 @@ project(evio VERSION 16.4)
 
 set(CMAKE_DEBUG_POSTFIX -dbg)
 
+# ET build is optional and set it to ON by default
+option(BUILD_EXAMPLES "Build ET-related example programs" ON)
+
+# documentation build is optional and set it to OFF by default
+option(BUILD_DOC "Build documentation" OFF)
+
 
 # Place libs & binaries in build/lib and bin (this is not for installation)
 set(LIBRARY_OUTPUT_PATH    ${CMAKE_BINARY_DIR}/lib)
@@ -127,12 +133,6 @@ set (EXAMPLE_FILES
         src/examples/et_producerTest.c
         src/examples/et_connectionTest.c
         )
-
-# ET build is optional and set it to ON by default
-option(BUILD_EXAMPLES "Build ET-related example programs" ON)
-
-# documentation build is optional and set it to OFF by default
-option(BUILD_DOC "Build documentation" OFF)
 
 # Search for doxygen executable
 find_package(Doxygen)

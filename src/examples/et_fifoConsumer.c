@@ -7,6 +7,9 @@
 // 12000, Jefferson Ave, Newport News, VA 23606
 // (757)-269-7100
 
+#if defined(__linux__)
+    #define _POSIX_C_SOURCE 199309L
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

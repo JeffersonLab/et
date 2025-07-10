@@ -23,6 +23,10 @@
  * events while simultaneous putting events into the system.
  */
 
+#if defined(__linux__)
+    #define _POSIX_C_SOURCE 199309L
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

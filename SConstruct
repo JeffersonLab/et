@@ -29,7 +29,7 @@ versionMajor = '16'
 versionMinor = '4'
 
 # Determine the os and machine names
-uname    = os.uname();
+uname    = os.uname()
 platform = uname[0]
 machine  = uname[4]
 osname   = os.getenv('CODA_OSNAME', platform + '-' +  machine)
