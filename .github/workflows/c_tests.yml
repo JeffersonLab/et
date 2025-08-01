@@ -1,0 +1,24 @@
+name: "C Tests"
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  c_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential doxygen
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DMAKE_EXAMPLES=1
+
+      - name: Build
+        run: cmake --build build --target install --parallel
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure

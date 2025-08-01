@@ -7,6 +7,10 @@ _*
 !.gitignore
 !.github
 
+# Typical install directories
+Linux*/
+Darwin*/
+
 # ignore generated files/dirs
 cmake-*
 cmake_install.cmake
