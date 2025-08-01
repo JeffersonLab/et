@@ -1,45 +1,22 @@
-# To use this, do the following the first time:
-#   % mkdir build
-#   % cd build
-#   % cmake .. -DCMAKE_BUILD_TYPE=Release
-#   % make (install)
-#
-#
-# If you want the examples compiled also, then this instead
-#  % cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=True
-#
-#
-# After doing this once can do the following to recompile
-#  % cd <top level evio dir>
-#  % cmake --build build (--target install)
-#
-#
-# The installation will default to the CODA env variable if it's defined
-# This can be overridden on command line (in build dir) with:
-#   % cmake -DCODA_INSTALL=<my_dir> ..
-#   % make install
+# See instructions in README.md for building and installing
 
-
-# This call must be placed BEFORE "project" command
-cmake_minimum_required(VERSION 3.3)
-
-project(evio VERSION 16.4)
-
+### VERSION DEFINITIONS ###
+cmake_minimum_required(VERSION 3.22)
+project(et VERSION 16.5.0 LANGUAGES C)
+set(CMAKE_C_STANDARD 11)
+# C build option
 set(CMAKE_DEBUG_POSTFIX -dbg)
+add_compile_options(-Wall) # Enable all warnings
 
-# ET build is optional and set it to ON by default
-option(BUILD_EXAMPLES "Build ET-related example programs" ON)
+# Build option parameters (and defaults)
+option(BUILD_EXAMPLES "Build ET-related example programs" OFF)
+option(BUILD_DOC "Build documentation" OFF) # Probably only useful for project maintainer(s)
 
-# documentation build is optional and set it to OFF by default
-option(BUILD_DOC "Build documentation" OFF)
-
-
-# Place libs & binaries in build/lib and bin (this is not for installation)
+# Place libs & binaries in build/lib and build/bin (this is not for installation)
 set(LIBRARY_OUTPUT_PATH    ${CMAKE_BINARY_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
-
-# Set architecture-related string for installation consistent with scons file
+# Set architecture-related string for installation (consistent with scons)
 set(ARCH ${CMAKE_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "ARCH = " ${ARCH})
 
@@ -63,14 +40,20 @@ else()
         message(STATUS "CODA = " $ENV{CODA})
         set(INSTALL_DIR_DEFINED 1)
         set(CMAKE_INSTALL_PREFIX $ENV{CODA}/${ARCH})
-        set(CMAKE_INSTALL_INCLUDEDIR $ENV{CODA}/common/include)
+        set(CMAKE_INSTALL_INCLUDEDIR $ENV{CODA}/include)
         message(STATUS "CMAKE_INSTALL_PREFIX reset to " ${CMAKE_INSTALL_PREFIX})
     else()
-        message(STATUS "Use -DINSTALL_DIR= or -DCODA_INSTALL=<dir> on cmd line, set \"CODA\" env var, or it'll be installed in /usr/local")
+        # Set default CMAKE_INSTALL_PREFIX to [et_loc]/${ARCH}
+        set(INSTALL_DIR_DEFINED 1)
+        set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/${ARCH})
+        set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include)
+        message(STATUS "Installing to default location: ${CMAKE_INSTALL_PREFIX}")
     endif()
 endif()
 
-
+# C source files
+# #  keep these explicit instead of using GLOB, 
+# #  mostly to keep SOURCE_FILES and REMOTE_SOURCE_FILES separate
 set(HEADER_FILES
         src/libsrc/et_data.h
         src/libsrc/et_network.h
@@ -78,7 +61,7 @@ set(HEADER_FILES
         src/libsrc/et.h
         src/libsrc/etCommonNetwork.h
         src/libsrc/et_fifo.h
-        )
+    )
 
 set(SOURCE_FILES
         src/libsrc/et_attachment.c
@@ -101,7 +84,7 @@ set(SOURCE_FILES
         src/libsrc/et_system.c
         src/libsrc/etCommonNetwork.c
         src/libsrc/et_fifo.c
-        )
+    )
 
 set (REMOTE_SOURCE_FILES
         src/libsrc/et_init.c
@@ -112,7 +95,7 @@ set (REMOTE_SOURCE_FILES
         src/libsrc/et_remoteclient.c
         src/libsrc/et_statconfig.c
         src/libsrc/et_sysconfig.c
-        )
+    )
 
 set (EXEC_SOURCE_FILES
         src/execsrc/et32_2_et64.c
@@ -122,7 +105,7 @@ set (EXEC_SOURCE_FILES
         src/execsrc/et_printIFinfo.c
         src/execsrc/et_start.c
         src/execsrc/et_start_fifo.c
-        )
+    )
 
 set (EXAMPLE_FILES
         src/examples/et_blaster.c
@@ -132,7 +115,7 @@ set (EXAMPLE_FILES
         src/examples/et_fifoConsumer.c
         src/examples/et_producerTest.c
         src/examples/et_connectionTest.c
-        )
+    )
 
 # Search for doxygen executable
 find_package(Doxygen)
@@ -167,11 +150,16 @@ target_link_libraries(et_remote PUBLIC pthread dl m)
 find_package(JNI 1.8)
 if (JNI_FOUND)
     message (STATUS "JNI header found")
+    message (STATUS "JNI_INCLUDE_DIRS: ${JNI_INCLUDE_DIRS}")
     add_library(et_jni SHARED src/libsrc/et_jni.c)
     set_target_properties(et_jni PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
     include_directories(et_jni PUBLIC ${JNI_INCLUDE_DIRS})
     target_link_libraries(et_jni PUBLIC et)
     install(TARGETS et_jni LIBRARY DESTINATION lib)
+    else()
+        message (STATUS "WARNING: JNI header not found, skipping et_jni library creation")
+        message (STATUS "     Java interface will not be able to wrap C library")
+        message (STATUS "     (java performance without will be far slower)")
 endif()
 
 
@@ -224,7 +212,7 @@ if(BUILD_EXAMPLES)
 endif()
 
 
-# Only install if installation directory has been defined
+# Install if installation directory has been defined
 if (DEFINED INSTALL_DIR_DEFINED)
     # Installation defaulting to ${CMAKE_INSTALL_PREFIX}/lib or include
     install(TARGETS et et_remote LIBRARY DESTINATION lib)
