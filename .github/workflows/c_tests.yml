@@ -1,0 +1,51 @@
+name: "C Tests"
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  c_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential doxygen
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DBUILD_TESTS=1
+
+      - name: Build
+        run: cmake --build build --target install --parallel
+
+      - name: Env Setup
+        run: |
+          # Ensure the shared memory directory exists
+          mkdir -p /tmp
+ 
+
+      - name: ET local test (C lib)
+        run: |
+
+          # shared‐mem file path
+          # SHM_FILE=/tmp/et_ci_localtest
+          # : > $SHM_FILE
+          export LD_LIBRARY_PATH=$PWD/build/lib
+          echo "Running ET local test with shared memory file: /tmp/et_ci_localtest"
+
+          # launch processes with delays, capturing logs
+          ./build/bin/et_start -f /tmp/et_ci_localtest -v > et_start.log 2>&1 &
+          echo "Waiting for ET to start..."
+          sleep 2
+          ./build/bin/CITest_local_producer -f /tmp/et_ci_localtest -v > producer.log 2>&1 &
+          sleep 2
+          ./build/bin/CITest_local_consumer -f /tmp/et_ci_localtest -v > consumer.log 2>&1 &
+          sleep 2
+          ./build/bin/et_killer -f /tmp/et_ci_localtest -host local
+          
+          # The ls will error if the file does not exist, in case
+          # commands above failed
+          ls et_output.txt
+          # If last line of et_output.txt is not "ET is great, event 500", fail also
+          tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1

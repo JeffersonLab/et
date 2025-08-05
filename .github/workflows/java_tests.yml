@@ -1,0 +1,53 @@
+# PURE java tests, no jni.so used 
+name: Java Tests (ET)
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  java_tests:
+    name: Run JUnit Tests
+    runs-on: ubuntu-latest
+    container:
+      image: maven:3.9-eclipse-temurin-17-alpine
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Maven JAR file
+        run: mvn clean install
+        
+        # Uncomment to set up Java and Maven manually, if desired
+        # # (and probably comment out the container image above)
+        # - name: Set up JDK 17
+        #   uses: actions/setup-java@v3
+        #   with:
+        #     distribution: temurin
+        #     java-version: 17
+        # Install maven by hand (if not in container image)
+        # - name: Maven Setup
+        #   run: apk update && apt-get install -y maven
+
+      - name: Build and run tests (Java only)
+        run: |
+            export CLASSPATH=$PWD/target/et-16.5.0-jar-with-dependencies.jar
+            echo "Running ET local test with shared memory file: /tmp/et_ci_localtest"
+
+            # launch processes with delays, capturing logs
+            java  src/main/java/org/jlab/coda/et/apps/StartEt.java -f /tmp/et_ci_localtest  > et_start.log 2>&1 &
+            echo "Waiting for ET to start..."
+            sleep 2
+            java src/test/java/CITestLocalProducer.java > producer.log 2>&1 &
+            sleep 2
+            java src/test/java/CITestLocalConsumer.java > consumer.log 2>&1 &
+            sleep 2
+            java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest
+            # The ls will error if the file does not exist, in case
+            # commands above failed
+            ls et_output.txt
+            # If last line of et_output.txt is not "ET is great, event 500", fail also
+            tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
+
+            rm et_output.txt

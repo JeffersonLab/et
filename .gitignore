@@ -7,12 +7,17 @@ _*
 !.gitignore
 !.github
 
+# Typical install directories
+Linux*/
+Darwin*/
+
 # ignore generated files/dirs
 cmake-*
 cmake_install.cmake
 coda.pyc
 jbuild/
 build/
+tmp/
 doxyerrors.log
 /target/
 doc/javadoc

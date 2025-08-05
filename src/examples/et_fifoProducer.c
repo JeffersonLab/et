@@ -7,6 +7,9 @@
 // 12000, Jefferson Ave, Newport News, VA 23606
 // (757)-269-7100
 
+#if defined(__linux__)
+    #define _POSIX_C_SOURCE 199309L
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,20 +25,21 @@
 #include "et_fifo.h"
 
 /* prototype */
-static void * signal_thread (void *arg);
+static void *signal_thread(void *arg);
 
-int main(int argc,char **argv) {
+int main(int argc, char **argv)
+{
 
     int i, j, c, err, i_tmp, status, junkData, numRead, locality;
-    int startingVal=0, errflg=0, size=32, writeData=0, localEndian=1;
-    int delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
-    int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
+    int startingVal = 0, errflg = 0, size = 32, writeData = 0, localEndian = 1;
+    int delay = 0, remote = 0, multicast = 0, broadcast = 0, broadAndMulticast = 0;
+    int sendBufSize = 0, recvBufSize = 0, noDelay = 0, blast = 0, noAllocFlag = 0;
     int debugLevel = ET_DEBUG_ERROR;
 
     int ids[32];
     int idCount = 0;
 
-    unsigned short port=0;
+    unsigned short port = 0;
     char et_name[ET_FILENAME_LENGTH], host[256], interface[16], localAddr[16];
     void *fakeData;
 
@@ -63,180 +67,200 @@ int main(int argc,char **argv) {
 
     /* 4 multiple character command-line options */
     static struct option long_options[] =
-            {{"host",  1, NULL, 1},
-             {"rb",    1, NULL, 2},
-             {"sb",    1, NULL, 3},
-             {"nd",    0, NULL, 4},
-             {"blast", 0, NULL, 5},
-             {"ids",   1, NULL, 6},
-             {0,       0, 0,    0}
-            };
+        {{"host", 1, NULL, 1},
+         {"rb", 1, NULL, 2},
+         {"sb", 1, NULL, 3},
+         {"nd", 0, NULL, 4},
+         {"blast", 0, NULL, 5},
+         {"ids", 1, NULL, 6},
+         {0, 0, 0, 0}};
 
     memset(host, 0, 256);
     memset(interface, 0, 16);
-    memset(mcastAddr, 0, mcastAddrMax*16);
+    memset(mcastAddr, 0, mcastAddrMax * 16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
 
-    while ((c = getopt_long_only(argc, argv, "wvbmhrn:a:p:d:f:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "wvbmhrn:a:p:d:f:i:", long_options, 0)) != EOF)
+    {
 
         if (c == -1)
             break;
 
-        switch (c) {
+        switch (c)
+        {
 
-            case 'w':
-                writeData = 1;
+        case 'w':
+            writeData = 1;
+            break;
+
+        case 'd':
+            delay = atoi(optarg);
+            if (delay < 0)
+            {
+                printf("Delay must be >= 0\n");
+                exit(-1);
+            }
+            break;
+
+        case 'p':
+            i_tmp = atoi(optarg);
+            if (i_tmp > 1023 && i_tmp < 65535)
+            {
+                port = i_tmp;
+            }
+            else
+            {
+                printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
+                exit(-1);
+            }
+            break;
+
+        case 'f':
+            if (strlen(optarg) >= ET_FILENAME_LENGTH)
+            {
+                fprintf(stderr, "ET file name is too long\n");
+                exit(-1);
+            }
+            strcpy(et_name, optarg);
+            break;
+
+        case 'i':
+            if (strlen(optarg) > 15 || strlen(optarg) < 7)
+            {
+                fprintf(stderr, "interface address is bad\n");
+                exit(-1);
+            }
+            strcpy(interface, optarg);
+            break;
+
+        case 'a':
+            if (strlen(optarg) >= 16)
+            {
+                fprintf(stderr, "Multicast address is too long\n");
+                exit(-1);
+            }
+            if (mcastAddrCount >= mcastAddrMax)
                 break;
+            strcpy(mcastAddr[mcastAddrCount++], optarg);
+            multicast = 1;
+            break;
 
-            case 'd':
-                delay = atoi(optarg);
-                if (delay < 0) {
-                    printf("Delay must be >= 0\n");
+            /* case ids */
+        case 6:
+        { // Parse comma-separated list of data source ids
+            // Returns first token
+            char *token = strtok(optarg, ",");
+            i_tmp = atoi(token);
+            if (i_tmp < 0)
+            {
+                printf("Invalid argument to -ids, each id must be >= 0\n");
+                exit(-1);
+            }
+            ids[0] = i_tmp;
+            idCount = 1;
+
+            // Keep printing tokens while one of the
+            // delimiters present in str[].
+            while (token != NULL)
+            {
+                token = strtok(NULL, ",");
+                if (token == NULL)
+                    break;
+                i_tmp = atoi(token);
+                if (i_tmp < 0)
+                {
+                    printf("Invalid argument to -ids, each id must be >= 0\n");
                     exit(-1);
                 }
-                break;
 
-            case 'p':
-                i_tmp = atoi(optarg);
-                if (i_tmp > 1023 && i_tmp < 65535) {
-                    port = i_tmp;
-                } else {
-                    printf("Invalid argument to -p. Must be < 65535 & > 1023.\n");
+                if (idCount == 32)
+                {
+                    printf("Invalid argument to -ids, too many ids, max of 32\n");
                     exit(-1);
                 }
-                break;
+                ids[idCount++] = i_tmp;
+            }
+        }
 
-            case 'f':
-                if (strlen(optarg) >= ET_FILENAME_LENGTH) {
-                    fprintf(stderr, "ET file name is too long\n");
-                    exit(-1);
-                }
-                strcpy(et_name, optarg);
-                break;
+        break;
 
-            case 'i':
-                if (strlen(optarg) > 15 || strlen(optarg) < 7) {
-                    fprintf(stderr, "interface address is bad\n");
-                    exit(-1);
-                }
-                strcpy(interface, optarg);
-                break;
+            /* case rb */
+        case 1:
+            if (strlen(optarg) >= 255)
+            {
+                fprintf(stderr, "host name is too long\n");
+                exit(-1);
+            }
+            strcpy(host, optarg);
+            break;
 
-            case 'a':
-                if (strlen(optarg) >= 16) {
-                    fprintf(stderr, "Multicast address is too long\n");
-                    exit(-1);
-                }
-                if (mcastAddrCount >= mcastAddrMax) break;
-                strcpy(mcastAddr[mcastAddrCount++], optarg);
-                multicast = 1;
-                break;
+            /* case rb */
+        case 2:
+            i_tmp = atoi(optarg);
+            if (i_tmp < 1)
+            {
+                printf("Invalid argument to -rb. Recv buffer size must be > 0.\n");
+                exit(-1);
+            }
+            recvBufSize = i_tmp;
+            break;
 
-                /* case ids */
-            case 6:
-                {   // Parse comma-separated list of data source ids
-                    // Returns first token
-                    char *token = strtok(optarg, ",");
-                    i_tmp = atoi(token);
-                    if (i_tmp < 0) {
-                        printf("Invalid argument to -ids, each id must be >= 0\n");
-                        exit(-1);
-                    }
-                    ids[0]  = i_tmp;
-                    idCount = 1;
+            /* case sb */
+        case 3:
+            i_tmp = atoi(optarg);
+            if (i_tmp < 1)
+            {
+                printf("Invalid argument to -sb. Send buffer size must be > 0.\n");
+                exit(-1);
+            }
+            sendBufSize = i_tmp;
+            break;
 
-                    // Keep printing tokens while one of the
-                    // delimiters present in str[].
-                    while (token != NULL) {
-                        token = strtok(NULL, ",");
-                        if (token == NULL) break;
-                        i_tmp = atoi(token);
-                        if (i_tmp < 0) {
-                            printf("Invalid argument to -ids, each id must be >= 0\n");
-                            exit(-1);
-                        }
+            /* case nd */
+        case 4:
+            noDelay = 1;
+            break;
 
-                        if (idCount == 32) {
-                            printf("Invalid argument to -ids, too many ids, max of 32\n");
-                            exit(-1);
-                        }
-                        ids[idCount++] = i_tmp;
-                    }
-                }
+            /* case blast */
+        case 5:
+            blast = 1;
+            break;
 
-                break;
+        case 'v':
+            debugLevel = ET_DEBUG_INFO;
+            break;
 
-                /* case rb */
-            case 1:
-                if (strlen(optarg) >= 255) {
-                    fprintf(stderr, "host name is too long\n");
-                    exit(-1);
-                }
-                strcpy(host, optarg);
-                break;
+        case 'r':
+            remote = 1;
+            break;
 
-                /* case rb */
-            case 2:
-                i_tmp = atoi(optarg);
-                if (i_tmp < 1) {
-                    printf("Invalid argument to -rb. Recv buffer size must be > 0.\n");
-                    exit(-1);
-                }
-                recvBufSize = i_tmp;
-                break;
+        case 'm':
+            multicast = 1;
+            break;
 
-                /* case sb */
-            case 3:
-                i_tmp = atoi(optarg);
-                if (i_tmp < 1) {
-                    printf("Invalid argument to -sb. Send buffer size must be > 0.\n");
-                    exit(-1);
-                }
-                sendBufSize = i_tmp;
-                break;
+        case 'b':
+            broadcast = 1;
+            break;
 
-                /* case nd */
-            case 4:
-                noDelay = 1;
-                break;
-
-                /* case blast */
-            case 5:
-                blast = 1;
-                break;
-
-            case 'v':
-                debugLevel = ET_DEBUG_INFO;
-                break;
-
-            case 'r':
-                remote = 1;
-                break;
-
-            case 'm':
-                multicast = 1;
-                break;
-
-            case 'b':
-                broadcast = 1;
-                break;
-
-            case ':':
-            case 'h':
-            case '?':
-            default:
-                errflg++;
+        case ':':
+        case 'h':
+        case '?':
+        default:
+            errflg++;
         }
     }
 
-    if (!multicast && !broadcast) {
+    if (!multicast && !broadcast)
+    {
         /* Default to local host if direct connection */
-        if (strlen(host) < 1) {
+        if (strlen(host) < 1)
+        {
             strcpy(host, ET_HOST_LOCAL);
         }
     }
 
-    if (optind < argc || errflg || strlen(et_name) < 1 || idCount < 1) {
+    if (optind < argc || errflg || strlen(et_name) < 1 || idCount < 1)
+    {
         fprintf(stderr,
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n%s\n\n",
                 argv[0], "-f <ET name> -ids <comma-separated source id list>",
@@ -245,7 +269,6 @@ int main(int argc,char **argv) {
                 "                     [-d <delay>] [-p <ET port>]",
                 "                     [-i <interface address>] [-a <mcast addr>]",
                 "                     [-rb <buf size>] [-sb <buf size>]");
-
 
         fprintf(stderr, "          -f     ET system's (memory-mapped file) name\n");
         fprintf(stderr, "          -ids   comma-separated list of incoming data ids (no white space)\n\n");
@@ -280,14 +303,16 @@ int main(int argc,char **argv) {
     }
 
     /* fake data for blasting */
-    fakeData = (void *) malloc(size);
-    if (fakeData == NULL) {
+    fakeData = (void *)malloc(size);
+    if (fakeData == NULL)
+    {
         printf("%s: out of memory\n", argv[0]);
         exit(1);
     }
 
     /* delay is in milliseconds */
-    if (delay > 0) {
+    if (delay > 0)
+    {
         timeout.tv_sec = delay / 1000;
         timeout.tv_nsec = (delay - (delay / 1000) * 1000) * 1000000;
     }
@@ -298,35 +323,43 @@ int main(int argc,char **argv) {
     /* block all signals */
     sigfillset(&sigblock);
     status = pthread_sigmask(SIG_BLOCK, &sigblock, NULL);
-    if (status != 0) {
+    if (status != 0)
+    {
         printf("%s: pthread_sigmask failure\n", argv[0]);
         exit(1);
     }
 
     /* spawn signal handling thread */
-    pthread_create(&tid, NULL, signal_thread, (void *) NULL);
+    pthread_create(&tid, NULL, signal_thread, (void *)NULL);
 
     /******************/
     /* open ET system */
     /******************/
     et_open_config_init(&openconfig);
 
-    if (broadcast && multicast) {
+    if (broadcast && multicast)
+    {
         broadAndMulticast = 1;
     }
 
     /* if multicasting to find ET */
-    if (multicast) {
-        if (mcastAddrCount < 1) {
+    if (multicast)
+    {
+        if (mcastAddrCount < 1)
+        {
             /* Use default mcast address if not given on command line */
             status = et_open_config_addmulticast(openconfig, ET_MULTICAST_ADDR);
         }
-        else {
+        else
+        {
             /* add multicast addresses to use  */
-            for (j = 0; j < mcastAddrCount; j++) {
-                if (strlen(mcastAddr[j]) > 7) {
+            for (j = 0; j < mcastAddrCount; j++)
+            {
+                if (strlen(mcastAddr[j]) > 7)
+                {
                     status = et_open_config_addmulticast(openconfig, mcastAddr[j]);
-                    if (status != ET_OK) {
+                    if (status != ET_OK)
+                    {
                         printf("%s: bad multicast address argument\n", argv[0]);
                         exit(1);
                     }
@@ -336,40 +369,49 @@ int main(int argc,char **argv) {
         }
     }
 
-    if (broadAndMulticast) {
+    if (broadAndMulticast)
+    {
         printf("Broad and Multicasting\n");
-        if (port == 0) {
+        if (port == 0)
+        {
             port = ET_UDP_PORT;
         }
         et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_BROADANDMULTICAST);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
-    else if (multicast) {
+    else if (multicast)
+    {
         printf("Multicasting\n");
-        if (port == 0) {
+        if (port == 0)
+        {
             port = ET_UDP_PORT;
         }
         et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_MULTICAST);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
-    else if (broadcast) {
+    else if (broadcast)
+    {
         printf("Broadcasting\n");
-        if (port == 0) {
+        if (port == 0)
+        {
             port = ET_UDP_PORT;
         }
         et_open_config_setport(openconfig, port);
         et_open_config_setcast(openconfig, ET_BROADCAST);
         et_open_config_sethost(openconfig, ET_HOST_ANYWHERE);
     }
-    else {
-        if (port == 0) {
+    else
+    {
+        if (port == 0)
+        {
             port = ET_SERVER_PORT;
         }
         et_open_config_setserverport(openconfig, port);
         et_open_config_setcast(openconfig, ET_DIRECT);
-        if (strlen(host) > 0) {
+        if (strlen(host) > 0)
+        {
             et_open_config_sethost(openconfig, host);
         }
         et_open_config_gethost(openconfig, host);
@@ -379,11 +421,13 @@ int main(int argc,char **argv) {
 
     /* Defaults are to use operating system default buffer sizes and turn off TCP_NODELAY */
     et_open_config_settcp(openconfig, recvBufSize, sendBufSize, noDelay);
-    if (strlen(interface) > 6) {
+    if (strlen(interface) > 6)
+    {
         et_open_config_setinterface(openconfig, interface);
     }
 
-    if (remote) {
+    if (remote)
+    {
         printf("Set as remote\n");
         et_open_config_setmode(openconfig, ET_HOST_AS_REMOTE);
     }
@@ -395,7 +439,8 @@ int main(int argc,char **argv) {
     et_open_config_setdebugdefault(openconfig, debugLevel);
 
     et_open_config_setwait(openconfig, ET_OPEN_WAIT);
-    if (et_open(&id, et_name, openconfig) != ET_OK) {
+    if (et_open(&id, et_name, openconfig) != ET_OK)
+    {
         printf("%s: et_open problems\n", argv[0]);
         exit(1);
     }
@@ -405,7 +450,8 @@ int main(int argc,char **argv) {
 
     /* Make things self-consistent by not taking time to write data if blasting.
      * Blasting flag takes precedence. */
-    if (blast) {
+    if (blast)
+    {
         writeData = 0;
     }
 
@@ -413,8 +459,10 @@ int main(int argc,char **argv) {
      * so we know if we can use external data buffer for events
      * for blasting - which is quite a bit faster. */
     et_system_getlocality(id, &locality);
-    if (locality == ET_REMOTE) {
-        if (blast) {
+    if (locality == ET_REMOTE)
+    {
+        if (blast)
+        {
             noAllocFlag = ET_NOALLOC;
         }
         printf("ET is remote\n\n");
@@ -423,9 +471,11 @@ int main(int argc,char **argv) {
         et_system_getlocaladdress(id, localAddr);
         printf("Connect to ET, from ip = %s to %s\n", localAddr, host);
     }
-    else {
+    else
+    {
         /* local blasting is just the same as local producing */
-        if (blast) printf("ET is local, don't blast\n");
+        if (blast)
+            printf("ET is local, don't blast\n");
         blast = 0;
     }
 
@@ -436,7 +486,8 @@ int main(int argc,char **argv) {
     /* Use FIFO interface  */
     /***********************/
     status = et_fifo_openProducer(id, &fid, ids, idCount);
-    if (status != ET_OK) {
+    if (status != ET_OK)
+    {
         printf("%s: et_fifo_open problems\n", argv[0]);
         exit(1);
     }
@@ -447,20 +498,23 @@ int main(int argc,char **argv) {
     printf("%s: cap = %d, idCount = %d\n", argv[0], numRead, idCount);
 
     entry = et_fifo_entryCreate(fid);
-    if (entry == NULL) {
+    if (entry == NULL)
+    {
         printf("%s: et_fifo_entryCreate: out of mem\n", argv[0]);
         exit(1);
     }
 
     /* read time for future statistics calculations */
     clock_gettime(CLOCK_REALTIME, &t1);
-    time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L; /* milliseconds */
+    time1 = 1000L * t1.tv_sec + t1.tv_nsec / 1000000L; /* milliseconds */
 
-    while (1) {
+    while (1)
+    {
 
         /* Grab new/empty buffers */
         status = et_fifo_newEntry(fid, entry);
-        if (status != ET_OK) {
+        if (status != ET_OK)
+        {
             printf("%s: et_fifo_newEntry error\n", argv[0]);
             goto error;
         }
@@ -469,8 +523,10 @@ int main(int argc,char **argv) {
         pe = et_fifo_getBufs(entry);
 
         /* if blasting data (and remote), don't write anything, just use what's in buffer when allocated */
-        if (blast) {
-            for (i=0; i < idCount; i++) {
+        if (blast)
+        {
+            for (i = 0; i < idCount; i++)
+            {
                 et_event_setlength(pe[i], size);
                 err = et_event_setdatabuffer(id, pe[i], fakeData);
                 et_fifo_setId(pe[i], ids[i]);
@@ -478,12 +534,14 @@ int main(int argc,char **argv) {
             }
         }
         /* write data, set control values here */
-        else if (writeData) {
+        else if (writeData)
+        {
             char *pdata;
-            for (i=0; i < idCount; i++) {
+            for (i = 0; i < idCount; i++)
+            {
                 junkData = i + startingVal;
-                et_event_getdata(pe[i], (void **) &pdata);
-                memcpy((void *)pdata, (const void *) &junkData, sizeof(int));
+                et_event_getdata(pe[i], (void **)&pdata);
+                memcpy((void *)pdata, (const void *)&junkData, sizeof(int));
 
                 /* Send all data even though we only wrote one int. */
                 et_event_setlength(pe[i], size);
@@ -492,8 +550,10 @@ int main(int argc,char **argv) {
             }
             startingVal += idCount;
         }
-        else {
-            for (i = 0; i < idCount; i++) {
+        else
+        {
+            for (i = 0; i < idCount; i++)
+            {
                 et_event_setlength(pe[i], size);
                 et_fifo_setId(pe[i], ids[i]);
                 et_fifo_setHasData(pe[i], 1);
@@ -502,40 +562,44 @@ int main(int argc,char **argv) {
 
         /* put events back into the ET system */
         status = et_fifo_putEntry(entry);
-        if (status != ET_OK) {
+        if (status != ET_OK)
+        {
             printf("%s: et_fifo_putEntry error\n", argv[0]);
             goto error;
         }
 
         count += idCount;
 
-        if (delay > 0) {
+        if (delay > 0)
+        {
             nanosleep(&timeout, NULL);
         }
-        
+
         /* statistics */
         clock_gettime(CLOCK_REALTIME, &t2);
-        time2 = 1000L*t2.tv_sec + t2.tv_nsec/1000000L; /* milliseconds */
+        time2 = 1000L * t2.tv_sec + t2.tv_nsec / 1000000L; /* milliseconds */
         time = time2 - time1;
-        if (time > 5000) {
+        if (time > 5000)
+        {
             /* reset things if necessary */
-            if ( (totalCount >= (LONG_MAX - count)) ||
-                  (totalT >= (LONG_MAX - time)) )  {
+            if ((totalCount >= (LONG_MAX - count)) ||
+                (totalT >= (LONG_MAX - time)))
+            {
                 totalT = totalCount = count = 0;
                 time1 = time2;
                 continue;
             }
-            rate = 1000.0 * ((double) count) / time;
+            rate = 1000.0 * ((double)count) / time;
             totalCount += count;
             totalT += time;
-            avgRate = 1000.0 * ((double) totalCount) / totalT;
+            avgRate = 1000.0 * ((double)totalCount) / totalT;
 
             /* Event rates */
             printf("%s Events:  %3.4g Hz,    %3.4g Avg.\n", argv[0], rate, avgRate);
 
             /* Data rates */
-            rate    = ((double) count) * size / time;
-            avgRate = ((double) totalCount) * size / totalT;
+            rate = ((double)count) * size / time;
+            avgRate = ((double)totalCount) * size / totalT;
             printf("%s Data:    %3.4g kB/s,  %3.4g Avg.\n\n", argv[0], rate, avgRate);
 
             /* If including msg overhead in data rates, need to do the following
@@ -544,13 +608,12 @@ int main(int argc,char **argv) {
             count = 0;
 
             clock_gettime(CLOCK_REALTIME, &t1);
-            time1 = 1000L*t1.tv_sec + t1.tv_nsec/1000000L;
+            time1 = 1000L * t1.tv_sec + t1.tv_nsec / 1000000L;
         }
 
     } /* while(1) */
-    
-  
-    error:
+
+error:
 
     // Although not necessary at this point
     et_fifo_freeEntry(entry);
@@ -561,16 +624,17 @@ int main(int argc,char **argv) {
 
 /************************************************************/
 /*              separate thread to handle signals           */
-static void * signal_thread (void *arg) {
+static void *signal_thread(void *arg)
+{
 
-  sigset_t   signal_set;
-  int        sig_number;
- 
-  sigemptyset(&signal_set);
-  sigaddset(&signal_set, SIGINT);
-  
-  /* Not necessary to clean up as ET system will do it */
-  sigwait(&signal_set, &sig_number);
-  printf("Got control-C, exiting\n");
-  exit(1);
+    sigset_t signal_set;
+    int sig_number;
+
+    sigemptyset(&signal_set);
+    sigaddset(&signal_set, SIGINT);
+
+    /* Not necessary to clean up as ET system will do it */
+    sigwait(&signal_set, &sig_number);
+    printf("Got control-C, exiting\n");
+    exit(1);
 }

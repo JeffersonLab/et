@@ -8,10 +8,13 @@ if ($#argv != 0 && $#argv != 2) then
   exit
 endif
 
+# set CODA = /usr/local/coda
+
 #setenv PATH $CODA/$MACHINE/bin
 #setenv LD_LIBRARY_PATH $CODA/$MACHINE/lib
 
-$JAVA_HOME/bin/java -cp $CODA/common/jar/\* \
+$JAVA_HOME/bin/java \
+    -cp java/jars/java15/\* \
     -Djava.net.preferIPv4Stack=true \
-    -Djava.library.path=$CODA/$MACHINE/lib \
+    # -Djava.library.path=$CODA/$MACHINE/lib \
     org.jlab.coda.et.monitorGui.Monitor $1 $2
