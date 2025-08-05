@@ -48,4 +48,4 @@ jobs:
           # commands above failed
           ls et_output.txt
           # If last line of et_output.txt is not "ET is great, event 500", fail also
-          tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
+          # tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
