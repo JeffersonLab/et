@@ -22,15 +22,19 @@ jobs:
           working-directory: '.'
           doxyfile-path: 'doc/doxygen/DoxyfileC'
 
+      - name: Install Maven
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y maven
+          
       # generate the javadoc files
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
-          distribution: 'adopt'
-
+          java-version: '17'
+          distribution: 'temurin' 
       - name: Javadoc Action
-        run: ant -noinput -buildfile build.xml javadoc
+        run: mvn javadoc:javadoc
 
       # clean up the javadoc files including removing timestamps. OPTIONAL.
       - name: Tidy up the javadocs
