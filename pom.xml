@@ -12,12 +12,12 @@
   <!-- SOFTWARE VERSIONS USED -->
   <properties>
     <!-- Set Java version -->
-    <java.version>1.8</java.version> <!-- Compatibility: if Java 8 desired, put 1.8 here (not 8)   -->
+    <java.version>17</java.version> <!-- Compatibility: if Java 8 desired, put 1.8 here (not 8)   -->
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
     <!-- Other misc properties -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <java.jars.dir>${pom.basedir}/java/jars</java.jars.dir>
+    <!-- <java.jars.dir>${pom.basedir}/java/jars</java.jars.dir> -->
   </properties>
 
     <!-- Add coda repository mvn searches -->
@@ -49,7 +49,6 @@
 <build>
   <plugins>
 
-
     <!-- Make the fat jar file -->
     <plugin>
       <artifactId>maven-assembly-plugin</artifactId>
@@ -59,7 +58,7 @@
           <descriptorRef>jar-with-dependencies</descriptorRef>
         </descriptorRefs>        
         <assembly>
-          <id>jar-with-dependencies</id>
+          <id>with-dependencies</id>
           <formats><format>jar</format></formats>
           <includeBaseDirectory>false</includeBaseDirectory>
           <dependencySets>
@@ -95,7 +94,7 @@
       <configuration>
         <!-- pick up any *Test.java, even if they have no @Test annotations -->
         <includes>
-          <include>**/**.java</include>
+          <include>src/test/java/**.java</include>
         </includes>
         <!-- don’t fail the build if no JUnit tests are found -->
         <testFailureIgnore>true</testFailureIgnore>
@@ -106,47 +105,3 @@
 </build>
 </project>
 
-
-    <!-- <build>
-        <sourceDirectory>./java/</sourceDirectory>
-        <defaultGoal>install</defaultGoal>
-    </build>
-        
-
-    <repositories>
-        <repository>
-            <id>coda-maven-repository</id>
-            <name>CODA Maven Repository</name>
-            <url>http://coda.jlab.org/maven/</url>
-        </repository>
-    </repositories>
-    
-    <distributionManagement>
-        <repository>
-            <id>jlab-coda-repo</id>
-            <url>file:/group/da/distribution/maven</url>
-        </repository>
-    </distributionManagement>
-    
-    <dependencies>
-        
-        <dependency>
-            <groupId>com.loox</groupId>
-            <artifactId>jloox</artifactId>
-            <version>2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.loox</groupId>
-            <artifactId>jlayout</artifactId>
-            <version>3.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.loox</groupId>
-            <artifactId>jlm</artifactId>
-            <version>2.0</version>
-        </dependency>
-        
-    </dependencies>
-</project> -->

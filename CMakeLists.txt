@@ -10,6 +10,7 @@ add_compile_options(-Wall) # Enable all warnings
 
 # Build option parameters (and defaults)
 option(BUILD_EXAMPLES "Build ET-related example programs" OFF)
+option(BUILD_TESTS "Build ET-related CI test programs" OFF)
 option(BUILD_DOC "Build documentation" OFF) # Probably only useful for project maintainer(s)
 
 # Place libs & binaries in build/lib and build/bin (this is not for installation)
@@ -117,6 +118,11 @@ set (EXAMPLE_FILES
         src/examples/et_connectionTest.c
     )
 
+set (TEST_FILES
+        src/test/c/CITest_local_consumer.c
+        src/test/c/CITest_local_producer.c
+    )
+
 # Search for doxygen executable
 find_package(Doxygen)
 if (DOXYGEN_FOUND AND BUILD_DOC)
@@ -141,6 +147,8 @@ target_link_libraries(et PUBLIC pthread dl m)
 
 
 # Remote evio library
+# TODO: is this needed? This was separately created for VxWorks build
+#       but VxWorks support has been dropped 
 add_library(et_remote SHARED ${REMOTE_SOURCE_FILES})
 set_target_properties(et_remote PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 target_link_libraries(et_remote PUBLIC pthread dl m)
@@ -211,6 +219,20 @@ if(BUILD_EXAMPLES)
 
 endif()
 
+if(BUILD_TESTS)
+    # Test programs
+    foreach(fileName ${TEST_FILES})
+        get_filename_component(execName ${fileName} NAME_WE)
+        add_executable(${execName} ${fileName})
+        set_target_properties(${execName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+        include_directories(${execName} PUBLIC src/libsrc)
+        target_link_libraries(${execName} et pthread)
+
+        if (DEFINED INSTALL_DIR_DEFINED)
+            install(TARGETS ${execName} RUNTIME DESTINATION bin/testC)
+        endif()
+    endforeach(fileName)
+endif()
 
 # Install if installation directory has been defined
 if (DEFINED INSTALL_DIR_DEFINED)
