@@ -42,6 +42,7 @@ class EtJniAccess {
             if (!jniLibLoaded) {
                 try {
                     System.loadLibrary("et_jni");
+                    System.out.println("Successfully loaded libet_jni.so");
                 }
                 catch (Error e) {
                     // If the library cannot be found, we can still

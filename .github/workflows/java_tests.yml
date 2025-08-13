@@ -32,22 +32,28 @@ jobs:
 
       - name: Build and run tests (Java only)
         run: |
+
             export CLASSPATH=$PWD/target/et-16.5.0-jar-with-dependencies.jar
             echo "Running ET local test with shared memory file: /tmp/et_ci_localtest"
 
             # launch processes with delays, capturing logs
-            java  src/main/java/org/jlab/coda/et/apps/StartEt.java -f /tmp/et_ci_localtest  > et_start.log 2>&1 &
+            java src/main/java/org/jlab/coda/et/apps/StartEt.java -d -f /tmp/et_ci_localtest  > et_start.log 2>&1 &
             echo "Waiting for ET to start..."
             sleep 2
+            echo "Starting producer in background..."
             java src/test/java/CITestLocalProducer.java > producer.log 2>&1 &
             sleep 2
+            echo "Starting consumer in background..."
             java src/test/java/CITestLocalConsumer.java > consumer.log 2>&1 &
             sleep 2
-            java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest
+            echo "Slept for 10 seconds. Killing ET system..."
+            java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest -v
             # The ls will error if the file does not exist, in case
             # commands above failed
             ls et_output.txt
             # If last line of et_output.txt is not "ET is great, event 500", fail also
+            echo "Final line of text file: "
+            tail -n 1 et_output.txt
             tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
 
             rm et_output.txt

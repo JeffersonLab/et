@@ -1,20 +1,44 @@
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
-import org.jlab.coda.et.enums.Modify;
 
 public class CITestLocalProducer {
     public static void main(String[] args) {
+
+
+        // Parse arg(s)
+        boolean noSocket = false;
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("-ns")) noSocket = true;
+        }
+
+
         try {
             // Configure to open existing ET system (shared memory file) by name
             EtSystemOpenConfig config = new EtSystemOpenConfig();
             config.setEtName("/tmp/et_ci_localtest");       // ET system name (file) to connect to
             config.setHost(EtConstants.hostLocal);          // local host (since ET is local)
-            // By default, this will try JNI/shared memory for local ET. If you want **only** sockets (pure Java), add:
-            // config.setConnectRemotely(true);
+            config.setNetworkContactMethod(EtConstants.direct);
+            System.out.println("Connecting to " + EtConstants.hostLocal);
 
             // Open a connection to the ET system
             EtSystem etSys = new EtSystem(config);
             etSys.open();  // establish connection to ET (throws exception if fails)
+
+            if (etSys.usingJniLibrary()) {
+                System.out.println("ET is local\n");
+            }
+            else {
+                if(noSocket) {
+                    System.out.println("No JNI library loaded and noSocket specified. Quitting!");
+                    return;
+                }
+                System.out.println("No JNI lib: ET running in remote mode\n");
+                config.setConnectRemotely(true);
+                config.setTcpPort(EtConstants.serverPort);
+            }
 
             // Attach to the GrandCentral station (for producers, GrandCentral is the source of new events)
             EtStation gc = etSys.stationNameToObject("GRAND_CENTRAL");
@@ -28,7 +52,7 @@ public class CITestLocalProducer {
                     etSys.close();
                     return;
                 }
-                Thread.sleep(100);  // sleep 0.1 sec and try again
+                Thread.sleep(1000);  // sleep 1 sec and try again
                 System.out.println("Still waiting for station 'consumer_station'...");
             }
             System.out.println("Producer: consumer detected, starting event transmission...");
@@ -43,17 +67,28 @@ public class CITestLocalProducer {
                     break;
                 }
                 EtEvent ev = newEvents[0];
+                ByteBuffer buf = ev.getDataBuffer();
+                buf.order(ev.getByteOrder());
                 // Prepare event data (message string)
-                String message = "ET is great, event " + i;
-                byte[] msgBytes = (message + "\0").getBytes("UTF-8");  // include null terminator
-                // Copy message into event's data buffer
-                byte[] dataBuf = ev.getData();
-                int msgLen = msgBytes.length;
-                if (msgLen > dataBuf.length) msgLen = dataBuf.length;  // truncate if too long
-                System.arraycopy(msgBytes, 0, dataBuf, 0, msgLen);
-                ev.setLength(msgLen);
-                // Send (put) the event to the ET system (to be delivered to consumer_station)
+                byte[] msgBytes = (("ET is great, event " + i) + "\0").getBytes(StandardCharsets.UTF_8);
+                
+                buf.clear();
+                buf.put(msgBytes, 0, msgBytes.length);
+
+                // Tell ET how many valid bytes are in this event
+                ev.setLength(msgBytes.length);
+                                
+                // Send the event
                 etSys.putEvents(att, new EtEvent[]{ev});
+
+                // Copy message into event's data buffer
+                // byte[] dataBuf = ev.getData();
+                // int msgLen = msgBytes.length;
+                // if (msgLen > dataBuf.length) msgLen = dataBuf.length;  // truncate if too long
+                // System.arraycopy(msgBytes, 0, dataBuf, 0, msgLen);
+                // ev.setLength(msgLen);
+                // Send (put) the event to the ET system (to be delivered to consumer_station)
+                // etSys.putEvents(att, new EtEvent[]{ev});
             }
 
             // Detach and close ET connection

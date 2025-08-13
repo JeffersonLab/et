@@ -38,24 +38,34 @@ jobs:
         run: | 
 
             # Environment setup
-            export LD_LIBRARY_PATH=$PWD/build/lib
             export CLASSPATH=$PWD/target/et-16.5.0-jar-with-dependencies.jar
             echo "Running ET local test with shared memory file: /tmp/et_ci_localtest"
+            
+            # Start et in C-library with delays, capturing logs
+            ./build/bin/et_start -d -f /tmp/et_ci_localtest -v > et_start.log 2>&1 &
+            echo "Waiting for (C-based) ET to start..."
+            sleep 2
+            # Run the Java producer
+            # # -Djava.library.path points java to required libet_jni.so explicitly
+            echo "Starting producer in background..."
+            java -Djava.library.path=$PWD/build/lib/ src/test/java/CITestLocalProducer.java -ns > producer.log 2>&1 &
+            sleep 2
+            # Consumer
+            export LD_LIBRARY_PATH=$PWD/build/lib # Or if libet_jni.so in LD_LIBRARY_PATH, no command line option needed
+            echo "Starting consumer in background..."
+            java src/test/java/CITestLocalConsumer.java -ns > consumer.log 2>&1 &
+            sleep 10
+            # Now kill
+            # TODO: why does killer not work with JNI???
+            # echo "Slept for 10 seconds. Killing ET system..."
+            # java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest
 
-            # launch processes with delays, capturing logs
-            java -Djava.library.path=build/lib src/main/java/org/jlab/coda/et/apps/StartEt.java -f /tmp/et_ci_localtest -v  > et_start.log 2>&1 &
-            echo "Waiting for ET to start..."
-            sleep 2
-            java -Djava.library.path=build/lib src/test/java/CITestLocalProducer.java -host local > producer.log 2>&1 &
-            # java -Djava.library.path=build/lib src/main/java/org/jlab/coda/et/apps/Producer.java -f /tmp/et_ci_localtest -host local > producer.log 2>&1 &
-            sleep 2
-            java -Djava.library.path=build/lib src/test/java/CITestLocalConsumer.java > consumer.log 2>&1 &
-            sleep 2
-            java -Djava.library.path=build/lib src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest
             # The ls will error if the file does not exist, in case
             # commands above failed
             ls et_output.txt
             # If last line of et_output.txt is not "ET is great, event 500", fail also
+            echo "Final line of text file: "
+            tail -n 1 et_output.txt
             tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
 
             rm et_output.txt
