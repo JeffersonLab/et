@@ -270,7 +270,7 @@ public class SystemConfig {
      *
      * @param groups array defining number of events in each group
      * @throws EtException
-     *     if the groups array is null, has length < 1 or values are not positive ints
+     *     if the groups array is null, has length &lt; 1 1 or values are not positive ints
      */
     public void setGroups(int[] groups) throws EtException {
         if (groups == null || groups.length < 1) {

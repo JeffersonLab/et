@@ -1227,7 +1227,7 @@ public class Monitor extends JFrame {
 
 
     /**
-     * Make a connection to an ET system & record it.
+     * Make a connection to an ET system &amp; record record it.
      */
     public EtSystem makeConnection(final EtSystemOpenConfig config) {
         if (config == null) {
