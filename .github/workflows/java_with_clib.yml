@@ -56,9 +56,10 @@ jobs:
             java src/test/java/CITestLocalConsumer.java -ns > consumer.log 2>&1 &
             sleep 10
             # Now kill
-            # TODO: why does killer not work with JNI???
-            # echo "Slept for 10 seconds. Killing ET system..."
+            # TODO: why does Java killer not work with JNI? Some pthread_mutex_lock+0x4 error
+            echo "Slept for 10 seconds. Killing ET system..."
             # java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest
+            ./build/bin/et_killer -f /tmp/et_ci_localtest -host local
 
             # The ls will error if the file does not exist, in case
             # commands above failed

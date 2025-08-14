@@ -3,6 +3,11 @@
 # ignore all files/dirs beginning with _
 _*
 
+# Text files and monitoring files
+*.log
+*.txt
+*.data
+
 # except this one
 !.gitignore
 !.github
