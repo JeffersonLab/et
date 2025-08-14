@@ -2,18 +2,40 @@ import org.jlab.coda.et.*;
 import org.jlab.coda.et.enums.Mode;
 import org.jlab.coda.et.enums.Modify;
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class CITestLocalConsumer {
     public static void main(String[] args) {
+
+        // Parse arg(s)
+        boolean noSocket = false;
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("-ns")) noSocket = true;
+        }
+        
         try {
             // Configure to open the same ET system (by file name)
             EtSystemOpenConfig config = new EtSystemOpenConfig();
             config.setEtName("/tmp/et_ci_localtest");
             config.setHost(EtConstants.hostLocal);
-            // If using pure Java (no JNI), add: config.setConnectRemotely(true);
+            config.setNetworkContactMethod(EtConstants.direct);
 
+            
             EtSystem etSys = new EtSystem(config);
             etSys.open();  // connect to existing ET system
+            // Check if using JNI library
+            if (etSys.usingJniLibrary()) {
+                System.out.println("ET is local\n");
+            }
+            else {
+                if(noSocket) {
+                    System.out.println("No JNI library loaded and noSocket specified. Quitting!");
+                    return;
+                }
+                System.out.println("No JNI lib: ET running in remote mode\n");
+                config.setConnectRemotely(true);
+                config.setTcpPort(EtConstants.serverPort);
+            }
 
             // Create a new station configuration for the consumer station
             EtStationConfig sConfig = new EtStationConfig();
@@ -42,14 +64,19 @@ public class CITestLocalConsumer {
             for (int count = 1; count <= 500; ++count) {
                 // Wait for an event from the station (blocking)
                 EtEvent[] events = etSys.getEvents(att, Mode.SLEEP, Modify.NOTHING, 0, 1);
-                if (events == null || events.length == 0) {
+                if (events.length != 1) {
                     System.err.printf("ERROR: et_getEvents failed at event %d\n", count);
                     break;
                 }
                 EtEvent ev = events[0];
-                // Read event data as a string (assume null-terminated string from producer)
-                byte[] data = ev.getData();
+                ByteBuffer buf = ev.getDataBuffer();    // works in both socket & JNI paths
+                ByteBuffer readbuf = buf.duplicate();   // duplicate to avoid changing position of original
+                readbuf.order(ev.getByteOrder());       // needed since duplicate always inits in BIG_ENDIAN
                 int length = ev.getLength();
+                byte[] data = new byte[length];
+                readbuf.get(data);
+
+                // Read event data as a string
                 if (length > 0 && data[length-1] == 0) {
                     length -= 1; // exclude null terminator for printing
                 }
