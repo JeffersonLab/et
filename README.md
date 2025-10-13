@@ -39,7 +39,7 @@ toggle the following special flag:
 
 * `MAKE_EXAMPLES`: build example/test programs (default `-DMAKE_EXAMPLES=0`)
 * `CODA_INSTALL`: installs in this base directory. If not used,
-then the env variable $CODA location is next checked. Otherwise defaults to \${CMAKE_HOST_SYSTEM_NAME}-\${CMAKE_HOST_SYSTEM_PROCESSOR}, typically something like `[evio_directory]/Linux-x86_64`.
+then the env variable \${CODA} location is next checked. Otherwise defaults to \${CMAKE_HOST_SYSTEM_NAME}-\${CMAKE_HOST_SYSTEM_PROCESSOR}, typically something like `[evio_directory]/Linux-x86_64`.
 
 ### Prerequisites
 
