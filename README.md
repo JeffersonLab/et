@@ -31,7 +31,7 @@ To build C code from this repository:
 
     git clone https://github.com/JeffersonLab/et/
     cd et; mkdir build
-    cmake -S . -B build
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
     cmake --build build --target install --parallel
 
 Note that during the cmake configure step (first of two `cmake` commands above), one can
@@ -56,6 +56,12 @@ new jar file for any reason (e.g. to modify Java versions), do:
     git clone https://github.com/JeffersonLab/evio/
     cd evio
     ./gradlew
+
+### Prerequisites
+
+Gradle and an installation of Java on your system. 
+
+**Running on "ifarm" at JLab will not work unless you install java yourself**. Note that the default java versions on the farm will be too old to work. See downloads from [OpenJDK](https://openjdk.org/install/) or [Oracle](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html). 
 
 
 It was written by Carl Timmer of the Data Acquisition group of the

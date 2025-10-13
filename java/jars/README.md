@@ -8,5 +8,5 @@ variable.
 
 As an example, to start the Monitoring GUI program from the top directory of ET, do:
 ```
-java -cp java/jars/et-16.5.0-jar-with-dependencies.jar org.jlab.coda.et.monitorGui.Monitor
+java -cp java/jars/et-16.6.0-all.jar org.jlab.coda.et.monitorGui.Monitor
 ```
