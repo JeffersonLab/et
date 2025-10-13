@@ -7,6 +7,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    // `com.github.spotbugs`
 }
 
 repositories {
@@ -27,9 +28,11 @@ dependencies {
 }
 
 group = "org.jlab.coda"
-version = "16.5.0"
+version = "16.6.0"
 description = "Event Transfer Java Library"
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+java.sourceCompatibility = JavaVersion.VERSION_17
+java.targetCompatibility = JavaVersion.VERSION_17
+defaultTasks("build")
 
 publishing {
     publications.create<MavenPublication>("maven") {
@@ -44,3 +47,15 @@ tasks.withType<JavaCompile>() {
 tasks.withType<Javadoc>() {
     options.encoding = "UTF-8"
 }
+
+tasks.test {
+//   useJUnitPlatform()
+  failOnNoDiscoveredTests = false
+}
+
+// spotbugs {
+//     toolVersion.set("4.7.3")
+//     effort.set(com.github.spotbugs.snom.Effort.MAX)
+//     reportLevel.set(com.github.spotbugs.snom.ReportLevel.LOW)
+//     excludeFilter.set(file("config/spotbugs/exclude.xml"))
+// }

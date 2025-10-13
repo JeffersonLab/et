@@ -55,7 +55,7 @@ new jar file for any reason (e.g. to modify Java versions), do:
 
     git clone https://github.com/JeffersonLab/evio/
     cd evio
-    ./gradlew build
+    ./gradlew
 
 
 It was written by Carl Timmer of the Data Acquisition group of the
