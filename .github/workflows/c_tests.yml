@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake build-essential doxygen
@@ -44,8 +44,13 @@ jobs:
           sleep 2
           ./build/bin/et_killer -f /tmp/et_ci_localtest -host local
           
+            echo "Logs from ET start, producer, consumer:"
+            tail -n 10 et_start.log
+            tail -n 10 consumer.log
+            tail -n 10 producer.logs
+
           # The ls will error if the file does not exist, in case
           # commands above failed
           ls et_output.txt
           # If last line of et_output.txt is not "ET is great, event 500", fail also
-          # tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
+          tail -n 3 et_output.txt | grep -q "ET is great, event 500" || exit 1

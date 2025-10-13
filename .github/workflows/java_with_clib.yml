@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -28,17 +28,18 @@ jobs:
       - name: Build
         run: cmake --build build --target install --parallel
           
-        # Get maven, do install
-      - name: Maven Setup
-        run: sudo apt-get update && sudo apt-get install -y maven
-      - name: Maven JAR file
-        run: mvn clean install
-        
+        # Setup gradle and build Java
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      - name: Build with Gradle
+        run: ./gradlew build
+
       - name: Build and run tests (Java only)
         run: | 
 
             # Environment setup
-            export CLASSPATH=$PWD/target/et-16.5.0-jar-with-dependencies.jar
+            # # whatever is at $PWD/build/libs/et_*.jar
+            export CLASSPATH=$(ls $PWD/build/libs/et-*.jar | tr '\n' ':')
             echo "Running ET local test with shared memory file: /tmp/et_ci_localtest"
             
             # Start et in C-library with delays, capturing logs
@@ -61,13 +62,18 @@ jobs:
             # java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest
             ./build/bin/et_killer -f /tmp/et_ci_localtest -host local
 
+            echo "Logs from ET start, producer, consumer:"
+            tail -n 10 et_start.log
+            tail -n 10 consumer.log
+            tail -n 10 producer.log
+
             # The ls will error if the file does not exist, in case
             # commands above failed
             ls et_output.txt
             # If last line of et_output.txt is not "ET is great, event 500", fail also
             echo "Final line of text file: "
             tail -n 1 et_output.txt
-            tail -n 1 et_output.txt | grep -q "ET is great, event 500" || exit 1
+            tail -n 3 et_output.txt | grep -q "ET is great, event 500" || exit 1
 
             rm et_output.txt
 

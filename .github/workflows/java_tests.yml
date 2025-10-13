@@ -9,31 +9,27 @@ jobs:
   java_tests:
     name: Run JUnit Tests
     runs-on: ubuntu-latest
-    container:
-      image: maven:3.9-eclipse-temurin-17-alpine
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
-      - name: Maven JAR file
-        run: mvn clean install
-        
-        # Uncomment to set up Java and Maven manually, if desired
-        # # (and probably comment out the container image above)
-        # - name: Set up JDK 17
-        #   uses: actions/setup-java@v3
-        #   with:
-        #     distribution: temurin
-        #     java-version: 17
-        # Install maven by hand (if not in container image)
-        # - name: Maven Setup
-        #   run: apk update && apt-get install -y maven
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
 
+        # Setup gradle and build Java
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      - name: Build with Gradle
+        run: ./gradlew build
+          
       - name: Build and run tests (Java only)
         run: |
 
-            export CLASSPATH=$PWD/target/et-16.5.0-jar-with-dependencies.jar
+            export CLASSPATH=$(ls $PWD/build/libs/et-*.jar | tr '\n' ':')
             echo "Running ET local test with shared memory file: /tmp/et_ci_localtest"
 
             # launch processes with delays, capturing logs
@@ -48,6 +44,13 @@ jobs:
             sleep 2
             echo "Slept for 10 seconds. Killing ET system..."
             java src/main/java/org/jlab/coda/et/apps/Killer.java -f /tmp/et_ci_localtest -v
+
+
+            echo "Logs from ET start, producer, consumer:"
+            tail -n 10 et_start.log
+            tail -n 10 consumer.log
+            tail -n 10 producer.log
+
             # The ls will error if the file does not exist, in case
             # commands above failed
             ls et_output.txt
