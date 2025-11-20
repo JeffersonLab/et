@@ -17,6 +17,8 @@ package org.jlab.coda.et;
 import java.lang.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jlab.coda.et.exception.*;
 import org.jlab.coda.et.enums.Age;
@@ -35,6 +37,9 @@ public class EtEventImpl implements EtEvent {
     // convenience variables
     private static final int   numSelectInts = EtConstants.stationSelectInts;
     private static final int[] controlInitValues = new int[numSelectInts];
+
+    /** Limit noisy debug printing of control integers. */
+    private static final AtomicInteger controlPrintCounter = new AtomicInteger();
 
     /** Unique id number (place of event in C-based ET system). */
     private int id;
@@ -642,6 +647,11 @@ public class EtEventImpl implements EtEvent {
             throw new EtException("wrong number of elements in control array");
         }
         System.arraycopy(con, 0, control, 0, numSelectInts);
+
+        int count = controlPrintCounter.getAndIncrement();
+        if (count < 10) {
+            System.out.println("ET event control ints: " + Arrays.toString(control));
+        }
     }
 
     /**
