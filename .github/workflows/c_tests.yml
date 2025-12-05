@@ -44,10 +44,10 @@ jobs:
           sleep 2
           ./build/bin/et_killer -f /tmp/et_ci_localtest -host local
           
-            echo "Logs from ET start, producer, consumer:"
-            tail -n 10 et_start.log
-            tail -n 10 consumer.log
-            tail -n 10 producer.logs
+          echo "Logs from ET start, producer, consumer:"
+          tail -n 10 et_start.log
+          tail -n 10 consumer.log
+          tail -n 10 producer.log
 
           # The ls will error if the file does not exist, in case
           # commands above failed
