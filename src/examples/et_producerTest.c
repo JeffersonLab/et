@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <getopt.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
@@ -38,11 +39,15 @@ int main(int argc,char **argv) {
 
     int i, j, c, i_tmp, status, junkData, numRead, locality;
     int startingVal=0, errflg=0, group=1, chunk=1, size=32, writeData=0, localEndian=1;
+    int useFile=0, stopAfterOne=0;
     int delay=0, remote=0, multicast=0, broadcast=0, broadAndMulticast=0;
     int sendBufSize=0, recvBufSize=0, noDelay=0, blast=0, noAllocFlag=0;
     int debugLevel = ET_DEBUG_ERROR, version = 4;
     unsigned short port=0;
     char et_name[ET_FILENAME_LENGTH], host[256], interface[16], localAddr[16];
+    char filePath[PATH_MAX];
+    size_t fileSize=0;
+    void *fileData = NULL;
 
     uint32_t *fakeData;
 
@@ -84,8 +89,9 @@ int main(int argc,char **argv) {
     memset(interface, 0, 16);
     memset(mcastAddr, 0, mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
+    memset(filePath, 0, PATH_MAX);
 
-    while ((c = getopt_long_only(argc, argv, "vbmhrn:a:s:p:d:f:c:g:i:w:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vbmhrn:a:s:p:d:f:c:g:i:w:F:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -119,6 +125,16 @@ int main(int argc,char **argv) {
                     localEndian = 0;
                 }
 printf("arg w = %d\n", localEndian);
+                break;
+
+            case 'F':
+                if (strlen(optarg) >= PATH_MAX) {
+                    fprintf(stderr, "Path to input file is too long\n");
+                    exit(-1);
+                }
+                strcpy(filePath, optarg);
+                useFile = 1;
+                writeData = 1;
                 break;
 
             case 'd':
@@ -260,7 +276,7 @@ printf("arg w = %d\n", localEndian);
                 "\nusage: %s  %s\n%s\n%s\n%s\n%s\n%s\n%s\n\n",
                 argv[0], "-f <ET name>",
                 "                     [-h] [-v] [-r] [-m] [-b] [-nd] [-blast]",
-                "                     [-host <ET host>] [-w <local endian? 0/1>]",
+                "                     [-host <ET host>] [-w <local endian? 0/1>] [-F <evio file>]",
                 "                     [-s <event size>] [-c <chunk size>] [-g <group>]",
                 "                     [-d <delay>] [-p <ET port>] [-ver <evio version>]",
                 "                     [-i <interface address>] [-a <mcast addr>]",
@@ -272,6 +288,7 @@ printf("arg w = %d\n", localEndian);
         fprintf(stderr, "          -h     help\n");
         fprintf(stderr, "          -v     verbose output\n\n");
 
+        fprintf(stderr, "          -F     read bytes from this evio file and send them unchanged (single pass)\n");
         fprintf(stderr, "          -s     event size in bytes\n");
         fprintf(stderr, "          -c     number of events in one get/put array\n");
         fprintf(stderr, "          -g     group from which to get new events (1,2,...)\n");
@@ -302,28 +319,68 @@ printf("arg w = %d\n", localEndian);
         exit(2);
     }
 
-    /* fake data for blasting */
-    fakeData = (uint32_t *) malloc(size);
-    if (fakeData == NULL) {
-        printf("%s: out of memory\n", argv[0]);
-        exit(1);
+    /* If sending an existing evio file, read it once up front */
+    if (useFile) {
+        struct stat st;
+        if (stat(filePath, &st) != 0) {
+            perror("stat on input file");
+            exit(1);
+        }
+        fileSize = (size_t) st.st_size;
+        if (fileSize == 0) {
+            printf("%s: input file is empty\n", argv[0]);
+            exit(1);
+        }
+        if (fileSize > (size_t) INT_MAX) {
+            printf("%s: input file is too large (%zu bytes) to fit in one ET event\n",
+                   argv[0], fileSize);
+            exit(1);
+        }
+        fileData = malloc(fileSize);
+        if (fileData == NULL) {
+            printf("%s: out of memory reading file\n", argv[0]);
+            exit(1);
+        }
+        FILE *fp = fopen(filePath, "rb");
+        if (fp == NULL) {
+            perror("fopen input file");
+            exit(1);
+        }
+        size_t nread = fread(fileData, 1, fileSize, fp);
+        fclose(fp);
+        if (nread != fileSize) {
+            printf("%s: could not read entire file, read %zu of %zu bytes\n", argv[0], nread, fileSize);
+            exit(1);
+        }
+        /* Use file bytes as the event payload */
+        size = (int) fileSize;
+        fakeData = (uint32_t *) fileData;
+        printf("Loaded %zu bytes from %s\n", fileSize, filePath);
+        stopAfterOne = 1;
     }
+    else {
+        /* fake data for blasting */
+        fakeData = (uint32_t *) malloc(size);
+        if (fakeData == NULL) {
+            printf("%s: out of memory\n", argv[0]);
+            exit(1);
+        }
 
-    if (version == 4) {
-        // EVIO VERSION 4
-        printf("Using evio version 4\n");
+        if (version == 4) {
+            // EVIO VERSION 4
+            printf("Using evio version 4\n");
 
-        // little endian
-        if (localEndian) {
-            // Fake user event in evio block
-            fakeData[0] = 12;
-            fakeData[1] = 1;
-            fakeData[2] = 8;
-            fakeData[3] = 1;
-            fakeData[4] = 0;
-            fakeData[5] = 0x1204; // version = 4, last block bit, user event
-            fakeData[6] = 0;
-            fakeData[7] = 0xc0da0100;
+            // little endian
+            if (localEndian) {
+                // Fake user event in evio block
+                fakeData[0] = 12;
+                fakeData[1] = 1;
+                fakeData[2] = 8;
+                fakeData[3] = 1;
+                fakeData[4] = 0;
+                fakeData[5] = 0x1204; // version = 4, last block bit, user event
+                fakeData[6] = 0;
+                fakeData[7] = 0xc0da0100;
 
             // bad format
             fakeData[8] = 300;  // length is too big
@@ -428,7 +485,7 @@ printf("arg w = %d\n", localEndian);
             fakeData[17] = ET_SWAP32(8);
         }
     }
-
+    }
 
     /* delay is in milliseconds */
     if (delay > 0) {
@@ -680,6 +737,11 @@ printf("arg w = %d\n", localEndian);
 
         count += numRead;
 
+        /* If we were asked to send a single payload (file), exit after first round */
+        if (useFile && stopAfterOne) {
+            break;
+        }
+
         if (delay > 0) {
             nanosleep(&timeout, NULL);
         }
@@ -729,8 +791,10 @@ printf("arg w = %d\n", localEndian);
         }
 
     } /* while(1) */
-    
-  
+
+    /* normal termination (e.g., after single file send) */
+    return 0;
+
     error:
 
     printf("%s: ERROR\n", argv[0]);

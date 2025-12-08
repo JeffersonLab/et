@@ -40,6 +40,7 @@ int main(int argc,char **argv) {
     int             i, j, c, i_tmp, status, numRead, locality;
     int             flowMode=ET_STATION_SERIAL, position=ET_END, pposition=ET_END;
     int             errflg=0, chunk=1, qSize=0, verbose=0, remote=0, blocking=1, dump=0, readData=0;
+    int             saveToFile=0;
     int             multicast=0, broadcast=0, broadAndMulticast=0;
     int		        con[ET_STATION_SELECT_INTS];
     int             sendBufSize=0, recvBufSize=0, noDelay=0;
@@ -47,6 +48,8 @@ int main(int argc,char **argv) {
     unsigned short  port=0;
     char            stationName[ET_STATNAME_LENGTH], et_name[ET_FILENAME_LENGTH], host[256], interface[16];
     char            localAddr[16];
+    char            outFile[PATH_MAX];
+    FILE            *outfp = NULL;
 
     int             mcastAddrCount = 0, mcastAddrMax = 10;
     char            mcastAddr[mcastAddrMax][16];
@@ -89,8 +92,9 @@ int main(int argc,char **argv) {
     memset(mcastAddr, 0, (size_t) mcastAddrMax*16);
     memset(et_name, 0, ET_FILENAME_LENGTH);
     memset(stationName, 0, ET_STATNAME_LENGTH);
+    memset(outFile, 0, PATH_MAX);
 
-    while ((c = getopt_long_only(argc, argv, "vbmhrn:s:p:f:c:q:a:i:", long_options, 0)) != EOF) {
+    while ((c = getopt_long_only(argc, argv, "vbmhrn:s:p:f:c:q:a:i:O:", long_options, 0)) != EOF) {
 
         if (c == -1)
             break;
@@ -234,6 +238,15 @@ int main(int argc,char **argv) {
                 readData = 1;
                 break;
 
+            case 'O':
+                if (strlen(optarg) >= PATH_MAX) {
+                    fprintf(stderr, "Output file path too long\n");
+                    exit(-1);
+                }
+                strcpy(outFile, optarg);
+                saveToFile = 1;
+                break;
+
             case 'v':
                 verbose = 1;
                 debugLevel = ET_DEBUG_INFO;
@@ -274,7 +287,7 @@ int main(int argc,char **argv) {
                 "                     [-host <ET host>] [-p <ET port>]",
                 "                     [-c <chunk size>] [-q <Q size>]",
                 "                     [-pos <station pos>] [-ppos <parallel station pos>]",
-                "                     [-i <interface address>] [-a <mcast addr>]",
+                "                     [-i <interface address>] [-a <mcast addr>] [-O <output file>]",
                 "                     [-rb <buf size>] [-sb <buf size>]");
 
         fprintf(stderr, "          -f    ET system's (memory-mapped file) name\n");
@@ -302,6 +315,7 @@ int main(int argc,char **argv) {
         fprintf(stderr, "          -rb   TCP receive buffer size (bytes)\n");
         fprintf(stderr, "          -sb   TCP send    buffer size (bytes)\n");
         fprintf(stderr, "          -nd   use TCP_NODELAY option\n\n");
+        fprintf(stderr, "          -O    write each event payload to this file (raw bytes)\n\n");
 
         fprintf(stderr, "          This consumer works by making a direct connection to the\n");
         fprintf(stderr, "          ET system's server port and host unless at least one multicast address\n");
@@ -482,6 +496,16 @@ int main(int argc,char **argv) {
         goto error;
     }
 
+    /* open output file if requested */
+    if (saveToFile) {
+        outfp = fopen(outFile, "wb");
+        if (outfp == NULL) {
+            perror("fopen output file");
+            goto error;
+        }
+        printf("Writing incoming event payloads to %s\n", outFile);
+    }
+
 
     /* read time for future statistics calculations */
 #if defined __APPLE__
@@ -552,6 +576,13 @@ int main(int argc,char **argv) {
                 bytes += len;
                 totalBytes += len;
 
+                if (saveToFile && outfp != NULL) {
+                    if (fwrite(data, 1, len, outfp) != len) {
+                        printf("%s: failed to write to %s\n", argv[0], outFile);
+                        goto error;
+                    }
+                }
+
                 if (verbose) {
                     printf("data byte order = %s\n", (endian == ET_ENDIAN_BIG ? "BIG" : "LITTLE"));
                     if (swap) {
@@ -572,13 +603,17 @@ int main(int argc,char **argv) {
         }
         else {
             size_t len;
-//            unsigned int *data;
+            unsigned int *data = NULL;
             for (j = 0; j < numRead; j++) {
                 et_event_getlength(pe[j], &len);
 
-//                et_event_getdata(pe[j], (void **) &data);
-//                printf(" Got an Event of total length %d bytes\n",len);
-//                printf(" 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",data[0],data[1],data[2],data[3],data[4],data[5],data[6]);
+                if (saveToFile && outfp != NULL) {
+                    et_event_getdata(pe[j], (void **) &data);
+                    if (fwrite(data, 1, len, outfp) != len) {
+                        printf("%s: failed to write to %s\n", argv[0], outFile);
+                        goto error;
+                    }
+                }
 
                 /* include ET overhead by adding commented out portions */
                 bytes += len /* +52 */;
@@ -664,7 +699,15 @@ int main(int argc,char **argv) {
 
     } /* while(1) */
 
+    if (outfp != NULL) {
+        fclose(outfp);
+    }
+    return 0;
+
     error:
+    if (outfp != NULL) {
+        fclose(outfp);
+    }
     printf("%s: ERROR\n", argv[0]);
     return 0;
 }

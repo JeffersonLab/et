@@ -37,17 +37,20 @@ jobs:
           # launch processes with delays, capturing logs
           ./build/bin/et_start -f /tmp/et_ci_localtest -v > et_start.log 2>&1 &
           echo "Waiting for ET to start..."
-          sleep 2
+          sleep 5
           ./build/bin/CITest_local_producer -f /tmp/et_ci_localtest -v > producer.log 2>&1 &
-          sleep 2
+          sleep 5
           ./build/bin/CITest_local_consumer -f /tmp/et_ci_localtest -v > consumer.log 2>&1 &
-          sleep 2
+          sleep 5
           ./build/bin/et_killer -f /tmp/et_ci_localtest -host local
+          sleep 5
           
-            echo "Logs from ET start, producer, consumer:"
-            tail -n 10 et_start.log
-            tail -n 10 consumer.log
-            tail -n 10 producer.logs
+          echo "Logs from ET start:"
+          tail -n 10 et_start.log
+          echo "Logs from ET producer:"
+          tail -n 10 producer.log
+          echo "Logs from ET consumer:"
+          tail -n 10 consumer.log
 
           # The ls will error if the file does not exist, in case
           # commands above failed
