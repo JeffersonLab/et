@@ -27,8 +27,7 @@ int main() {
     }
 
     // Attach to Grand Central station of ET system (as is typical for producer)
-    et_att_id attach;
-    if (et_station_attach(id, ET_GRANDCENTRAL, &attach) != ET_OK) {
+    if (et_station_attach(id, ET_GRANDCENTRAL, &attach_id_producer) != ET_OK) {
         fprintf(stderr, "Error attaching to GRAND_CENTRAL\n");
         et_system_close(id);
         exit(1);
